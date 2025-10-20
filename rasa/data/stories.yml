@@ -96,30 +96,34 @@ stories:
       - active_loop: null
       - action: utter_gracias_continuar
 
+  # 📧 saludo y envío de correo
   - story: saludo y envío de correo
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: enviar_correo
-    - action: utter_enviar_correo
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: enviar_correo
+      - action: utter_enviar_correo
 
-- story: saludo y envío de teléfono
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: enviar_telefono
-    - action: utter_enviar_telefono
+  # 📞 saludo y envío de teléfono
+  - story: saludo y envío de teléfono
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: enviar_telefono
+      - action: utter_enviar_telefono
 
-- story: saludo y envío de cédula
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: enviar_cedula
-    - action: utter_enviar_cedula
+  # 🪪 saludo y envío de cédula
+  - story: saludo y envío de cédula
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: enviar_cedula
+      - action: utter_enviar_cedula
 
-- story: saludo y envío de url
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - intent: enviar_url
-    - action: utter_enviar_url
+  # 🔗 saludo y envío de url
+  - story: saludo y envío de url
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: enviar_url
+      - action: utter_enviar_url

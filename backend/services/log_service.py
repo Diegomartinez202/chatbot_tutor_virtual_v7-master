@@ -6,8 +6,13 @@ from datetime import datetime
 from collections import defaultdict
 
 from backend.db.mongodb import get_logs_collection
-from backend.config.settings import LOG_DIR
+# ❌ Evita import circular de LOG_DIR
+# from backend.config.settings import LOG_DIR
+from backend.config.settings import settings
 from backend.utils.file_utils import save_csv_to_s3_and_get_url
+
+# Mantener variable original para no tocar el resto del código
+LOG_DIR = settings.log_dir
 
 
 # 📂 Utilidades de archivos locales

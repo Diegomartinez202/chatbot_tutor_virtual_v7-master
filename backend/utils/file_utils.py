@@ -49,3 +49,16 @@ def save_csv_s3_and_local(csv_text: str, filename_prefix: str = "export") -> tup
 
     csv_bytes.seek(0)
     return csv_bytes, archivo_url
+
+
+# ─────────────────────────────────────────────────────────────
+# Compatibilidad: alias esperado por services/log_service.py
+# (No elimina lógica: solo expone el nombre histórico)
+# ─────────────────────────────────────────────────────────────
+def save_csv_to_s3_and_get_url(csv_text: str, filename_prefix: str = "export") -> str:
+    """
+    Compat: devuelve solo la URL, manteniendo la firma esperada.
+    Invoca internamente a save_csv_s3_and_local.
+    """
+    _bytes, url = save_csv_s3_and_local(csv_text, filename_prefix=filename_prefix)
+    return url
