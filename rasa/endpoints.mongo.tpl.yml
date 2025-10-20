@@ -1,9 +1,26 @@
-﻿# version: "3.1"
+﻿
 action_endpoint:
   url: "${ACTION_SERVER_URL}"
 
 tracker_store:
-  type: mongo
+  # Clase explícita para evitar warnings con el alias "mongo"
+  type: rasa.core.tracker_store.MongoTrackerStore
   url: "${TRACKER_MONGO_URL}"
   db: "${TRACKER_MONGO_DB}"
   collection: "${TRACKER_MONGO_COLLECTION}"
+  # Si usas autenticación en Mongo, define estas 3 variables en .env (si no, quedan vacías)
+  username: "${TRACKER_MONGO_USERNAME:-}"
+  password: "${TRACKER_MONGO_PASSWORD:-}"
+  auth_source: "${TRACKER_MONGO_AUTHSOURCE:-}"
+
+event_broker:
+  # Usa RabbitMQ con el broker "pika" (recomendado por Rasa)
+  type: pika
+  # Si ya tienes RABBITMQ_URL en .env, se usa tal cual.
+  # Si no, fallback a guest/guest en el host "rabbitmq" del compose.
+  url: "${RABBITMQ_URL:-amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/}"
+  # Opcional: si quieres personalizar nombres, descomenta y ajusta:
+  # queues:
+  #   - rasa_events
+  # exchange: rasa
+  # routing_key: rasa_events

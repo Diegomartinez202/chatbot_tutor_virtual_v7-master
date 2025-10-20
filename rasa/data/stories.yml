@@ -2,20 +2,13 @@
 
 stories:
 
-  # 👋 Saludo → cursos recomendados
-  - story: Saludo → Recomendados
+  # 👋 Saludo → recomendados + carrusel (unificación para evitar conflicto)
+  - story: Saludo → Recomendados + Carrusel
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: explorar_temas
       - action: utter_cursos_recomendados
-
-  # 👋 Saludo → carrusel de cursos
-  - story: Saludo → Carrusel cursos
-    steps:
-      - intent: saludo
-      - action: utter_saludo
-      - intent: explorar_temas
       - action: utter_cursos_carousel
 
   # 🔎 Explorar directo → Carrusel
@@ -96,12 +89,13 @@ stories:
       - active_loop: null
       - action: utter_gracias_continuar
 
-  # 📧 saludo y envío de correo
+  # 📧 saludo y envío de correo (coherente con la regla: acción + utter)
   - story: saludo y envío de correo
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: enviar_correo
+      - action: action_enviar_correo
       - action: utter_enviar_correo
 
   # 📞 saludo y envío de teléfono

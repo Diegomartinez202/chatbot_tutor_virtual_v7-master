@@ -2,20 +2,21 @@ FROM rasa/rasa:3.6.20-full
 
 USER root
 
-# 📦 Instala paquetes mínimos + curl para healthcheck
+# 📦 Paquetes mínimos + curl para healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base curl \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 🧩 Instala dependencias adicionales para tracker_store y event_broker
-RUN pip install --no-cache-dir pymongo redis
-
+# 🧩 Dependencias para tracker_store (Mongo) y event_broker (Redis)
+RUN pip install --no-cache-dir "redis>=4.5" "pymongo[srv]==3.13.0"
+RUN pip install --no-cache-dir pika
 # 📁 Copia el proyecto Rasa completo
 COPY . /app
 
 # 🧾 Copia entrypoint y plantillas de endpoints
+# (Se mantienen aunque el compose monta el template correcto; esto no interfiere)
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml

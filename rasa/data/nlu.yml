@@ -323,3 +323,26 @@ nlu:
     - necesito ayuda con el acceso
     - deseo enviar un ticket de soporte
     - reportar un incidente técnico
+- intent: enviar_cedula
+  examples: |
+    - mi cédula es [1234567890](cedula)
+    - cédula [987654321](cedula)
+    - número de documento [1020304050](cedula)
+
+- intent: enviar_numero
+  examples: |
+    - el número es [42](numero)
+    - mi número es [1234](numero)
+    - [56789](numero)
+
+- intent: enviar_telefono
+  examples: |
+    - mi teléfono es [3001234567](telefono)
+    - celular [3119876543](telefono)
+    - número de contacto [3200001111](telefono)
+
+- intent: enviar_url
+  examples: |
+    - la url es [https://ejemplo.com](url)
+    - visita [http://mi-sitio.test](url)
+    - [https://dominio.com/ruta](url)

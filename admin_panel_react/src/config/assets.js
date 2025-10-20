@@ -1,5 +1,5 @@
 // Centraliza rutas públicas servidas desde /public con BASE_URL estable
-const BASE = (import.meta.env?.BASE_URL ?? "/").replace(/\/+$/, "/");
+const BASE = (import.meta.env?.BASE_URL ?? window.location.origin + "/").replace(/\/+$/, "/");
 
 // Resuelve contra <base href> y garantiza un path único (soporta subcarpetas)
 const abs = (p) => new URL(p.replace(/^\/+/, ""), BASE).pathname;

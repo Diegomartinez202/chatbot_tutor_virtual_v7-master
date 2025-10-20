@@ -132,52 +132,101 @@ rules:
       - intent: inscribirme
       - action: utter_confirmacion_inscripcion
 
-  # 📧 Enviar correo directo
-  - rule: Enviar correo directo
+  # 📧 Enviar correo: UNIFICADO (acción + respuesta)
+  - rule: Enviar correo (acción y confirmación)
     steps:
       - intent: enviar_correo
       - action: action_enviar_correo
-
-  # 🛠️ Enviar soporte directo y confirmar
-  - rule: Enviar soporte directo
-    steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
-
-  # 🚨 Fallback (intent personalizado)
-  - rule: Fallback
-    steps:
-      - intent: fallback
-      - action: utter_default
-
-  # 📨 Respuestas a datos proporcionados por el usuario
-  - rule: Responder cuando usuario envía correo
-    steps:
-      - intent: enviar_correo
       - action: utter_enviar_correo
 
+  # 📞 Teléfono
   - rule: Responder cuando usuario envía teléfono
     steps:
       - intent: enviar_telefono
       - action: utter_enviar_telefono
 
+  # 🪪 Cédula
   - rule: Responder cuando usuario envía cédula
     steps:
       - intent: enviar_cedula
       - action: utter_enviar_cedula
 
+  # 🔢 Número
   - rule: Responder cuando usuario envía número
     steps:
       - intent: enviar_numero
       - action: utter_enviar_numero
 
+  # 🔗 URL
   - rule: Responder cuando usuario envía url
     steps:
       - intent: enviar_url
       - action: utter_enviar_url
 
-  - rule: Fallback default
+  # 🚨 Fallback (UNIFICADO: ejecuta ambas respuestas en orden)
+  - rule: Fallback unificado
     steps:
       - intent: fallback
+      - action: utter_default
       - action: utter_fallback
+
+  # ─────────────────────────────────────────────
+  # Reglas mínimas (placeholders) para utterances/intents “no usados”
+  # ─────────────────────────────────────────────
+
+  - rule: Pedir correo (placeholder)
+    steps:
+      - intent: saludo
+      - action: utter_pedir_correo
+
+  - rule: Pedir email (placeholder)
+    steps:
+      - intent: saludo
+      - action: utter_ask_email
+
+  - rule: Pedir nombre (placeholder)
+    steps:
+      - intent: saludo
+      - action: utter_ask_nombre
+
+  - rule: Pedir mensaje (placeholder)
+    steps:
+      - intent: saludo
+      - action: utter_ask_mensaje
+
+  - rule: Estado estudiante (placeholder)
+    steps:
+      - intent: estado_estudiante
+      - action: utter_estado_estudiante
+
+  - rule: Necesita auth (placeholder)
+    steps:
+      - intent: ver_certificados
+      - action: utter_need_auth
+
+  - rule: Confirmación soporte (placeholder)
+    steps:
+      - intent: soporte_tecnico
+      - action: utter_soporte_confirm
+
+  - rule: Error soporte (placeholder)
+    steps:
+      - intent: soporte_tecnico
+      - action: utter_soporte_error
+
+  # Intents no usados antes: affirm, auth_login, enviar_soporte
+  - rule: Affirm genérico (placeholder)
+    steps:
+      - intent: affirm
+      - action: utter_gracias_continuar
+
+  - rule: Auth login (placeholder)
+    steps:
+      - intent: auth_login
+      - action: utter_saludo
+
+  - rule: Enviar soporte directo (placeholder)
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm

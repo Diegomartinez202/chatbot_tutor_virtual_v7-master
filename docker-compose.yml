@@ -12,6 +12,7 @@ volumes:
   mongo-data: {}
   _docker_data_mongo: {}
   redis-data: {}
+  rabbitmq-data: {}
 
 # ============================================================
 # Servicios
@@ -52,6 +53,25 @@ services:
       - app-net
 
   # ------------------------------------------------------------
+  # RabbitMQ (Event Broker)
+  # ------------------------------------------------------------
+  rabbitmq:
+    profiles: ["build","prod"]
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # UI de gestión
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
   # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
   action-server:
@@ -84,11 +104,27 @@ services:
       RASA_PORT: "5005"
       RASA_AUTOTRAIN: "false"
       ENDPOINTS_TEMPLATE: "mongo"
+
+      # Tracker (Mongo)
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
+      # 👉 si usas auth en mongo, márcalas en tu .env:
+      # TRACKER_MONGO_USERNAME: ""
+      # TRACKER_MONGO_PASSWORD: ""
+      # TRACKER_MONGO_AUTHSOURCE: "admin"
+
+      # Event Broker (RabbitMQ)
+      RABBITMQ_URL: "amqp://rabbitmq:5672/"
+      RABBITMQ_USER: "${RABBITMQ_USER:-guest}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
+      # RABBITMQ_QUEUE: "rasa_events"
+      # RABBITMQ_EXCHANGE: "rasa"
+      # RABBITMQ_ROUTING_KEY: "rasa_events"
     depends_on:
       - action-server
+      - rabbitmq
+      - mongo     # 👈 añadido para asegurar tracker disponible
     ports:
       - "5005:5005"
     networks:
@@ -99,9 +135,11 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      - ./rasa/endpoints.yml:/app/endpoints.mongo.tpl.yml:ro
+      # 👇 Usar el template correcto que acabamos de definir
+      - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
-      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q version"]
+      # 👈 reemplazado wget por curl (tu imagen ya lo trae)
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
       timeout: 5s
       start_period: 300s
@@ -165,7 +203,7 @@ services:
         APP_USER: appuser
     container_name: backend-dev
     restart: unless-stopped
-    user: "${UID-10001}:${GID-10001}"   # <-- opcional, evita choques de permisos en bind mount
+    user: "${UID-10001}:${GID-10001}"
     env_file:
       - ./backend/.env
     environment:
