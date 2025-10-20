@@ -1,0 +1,278 @@
+Embed Guide — Chatbot Tutor Virtual (texto plano)
+
+Este documento explica cómo incrustar el chat en sitios externos con el launcher (botón flotante) y la página chat-embed.html.
+Incluye snippets en versión segura (entidades HTML) para evitar que tu editor/IDE los interprete como JSX/JS/HTML.
+
+Archivos relevantes (frontend)
+
+public/chat-widget.js → launcher público (botón flotante + panel con iframe).
+
+public/chat-embed.html → contenedor canónico del chat (iframe → /chat?embed=1).
+
+public/bot-avatar.png, public/bot-loading.png, public/favicon.ico, public/site.webmanifest.
+
+Variables de entorno (frontend)
+
+Transporte:
+
+VITE_CHAT_TRANSPORT=rest o ws
+
+VITE_RASA_WS_URL=wss://tu-servidor-de-rasa/ws (si usas WS)
+
+VITE_CHAT_REST_URL=/api/chat (proxy REST a backend)
+
+Seguridad postMessage:
+
+VITE_ALLOWED_HOST_ORIGINS=https://app.zajuna.edu,http://localhost:5173
+
+Avatares:
+
+VITE_BOT_AVATAR=/bot-avatar.png
+
+VITE_USER_AVATAR=/user-avatar.png (opcional)
+
+Backend (resumen ya integrado)
+
+/chat-embed.html y assets se redirigen al dominio del frontend (FRONTEND_SITE_URL).
+
+CSP/iframe: usa FRAME_ANCESTORS, EMBED_ALLOWED_ORIGINS, FRONTEND_SITE_URL, EMBED_ENABLED=true.
+
+CORS: ALLOWED_ORIGINS debe incluir los dominios que incrustan el widget.
+
+1) Launcher (botón flotante) — snippet seguro (entidades HTML)
+
+Entre [INICIO] y [FIN] está el snippet “seguro”.
+Para usarlo en producción, reemplaza &lt; por < y &gt; por >.
+
+[INICIO]
+<script src="/chat-widget.js"
+          data-chat-url="/chat-embed.html?src=%2Fchat%3Fembed%3D1"
+          data-avatar="/bot-avatar.png"
+          data-title="Abrir chat"
+          data-position="bottom-right"
+          data-panel-width="380px"
+          data-panel-height="560px"
+          data-allowed-origins="https://tu-sitio.com,https://app.zajuna.edu"
+          data-login-url="https://zajuna.edu/login"
+          data-badge="auto"
+          defer></script>
+[FIN]
+
+Notas:
+
+data-allowed-origins debe contener el origin de la página donde corre el iframe (y el del panel, si es otro).
+
+data-login-url permite redirigir a SSO si no hay token.
+
+data-badge="auto" activa el contador de mensajes no leídos.
+
+2) Embed directo (iframe) — snippet seguro (entidades HTML)
+
+[INICIO]
+<iframe   src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&w=380px&h=560px"
+          title="Chatbot"
+          allow="clipboard-write"
+          referrerpolicy="no-referrer"
+          sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+          style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden">
+</iframe>
+[FIN]
+
+3) Handshake de autenticación (cómo funciona)
+
+El iframe del chat envía: postMessage({ type: "auth:needed" }) al host.
+
+El launcher intenta resolver un token (ej.: window.getZajunaToken() o localStorage.zajuna_token) y responde: postMessage({ type: "auth:token", token }).
+
+Si no hay token y está definido data-login-url, el launcher redirige a esa URL (con ?redirect=<url-actual>
+    ).
+
+    Requisitos:
+
+    VITE_ALLOWED_HOST_ORIGINS en el frontend y CSP/iframe en el backend deben incluir tu dominio anfitrión.
+
+    El backend acepta Authorization: Bearer <token>
+    en /api/chat.
+
+    4) Transporte (REST / WebSocket)
+
+    REST (default):
+    VITE_CHAT_TRANSPORT=rest
+    VITE_CHAT_REST_URL=/api/chat
+
+    WS:
+    VITE_CHAT_TRANSPORT=ws
+    VITE_RASA_WS_URL=wss://tu-servidor-de-rasa/ws
+
+    El ChatUI y el launcher seleccionan transporte por VITE_CHAT_TRANSPORT.
+
+    5) Smoke test (rápido)
+
+    Dev: npm run dev → abre http://localhost:5173/chat (envía un mensaje).
+
+    Embed: http://localhost:5173/chat-embed.html?src=/chat%3Fembed%3D1.
+
+    Launcher externo: pega el snippet del punto 1 en una página simple y verifica:
+
+    Aparece el botón.
+
+    Al clic se abre el panel con el iframe.
+
+    El badge cuenta no leídos si usas data-badge="auto".
+
+    6) Problemas comunes (y solución)
+
+    El editor muestra errores tipo JSX/TSX: estás visualizando snippets como código. Usa estos snippets con entidades HTML (no son código).
+
+    No carga el iframe: revisa CSP → FRAME_ANCESTORS / EMBED_ALLOWED_ORIGINS.
+
+    401/403 al enviar mensajes**: el host debe pasar auth:token o permitir modo anónimo.
+
+    No aparece badge: usa data-badge="auto" y asegúrate de que el postMessage llegue al launcher (orígenes permitidos correctos).
+
+    7) Tabla de atributos del launcher (chat-widget.js)
+    Atributo	Tipo	Default	Descripción
+    data-chat-url	string	/chat-embed.html?src=%2Fchat%3Fembed%3D1	URL del embed a cargar en el panel.
+    data-avatar	string	/bot-avatar.png	Imagen del botón flotante.
+    data-title	string	Abrir chat	Texto accesible/tooltip del botón.
+    data-position	string	bottom-right	bottom-right o bottom-left.
+    data-size	number	64	Tamaño (px) del botón.
+    data-offset	number	24	Separación al borde (px).
+    data-z-index	number	2147483600	Z-index del launcher.
+    data-panel-width	string	380px	Ancho del panel.
+    data-panel-height	string	560px	Alto del panel.
+    data-overlay	boolean	true	Fondo semitransparente al abrir.
+    data-close-on-esc	boolean	true	Cerrar con tecla Escape.
+    data-iframe-title	string	Chat	Atributo title del iframe.
+    data-allow	string	clipboard-write	allow del iframe.
+    data-sandbox	string	allow-scripts allow-forms allow-same-origin allow-popups	Sandbox del iframe.
+    data-allowed-origins	csv	[] (usa origin del iframe si vacío)	Orígenes autorizados para postMessage.
+    data-login-url	string	""	URL de login (SSO) si falta token.
+    data-badge	string/num	""	"" (off), "auto" (no leídos), o número fijo.
+    data-autoinit	boolean	true	Monta automáticamente al cargar el script.
+    8) Checklist producción
+
+    FRAME_ANCESTORS y EMBED_ALLOWED_ORIGINS incluyen dominios externos.
+
+    ALLOWED_ORIGINS (CORS) permite llamadas desde panel/launcher.
+
+    FRONTEND_SITE_URL apunta al panel (redir de /chat-embed.html y assets).
+
+    .env frontend con transporte correcto (rest/ws) y URLs válidas.
+
+    Handshake de login probado (token → backend).
+
+    Tests E2E pasando (local y/o CI).
+
+    9) Dónde ubicar esta guía
+
+    Guárdala como EMBED_GUIDE.md en la raíz del repo.
+    Enlázala desde tu README.md principal con: “Ver EMBED_GUIDE.md para integrar el widget”.
+
+    10) Convertir los snippets a HTML real
+
+    Si necesitas las etiquetas reales, pega el snippet en tu editor y reemplaza:
+
+    &lt; → <
+
+    &gt; → >
+
+    (La razón de usar entidades aquí es evitar que tu editor/IDE lo trate como código y muestre warnings/errores.)
+    📸 Capturas de ejemplo (opcional, recomendado)
+
+    Dónde guardarlas: crea la carpeta docs/embed/ en la raíz del repo y coloca allí las imágenes.
+    Cómo referenciarlas en el README/guías: usa rutas relativas en Markdown:
+
+    ![Launcher (cerrado)](docs/embed/launcher-closed.png)
+    ![Panel (abierto)](docs/embed/launcher-open.png)
+    ![Embed standalone](docs/embed/embed-standalone.png)
+    ![Vista móvil](docs/embed/mobile.png)
+    ![SSO/redirect](docs/embed/sso-redirect.png)
+
+    Lista sugerida de capturas (nombres propuestos):
+
+    launcher-closed.png — botón flotante en la esquina (desktop).
+
+    launcher-open.png — panel abierto mostrando el iframe.
+
+    embed-standalone.png — página con chat-embed.html funcionando (sin launcher).
+
+    mobile.png — ejemplo responsivo en viewport ~375px.
+
+    badge.png — contador de no leídos activo (data-badge="auto").
+
+    sso-redirect.png — pantalla justo antes/después del login (si usas data-login-url).
+
+    Tip: si ya tienes Playwright, puedes generar capturas con page.screenshot({ path: 'docs/embed/launcher-open.png' }) al final de tus tests E2E.
+
+    🔧 Parámetros de chat-embed.html (query string)
+
+    chat-embed.html acepta algunos parámetros de query. Además, reenvía (forward) ciertos parámetros al iframe interno (el /chat?embed=1) para que el backend/proxy los reciba.
+
+    Parámetro	Tipo	Default	Ejemplo	¿Se reenvía al iframe interno?	Descripción
+    src	string (URL o ruta)	/chat?embed=1	/chat%3Fembed%3D1	Sí (como parte del src final)	De dónde cargar el chat interno. Acepta absoluto o relativo. Si omites, usa el chat interno estándar.
+    w	string (CSS)	380px	400px	No	Ancho visual del contenedor embebido (wrapper). No afecta al contenido interno, solo al marco.
+    h	string (CSS)	560px	70vh	No	Alto visual del contenedor embebido.
+    api	string (URL base)	—	https://backend.tuapp.com/api	Sí	Base de API/Proxy que usa el chat interno (si lo soportas).
+    user_id	string	—	alumno-123	Sí	Identificador del usuario (si decides manejar sesiones anónimas o tracking).
+    avatar	string (URL)	—	/bot-avatar.png	Sí	Avatar del bot para el UI/iframe, si el internal lo soporta.
+
+    Nota: En la implementación actual, se reenvían explícitamente estos keys: api, user_id, avatar.
+    src, w, h se consumen en el wrapper: src para construir la URL final del iframe; w/h solo ajustan el tamaño del marco.
+
+    Ejemplos listos (con entidades HTML)
+
+    Embed básico (usa el chat interno):
+
+    &lt;iframe
+    src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&amp;w=380px&amp;h=560px"
+    title="Chatbot"
+    allow="clipboard-write"
+    referrerpolicy="no-referrer"
+    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+    style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden"&gt;
+    &lt;/iframe&gt;
+
+
+    Embed con reenvío de api y user_id:
+
+    &lt;iframe
+    src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&amp;api=https%3A%2F%2Fbackend.tuapp.com%2Fapi&amp;user_id=alumno-123"
+    title="Chatbot"
+    allow="clipboard-write"
+    referrerpolicy="no-referrer"
+    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+    style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden"&gt;
+    &lt;/iframe&gt;
+
+
+    Embed ancho/alto personalizados (viewport units):
+
+    &lt;iframe
+    src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&amp;w=92vw&amp;h=70vh"
+    title="Chatbot"
+    allow="clipboard-write"
+    referrerpolicy="no-referrer"
+    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+    style="width:92vw;height:70vh;border:0;border-radius:16px;overflow:hidden"&gt;
+    &lt;/iframe&gt;
+
+    FAQ de tamaños
+
+    w/h aplican al wrapper externo del embed.
+
+    Si el contenido interno necesita layout responsivo, maneja breakpoints dentro de tu app del chat.
+
+    En móviles, puedes preferir w=94vw y h=70vh.
+
+    Notas de seguridad
+
+    Mantén referrerpolicy="no-referrer" y un sandbox estricto (allow-scripts allow-forms allow-same-origin allow-popups).
+
+    Verifica que los dominios que hospedan el embed estén en:
+
+    FRAME_ANCESTORS / EMBED_ALLOWED_ORIGINS (backend → CSP/iframe)
+
+    ALLOWED_ORIGINS (backend → CORS, para llamadas REST)
+
+    VITE_ALLOWED_HOST_ORIGINS (frontend → postMessage seguro)

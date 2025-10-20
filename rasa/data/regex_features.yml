@@ -1,0 +1,22 @@
+﻿version: "3.1"
+
+nlu:
+- regex: email
+  examples: |
+    - [A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}
+
+- regex: telefono
+  examples: |
+    - \d{10}
+
+- regex: cedula
+  examples: |
+    - \d{6,10}
+
+- regex: numero
+  examples: |
+    - \d+
+
+- regex: url
+  examples: |
+    - https?://[A-Za-z0-9./?=&_%:-]+

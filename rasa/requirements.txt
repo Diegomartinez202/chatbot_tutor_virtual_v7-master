@@ -1,0 +1,14 @@
+# 🧠 Action Server para Rasa
+FROM rasa/rasa-sdk:3.6.2
+
+WORKDIR /app/actions
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["start", "--actions", "actions"]
+
+spacy==3.7.2
+es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl

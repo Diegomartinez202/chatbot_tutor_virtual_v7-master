@@ -1,0 +1,6 @@
+rasa-sdk==3.6.2
+requests>=2.32,<3
+pydantic>=1.10,<2
+# Solo si REALMENTE usas spaCy en actions.py:
+# spacy==3.7.2
+# es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl

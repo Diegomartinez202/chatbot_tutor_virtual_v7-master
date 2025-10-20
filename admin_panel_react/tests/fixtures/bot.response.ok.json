@@ -1,0 +1,11 @@
+[
+  { "text": "¡Claro! Te ayudo con fracciones en el curso de Matemáticas Básicas." },
+  {
+    "buttons": [
+      {
+        "title": "1/2 + 1/3",
+        "payload": "/resolver_12_13"
+      }
+    ]
+  }
+]

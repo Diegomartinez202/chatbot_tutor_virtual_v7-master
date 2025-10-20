@@ -1,0 +1,8 @@
+// 📁 LOGS
+export const getLogsList = () => apiClient.get("/admin/logs").then(res => res.data);
+
+export const downloadLogFile = (filename) =>
+    apiClient.get(`/admin/logs/${filename}`, { responseType: "blob" }).then(res => res.data);
+
+export const exportLogsCSV = () =>
+    apiClient.get("/admin/logs/export", { responseType: "blob" }).then(res => res.data);

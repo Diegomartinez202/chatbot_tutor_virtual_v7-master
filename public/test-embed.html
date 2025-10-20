@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Test — Chatbot Tutor Virtual (embed)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <style>
+        body {
+            font: 14px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+            margin: 0;
+            padding: 24px;
+        }
+
+        .hint {
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .box {
+            padding: 12px;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        a {
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test — Chatbot Tutor Virtual</h1>
+    <p class="hint">
+        Este archivo carga el <strong>launcher</strong> del frontend (dev) y abre el <strong>embed</strong> del backend.
+        Haz clic en el botón flotante con el avatar (abajo a la derecha).
+    </p>
+
+    <div class="box">
+        <div><strong>Requisitos en local:</strong></div>
+        <ul>
+            <li>Frontend Vite: <code>http://localhost:5173</code> sirviendo <code>/chat-widget.js</code> y <code>/bot-avatar.png</code></li>
+            <li>Backend FastAPI: <code>http://localhost:8000</code> sirviendo <code>/chat-embed.html</code> y <code>/static/widgets/widget.html</code></li>
+        </ul>
+    </div>
+
+    <!--
+      🔧 DEV (doble clic): usa rutas ABSOLUTAS a localhost
+      Cambia "demo-user" si quieres simular otro usuario.
+    -->
+    <script src="http://localhost:5173/chat-widget.js"
+            data-avatar="http://localhost:5173/bot-avatar.png"
+            data-chat-url="http://localhost:8000/chat-embed.html?src=%2Fstatic%2Fwidgets%2Fwidget.html&api=%2Fapi&user_id=demo-user&avatar=%2Fbot-avatar.png"
+            data-title="Abrir chat"
+            data-position="bottom-right"
+            data-size="64"
+            data-panel-width="380px"
+            data-panel-height="560px"
+            data-overlay="true"
+            data-close-on-esc="true"
+            data-badge="auto"
+            defer></script>
+
+    <!--
+      🏭 PRODUCCIÓN (cuando publiques):
+      1) Copia este mismo archivo a tu frontend Vite en /public/test-embed.html
+      2) Cambia el src del script a /chat-widget.js y la data-chat-url a tus dominios.
+
+      Ejemplo:
+      <script
+        src="/chat-widget.js"
+        data-avatar="/bot-avatar.png"
+        data-chat-url="https://TU-BACKEND/chat-embed.html?src=%2Fstatic%2Fwidgets%2Fwidget.html&api=%2Fapi&user_id=demo-user&avatar=%2Fbot-avatar.png"
+        defer
+      ></script>
+    -->
+</body>
+</html>

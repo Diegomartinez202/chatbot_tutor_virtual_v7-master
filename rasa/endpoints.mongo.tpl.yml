@@ -1,0 +1,9 @@
+﻿# version: "3.1"
+action_endpoint:
+  url: "${ACTION_SERVER_URL}"
+
+tracker_store:
+  type: mongo
+  url: "${TRACKER_MONGO_URL}"
+  db: "${TRACKER_MONGO_DB}"
+  collection: "${TRACKER_MONGO_COLLECTION}"

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+
+    <title>Chatbot Tutor Virtual — Panel</title>
+    <meta name="description" content="Panel de administración del Chatbot Tutor Virtual." />
+    <meta name="application-name" content="Chatbot Tutor Virtual" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- iOS / PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chatbot Tutor Virtual" />
+    <meta property="og:title" content="Chatbot Tutor Virtual — Panel" />
+    <meta property="og:description" content="Administra tu Chatbot Tutor Virtual." />
+    <meta property="og:image" content="/android-chrome-512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <!-- Se actualizará dinámicamente abajo -->
+    <meta property="og:url" content="/" id="og-url" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chatbot Tutor Virtual — Panel" />
+    <meta name="twitter:description" content="Administra tu Chatbot Tutor Virtual." />
+    <meta name="twitter:image" content="/android-chrome-512x512.png" />
+
+    <!-- (Opcional) Preload de imágenes del chatbot -->
+    <link rel="preload" as="image" href="/bot-avatar.png" />
+    <link rel="preload" as="image" href="/bot-loading.png" />
+
+    <!-- og:url dinámico desde env (Vite) o fallback a origin -->
+    <script type="module">
+        const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || (location.origin + "/");
+        const meta = document.getElementById("og-url");
+        if (meta) meta.setAttribute("content", SITE_URL);
+        // (Opcional) expone transporte de chat para debugging
+        window.__CHAT_TRANSPORT__ = import.meta.env.VITE_CHAT_TRANSPORT || "rest";
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

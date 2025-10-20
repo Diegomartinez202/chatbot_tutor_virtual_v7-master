@@ -1,0 +1,181 @@
+﻿version: "3.1"
+
+rules:
+
+  # 👋 Saludo inicial
+  - rule: Saludo
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+
+  # 🔐 Ingreso a Zajuna (preguntar tipo de ayuda)
+  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_preguntar_problema_acceso
+
+  # 🚪 Otro problema de acceso → iniciar soporte
+  - rule: Otro problema de acceso → iniciar soporte
+    steps:
+      - intent: otro_problema_acceso
+      - action: utter_soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # 📚 Menú proceso académico
+  - rule: Menú proceso académico
+    steps:
+      - intent: proceso_academico
+      - action: utter_menu_proceso_academico
+
+  # 👩‍🏫 Tutor asignado (público)
+  - rule: Tutor asignado (público)
+    steps:
+      - intent: tutor_asignado
+      - action: utter_tutor_asignado
+
+  # 🔑 Verificación de auth centralizada
+  - rule: Estado estudiante (verifica auth)
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth
+
+  - rule: Ver certificados (verifica auth)
+    steps:
+      - intent: ver_certificados
+      - action: action_check_auth
+
+  # 🛠️ Forms de soporte desde varios intents
+  - rule: Iniciar soporte (soporte_tecnico)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (otro_problema_tecnico)
+    steps:
+      - intent: otro_problema_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (no_ingreso)
+    steps:
+      - intent: problema_no_ingreso
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (pantalla_blanca)
+    steps:
+      - intent: pantalla_blanca
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (error_actividad)
+    steps:
+      - intent: error_actividad
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # ✅ Submit soporte_form (mismo orden que stories)
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
+
+  # 🔑 Recovery form
+  - rule: Iniciar recovery_form
+    steps:
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+  - rule: Submit recovery_form
+    condition:
+      - active_loop: recovery_form
+    steps:
+      - action: recovery_form
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
+
+  # 🙋 Escalado humano
+  - rule: Confirmar escalado a humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: action_conectar_humano
+      - action: utter_confirmar_escalado
+
+  - rule: Negar escalado a humano
+    steps:
+      - intent: negar_escalar
+      - action: utter_gracias_continuar
+
+  # 🌐 Cambio de idioma
+  - rule: Cambiar a inglés
+    steps:
+      - intent: cambiar_idioma_ingles
+      - action: utter_cambio_idioma_ingles
+
+  - rule: Cambiar a español
+    steps:
+      - intent: cambiar_idioma_espanol
+      - action: utter_cambio_idioma_espanol
+
+  # 📝 Inscribirme
+  - rule: Inscribirme
+    steps:
+      - intent: inscribirme
+      - action: utter_confirmacion_inscripcion
+
+  # 📧 Enviar correo directo
+  - rule: Enviar correo directo
+    steps:
+      - intent: enviar_correo
+      - action: action_enviar_correo
+
+  # 🛠️ Enviar soporte directo y confirmar
+  - rule: Enviar soporte directo
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm
+
+  # 🚨 Fallback (intent personalizado)
+  - rule: Fallback
+    steps:
+      - intent: fallback
+      - action: utter_default
+  - rule: Responder cuando usuario envía correo
+  steps:
+    - intent: enviar_correo
+    - action: utter_enviar_correo
+
+- rule: Responder cuando usuario envía teléfono
+  steps:
+    - intent: enviar_telefono
+    - action: utter_enviar_telefono
+
+- rule: Responder cuando usuario envía cédula
+  steps:
+    - intent: enviar_cedula
+    - action: utter_enviar_cedula
+
+- rule: Responder cuando usuario envía número
+  steps:
+    - intent: enviar_numero
+    - action: utter_enviar_numero
+
+- rule: Responder cuando usuario envía url
+  steps:
+    - intent: enviar_url
+    - action: utter_enviar_url
+
+- rule: Fallback default
+  steps:
+    - intent: fallback
+    - action: utter_fallback

@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+dist/
+build/
+.coverage
+pytest_cache/
+.mypy_cache/
+.idea/
+.vscode/
+.git/
+.gitignore
+
+# artefactos varios
+logs/
+tests/

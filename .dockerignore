@@ -1,0 +1,87 @@
+# ───────────────────────────────────────────────
+# CONTROL DE VERSIONES
+# ───────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ───────────────────────────────────────────────
+# NODE / REACT (Frontend y Admin Panel)
+# ───────────────────────────────────────────────
+**/node_modules
+**/.npm
+**/.yarn
+**/.next
+**/dist
+**/build
+**/.vite
+**/.cache
+admin_panel_react/node_modules
+admin_panel_react/dist
+admin_panel_react/build
+admin_panel_react/.vite
+admin_panel_react/.next
+admin_panel_react/.cache
+
+# ───────────────────────────────────────────────
+# PYTHON / BACKEND
+# ───────────────────────────────────────────────
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/venv
+**/.coverage*
+*.pyc
+*.pyo
+*.pyd
+
+# ───────────────────────────────────────────────
+# RASA (archivos de entrenamiento pesados)
+# ───────────────────────────────────────────────
+rasa/models
+rasa/.rasa
+rasa/.cache
+models/
+.rasa/
+
+# ───────────────────────────────────────────────
+# LOGS, TEMPORALES Y SALIDAS
+# ───────────────────────────────────────────────
+logs
+*.log
+tmp
+.cache
+.DS_Store
+Thumbs.db
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# ───────────────────────────────────────────────
+# DOCKER / BUILD CACHE
+# ───────────────────────────────────────────────
+**/.docker-cache
+docker-compose.override.yml
+docker-compose.dev.yml
+.env.local
+.env.test
+
+# ───────────────────────────────────────────────
+# IDE / EDITORES
+# ───────────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+
+# ───────────────────────────────────────────────
+# SEGURIDAD / CONFIGURACIONES SENSIBLES
+# (si las manejas en local)
+# ───────────────────────────────────────────────
+**/secrets.json
+**/credentials.json
+**/.env
+**/.env.*

@@ -1,0 +1,30 @@
+import os
+import pandas as pd
+
+# Crear carpeta de test si no existe
+os.makedirs("/mnt/data/test", exist_ok=True)
+
+# Crear DataFrame con intents de prueba
+df = pd.DataFrame({
+    "intent": ["saludo", "despedida", "agradecimiento", "ayuda"],
+    "examples": [
+        "hola\\nbuen día\\nqué tal",
+        "adiós\\nhasta luego\\nnos vemos",
+        "gracias\\nmuchas gracias\\nmuy amable",
+        "necesito ayuda\\npuedes ayudarme\\ntengo una duda"
+    ],
+    "responses": [
+        "¡Hola! ¿En qué puedo ayudarte?\\nBienvenido al sistema.",
+        "¡Hasta pronto!\\nGracias por visitarnos.",
+        "Con gusto.\\nPara eso estamos. 😊",
+        "Claro, dime en qué necesitas ayuda.\\nEstoy aquí para asistirte."
+    ]
+})
+
+# Guardar como archivo CSV dentro de carpeta de test
+csv_test_path = "/mnt/data/test/intents_ejemplo.csv"
+df.to_csv(csv_test_path, index=False)
+
+csv_test_path
+Resultado
+'/mnt/data/test/intents_ejemplo.csv'

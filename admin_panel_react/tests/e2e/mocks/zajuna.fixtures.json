@@ -1,0 +1,42 @@
+{
+  "faqs": [
+    {
+      "q": "¿Cómo recupero mi contraseña en Zajuna?",
+      "a": "Ingresa a Zajuna → 'Olvidé mi contraseña' → escribe tu correo institucional y sigue el enlace que te llega por email."
+    },
+    {
+      "q": "¿Dónde veo mis certificados?",
+      "a": "Entra a Zajuna → Perfil → 'Certificados'. También puedes pedírselos al chatbot con el intent 'certificados'."
+    },
+    {
+      "q": "¿Cómo me inscribo a un curso?",
+      "a": "Explora el catálogo → selecciona el curso → 'Inscribirme'. Si hay cupos limitados, el sistema lo indicará."
+    }
+  ],
+  "cursos": [
+    {
+      "id": "ZJ-101",
+      "titulo": "Fundamentos de Programación",
+      "descripcion": "Introducción a variables, estructuras de control y funciones.",
+      "duracion": "6 semanas",
+      "modalidad": "Virtual",
+      "url": "https://zajuna.edu/cursos/ZJ-101"
+    },
+    {
+      "id": "ZJ-205",
+      "titulo": "Bases de Datos con MongoDB",
+      "descripcion": "Modelado de datos, índices y agregaciones en MongoDB.",
+      "duracion": "4 semanas",
+      "modalidad": "Virtual",
+      "url": "https://zajuna.edu/cursos/ZJ-205"
+    },
+    {
+      "id": "ZJ-310",
+      "titulo": "Despliegue en Railway con Docker",
+      "descripcion": "Contenerización, variables de entorno y CI/CD básico.",
+      "duracion": "3 semanas",
+      "modalidad": "Virtual",
+      "url": "https://zajuna.edu/cursos/ZJ-310"
+    }
+  ]
+}

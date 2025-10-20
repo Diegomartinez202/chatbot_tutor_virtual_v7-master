@@ -1,0 +1,198 @@
+# Embed Guide — Chatbot Tutor Virtual (texto plano)
+
+Guía para incrustar el chat con **launcher** (botón flotante) y con **chat-embed.html** (iframe canónico).
+Incluye snippets con **entidades HTML** para que editores no los confundan con JSX/TSX.
+
+**Orden de carga recomendado en el host:**
+1) `chat-widget.js` (launcher)
+2) `chat-telemetry.sample.js` (telemetría opcional)
+
+---
+
+## Archivos relevantes (frontend)
+- `public/chat-widget.js` → launcher público (botón flotante + panel con iframe).
+- `public/chat-embed.html` → contenedor del chat (`iframe` → `/chat?embed=1`).
+- `public/bot-avatar.png`, `public/bot-loading.png`, `public/favicon.ico`, `public/site.webmanifest`.
+- *(Opcional)* `public/zajuna-widget.js` y `public/zajuna-widget.webc.js` → alternativa (script o Web Component). **No reemplazan** nada existente.
+
+## Variables de entorno (frontend)
+**Transporte**
+- `VITE_CHAT_TRANSPORT=rest|ws`
+- `VITE_RASA_WS_URL=wss://tu-servidor-de-rasa/ws` (si usas WS)
+- `VITE_CHAT_REST_URL=/api/chat` (proxy REST a backend)
+
+**Seguridad postMessage**
+- `VITE_ALLOWED_HOST_ORIGINS=https://app.zajuna.edu,http://localhost:5173`
+
+**Avatares**
+- `VITE_BOT_AVATAR=/bot-avatar.png`
+- `VITE_USER_AVATAR=/user-avatar.png` *(opcional)*
+
+## Backend (resumen)
+- `chat-embed.html` y assets públicos se sirven desde el **frontend** (ej. `FRONTEND_SITE_URL`).
+- **CSP/iframe**: `FRAME_ANCESTORS`, `EMBED_ALLOWED_ORIGINS`, `EMBED_ENABLED=true`.
+- **CORS**: `ALLOWED_ORIGINS` debe incluir los dominios que incrustan el widget.
+
+---
+
+## 1) Launcher (botón flotante) — snippet seguro (entidades HTML)
+
+**Usa entidades HTML**. En producción reemplaza `&lt;` → `<` y `&gt;` → `>
+    `.
+
+    [INICIO]
+    &lt;script
+    src="/chat-widget.js"
+    data-chat-url="/chat-embed.html?src=%2Fchat%3Fembed%3D1&amp;w=380px&amp;h=560px"
+    data-avatar="/bot-avatar.png"
+    data-title="Abrir chat"
+    data-position="bottom-right"
+    data-panel-width="380px"
+    data-panel-height="560px"
+    data-allowed-origins="https://tu-sitio.com,https://app.zajuna.edu"
+    data-login-url="https://zajuna.edu/login"
+    data-badge="auto"
+    defer&gt;&lt;/script&gt;
+    [FIN]
+
+    **Notas**
+    - `data-allowed-origins` = orígenes autorizados donde corre el *host* y/o el *iframe*.
+    - `data-login-url` = SSO si falta token.
+    - `data-badge="auto"` = contador de no leídos.
+
+    ---
+
+    ## 2) Embed directo (iframe) — snippet seguro (entidades HTML)
+
+    [INICIO]
+    &lt;iframe
+    src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&amp;w=380px&amp;h=560px"
+    title="Chatbot"
+    allow="clipboard-write"
+    referrerpolicy="no-referrer"
+    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+    style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden"&gt;
+    &lt;/iframe&gt;
+    [FIN]
+
+    ---
+
+    ## 3) Handshake de autenticación (cómo funciona)
+    1. El iframe envía `postMessage({ type: "auth:needed" })` al host.
+    2. El launcher intenta resolver un token (`window.getZajunaToken()` o `localStorage.zajuna_token`) y responde `postMessage({ type: "auth:token", token })`.
+    3. Si no hay token y `data-login-url` está definido, redirige a login con `?redirect=<url-actual>
+        `.
+
+        **Requisitos**
+        - `VITE_ALLOWED_HOST_ORIGINS` (frontend) y CSP/iframe (backend) con el dominio anfitrión.
+        - El backend debe aceptar `Authorization: Bearer <token>
+            ` en `/api/chat`.
+
+            ---
+
+            ## 4) Transporte (REST / WebSocket)
+            - **REST (default)**
+            `VITE_CHAT_TRANSPORT=rest`
+            `VITE_CHAT_REST_URL=/api/chat`
+            - **WS**
+            `VITE_CHAT_TRANSPORT=ws`
+            `VITE_RASA_WS_URL=wss://tu-servidor-de-rasa/ws`
+
+            ---
+
+            ## 5) Parámetros de `chat-embed.html` (reenviados al chat interno)
+            `chat-embed.html` acepta query params y reenvía *algunos* al `src` interno (`/chat?embed=1`).
+
+            | Parámetro          | Tipo   | Default         | Ejemplo                                 | ¿Forward? | Descripción                                      |
+            |--------------------|--------|-----------------|------------------------------------------|:---------:|--------------------------------------------------|
+            | `src`              | string | `/chat?embed=1` | `/chat%3Fembed%3D1`                      |    ✔️     | URL del chat interno.                            |
+            | `w`                | string | `380px`         | `92vw`                                   |    ✖️     | Ancho del **wrapper** externo.                   |
+            | `h`                | string | `560px`         | `70vh`                                   |    ✖️     | Alto del **wrapper** externo.                    |
+            | `api`              | string | —               | `https://backend.tuapp.com/api`          |    ✔️     | Base de API/proxy del chat (si procede).         |
+            | `user_id`          | string | —               | `alumno-123`                             |    ✔️     | Identificador de usuario (tracking/sesiones).    |
+            | `avatar`           | string | —               | `/bot-avatar.png`                        |    ✔️     | Avatar del bot para el UI interno.               |
+            | `persona`          | string | —               | `aprendiz`                               |    ✔️     | Perfil/rol para el chat.                         |
+            | `initial_message`  | string | —               | `hola`                                   |    ✔️     | Mensaje inicial inyectado (si procede).          |
+            | `lang`             | string | —               | `es`                                     |    ✔️     | Idioma inicial (si procede).                     |
+
+            > Nota: `w/h` se aplican solo al marco externo; la UI interna maneja su propio layout responsivo.
+
+            ---
+
+            ## 6) Telemetría (opcional)
+            Desde el launcher puedes emitir eventos (`widget_opened`, `widget_closed`, `badge`).
+            Ejemplo incluido: `public/chat-telemetry.sample.js` (usa `navigator.sendBeacon("/telemetry", payload)`).
+
+            **Orden recomendado:**
+            ```html
+            <script src="/chat-widget.js" data-chat-url="/chat-embed.html?src=%2Fchat%3Fembed%3D1" defer></script>
+            <script src="/chat-telemetry.sample.js" defer></script>
+            7) Atributos del launcher (chat-widget.js)
+            Atributo	Tipo	Default	Descripción
+            data-chat-url	string	/chat-embed.html?src=%2Fchat%3Fembed%3D1	URL del embed dentro del panel.
+            data-avatar	string	/bot-avatar.png	Imagen del botón flotante.
+            data-title	string	Abrir chat	Texto accesible del botón.
+            data-position	string	bottom-right	bottom-right o bottom-left.
+            data-size	number	64	Tamaño del botón (px).
+            data-offset	number	24	Separación al borde (px).
+            data-z-index	number	2147483600	Z-index.
+            data-panel-width	string	380px	Ancho del panel.
+            data-panel-height	string	560px	Alto del panel.
+            data-overlay	boolean	true	Fondo semitransparente al abrir.
+            data-close-on-esc	boolean	true	Cierra con Esc.
+            data-iframe-title	string	Chat	Atributo title del iframe.
+            data-allow	string	clipboard-write	allow del iframe.
+            data-sandbox	string	allow-scripts allow-forms allow-same-origin allow-popups	Sandbox.
+            data-allowed-origins	csv	[] (usa origin del iframe si vacío)	Orígenes autorizados (postMessage).
+            data-login-url	string	""	URL de SSO si falta token.
+            data-badge	string/num	"" | "auto" | número	Badge no leídos.
+            data-autoinit	boolean	true	Montaje automático.
+
+            8) Smoke test (rápido)
+            Dev: npm run dev → http://localhost:5173/chat.
+
+            Embed: http://localhost:5173/chat-embed.html?src=/chat%3Fembed%3D1.
+
+            Launcher: pega el snippet del punto 1 en una página y verifica botón, panel y badge.
+
+            9) Problemas comunes
+            Errores JSX/TSX en editor: son snippets con entidades HTML; no son código.
+
+            Iframe no carga: revisar CSP → FRAME_ANCESTORS / EMBED_ALLOWED_ORIGINS.
+
+            401/403 al enviar: el host debe pasar auth:token o permitir modo anónimo.
+
+            No hay badge: habilita data-badge="auto" y valida orígenes permitidos en postMessage.
+
+            10) Dónde ubicar esta guía
+            Guárdala como EMBED_GUIDE.md en la raíz del repo.
+
+            Enlázala desde README.md: “Ver EMBED_GUIDE.md para integrar el widget”.
+
+            11) Ejemplos (entidades HTML)
+            Embed básico
+            <iframe src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&w=380px&h=560px"
+                    title="Chatbot"
+                    allow="clipboard-write"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+                    style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden">
+            </iframe>
+
+            Embed con api y user_id
+            <iframe src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&api=https%3A%2F%2Fbackend.tuapp.com%2Fapi&user_id=alumno-123"
+                    title="Chatbot"
+                    allow="clipboard-write"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+                    style="width:380px;height:560px;border:0;border-radius:16px;overflow:hidden">
+            </iframe>
+
+            Embed responsive (viewport units)
+            <iframe src="/chat-embed.html?src=%2Fchat%3Fembed%3D1&w=92vw&h=70vh"
+                    title="Chatbot"
+                    allow="clipboard-write"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+                    style="width:92vw;height:70vh;border:0;border-radius:16px;overflow:hidden">
+            </iframe>

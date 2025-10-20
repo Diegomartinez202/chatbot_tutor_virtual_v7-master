@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+
+    <title>Chatbot Tutor Virtual — Panel</title>
+    <meta name="description" content="Panel de administración del Chatbot Tutor Virtual." />
+    <meta name="application-name" content="Chatbot Tutor Virtual" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- iOS / PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Favicons / Manifest (href reales + data-base-href para build en subcarpetas) -->
+    <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" data-base-href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" data-base-href="favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" data-base-href="apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" data-base-href="site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chatbot Tutor Virtual" />
+    <meta property="og:title" content="Chatbot Tutor Virtual — Panel" />
+    <meta property="og:description" content="Administra tu Chatbot Tutor Virtual." />
+    <meta property="og:image" content="/android-chrome-512x512.png" data-base-content="android-chrome-512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:url" content="/" id="og-url" />
+
+    <!-- Prefetch (evita warning de preload no usado) -->
+    <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
+    <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
+
+    <!-- Ajustes dinámicos: og:url + reescritura BASE_URL + preloads condicionales -->
+    <script type="module">
+        // og:url
+        const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || (location.origin + "/");
+        const metaOgUrl = document.getElementById("og-url");
+        if (metaOgUrl) metaOgUrl.setAttribute("content", SITE_URL);
+
+        // Transporte de chat (debug)
+        window.__CHAT_TRANSPORT__ = import.meta.env.VITE_CHAT_TRANSPORT || "rest";
+
+        // Reescribe href/content de assets usando la base de Vite
+        const BASE = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "/");
+        const setBaseAttr = (selector, attr) => {
+            document.querySelectorAll(selector).forEach((el) => {
+                const key = `base-${attr}`;
+                const val = el.getAttribute(`data-${key}`);
+                if (!val) return;
+                const clean = String(val).replace(/^\/+/, "");
+                el.setAttribute(attr, BASE + clean);
+            });
+        };
+        setBaseAttr("link[data-base-href]", "href");
+        setBaseAttr("meta[data-base-content]", "content");
+
+        // Preloads condicionales: solo en /chat o si ?preloadBot=1
+        const shouldPreloadBot =
+            location.pathname.startsWith("/chat") ||
+            new URLSearchParams(location.search).get("preloadBot") === "1";
+
+        if (shouldPreloadBot) {
+            const ensurePreload = (href) => {
+                const found = Array.from(document.querySelectorAll('link[rel="preload"]'))
+                    .some((l) => l.getAttribute("href") === href);
+                if (found) return;
+                const l = document.createElement("link");
+                l.rel = "preload";
+                l.as = "image";
+                l.href = href;
+                document.head.appendChild(l);
+            };
+
+            const avatar =
+                document.querySelector('link[data-base-href="bot-avatar.png"]')?.getAttribute("href") ||
+                "/bot-avatar.png";
+            const loading =
+                document.querySelector('link[data-base-href="bot-loading.png"]')?.getAttribute("href") ||
+                "/bot-loading.png";
+
+            ensurePreload(avatar);
+            ensurePreload(loading);
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+    <!-- Vite reemplaza esto en build; en dev sirve /src/main.jsx -->
+    <script type="module" src="/src/main.jsx"></script>
+    <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
+</body>
+</html>

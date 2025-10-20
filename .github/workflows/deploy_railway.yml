@@ -1,0 +1,49 @@
+﻿name: Deploy to Railway (redeploy services)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - "rasa/**"
+      - "rasa_action_server/**"
+      - "admin_panel_react/**"
+      - ".github/workflows/deploy_railway.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SERVICES: "backend rasa action-server admin"  # cÃ¡mbialos si tus nombres difieren
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Login to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway login --token "$RAILWAY_TOKEN"
+
+      - name: Link project
+        env:
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: railway link --project "$RAILWAY_PROJECT_ID"
+
+      - name: Redeploy services
+        run: |
+          set -e
+          for SVC in $SERVICES; do
+            echo "ðŸš€ Redeploy $SVC"
+            if railway service redeploy --service "$SVC"; then
+              echo "âœ… $SVC redeployed"
+            else
+              echo "â†©ï¸  Fallback railway up for $SVC"
+              railway up --service "$SVC" --detach || echo "âš ï¸  No se pudo redeployar $SVC automÃ¡ticamente."
+            fi
+          done

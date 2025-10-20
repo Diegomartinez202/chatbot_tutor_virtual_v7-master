@@ -1,0 +1,125 @@
+﻿version: "3.1"
+
+stories:
+
+  # 👋 Saludo → cursos recomendados
+  - story: Saludo → Recomendados
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: explorar_temas
+      - action: utter_cursos_recomendados
+
+  # 👋 Saludo → carrusel de cursos
+  - story: Saludo → Carrusel cursos
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - intent: explorar_temas
+      - action: utter_cursos_carousel
+
+  # 🔎 Explorar directo → Carrusel
+  - story: Explorar directo → Carrusel
+    steps:
+      - intent: explorar_temas
+      - action: utter_cursos_carousel
+
+  # 📚 Mis cursos → recomendados + carrusel
+  - story: Mis cursos → Recomendados + Carrusel
+    steps:
+      - intent: explorar_temas
+      - action: utter_cursos_recomendados
+      - action: utter_cursos_carousel
+
+  # 🔐 Recuperar contraseña desde ingreso
+  - story: Recuperar contraseña desde ingreso
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_preguntar_problema_acceso
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+      - action: recovery_form
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
+
+  # 📚 Proceso académico completo
+  - story: Proceso académico completo
+    steps:
+      - intent: proceso_academico
+      - action: utter_menu_proceso_academico
+      - intent: tutor_asignado
+      - action: utter_tutor_asignado
+      - intent: ver_certificados
+      - action: action_check_auth
+      - intent: horarios_calendario
+      - action: utter_menu_proceso_academico
+
+  # 🙋 Escalar a humano (confirmado)
+  - story: Escalar a humano (confirmado)
+    steps:
+      - intent: escalar_humano
+      - action: utter_escalar_humano
+      - intent: confirmacion_escalar_humano
+      - action: action_conectar_humano
+      - action: utter_confirmar_escalado
+
+  # 🙅 Escalar a humano (negado)
+  - story: Escalar a humano (negado)
+    steps:
+      - intent: escalar_humano
+      - action: utter_escalar_humano
+      - intent: negar_escalar
+      - action: utter_gracias_continuar
+
+  # 🛠️ Soporte técnico (flujo completo)
+  - story: Soporte técnico (genérico)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
+
+  # ❌ Cancelar soporte_form
+  - story: Cancelar soporte_form
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+      - intent: deny
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar
+
+  - story: saludo y envío de correo
+  steps:
+    - intent: saludo
+    - action: utter_saludo
+    - intent: enviar_correo
+    - action: utter_enviar_correo
+
+- story: saludo y envío de teléfono
+  steps:
+    - intent: saludo
+    - action: utter_saludo
+    - intent: enviar_telefono
+    - action: utter_enviar_telefono
+
+- story: saludo y envío de cédula
+  steps:
+    - intent: saludo
+    - action: utter_saludo
+    - intent: enviar_cedula
+    - action: utter_enviar_cedula
+
+- story: saludo y envío de url
+  steps:
+    - intent: saludo
+    - action: utter_saludo
+    - intent: enviar_url
+    - action: utter_enviar_url

@@ -1,0 +1,19 @@
+[
+  {
+    "custom": {
+      "cards": [
+        {
+          "title": "Aula Zajuna — Fracciones",
+          "subtitle": "Nivel básico",
+          "image": "https://picsum.photos/seed/fracciones/600/300",
+          "buttons": [
+            {
+              "title": "Ir al curso",
+              "url": "https://zajuna.edu.co/curso/fracciones"
+            }
+          ]
+        }
+      ]
+    }
+  }
+] 

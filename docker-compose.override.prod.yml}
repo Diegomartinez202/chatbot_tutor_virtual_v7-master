@@ -1,0 +1,20 @@
+# docker-compose.override.dev.yml
+# Override adicional SOLO para desarrollo (con Nginx proxy en dev).
+# Se activa con:
+#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up --build
+
+services:
+  nginx-dev:
+    image: nginx:alpine
+    container_name: nginx-dev
+    restart: unless-stopped
+    volumes:
+      - ./ops/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend-dev
+      - admin-dev
+      - rasa
+    networks:
+      - app-net

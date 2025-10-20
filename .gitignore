@@ -1,0 +1,90 @@
+# ========================
+# SISTEMA GENERAL
+# ========================
+.env
+*.env
+*.env.*
+*.env.example
+*.log
+*.pyc
+__pycache__/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.bak
+*.zip
+*.rar
+
+# ========================
+# PYTHON
+# ========================
+*.egg-info/
+.eggs/
+*.egg
+.cache/
+dist/
+build/
+.mypy_cache/
+pytest_cache/
+.coverage
+*.sqlite3
+
+# Entornos virtuales
+env/
+.venv/
+venv/
+ENV/
+backend/.venv310/
+
+# ========================
+# CACHÉS DE PRUEBAS
+# ========================
+backend/test/__pycache__/
+tests/__pycache__/
+
+# ========================
+# RASA
+# ========================
+rasa/models/
+rasa/__pycache__/
+rasa/actions/__pycache__/
+rasa/actions/requirements.txt.bak
+
+# ========================
+# NODE / REACT (VITE)
+# ========================
+node_modules/
+admin-panel-react/node_modules/
+admin-panel-react/dist/
+admin-panel-react/.env.local
+
+# ========================
+# DOCKER
+# ========================
+docker/.env
+docker/mongo_data/
+docker/*-cache
+docker-compose.override.yml
+
+# ========================
+# VISUAL STUDIO
+# ========================
+.vs/
+*.user
+*.suo
+
+# ========================
+# SCRIPTS y TEMPORALES
+# ========================
+scripts/backup/
+*.tmp
+*.temp
+*.log
+
+# ========================
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO
+# ========================
+backend/.venv310/

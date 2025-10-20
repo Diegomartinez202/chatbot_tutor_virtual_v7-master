@@ -1,0 +1,28 @@
+﻿# docker-compose.override.dev.yml
+# Override adicional SOLO para desarrollo avanzado.
+# Se activa con:
+#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up --build
+
+services:
+  backend:
+    profiles: ["build"]
+    command: >
+      sh -lc "exec uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+
+  admin:
+    profiles: ["build"]
+    command: >
+      sh -lc "npm install && npm run dev -- --host --port 5173"
+
+  rasa:
+    profiles: ["build"]
+    # command: >
+    #   sh -lc "rasa run --enable-api --cors '*' --port 5005"
+
+  action-server:
+    profiles: ["build"]
+
+  nginx:
+    profiles: ["build"]
+    volumes:
+      - ./ops/nginx/conf.d:/etc/nginx/conf.d

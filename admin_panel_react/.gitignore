@@ -1,0 +1,29 @@
+# Node
+node_modules/
+dist/
+.vite/
+.vscode/
+.idea/
+.DS_Store
+
+# Tests / Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Coverage/Logs
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env (mantén SOLO el ejemplo)
+.env*
+!.env.example
+
+# Docs/visuals (si guardas capturas)
+docs/visuals/
+admin_panel_react/docs/visuals/*.png
+admin_panel_react/docs/visuals/*.jpg
+admin_panel_react/docs/visuals/*.webp
+admin_panel_react/docs/visuals/_archive/
