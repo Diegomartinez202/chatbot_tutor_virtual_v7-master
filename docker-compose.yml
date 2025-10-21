@@ -45,7 +45,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-admin123}
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - _docker_data_mongo:/data/db
     networks:

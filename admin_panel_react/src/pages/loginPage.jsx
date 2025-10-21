@@ -1,4 +1,3 @@
-// src/pages/LoginPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Input from "@/components/Input";
@@ -20,7 +19,7 @@ function LoginPage() {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, redirectToZajunaSSO } = useAuth(); // ✅ Incluye la función SSO
 
     useEffect(() => {
         // Título accesible de la página
@@ -62,11 +61,9 @@ function LoginPage() {
         }
     };
 
+    // ✅ Mejorado: usa la función central del hook
     const handleZajuna = () => {
-        if (ZAJUNA_SSO) {
-            // Ir a SSO de Zajuna: debe volver a /auth/callback con el token
-            window.location.href = ZAJUNA_SSO;
-        }
+        redirectToZajunaSSO();
     };
 
     const handleGuest = () => {
