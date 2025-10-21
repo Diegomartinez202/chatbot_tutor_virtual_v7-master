@@ -2,7 +2,7 @@
 
 rules:
 
-  # 👋 Saludo inicial
+  # 👋 Saludo inicial (REAL)
   - rule: Saludo
     steps:
       - intent: saludo
@@ -19,7 +19,6 @@ rules:
     steps:
       - intent: otro_problema_acceso
       - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
@@ -45,46 +44,35 @@ rules:
     steps:
       - intent: ver_certificados
       - action: action_check_auth
-      - action: utter_certificados_info
 
-  # 🛠️ Forms de soporte desde varios intents
+  # 🛠️ Forms de soporte
   - rule: Iniciar soporte (soporte_tecnico)
     steps:
       - intent: soporte_tecnico
-      - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (otro_problema_tecnico)
     steps:
       - intent: otro_problema_tecnico
-      - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (no_ingreso)
     steps:
       - intent: problema_no_ingreso
-      - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (pantalla_blanca)
     steps:
       - intent: pantalla_blanca
-      - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (error_actividad)
     steps:
       - intent: error_actividad
-      - action: utter_soporte_tecnico
-      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
@@ -99,7 +87,7 @@ rules:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  # ❌ Cancelar soporte_form (evita conflicto con historias)
+  # ❌ Interrumpir soporte_form con deny (sin conflicto con historias)
   - rule: Cancelar soporte_form (deny)
     condition:
       - active_loop: soporte_form
@@ -154,7 +142,7 @@ rules:
       - intent: inscribirme
       - action: utter_confirmacion_inscripcion
 
-  # 📧 Enviar correo: UNIFICADO (acción + respuesta)
+  # 📧 Enviar correo: acción + confirmación
   - rule: Enviar correo (acción y confirmación)
     steps:
       - intent: enviar_correo
@@ -185,18 +173,242 @@ rules:
       - intent: enviar_url
       - action: utter_enviar_url
 
-  # 🚨 Fallback (UNIFICADO)
+  # 🚨 Fallback
+  - rule: Fallback unificado
+    steps:
+      - intent: fallback
+      - action: utter_default
+      - action: utter_fallback
+  # Manejo del fallback NLU (cuando el clasificador no entiende)
+  - rule: NLU fallback (unificado)
+    steps:
+     - intent: nlu_fallback
+     - action: utter_default
+     - action: utter_fallback
+
+  # ─────────────────────────────────────────────
+  # Reglas extra para silenciar warnings de "no usado"
+  # ─────────────────────────────────────────────
+
+  - rule: Affirm genérico
+    steps:
+      - intent: affirm
+      - action: utter_gracias_continuar
+
+  - rule: Auth login (directo)
+    steps:
+      - intent: auth_login
+      - action: utter_saludo
+
+  - rule: Auth login (cmd)
+    steps:
+      - intent: auth_login_cmd
+      - action: utter_saludo
+
+  - rule: Enviar soporte directo
+    steps:
+      - intent: enviar_soporte_directo
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm
+
+  - rule: Enviar soporte (no directo)
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm
+ # 👋 Saludo
+  - rule: Saludo
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+
+  # 🔐 Ingreso a Zajuna (pregunta ayuda)
+  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_preguntar_problema_acceso
+
+  # 🚪 Otro problema de acceso → soporte
+  - rule: Otro problema de acceso → iniciar soporte
+    steps:
+      - intent: otro_problema_acceso
+      - action: utter_soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # 📚 Menú proceso académico
+  - rule: Menú proceso académico
+    steps:
+      - intent: proceso_academico
+      - action: utter_menu_proceso_academico
+
+  # 👩‍🏫 Tutor asignado
+  - rule: Tutor asignado (público)
+    steps:
+      - intent: tutor_asignado
+      - action: utter_tutor_asignado
+
+  # 🔑 Verificación de auth centralizada
+  - rule: Estado estudiante (verifica auth)
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth
+
+  - rule: Ver certificados (verifica auth)
+    steps:
+      - intent: ver_certificados
+      - action: action_check_auth
+
+  # 🛠️ Forms de soporte
+  - rule: Iniciar soporte (soporte_tecnico)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (otro_problema_tecnico)
+    steps:
+      - intent: otro_problema_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (no_ingreso)
+    steps:
+      - intent: problema_no_ingreso
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (pantalla_blanca)
+    steps:
+      - intent: pantalla_blanca
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Iniciar soporte (error_actividad)
+    steps:
+      - intent: error_actividad
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # ✅ Submit soporte_form
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
+
+  # ❌ Cancelar soporte_form con deny
+  - rule: Cancelar soporte_form (deny)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: deny
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar
+
+  # 🔑 Recovery form
+  - rule: Iniciar recovery_form
+    steps:
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+  - rule: Submit recovery_form
+    condition:
+      - active_loop: recovery_form
+    steps:
+      - action: recovery_form
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
+
+  # 🙋 Escalado humano
+  - rule: Confirmar escalado a humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: action_conectar_humano
+      - action: utter_confirmar_escalado
+
+  - rule: Negar escalado a humano
+    steps:
+      - intent: negar_escalar
+      - action: utter_gracias_continuar
+
+  # 🌐 Cambio de idioma
+  - rule: Cambiar a inglés
+    steps:
+      - intent: cambiar_idioma_ingles
+      - action: utter_cambio_idioma_ingles
+
+  - rule: Cambiar a español
+    steps:
+      - intent: cambiar_idioma_espanol
+      - action: utter_cambio_idioma_espanol
+
+  # 📝 Inscribirme
+  - rule: Inscribirme
+    steps:
+      - intent: inscribirme
+      - action: utter_confirmacion_inscripcion
+
+  # 📧 Enviar correo
+  - rule: Enviar correo (acción y confirmación)
+    steps:
+      - intent: enviar_correo
+      - action: action_enviar_correo
+      - action: utter_enviar_correo
+
+  # 📞 Teléfono / 🪪 Cédula / 🔢 Número / 🔗 URL
+  - rule: Responder cuando usuario envía teléfono
+    steps:
+      - intent: enviar_telefono
+      - action: utter_enviar_telefono
+
+  - rule: Responder cuando usuario envía cédula
+    steps:
+      - intent: enviar_cedula
+      - action: utter_enviar_cedula
+
+  - rule: Responder cuando usuario envía número
+    steps:
+      - intent: enviar_numero
+      - action: utter_enviar_numero
+
+  - rule: Responder cuando usuario envía url
+    steps:
+      - intent: enviar_url
+      - action: utter_enviar_url
+
+  # 🚨 Fallback manual (si usas intent fallback)
   - rule: Fallback unificado
     steps:
       - intent: fallback
       - action: utter_default
       - action: utter_fallback
 
-  # ─────────────────────────────────────────────
-  # Reglas con INTENTS DEDICADOS (evitan colisiones)
-  # ─────────────────────────────────────────────
+  # 🚨 Fallback NLU (cuando FallbackClassifier dispara 'nlu_fallback')
+  - rule: NLU fallback (unificado)
+    steps:
+      - intent: nlu_fallback
+      - action: utter_default
+      - action: utter_fallback
 
-  # Pedir datos sueltos
+  # ── Placeholders para “marcar uso” (evitar warnings) ──
+  - rule: Estado estudiante (informativo directo)
+    steps:
+      - intent: estado_estudiante_info
+      - action: utter_estado_estudiante
+
+  - rule: Necesita auth (informativo directo)
+    steps:
+      - intent: necesita_auth
+      - action: utter_need_auth
+
   - rule: Pedir correo (dedicado)
     steps:
       - intent: pedir_correo
@@ -217,18 +429,6 @@ rules:
       - intent: pedir_mensaje
       - action: utter_ask_mensaje
 
-  # Estados/auth “informativos”
-  - rule: Estado estudiante (informativo directo)
-    steps:
-      - intent: estado_estudiante_info
-      - action: utter_estado_estudiante
-
-  - rule: Necesita auth (informativo directo)
-    steps:
-      - intent: necesita_auth
-      - action: utter_need_auth
-
-  # Soporte confirmación / error “directos”
   - rule: Confirmación soporte (directo)
     steps:
       - intent: soporte_confirmar
@@ -239,19 +439,8 @@ rules:
       - intent: soporte_error
       - action: utter_soporte_error
 
-  # Intents extra para marcar como usados
-  - rule: Auth login (UI)
+  # (Opcional, para usar ese utter sin auth_check)
+  - rule: Certificados (info directa)
     steps:
-      - intent: auth_login
-      - action: utter_need_auth
-
-  - rule: Enviar soporte (clásico)
-    steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
-
-  - rule: Auth login (directo/cmd)
-    steps:
-      - intent: auth_login_cmd
-      - action: utter_saludo
+      - intent: ver_certificados
+      - action: utter_certificados_info

@@ -56,7 +56,7 @@ policies:
   # 1. Reglas: controlan comportamientos predefinidos
   - name: RulePolicy
     core_fallback_threshold: 0.3
-    core_fallback_action_name: "action_default_fallback"
+    core_fallback_action_name: "utter_default"
     enable_fallback_prediction: true
     check_for_contradictions: true
 

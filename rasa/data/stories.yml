@@ -11,10 +11,11 @@ stories:
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
-  # 🔎 Explorar directo → Carrusel
-  - story: Explorar directo → Carrusel
+  # 🔎 Explorar directo → (misma secuencia para evitar conflicto)
+  - story: Explorar directo → Recomendados + Carrusel
     steps:
       - intent: explorar_temas
+      - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
   # 📚 Mis cursos → recomendados + carrusel
@@ -65,6 +66,18 @@ stories:
       - action: utter_escalar_humano
       - intent: negar_escalar
       - action: utter_gracias_continuar
+
+  # 🛠️ Soporte técnico (flujo completo)
+  - story: Soporte técnico (genérico)
+    steps:
+      - intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+      - action: soporte_form
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
 
   # 📧 saludo y envío de correo (acción + utter)
   - story: saludo y envío de correo

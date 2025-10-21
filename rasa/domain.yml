@@ -213,8 +213,6 @@ responses:
   # --- Soporte técnico ---
   utter_soporte_tecnico:
     - text: "Entiendo. Vamos a tomar tus datos para ayudarte mejor."
-  utter_soporte_form_ok:
-    - text: "Perfecto. Abriré un formulario para registrar tu caso."
 
   utter_estado_estudiante:
     - text: "Estás activo para el periodo académico 2025-2."
@@ -222,6 +220,7 @@ responses:
   # --- Cambio de idioma ---
   utter_cambio_idioma_ingles:
     - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
+
   utter_cambio_idioma_espanol:
     - text: "Volvamos a Español."
 
@@ -236,6 +235,7 @@ responses:
 
   utter_confirmar_escalado:
     - text: "Te estoy conectando con un agente humano, por favor espera..."
+
   utter_gracias_continuar:
     - text: "Perfecto, sigamos aquí en el chat."
 
@@ -246,16 +246,17 @@ responses:
   # --- Fallback ---
   utter_default:
     - text: "No entendí eso. ¿Podrías reformularlo?"
-  utter_fallback:
-    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
-  # --- Prompts de slots del soporte_form ---
+  # --- Prompts del soporte_form (utter_ask_<slot>) ---
   utter_ask_nombre:
     - text: "¿Cuál es tu nombre completo?"
   utter_ask_email:
     - text: "¿Cuál es tu correo de contacto?"
   utter_ask_mensaje:
     - text: "Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
+
+  utter_soporte_form_ok:
+    - text: "Gracias. Estoy registrando tu solicitud..."
 
   utter_soporte_resumen:
     - text: |
@@ -265,8 +266,21 @@ responses:
 
   utter_soporte_creado:
     - text: "Ticket creado correctamente. Te enviaremos novedades a tu correo."
+
   utter_soporte_error:
     - text: "Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
+
+  # --- Autenticación requerida ---
+  utter_need_auth:
+    - text: "Necesitas iniciar sesión para ver esta información."
+      buttons:
+        - title: "Iniciar sesión"
+          payload: "/auth_login"
+    - custom:
+        type: "auth_needed"
+        message: "Necesitas iniciar sesión para continuar."
+
+  # --- Confirmación soporte directo ---
   utter_soporte_confirm:
     - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
 
@@ -281,6 +295,9 @@ responses:
     - text: "Número recibido: {numero}"
   utter_enviar_url:
     - text: "He registrado el enlace: {url}"
+
+  utter_fallback:
+    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
 actions:
   - action_enviar_correo

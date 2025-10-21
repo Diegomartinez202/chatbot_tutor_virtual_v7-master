@@ -1,0 +1,104 @@
+version: "3.1"
+nlu:
+
+# ===== Placeholders informativos =====
+- intent: estado_estudiante_info
+  examples: |
+    - ¿cuál es mi estado como estudiante?
+    - estado del estudiante
+    - ¿estoy activo este periodo?
+    - dime mi estado académico
+
+- intent: necesita_auth
+  examples: |
+    - me pide iniciar sesión
+    - no estoy logueado
+    - necesito autenticarme
+    - no tengo sesión iniciada
+
+# ===== Pedidos de datos sueltos =====
+- intent: pedir_correo
+  examples: |
+    - me pides el correo
+    - ¿te doy mi correo?
+    - cuál es tu correo
+    - te doy mi email
+
+- intent: pedir_email
+  examples: |
+    - te paso mi email
+    - mi email es
+    - correo electrónico
+
+- intent: pedir_nombre
+  examples: |
+    - te digo mi nombre
+    - mi nombre es
+    - cómo te digo mi nombre
+
+- intent: pedir_mensaje
+  examples: |
+    - te dejo el mensaje
+    - este es el mensaje
+    - te explico el problema
+
+# ===== Soporte directo =====
+- intent: soporte_confirmar
+  examples: |
+    - confirmado el soporte
+    - gracias por el soporte
+    - sí, envía el soporte
+
+- intent: soporte_error
+  examples: |
+    - falló el soporte
+    - hubo un error con el soporte
+    - no se pudo crear el ticket
+
+# ===== Auth y comandos =====
+- intent: auth_login_cmd
+  examples: |
+    - /login
+    - iniciar sesión ahora
+    - quiero loguearme
+
+- intent: enviar_soporte_directo
+  examples: |
+    - envía soporte directo
+    - mandar soporte ahora
+    - abre un ticket ya
+
+# ===== Fallback manual (si lo usas) =====
+- intent: fallback
+  examples: |
+    - no entiendo
+    - qué
+    - no sé
+    - ajá?
+
+# ===== Entidades básicas (ejemplos mínimos) =====
+- intent: enviar_correo
+  examples: |
+    - mi correo es [persona@correo.com](email)
+    - escribe a [info@zajuna.edu](email)
+    - usa [daniel@mail.com](email)
+
+- intent: enviar_telefono
+  examples: |
+    - mi teléfono es [3001234567](telefono)
+    - móvil [3209876543](telefono)
+
+- intent: enviar_cedula
+  examples: |
+    - mi cédula es [11223344](cedula)
+    - c.c [100200300](cedula)
+
+- intent: enviar_numero
+  examples: |
+    - el número es [42](numero)
+    - anota [98765](numero)
+
+- intent: enviar_url
+  examples: |
+    - revisa [https://zajuna.edu](url)
+    - te paso el enlace [http://example.com/recurso](url)
