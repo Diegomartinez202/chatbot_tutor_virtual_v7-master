@@ -26,7 +26,6 @@ intents:
   - inscribirme
   - enviar_correo
   - auth_login
-
   # Intents de fallback y confirmación
   - affirm
   - deny
@@ -36,8 +35,7 @@ intents:
   - enviar_cedula
   - enviar_numero
   - enviar_url
-
-  # Intents dedicados (para reglas placeholder, evitan choques)
+  # Intents dedicados (placeholders)
   - pedir_correo
   - pedir_email
   - pedir_nombre
@@ -55,6 +53,7 @@ entities:
   - cedula
   - numero
   - url
+  - nombre   # ⬅️ añadida porque la usas en NLU
 
 slots:
   email:
@@ -69,6 +68,8 @@ slots:
     type: text
     influence_conversation: false
     mappings:
+      - type: from_entity
+        entity: nombre
       - type: from_text
 
   mensaje:

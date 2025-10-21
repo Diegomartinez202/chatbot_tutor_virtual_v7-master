@@ -82,7 +82,7 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  # ✅ Submit soporte_form (ÚNICA regla de submit, con el OK extra)
+  # ✅ Submit soporte_form (única, con OK final)
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form

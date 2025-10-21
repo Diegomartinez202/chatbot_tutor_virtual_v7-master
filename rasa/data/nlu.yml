@@ -272,7 +272,14 @@ nlu:
     - acceder a mi cuenta
     - entrar con mi usuario
     - abrir el login
-- 
+
+# (Intent técnico para reglas, SIN solaparse con 'auth_login')
+- intent: auth_login_cmd
+  examples: |
+    - /auth_login
+    - auth login
+    - login ahora
+
 # ————— AFFIRM / DENY / FALLBACK
 - intent: affirm
   examples: |
@@ -359,7 +366,6 @@ nlu:
 # INTENTS DEDICADOS PARA PLACEHOLDERS (evitan choques)
 # ─────────────────────────────────────────────
 
-# Pedir datos sueltos (fuera de forms)
 - intent: pedir_correo
   examples: |
     - necesito darte mi correo
