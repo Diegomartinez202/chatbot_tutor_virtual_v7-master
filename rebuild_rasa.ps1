@@ -15,10 +15,10 @@ function Banner([string]$Text) {
   Write-Host "==== $Text ====" -ForegroundColor Cyan
 }
 
-function Run([string]$Exe, [string[]]$Args) {
-  Write-Host (">> " + $Exe + " " + ($Args -join " ")) -ForegroundColor DarkGray
-  & $Exe @Args
-  if ($LASTEXITCODE -ne 0) { throw "Error ejecutando: $Exe $($Args -join ' ')" }
+function Run([string]$Exe, [string[]]$ArgList) {
+  Write-Host (">> " + $Exe + " " + ($ArgList -join " ")) -ForegroundColor DarkGray
+  & $Exe @ArgList
+  if ($LASTEXITCODE -ne 0) { throw "Error ejecutando: $Exe $($ArgList -join ' ')" }
 }
 
 # 1) Down limpio
@@ -29,11 +29,11 @@ if ($Recreate) {
   Run "docker" @("system","prune","-f")
 }
 
-# 2) Build imágenes clave
+# 2) Build imágenes
 Banner "Build de imagenes"
-$buildArgs = @("compose","build","rasa","action-server")
-if ($NoCache) { $buildArgs += "--no-cache" }
-Run "docker" $buildArgs
+$buildArgList = @("compose","build","rasa","action-server")
+if ($NoCache) { $buildArgList += "--no-cache" }
+Run "docker" $buildArgList
 
 # 3) Subir con el perfil elegido
 Banner "Levantando stack con perfil: $Profile"
