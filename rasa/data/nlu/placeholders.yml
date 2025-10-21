@@ -3,36 +3,36 @@ nlu:
 
 - intent: estado_estudiante_info
   examples: |
-    - cu�l es mi estado como estudiante
+    - cuál es mi estado como estudiante
     - estado del estudiante
     - estoy activo este periodo
-    - dime mi estado acad�mico
+    - dime mi estado académico
 
 - intent: necesita_auth
   examples: |
-    - me pide iniciar sesi�n
+    - me pide iniciar sesión
     - necesito autenticarme
     - no estoy logueado
-    - no tengo sesi�n iniciada
+    - no tengo sesión iniciada
 
 - intent: pedir_correo
   examples: |
     - te doy mi correo
     - mi correo es
-    - cu�l es tu correo
+    - cuál es tu correo
     - te paso el correo
 
 - intent: pedir_email
   examples: |
     - mi email es
-    - correo electr�nico
+    - correo electrónico
     - te paso mi email
 
 - intent: pedir_nombre
   examples: |
     - mi nombre es
     - te digo mi nombre
-    - soy [Juan P�rez](nombre)
+    - soy [Juan Pérez](nombre)
 
 - intent: pedir_mensaje
   examples: |
@@ -44,32 +44,37 @@ nlu:
   examples: |
     - confirmado el soporte
     - gracias por el soporte
-    - s� env�a el soporte
+    - sí, envía el soporte
 
 - intent: soporte_error
   examples: |
     - hubo un error con el soporte
     - no se pudo crear el ticket
-    - fall� el soporte
+    - falló el soporte
 
+# 👇 Intent comando separado del intent de login normal
+#    (SIN "quiero loguearme" y SIN "iniciar sesión" para evitar duplicados)
 - intent: auth_login_cmd
   examples: |
-    - /login
-    - iniciar sesi�n
-    - quiero loguearme
+    - /auth_login
+    - auth login
+    - login ahora
+    - ejecutar login ahora
+    - haz login por favor
+    - abrir login ya
 
 - intent: enviar_soporte_directo
   examples: |
-    - env�a soporte directo
+    - envía soporte directo
     - mandar soporte ahora
     - abre un ticket
 
 - intent: fallback
   examples: |
     - no entiendo
-    - qu�
-    - no s�
-    - aj�
+    - qué
+    - no sé
+    - ajá
 
 - intent: enviar_correo
   examples: |
@@ -78,17 +83,17 @@ nlu:
 
 - intent: enviar_telefono
   examples: |
-    - mi tel�fono es [3001234567](telefono)
-    - m�vil [3209876543](telefono)
+    - mi teléfono es [3001234567](telefono)
+    - móvil [3209876543](telefono)
 
 - intent: enviar_cedula
   examples: |
-    - mi c�dula es [11223344](cedula)
+    - mi cédula es [11223344](cedula)
     - c.c [100200300](cedula)
 
 - intent: enviar_numero
   examples: |
-    - el n�mero es [42](numero)
+    - el número es [42](numero)
     - anota [98765](numero)
 
 - intent: enviar_url

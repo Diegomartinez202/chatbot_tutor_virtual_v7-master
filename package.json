@@ -1,0 +1,21 @@
+{
+  "name": "chatbot_tutor_virtual_v7-master",
+  "version": "1.0.0",
+  "description": "Este documento contiene las instrucciones específicas para desplegar el proyecto en **entorno de producción** usando Docker Compose.   No incluye configuraciones de desarrollo ni perfiles de build.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.15"
+  }
+}
