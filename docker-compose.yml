@@ -114,11 +114,11 @@ services:
       # TRACKER_MONGO_PASSWORD: ""
       # TRACKER_MONGO_AUTHSOURCE: "admin"
 
-      # Event Broker (RabbitMQ)
-      RABBITMQ_URL: "amqp://rabbitmq:5672/"
-      RABBITMQ_USER: "${RABBITMQ_USER:-guest}"
-      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
-      # RABBITMQ_QUEUE: "rasa_events"
+      # Event Broker (RabbitMQ) — USUARIO PROPIO (Opción A)
+      # ⚠️ NO declares RABBITMQ_URL aquí (tu versión usa host posicional + kwargs)
+      RABBITMQ_USER: "rasa"
+      RABBITMQ_PASSWORD: "supersecret"
+      RABBITMQ_QUEUE: "rasa_events"
       # RABBITMQ_EXCHANGE: "rasa"
       # RABBITMQ_ROUTING_KEY: "rasa_events"
     depends_on:

@@ -1,7 +1,20 @@
 // Centraliza rutas públicas servidas desde /public con BASE_URL estable
-const BASE = (import.meta.env?.BASE_URL ?? window.location.origin + "/").replace(/\/+$/, "/");
+// Funciona en desarrollo (localhost) y producción (subcarpetas)
+const getBaseUrl = () => {
+    // Si Vite define BASE_URL, úsala
+    if (import.meta.env?.BASE_URL) {
+        return import.meta.env.BASE_URL.replace(/\/+$/, "/");
+    }
+    // Si no, construye la base desde el origen actual
+    const origin = window.location.origin;
+    // Extrae <base href> si existe
+    const baseTag = document.querySelector("base")?.getAttribute("href") || "/";
+    return new URL(baseTag, origin).href.replace(/\/+$/, "/");
+};
 
-// Resuelve contra <base href> y garantiza un path único (soporta subcarpetas)
+const BASE = getBaseUrl();
+
+// Resuelve rutas relativas contra BASE y garantiza un path único
 const abs = (p) => new URL(p.replace(/^\/+/, ""), BASE).pathname;
 
 const assets = {
