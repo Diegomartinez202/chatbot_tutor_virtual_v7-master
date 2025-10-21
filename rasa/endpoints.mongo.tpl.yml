@@ -12,32 +12,9 @@ tracker_store:
   db: "rasa"
   collection: "conversations"
   # Auth opcional (dejar vacíos si no se usan)
-  username: "${TRACKER_MONGO_USERNAME:-}"
-  password: "${TRACKER_MONGO_PASSWORD:-}"
-  auth_source: "${TRACKER_MONGO_AUTHSOURCE:-}"
+  username: "${TRACKER_MONGO_USERNAME}"
+  password: "${TRACKER_MONGO_PASSWORD}"
+  auth_source: "${TRACKER_MONGO_AUTHSOURCE}"
 
-# Event broker en RabbitMQ (Pika) — host posicional + kwargs (Rasa 3.6)
-event_broker:
-  # Clase correcta para RabbitMQ en Rasa 3.6
-  type: rasa.core.brokers.pika.PikaEventBroker
-
-  # IMPORTANTE: aquí "url" es el HOST, NO una URL amqp://...
-  url: "${RABBITMQ_HOST:-rabbitmq}"
-
-  # Credenciales y conexión (kwargs)
-  username: "${RABBITMQ_USER:-guest}"
-  password: "${RABBITMQ_PASSWORD:-guest}"
-  port: 5672
-  virtual_host: "${RABBITMQ_VHOST:-/}"
-
-  # Cola explícita (evita el warning y alinea publicación/suscripción)
-  queue: "${RABBITMQ_QUEUE:-rasa_events}"
-  queues:
-    - "${RABBITMQ_QUEUE:-rasa_events}"
-
-  # Opcionales
-  # exchange: "${RABBITMQ_EXCHANGE:-rasa}"
-  # routing_key: "${RABBITMQ_ROUTING_KEY:-rasa_events}"
-  # heartbeat: 60
-  # connection_attempts: 20
-  # retry_delay_in_seconds: 5
+# ⚠️ Sin event_broker:
+# Eliminar por completo el bloque `event_broker` evita la conexión a RabbitMQ.

@@ -19,6 +19,7 @@ rules:
     steps:
       - intent: otro_problema_acceso
       - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
@@ -44,39 +45,50 @@ rules:
     steps:
       - intent: ver_certificados
       - action: action_check_auth
+      - action: utter_certificados_info
 
   # 🛠️ Forms de soporte desde varios intents
   - rule: Iniciar soporte (soporte_tecnico)
     steps:
       - intent: soporte_tecnico
+      - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (otro_problema_tecnico)
     steps:
       - intent: otro_problema_tecnico
+      - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (no_ingreso)
     steps:
       - intent: problema_no_ingreso
+      - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (pantalla_blanca)
     steps:
       - intent: pantalla_blanca
+      - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
   - rule: Iniciar soporte (error_actividad)
     steps:
       - intent: error_actividad
+      - action: utter_soporte_tecnico
+      - action: utter_soporte_form_ok
       - action: soporte_form
       - active_loop: soporte_form
 
-  # ✅ Submit soporte_form (mismo orden que stories)
+  # ✅ Submit soporte_form
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
@@ -86,6 +98,16 @@ rules:
       - action: utter_soporte_resumen
       - action: action_soporte_submit
       - action: utter_soporte_creado
+
+  # ❌ Cancelar soporte_form (evita conflicto con historias)
+  - rule: Cancelar soporte_form (deny)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: deny
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar
 
   # 🔑 Recovery form
   - rule: Iniciar recovery_form
@@ -163,7 +185,7 @@ rules:
       - intent: enviar_url
       - action: utter_enviar_url
 
-  # 🚨 Fallback (UNIFICADO: ejecuta ambas respuestas en orden)
+  # 🚨 Fallback (UNIFICADO)
   - rule: Fallback unificado
     steps:
       - intent: fallback
@@ -171,62 +193,65 @@ rules:
       - action: utter_fallback
 
   # ─────────────────────────────────────────────
-  # Reglas mínimas (placeholders) para utterances/intents “no usados”
+  # Reglas con INTENTS DEDICADOS (evitan colisiones)
   # ─────────────────────────────────────────────
 
-  - rule: Pedir correo (placeholder)
+  # Pedir datos sueltos
+  - rule: Pedir correo (dedicado)
     steps:
-      - intent: saludo
+      - intent: pedir_correo
       - action: utter_pedir_correo
 
-  - rule: Pedir email (placeholder)
+  - rule: Pedir email (dedicado)
     steps:
-      - intent: saludo
+      - intent: pedir_email
       - action: utter_ask_email
 
-  - rule: Pedir nombre (placeholder)
+  - rule: Pedir nombre (dedicado)
     steps:
-      - intent: saludo
+      - intent: pedir_nombre
       - action: utter_ask_nombre
 
-  - rule: Pedir mensaje (placeholder)
+  - rule: Pedir mensaje (dedicado)
     steps:
-      - intent: saludo
+      - intent: pedir_mensaje
       - action: utter_ask_mensaje
 
-  - rule: Estado estudiante (placeholder)
+  # Estados/auth “informativos”
+  - rule: Estado estudiante (informativo directo)
     steps:
-      - intent: estado_estudiante
+      - intent: estado_estudiante_info
       - action: utter_estado_estudiante
 
-  - rule: Necesita auth (placeholder)
+  - rule: Necesita auth (informativo directo)
     steps:
-      - intent: ver_certificados
+      - intent: necesita_auth
       - action: utter_need_auth
 
-  - rule: Confirmación soporte (placeholder)
+  # Soporte confirmación / error “directos”
+  - rule: Confirmación soporte (directo)
     steps:
-      - intent: soporte_tecnico
+      - intent: soporte_confirmar
       - action: utter_soporte_confirm
 
-  - rule: Error soporte (placeholder)
+  - rule: Error soporte (directo)
     steps:
-      - intent: soporte_tecnico
+      - intent: soporte_error
       - action: utter_soporte_error
 
-  # Intents no usados antes: affirm, auth_login, enviar_soporte
-  - rule: Affirm genérico (placeholder)
-    steps:
-      - intent: affirm
-      - action: utter_gracias_continuar
-
-  - rule: Auth login (placeholder)
+  # Intents extra para marcar como usados
+  - rule: Auth login (UI)
     steps:
       - intent: auth_login
-      - action: utter_saludo
+      - action: utter_need_auth
 
-  - rule: Enviar soporte directo (placeholder)
+  - rule: Enviar soporte (clásico)
     steps:
       - intent: enviar_soporte
       - action: action_enviar_soporte
       - action: utter_soporte_confirm
+
+  - rule: Auth login (directo/cmd)
+    steps:
+      - intent: auth_login_cmd
+      - action: utter_saludo

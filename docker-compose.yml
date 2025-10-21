@@ -12,7 +12,6 @@ volumes:
   mongo-data: {}
   _docker_data_mongo: {}
   redis-data: {}
-  rabbitmq-data: {}
 
 # ============================================================
 # Servicios
@@ -53,25 +52,6 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # RabbitMQ (Event Broker)
-  # ------------------------------------------------------------
-  rabbitmq:
-    profiles: ["build","prod"]
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
-    ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # UI de gestión
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - app-net
-
-  # ------------------------------------------------------------
   # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
   action-server:
@@ -90,7 +70,7 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # Rasa (build/prod)
+  # Rasa (build/prod) — sin RabbitMQ
   # ------------------------------------------------------------
   rasa:
     profiles: ["build","prod"]
@@ -102,28 +82,22 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "false"
+      # Entrena automáticamente al arrancar si cambian datos/modelo
+      RASA_AUTOTRAIN: "true"
       ENDPOINTS_TEMPLATE: "mongo"
 
       # Tracker (Mongo)
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
+      # 👉 si usas auth en mongo, márcalas en tu .env:
       # TRACKER_MONGO_USERNAME: ""
       # TRACKER_MONGO_PASSWORD: ""
       # TRACKER_MONGO_AUTHSOURCE: "admin"
 
-      # Event Broker (RabbitMQ) — USUARIO PROPIO
-      RABBITMQ_HOST: "rabbitmq"
-      RABBITMQ_VHOST: "/"
-      RABBITMQ_USER: "rasa"
-      RABBITMQ_PASSWORD: "supersecret"
-      RABBITMQ_QUEUE: "rasa_events"
-      # RABBITMQ_EXCHANGE: "rasa"
-      # RABBITMQ_ROUTING_KEY: "rasa_events"
+      # ⚠️ Sin Event Broker (no declarar RABBITMQ_* ni RABBITMQ_URL)
     depends_on:
       - action-server
-      - rabbitmq
       - mongo
     ports:
       - "5005:5005"
@@ -135,6 +109,7 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
+      # 👇 plantilla de endpoints sin broker
       - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]

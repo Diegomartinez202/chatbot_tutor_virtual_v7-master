@@ -2,7 +2,7 @@
 
 stories:
 
-  # 👋 Saludo → recomendados + carrusel (unificación para evitar conflicto)
+  # 👋 Saludo → recomendados + carrusel
   - story: Saludo → Recomendados + Carrusel
     steps:
       - intent: saludo
@@ -66,30 +66,7 @@ stories:
       - intent: negar_escalar
       - action: utter_gracias_continuar
 
-  # 🛠️ Soporte técnico (flujo completo)
-  - story: Soporte técnico (genérico)
-    steps:
-      - intent: soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
-      - action: soporte_form
-      - active_loop: null
-      - action: utter_soporte_resumen
-      - action: action_soporte_submit
-      - action: utter_soporte_creado
-
-  # ❌ Cancelar soporte_form
-  - story: Cancelar soporte_form
-    steps:
-      - intent: soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
-      - intent: deny
-      - action: action_deactivate_loop
-      - active_loop: null
-      - action: utter_gracias_continuar
-
-  # 📧 saludo y envío de correo (coherente con la regla: acción + utter)
+  # 📧 saludo y envío de correo (acción + utter)
   - story: saludo y envío de correo
     steps:
       - intent: saludo

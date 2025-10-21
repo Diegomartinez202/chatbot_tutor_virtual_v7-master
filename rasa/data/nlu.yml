@@ -323,6 +323,7 @@ nlu:
     - necesito ayuda con el acceso
     - deseo enviar un ticket de soporte
     - reportar un incidente técnico
+
 - intent: enviar_cedula
   examples: |
     - mi cédula es [1234567890](cedula)
@@ -346,3 +347,102 @@ nlu:
     - la url es [https://ejemplo.com](url)
     - visita [http://mi-sitio.test](url)
     - [https://dominio.com/ruta](url)
+
+# ─────────────────────────────────────────────
+# INTENTS DEDICADOS PARA LAS “REGLAS PLACEHOLDER”
+# (evitan choques con las reglas reales)
+# ─────────────────────────────────────────────
+
+# Pedir datos sueltos (fuera de forms)
+- intent: pedir_correo
+  examples: |
+    - necesito darte mi correo
+    - te paso mi correo
+    - dónde te dejo mi correo
+    - quieres mi correo?
+
+- intent: pedir_email
+  examples: |
+    - te comparto mi email
+    - anota este email
+    - cuál email necesitas
+    - te doy mi email
+
+- intent: pedir_nombre
+  examples: |
+    - te digo mi nombre
+    - quieres mi nombre?
+    - anota mi nombre
+    - te paso mi nombre
+
+- intent: pedir_mensaje
+  examples: |
+    - te escribo el mensaje
+    - te dejo mi mensaje
+    - cuál mensaje envío
+    - acá va mi mensaje
+
+# Estados/auth “informativos”
+- intent: estado_estudiante_info
+  examples: |
+    - dime mi estado de estudiante
+    - cuál es mi estado actual
+    - estado académico rápido
+
+- intent: necesita_auth
+  examples: |
+    - necesito autenticarme?
+    - me falta iniciar sesión
+    - requiere autenticación
+
+# Soporte confirmación / error directos
+- intent: soporte_confirmar
+  examples: |
+    - confirma el soporte
+    - está bien, confirma soporte
+    - confirmo el soporte
+
+- intent: soporte_error
+  examples: |
+    - hubo un error con el soporte
+    - eso no funcionó
+    - marcar soporte como error
+
+# Login “comando” (dispara regla dedicada)
+- intent: auth_login_cmd
+  examples: |
+    - ejecutar login ahora
+    - haz login por favor
+    - comando de login
+
+# Enviar soporte directo (acción + confirmación)
+- intent: enviar_soporte_directo
+  examples: |
+    - envía soporte directo
+    - crear ticket directo
+    - mandar ticket ya
+
+# ─────────────────────────────────────────────
+# REGEX FEATURES PARA ENTIDADES
+# (mejoran extracción junto a tus ejemplos marcados)
+# ─────────────────────────────────────────────
+
+- regex: email
+  examples: |
+    - [A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}
+
+- regex: url
+  examples: |
+    - https?://[^\s)]+
+
+- regex: telefono
+  examples: |
+    - (?<!\d)(3\d{9})(?!\d)
+
+- regex: numero
+  examples: |
+    - (?<!\d)\d{1,10}(?!\d)
+
+- regex: cedula
+  examples: |
+    - (?<!\d)\d{6,12}(?!\d)

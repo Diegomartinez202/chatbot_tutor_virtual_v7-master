@@ -25,6 +25,7 @@ intents:
   - inscribirme
   - enviar_correo
   - auth_login
+
   # Intents de fallback y confirmación
   - affirm
   - deny
@@ -34,6 +35,18 @@ intents:
   - enviar_cedula
   - enviar_numero
   - enviar_url
+
+  # Intents dedicados (para reglas placeholder, evitan choques)
+  - pedir_correo
+  - pedir_email
+  - pedir_nombre
+  - pedir_mensaje
+  - estado_estudiante_info
+  - necesita_auth
+  - soporte_confirmar
+  - soporte_error
+  - auth_login_cmd
+  - enviar_soporte_directo
 
 entities:
   - email
@@ -63,13 +76,40 @@ slots:
     mappings:
       - type: from_text
 
+  telefono:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: telefono
+
+  cedula:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: cedula
+
+  numero:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: numero
+
+  url:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: url
+
 forms:
   soporte_form:
     required_slots:
       - nombre
       - email
       - mensaje
-
   recovery_form:
     required_slots:
       - email
@@ -173,6 +213,8 @@ responses:
   # --- Soporte técnico ---
   utter_soporte_tecnico:
     - text: "Entiendo. Vamos a tomar tus datos para ayudarte mejor."
+  utter_soporte_form_ok:
+    - text: "Perfecto. Abriré un formulario para registrar tu caso."
 
   utter_estado_estudiante:
     - text: "Estás activo para el periodo académico 2025-2."
@@ -180,7 +222,6 @@ responses:
   # --- Cambio de idioma ---
   utter_cambio_idioma_ingles:
     - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
-
   utter_cambio_idioma_espanol:
     - text: "Volvamos a Español."
 
@@ -195,7 +236,6 @@ responses:
 
   utter_confirmar_escalado:
     - text: "Te estoy conectando con un agente humano, por favor espera..."
-
   utter_gracias_continuar:
     - text: "Perfecto, sigamos aquí en el chat."
 
@@ -206,19 +246,16 @@ responses:
   # --- Fallback ---
   utter_default:
     - text: "No entendí eso. ¿Podrías reformularlo?"
+  utter_fallback:
+    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
-  # --- Prompts del soporte_form ---
+  # --- Prompts de slots del soporte_form ---
   utter_ask_nombre:
     - text: "¿Cuál es tu nombre completo?"
-
   utter_ask_email:
     - text: "¿Cuál es tu correo de contacto?"
-
   utter_ask_mensaje:
     - text: "Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
-
-  utter_soporte_form_ok:
-    - text: "Gracias. Estoy registrando tu solicitud..."
 
   utter_soporte_resumen:
     - text: |
@@ -228,24 +265,12 @@ responses:
 
   utter_soporte_creado:
     - text: "Ticket creado correctamente. Te enviaremos novedades a tu correo."
-
   utter_soporte_error:
     - text: "Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
-
-  # --- Autenticación requerida ---
-  utter_need_auth:
-    - text: "Necesitas iniciar sesión para ver esta información."
-      buttons:
-        - title: "Iniciar sesión"
-          payload: "/auth_login"
-    - custom:
-        type: "auth_needed"
-        message: "Necesitas iniciar sesión para continuar."
-
-  # --- Confirmación soporte directo ---
   utter_soporte_confirm:
     - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
 
+  # --- Eco de entidades capturadas ---
   utter_enviar_correo:
     - text: "Perfecto, he registrado tu correo: {email}"
   utter_enviar_telefono:
@@ -256,9 +281,6 @@ responses:
     - text: "Número recibido: {numero}"
   utter_enviar_url:
     - text: "He registrado el enlace: {url}"
-
-  utter_fallback:
-    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
 
 actions:
   - action_enviar_correo
