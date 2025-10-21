@@ -45,7 +45,7 @@ rules:
       - intent: ver_certificados
       - action: action_check_auth
 
-  # ✅ (DEDICADA) Certificados info directa (sin auth) → evita contradicción
+  # ✅ Certificados info directa (sin auth)
   - rule: Certificados (info directa)
     steps:
       - intent: ver_certificados_info
@@ -82,7 +82,7 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  # ✅ Submit soporte_form
+  # ✅ Submit soporte_form (ÚNICA regla de submit, con el OK extra)
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
@@ -92,6 +92,7 @@ rules:
       - action: utter_soporte_resumen
       - action: action_soporte_submit
       - action: utter_soporte_creado
+      - action: utter_soporte_form_ok
 
   # ❌ Cancelar soporte_form (deny)
   - rule: Cancelar soporte_form (deny)
@@ -232,3 +233,32 @@ rules:
     steps:
       - intent: soporte_error
       - action: utter_soporte_error
+
+  # ======= Reglas para marcar uso de intents que el validador reportó =======
+
+  - rule: Affirm genérico (marca uso)
+    steps:
+      - intent: affirm
+      - action: utter_gracias_continuar
+
+  - rule: Auth login (directo) (marca uso)
+    steps:
+      - intent: auth_login
+      - action: utter_saludo
+
+  - rule: Auth login (cmd) (marca uso)
+    steps:
+      - intent: auth_login_cmd
+      - action: utter_saludo
+
+  - rule: Enviar soporte directo (marca uso)
+    steps:
+      - intent: enviar_soporte_directo
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm
+
+  - rule: Enviar soporte (marca uso)
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_confirm

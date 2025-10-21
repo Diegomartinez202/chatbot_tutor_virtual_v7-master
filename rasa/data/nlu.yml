@@ -272,14 +272,7 @@ nlu:
     - acceder a mi cuenta
     - entrar con mi usuario
     - abrir el login
-
-# Login “comando” (dispara regla dedicada)
-- intent: auth_login_cmd
-  examples: |
-    - /auth_login
-    - auth login
-    - login ahora
-
+- 
 # ————— AFFIRM / DENY / FALLBACK
 - intent: affirm
   examples: |
