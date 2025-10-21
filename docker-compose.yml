@@ -61,8 +61,22 @@ services:
       dockerfile: actions/Dockerfile
     container_name: action-server
     environment:
+      # Logs y Helpdesk (ya tenías HELPDESK_WEBHOOK)
       ACTIONS_LOG_LEVEL: INFO
       HELPDESK_WEBHOOK: http://backend:8000/api/helpdesk/tickets
+      HELPDESK_TOKEN: ""               # ← añade tu token si aplica
+      ACTIONS_HTTP_TIMEOUT: "10"
+      ACTIONS_HTTP_RETRIES: "2"
+
+      # SMTP (para action_enviar_correo)
+      SMTP_SERVER: "smtp.office365.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "bot@ejemplo.com"
+      SMTP_PASS: "contraseña_real"
+      EMAIL_FROM: "bot@ejemplo.com"
+
+      # Base para enlaces de recuperación
+      RESET_URL_BASE: "https://zajuna.edu"
     ports:
       - "5055:5055"
     restart: unless-stopped
@@ -159,6 +173,20 @@ services:
       - ctv_rasa
     networks:
       - app-net
+    environment:
+      ACTIONS_LOG_LEVEL: "INFO"
+      HELPDESK_WEBHOOK: "http://ctv_fastapi:${FASTAPI_PORT:-8000}/api/helpdesk/tickets"
+      HELPDESK_TOKEN: ""
+      ACTIONS_HTTP_TIMEOUT: "10"
+      ACTIONS_HTTP_RETRIES: "2"
+
+      SMTP_SERVER: "smtp.office365.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "bot@ejemplo.com"
+      SMTP_PASS: "contraseña_real"
+      EMAIL_FROM: "bot@ejemplo.com"
+
+      RESET_URL_BASE: "https://zajuna.edu"
 
   # ============================================================
   # Backend DEV (hot reload)

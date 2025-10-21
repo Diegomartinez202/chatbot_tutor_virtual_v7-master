@@ -32,4 +32,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://localhost:5055/health || exit 1
 
 # Entrypoint oficial del SDK
-CMD ["python", "-m", "rasa_sdk", "start", "--actions", "actions", "--port", "5055"]
+CMD ["python", "-m", "rasa_sdk", "start", "--actions", "actions.actions", "--port", "5055"]
