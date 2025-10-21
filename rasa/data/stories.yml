@@ -67,7 +67,7 @@ stories:
       - intent: negar_escalar
       - action: utter_gracias_continuar
 
-  # 🛠️ Soporte técnico (flujo completo)
+  # 🛠️ Soporte técnico (genérico) — **ajustada para no chocar con la regla de Submit**
   - story: Soporte técnico (genérico)
     steps:
       - intent: soporte_tecnico
@@ -75,9 +75,8 @@ stories:
       - active_loop: soporte_form
       - action: soporte_form
       - active_loop: null
-      - action: utter_soporte_resumen
-      - action: action_soporte_submit
-      - action: utter_soporte_creado
+      # ⤴️ Aquí paramos la historia. La regla "Submit soporte_form"
+      # se encargará de: utter_soporte_resumen → action_soporte_submit → utter_soporte_creado
 
   # 📧 saludo y envío de correo (acción + utter)
   - story: saludo y envío de correo
