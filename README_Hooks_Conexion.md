@@ -302,3 +302,72 @@ ChatUI conecta con Rasa vía connectRasaRest (o WebSocket si aplica).
 Rasa Backend procesa el mensaje y devuelve respuesta.
 
 ChatUI renderiza la respuesta con mensajes, avatares y botones interactivos.
+
+
+
+🧭 Flujos de acceso del sistema
+🔐 1️⃣ Acceso mediante Zajuna SSO
+[Usuario] 
+   │
+   │ Hace clic en "Ingresar con Zajuna"
+   ▼
+[LoginPage.jsx]
+   │
+   │ └── Llama a redirectToZajunaSSO() desde AuthContext
+   ▼
+[AuthContext.jsx]
+   │
+   │ └── Redirige a la URL definida en .env:
+   │      VITE_ZAJUNA_SSO_URL=https://sso.zajuna.com/login
+   ▼
+[Proveedor Zajuna]
+   │
+   │ └── Usuario se autentica con sus credenciales institucionales
+   │      y Zajuna redirige de vuelta a:
+   │      → https://tuapp.com/auth/callback?access_token=XYZ
+   ▼
+[AuthCallback.jsx]
+   │
+   │ ├─ Extrae el token del URL
+   │ ├─ Guarda token en localStorage y AuthContext
+   │ ├─ Llama a apiMe() para obtener el rol del usuario
+   │ └─ Redirige según el rol:
+   │       - admin/soporte → /dashboard
+   │       - usuario → /chat
+   ▼
+[Sistema interno]
+   │
+   └── Sesión activa, navegación permitida con token válido
+
+🧩 2️⃣ Acceso como invitado (sin registro)
+[Usuario]
+   │
+   │ Hace clic en "Entrar como invitado (sin registro)"
+   ▼
+[LoginPage.jsx]
+   │
+   │ └── Ejecuta handleGuest() → navigate("/chat")
+   ▼
+[ChatPage.jsx]
+   │
+   │ └── Carga vista del chat sin token ni autenticación
+   │      (modo lectura o uso básico según permisos)
+   ▼
+[Sistema interno]
+   │
+   └── Usuario invitado con acceso limitado
+
+⚙️ Variables de entorno involucradas (.env)
+# URL del proveedor SSO Zajuna
+VITE_ZAJUNA_SSO_URL=https://sso.zajuna.com/login
+
+# Habilita el inicio local con usuario/contraseña (true/false)
+VITE_ENABLE_LOCAL_LOGIN=false
+
+# Muestra u oculta el botón de invitado (true/false)
+VITE_SHOW_GUEST=true
+
+🧠 Resumen funcional
+Modo de acceso	Componente principal	Redirección final	Autenticación	Variables de entorno
+🔵 Zajuna SSO	LoginPage → AuthCallback	/chat o /dashboard	OAuth / SSO externo	VITE_ZAJUNA_SSO_URL
+🟢 Invitado	LoginPage	/chat	No requiere token	VITE_SHOW_GUEST

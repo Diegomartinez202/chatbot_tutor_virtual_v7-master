@@ -100,6 +100,15 @@ nlu:
     - quiero mis certificados en PDF
     - descargar mis diplomas
 
+# ————— (DEDICADO) CERTIFICADOS INFO DIRECTA (sin auth)
+- intent: ver_certificados_info
+  examples: |
+    - ver certificados rápido
+    - muéstrame certificados directo
+    - mostrar certificados sin iniciar sesión
+    - info de certificados
+    - certificados por favor
+
 # ————— TUTOR / HORARIOS
 - intent: tutor_asignado
   examples: |
@@ -135,6 +144,7 @@ nlu:
     - comunicarme con soporte
     - soporte
     - quiero reportar un incidente
+    - me llamo [Juan Pérez](nombre) y no puedo entrar
 
 - intent: problema_no_ingreso
   examples: |
@@ -315,7 +325,7 @@ nlu:
     - mi correo es juan@ejemplo.com
     - puedes escribir a soporte@empresa.co
 
-# ————— SOPORTE DIRECTO
+# ————— SOPORTE DIRECTO (no form)
 - intent: enviar_soporte
   examples: |
     - quiero contactar soporte
@@ -350,7 +360,6 @@ nlu:
 
 # ─────────────────────────────────────────────
 # INTENTS DEDICADOS PARA LAS “REGLAS PLACEHOLDER”
-# (evitan choques con las reglas reales)
 # ─────────────────────────────────────────────
 
 # Pedir datos sueltos (fuera de forms)
@@ -408,9 +417,12 @@ nlu:
     - eso no funcionó
     - marcar soporte como error
 
-# Login “comando” (dispara regla dedicada)
+# Login “comando” (regla dedicada; **sin** ejemplo duplicado)
 - intent: auth_login_cmd
   examples: |
+    - /auth_login
+    - auth login
+    - login ahora
     - ejecutar login ahora
     - haz login por favor
     - comando de login
@@ -424,7 +436,6 @@ nlu:
 
 # ─────────────────────────────────────────────
 # REGEX FEATURES PARA ENTIDADES
-# (mejoran extracción junto a tus ejemplos marcados)
 # ─────────────────────────────────────────────
 
 - regex: email

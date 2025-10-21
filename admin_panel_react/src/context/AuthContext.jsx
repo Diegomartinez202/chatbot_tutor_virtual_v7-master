@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, {
     createContext,
     useContext,
@@ -18,6 +17,7 @@ const AuthContext = createContext({
     isAuthenticated: false,
     login: async (_t) => { },
     logout: async () => { },
+    redirectToZajunaSSO: () => { },
 });
 
 function setAxiosAuthHeader(token) {
@@ -123,6 +123,17 @@ export const AuthProvider = ({ children }) => {
         []
     );
 
+    // ⚙️ Agregamos la función para redirigir al proveedor SSO (Zajuna)
+    const redirectToZajunaSSO = () => {
+        const ssoUrl = import.meta.env.VITE_ZAJUNA_SSO_URL;
+        if (ssoUrl) {
+            const redirectUri = `${window.location.origin}/auth/callback`;
+            window.location.href = `${ssoUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+        } else {
+            console.warn("⚠️ No se configuró la URL del proveedor SSO (VITE_ZAJUNA_SSO_URL).");
+        }
+    };
+
     const value = useMemo(
         () => ({
             token,
@@ -132,6 +143,7 @@ export const AuthProvider = ({ children }) => {
             isAuthenticated,
             login,
             logout,
+            redirectToZajunaSSO, // ✅ la exponemos en el contexto
         }),
         [token, user, role, loading, isAuthenticated, login, logout]
     );

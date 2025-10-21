@@ -1,3 +1,4 @@
+// src/pages/LoginPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Input from "@/components/Input";
@@ -19,34 +20,28 @@ function LoginPage() {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login, redirectToZajunaSSO } = useAuth(); // ✅ Incluye la función SSO
+    const { login, redirectToZajunaSSO } = useAuth(); // ✅ Integrado correctamente
 
     useEffect(() => {
-        // Título accesible de la página
         document.title = "Iniciar sesión – Chatbot";
     }, []);
 
+    // —— LOGIN LOCAL (si está habilitado) ——
     const handleLogin = async (e) => {
         e.preventDefault();
-        if (!ENABLE_LOCAL) return; // hard guard: no procesar si está deshabilitado
+        if (!ENABLE_LOCAL) return;
         setLoading(true);
         setError("");
 
         try {
-            // 1) Login → token (si habilitas login local)
             const { token } = await apiLogin({ email, password });
-
-            // 2) Persistir en tu AuthContext
             await login(token);
 
-            // 3) Perfil → decidir ruta
             let role = "usuario";
             try {
                 const profile = await apiMe();
                 role = profile?.rol || profile?.role || "usuario";
-            } catch {
-                // si /me no está implementado aún, seguimos con "usuario"
-            }
+            } catch { }
 
             if (role === "admin" || role === "soporte") navigate("/dashboard", { replace: true });
             else navigate("/chat", { replace: true });
@@ -61,14 +56,23 @@ function LoginPage() {
         }
     };
 
-    // ✅ Mejorado: usa la función central del hook
+    // —— SSO Zajuna (ya integrado) ——
     const handleZajuna = () => {
-        redirectToZajunaSSO();
+        try {
+            if (typeof redirectToZajunaSSO === "function") {
+                redirectToZajunaSSO(); // ✅ inicia flujo federado
+            } else if (ZAJUNA_SSO) {
+                window.location.href = ZAJUNA_SSO; // fallback directo
+            } else {
+                setError("No se configuró la URL del proveedor SSO.");
+            }
+        } catch (err) {
+            console.error("Error al redirigir al SSO:", err);
+            setError("Error al conectar con el servicio de autenticación.");
+        }
     };
 
-    const handleGuest = () => {
-        navigate("/chat");
-    };
+    const handleGuest = () => navigate("/chat");
 
     return (
         <div className="p-6 max-w-md mx-auto">
@@ -175,18 +179,15 @@ function LoginPage() {
                     ← Volver al inicio
                 </Link>
                 <div className="flex items-center gap-3">
-                    {/* Atajo para procesar tokens dev (útil en pruebas) */}
                     <Link to="/auth/callback" className="hover:underline">
                         ¿Tienes token? Procesar callback
                     </Link>
-                    {/* Acceso directo al panel admin/login (separado de este LoginPage general) */}
                     <Link to="/admin/login" className="hover:underline">
                         Panel admin
                     </Link>
                 </div>
             </div>
 
-            {/* Pista cuando el login local está deshabilitado */}
             {!ENABLE_LOCAL && (
                 <p className="mt-3 text-xs text-gray-500">
                     Para habilitar el formulario local, ajusta{" "}

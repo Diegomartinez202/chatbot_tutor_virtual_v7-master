@@ -44,6 +44,10 @@ rules:
     steps:
       - intent: ver_certificados
       - action: action_check_auth
+  - rule: Certificados (info directa)
+    steps:
+    - intent: ver_certificados_info   # 👈 antes seguro estaba ver_certificados
+    - action: utter_certificados_info
 
   # 🛠️ Forms de soporte
   - rule: Iniciar soporte (soporte_tecnico)

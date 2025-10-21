@@ -9,6 +9,7 @@ intents:
   - otro_problema_acceso
   - proceso_academico
   - ver_certificados
+  - ver_certificados_info
   - tutor_asignado
   - horarios_calendario
   - soporte_tecnico

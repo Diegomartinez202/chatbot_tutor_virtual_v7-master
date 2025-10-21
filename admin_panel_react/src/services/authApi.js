@@ -71,7 +71,7 @@ export async function me() {
         try {
             const { data } = await axiosClient.get(u);
             return data;
-        } catch {}
+        } catch { }
     }
     throw new Error("No se pudo obtener el perfil.");
 }
@@ -84,7 +84,7 @@ export async function refresh(refreshTokenMaybe) {
             setAuthToken(newTk);
             return { token: newTk, raw: data };
         }
-    } catch {}
+    } catch { }
 
     const candidates = PATHS.refresh.slice(1);
     for (const cand of candidates) {
@@ -99,7 +99,7 @@ export async function refresh(refreshTokenMaybe) {
                 if (newRefresh) setRefreshToken(newRefresh);
                 return { token: newTk, raw: data };
             }
-        } catch {}
+        } catch { }
     }
 
     clearAuthToken();
@@ -110,7 +110,7 @@ export async function logout() {
     try {
         const url = pickFirst(PATHS.logout);
         await axiosClient.post(url);
-    } catch {}
+    } catch { }
     clearAuthToken();
     return { ok: true };
 }
@@ -167,3 +167,30 @@ export const apiMe = me;
 
 // 🔹 Alias agregado para que RegisterPage.jsx no rompa
 export const register = registerAdmin;
+
+// ──────────────────────────────────────────────
+// 🔹 NUEVA FUNCIÓN: Redirección a Zajuna SSO
+// ──────────────────────────────────────────────
+/**
+ * Inicia el flujo SSO con Zajuna.
+ * Llama al endpoint configurado en .env como VITE_ZAJUNA_SSO_URL
+ * y redirige al navegador hacia él.
+ */
+export function redirectToZajunaSSO() {
+    const zajunaSSO = import.meta.env.VITE_ZAJUNA_SSO_URL;
+    if (!zajunaSSO) {
+        console.error("⚠️ VITE_ZAJUNA_SSO_URL no está configurada en tu archivo .env");
+        alert("No se encuentra configurada la URL del SSO (VITE_ZAJUNA_SSO_URL).");
+        return;
+    }
+
+    try {
+        // Guarda la ruta actual para regresar después del login
+        localStorage.setItem("post_login_redirect", window.location.pathname);
+
+        // Redirige al proveedor SSO (Zajuna)
+        window.location.href = zajunaSSO;
+    } catch (e) {
+        console.error("Error al redirigir al SSO:", e);
+    }
+}
