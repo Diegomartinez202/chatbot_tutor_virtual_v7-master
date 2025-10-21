@@ -2,45 +2,42 @@
 
 # Endpoint de acciones
 action_endpoint:
-  url: "${ACTION_SERVER_URL}"
+  url: "http://action-server:5055/webhook"
 
 # Tracker store en MongoDB (con soporte de autenticación por ENV)
 tracker_store:
   # Usa la clase explícita para evitar warnings
   type: rasa.core.tracker_store.MongoTrackerStore
-  url: "${TRACKER_MONGO_URL}"
-  db: "${TRACKER_MONGO_DB}"
-  collection: "${TRACKER_MONGO_COLLECTION}"
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
   # Auth opcional (dejar vacíos si no se usan)
   username: "${TRACKER_MONGO_USERNAME:-}"
   password: "${TRACKER_MONGO_PASSWORD:-}"
   auth_source: "${TRACKER_MONGO_AUTHSOURCE:-}"
 
-# Event broker en RabbitMQ (Pika) — MODO host posicional + kwargs (compat Rasa 3.6)
+# Event broker en RabbitMQ (Pika) — host posicional + kwargs (Rasa 3.6)
 event_broker:
   # Clase correcta para RabbitMQ en Rasa 3.6
   type: rasa.core.brokers.pika.PikaEventBroker
 
-  # En esta versión, Rasa pasa "url" como 1er argumento POSICIONAL (host).
-  # NO pongas una URL AMQP completa aquí.
+  # IMPORTANTE: aquí "url" es el HOST, NO una URL amqp://...
   url: "${RABBITMQ_HOST:-rabbitmq}"
 
-  # Credenciales/conn (kwargs)
+  # Credenciales y conexión (kwargs)
   username: "${RABBITMQ_USER:-guest}"
   password: "${RABBITMQ_PASSWORD:-guest}"
-  port: ${RABBITMQ_PORT:-5672}
+  port: 5672
   virtual_host: "${RABBITMQ_VHOST:-/}"
 
-  # Cola explícita para publicar y (opcionalmente) suscribirse — evita warning
+  # Cola explícita (evita el warning y alinea publicación/suscripción)
   queue: "${RABBITMQ_QUEUE:-rasa_events}"
   queues:
     - "${RABBITMQ_QUEUE:-rasa_events}"
 
-  # Opcionales (descomenta si los usas)
+  # Opcionales
   # exchange: "${RABBITMQ_EXCHANGE:-rasa}"
   # routing_key: "${RABBITMQ_ROUTING_KEY:-rasa_events}"
-
-  # Robustez de conexión (opcional)
   # heartbeat: 60
   # connection_attempts: 20
   # retry_delay_in_seconds: 5

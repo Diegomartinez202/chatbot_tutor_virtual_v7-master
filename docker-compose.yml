@@ -109,27 +109,22 @@ services:
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
-      # 👉 si usas auth en mongo, márcalas en tu .env:
       # TRACKER_MONGO_USERNAME: ""
       # TRACKER_MONGO_PASSWORD: ""
       # TRACKER_MONGO_AUTHSOURCE: "admin"
 
-      # Event Broker (RabbitMQ) — USUARIO PROPIO (Opción A)
-      # ⚠️ NO declares RABBITMQ_URL aquí (tu versión usa host posicional + kwargs)
+      # Event Broker (RabbitMQ) — USUARIO PROPIO
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_VHOST: "/"
       RABBITMQ_USER: "rasa"
       RABBITMQ_PASSWORD: "supersecret"
       RABBITMQ_QUEUE: "rasa_events"
       # RABBITMQ_EXCHANGE: "rasa"
       # RABBITMQ_ROUTING_KEY: "rasa_events"
-      # (Opcionales si quieres parametrizar)
-      # RABBITMQ_HOST: "rabbitmq"
-      # RABBITMQ_PORT: "5672"
-      # RABBITMQ_VHOST: "/"
-
     depends_on:
       - action-server
       - rabbitmq
-      - mongo     # 👈 añadido para asegurar tracker disponible
+      - mongo
     ports:
       - "5005:5005"
     networks:
@@ -140,10 +135,8 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      # 👇 Usar el template correcto que acabamos de definir
       - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
-      # 👈 reemplazado wget por curl (tu imagen ya lo trae)
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]
       interval: 30s
       timeout: 5s
