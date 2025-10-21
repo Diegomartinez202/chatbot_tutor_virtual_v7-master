@@ -2,7 +2,7 @@
 
 rules:
 
-  # 👋 Saludo inicial (REAL)
+  # 👋 Saludo
   - rule: Saludo
     steps:
       - intent: saludo
@@ -45,13 +45,13 @@ rules:
       - intent: ver_certificados
       - action: action_check_auth
 
-  # ✅ (DEDICADA) Certificados info directa (sin auth)
+  # ✅ (DEDICADA) Certificados info directa (sin auth) → evita contradicción
   - rule: Certificados (info directa)
     steps:
       - intent: ver_certificados_info
       - action: utter_certificados_info
 
-  # 🛠️ Forms de soporte (varios disparadores)
+  # 🛠️ Forms de soporte (múltiples disparadores)
   - rule: Iniciar soporte (soporte_tecnico)
     steps:
       - intent: soporte_tecnico
@@ -93,7 +93,7 @@ rules:
       - action: action_soporte_submit
       - action: utter_soporte_creado
 
-  # ❌ Interrumpir soporte_form con deny (sin conflicto con historias)
+  # ❌ Cancelar soporte_form (deny)
   - rule: Cancelar soporte_form (deny)
     condition:
       - active_loop: soporte_form
@@ -155,38 +155,34 @@ rules:
       - action: action_enviar_correo
       - action: utter_enviar_correo
 
-  # 📞 Teléfono
+  # 📞 Teléfono / 🪪 Cédula / 🔢 Número / 🔗 URL
   - rule: Responder cuando usuario envía teléfono
     steps:
       - intent: enviar_telefono
       - action: utter_enviar_telefono
 
-  # 🪪 Cédula
   - rule: Responder cuando usuario envía cédula
     steps:
       - intent: enviar_cedula
       - action: utter_enviar_cedula
 
-  # 🔢 Número
   - rule: Responder cuando usuario envía número
     steps:
       - intent: enviar_numero
       - action: utter_enviar_numero
 
-  # 🔗 URL
   - rule: Responder cuando usuario envía url
     steps:
       - intent: enviar_url
       - action: utter_enviar_url
 
-  # 🚨 Fallback manual (si usas intent fallback)
+  # 🚨 Fallbacks (intent manual y NLU)
   - rule: Fallback unificado
     steps:
       - intent: fallback
       - action: utter_default
       - action: utter_fallback
 
-  # 🚨 Fallback NLU (cuando FallbackClassifier dispara 'nlu_fallback')
   - rule: NLU fallback (unificado)
     steps:
       - intent: nlu_fallback
@@ -194,32 +190,45 @@ rules:
       - action: utter_fallback
 
   # ─────────────────────────────────────────────
-  # Reglas extra para silenciar warnings de "no usado"
+  # Placeholders para “marcar uso” (evitar warnings)
   # ─────────────────────────────────────────────
 
-  - rule: Affirm genérico
+  - rule: Estado estudiante (informativo directo)
     steps:
-      - intent: affirm
-      - action: utter_gracias_continuar
+      - intent: estado_estudiante_info
+      - action: utter_estado_estudiante
 
-  - rule: Auth login (directo)
+  - rule: Necesita auth (informativo directo)
     steps:
-      - intent: auth_login
-      - action: utter_saludo
+      - intent: necesita_auth
+      - action: utter_need_auth
 
-  - rule: Auth login (cmd)
+  - rule: Pedir correo (dedicado)
     steps:
-      - intent: auth_login_cmd
-      - action: utter_saludo
+      - intent: pedir_correo
+      - action: utter_pedir_correo
 
-  - rule: Enviar soporte directo
+  - rule: Pedir email (dedicado)
     steps:
-      - intent: enviar_soporte_directo
-      - action: action_enviar_soporte
+      - intent: pedir_email
+      - action: utter_ask_email
+
+  - rule: Pedir nombre (dedicado)
+    steps:
+      - intent: pedir_nombre
+      - action: utter_ask_nombre
+
+  - rule: Pedir mensaje (dedicado)
+    steps:
+      - intent: pedir_mensaje
+      - action: utter_ask_mensaje
+
+  - rule: Confirmación soporte (directo)
+    steps:
+      - intent: soporte_confirmar
       - action: utter_soporte_confirm
 
-  - rule: Enviar soporte (no directo)
+  - rule: Error soporte (directo)
     steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
+      - intent: soporte_error
+      - action: utter_soporte_error

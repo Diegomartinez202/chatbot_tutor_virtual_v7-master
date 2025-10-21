@@ -1,70 +1,54 @@
 ﻿assistant_id: "tutorbot-local"
 recipe: default.v1
 version: "3.1"
-
 language: "es"
 
 pipeline:
-  # 1. Tokenización: separa las palabras en tokens (sensible a espacios)
   - name: WhitespaceTokenizer
-    case_sensitive: false   # Se ignoran mayúsculas/minúsculas
 
-  # 2. Featurización con expresiones regulares (apoya al DIET)
   - name: RegexFeaturizer
     use_lookup_tables: true
     use_regexes: true
     use_word_boundaries: true
 
-  # ⚠️ Quitamos RegexEntityExtractor porque duplicaba la extracción de "email"
-  # El DIETClassifier ya reconoce entidades, no hace falta el extractor extra.
-
-  # 3. Featurización léxica y sintáctica
   - name: LexicalSyntacticFeaturizer
 
-  # 4. Representaciones tipo "bolsa de palabras" para intents/entidades
   - name: CountVectorsFeaturizer
-    OOV_token: "[OOV]"              # Manejo de palabras fuera de vocabulario
+    lowercase: true
     token_pattern: '(?u)\b\w+\b'
 
-  # 5. Featurizador a nivel de caracteres (para detectar variaciones)
   - name: CountVectorsFeaturizer
     analyzer: "char_wb"
     min_ngram: 1
     max_ngram: 4
+    lowercase: true
 
-  # 6. Modelo principal de clasificación de intents + entidades
   - name: DIETClassifier
     epochs: 100
     constrain_similarities: true
     entity_recognition: true
     intent_classification: true
 
-  # 7. Mapeo de sinónimos de entidades (ej: "correo" → "email")
   - name: EntitySynonymMapper
 
-  # 8. Selector de respuestas (respuestas FAQ, retrieval intents, etc.)
   - name: ResponseSelector
     epochs: 100
     constrain_similarities: true
 
-  # 9. Clasificador de fallback (cuando no se entiende bien la entrada)
   - name: FallbackClassifier
     threshold: 0.3
     ambiguity_threshold: 0.1
 
 policies:
-  # 1. Reglas: controlan comportamientos predefinidos
   - name: RulePolicy
     core_fallback_threshold: 0.3
-    core_fallback_action_name: "utter_default"
+    core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
     check_for_contradictions: true
 
-  # 2. Memorización: recuerda conversaciones previas exactas
   - name: MemoizationPolicy
     max_history: 5
 
-  # 3. Política TED: aprende patrones complejos de diálogo
   - name: TEDPolicy
     max_history: 5
     epochs: 100
