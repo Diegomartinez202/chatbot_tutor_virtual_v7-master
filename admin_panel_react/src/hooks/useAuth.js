@@ -30,5 +30,18 @@ export function useAuth() {
         }
     }, [token]);
 
-    return auth;
+    /**
+     * 🔐 Redirección al sistema SSO de Zajuna
+     * Usa la URL configurada en tu .env (VITE_ZAJUNA_SSO_URL)
+     */
+    const redirectToZajunaSSO = () => {
+        const ssoUrl = import.meta.env.VITE_ZAJUNA_SSO_URL;
+        if (!ssoUrl) {
+            console.error("⚠️ No se ha definido VITE_ZAJUNA_SSO_URL en el archivo .env");
+            return;
+        }
+        window.location.href = `${ssoUrl}?redirect=${encodeURIComponent(window.location.origin)}`;
+    };
+
+    return { ...auth, redirectToZajunaSSO };
 }

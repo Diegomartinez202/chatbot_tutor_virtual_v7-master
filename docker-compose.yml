@@ -61,21 +61,21 @@ services:
       dockerfile: actions/Dockerfile
     container_name: action-server
     environment:
-      # Logs y Helpdesk (ya tenías HELPDESK_WEBHOOK)
-      ACTIONS_LOG_LEVEL: INFO
-      HELPDESK_WEBHOOK: http://backend:8000/api/helpdesk/tickets
-      HELPDESK_TOKEN: ""               # ← añade tu token si aplica
+      # Logs / Helpdesk
+      ACTIONS_LOG_LEVEL: "INFO"
+      HELPDESK_WEBHOOK: "http://backend:8000/api/helpdesk/tickets"
+      HELPDESK_TOKEN: ""
       ACTIONS_HTTP_TIMEOUT: "10"
       ACTIONS_HTTP_RETRIES: "2"
 
-      # SMTP (para action_enviar_correo)
+      # SMTP
       SMTP_SERVER: "smtp.office365.com"
       SMTP_PORT: "587"
       SMTP_USER: "bot@ejemplo.com"
       SMTP_PASS: "contraseña_real"
       EMAIL_FROM: "bot@ejemplo.com"
 
-      # Base para enlaces de recuperación
+      # Reset link base
       RESET_URL_BASE: "https://zajuna.edu"
     ports:
       - "5055:5055"
@@ -96,20 +96,12 @@ services:
     environment:
       ACTION_SERVER_URL: http://action-server:5055/webhook
       RASA_PORT: "5005"
-      # Entrena automáticamente al arrancar si cambian datos/modelo
       RASA_AUTOTRAIN: "true"
       ENDPOINTS_TEMPLATE: "mongo"
 
-      # Tracker (Mongo)
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
-      # 👉 si usas auth en mongo, márcalas en tu .env:
-      # TRACKER_MONGO_USERNAME: ""
-      # TRACKER_MONGO_PASSWORD: ""
-      # TRACKER_MONGO_AUTHSOURCE: "admin"
-
-      # ⚠️ Sin Event Broker (no declarar RABBITMQ_* ni RABBITMQ_URL)
     depends_on:
       - action-server
       - mongo
@@ -123,7 +115,6 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      # 👇 plantilla de endpoints sin broker
       - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]
