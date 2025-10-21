@@ -1,22 +1,31 @@
+// assets.js
 // Centraliza rutas públicas servidas desde /public con BASE_URL estable
-// Funciona en desarrollo (localhost) y producción (subcarpetas)
+// Compatible con desarrollo (localhost) y producción (subcarpetas)
+
+// Obtiene la base URL según entorno
 const getBaseUrl = () => {
-    // Si Vite define BASE_URL, úsala
-    if (import.meta.env?.BASE_URL) {
-        return import.meta.env.BASE_URL.replace(/\/+$/, "/");
-    }
-    // Si no, construye la base desde el origen actual
+    const baseEnv = import.meta.env?.BASE_URL;
+    if (baseEnv) return baseEnv.replace(/\/+$/, "/");
+
     const origin = window.location.origin;
-    // Extrae <base href> si existe
     const baseTag = document.querySelector("base")?.getAttribute("href") || "/";
     return new URL(baseTag, origin).href.replace(/\/+$/, "/");
 };
 
 const BASE = getBaseUrl();
 
-// Resuelve rutas relativas contra BASE y garantiza un path único
-const abs = (p) => new URL(p.replace(/^\/+/, ""), BASE).pathname;
+// Función para generar rutas absolutas de assets
+const abs = (path) => {
+    const cleanPath = path.replace(/^\/+/, "");
+    try {
+        return new URL(cleanPath, BASE).pathname;
+    } catch {
+        console.warn(`Ruta inválida: ${path}`);
+        return cleanPath;
+    }
+};
 
+// Assets centrales (manteniendo la lógica original)
 const assets = {
     BOT_AVATAR: abs("bot-avatar.png"),
     BOT_LOADING: abs("bot-loading.png"),
@@ -24,3 +33,4 @@ const assets = {
 };
 
 export default assets;
+export { abs, BASE };

@@ -16,25 +16,27 @@ tracker_store:
   password: "${TRACKER_MONGO_PASSWORD:-}"
   auth_source: "${TRACKER_MONGO_AUTHSOURCE:-}"
 
-# Event broker en RabbitMQ (Pika)
+# Event broker en RabbitMQ (Pika) — MODO host posicional + kwargs (compat Rasa 3.6)
 event_broker:
   # Clase correcta para RabbitMQ en Rasa 3.6
   type: rasa.core.brokers.pika.PikaEventBroker
 
-  # IMPORTANTE para tu versión de Rasa/Pika:
-  # - "url" se usa como 1er argumento POSICIONAL (host)
-  # - username/password/port/virtual_host van como kwargs
-  # NO uses aquí una URL AMQP completa.
-  url: "rabbitmq"
+  # En esta versión, Rasa pasa "url" como 1er argumento POSICIONAL (host).
+  # NO pongas una URL AMQP completa aquí.
+  url: "${RABBITMQ_HOST:-rabbitmq}"
 
-  # Credenciales y conexión (inyectadas por ENV del servicio `rasa`)
+  # Credenciales/conn (kwargs)
   username: "${RABBITMQ_USER:-guest}"
   password: "${RABBITMQ_PASSWORD:-guest}"
-  port: 5672
-  virtual_host: "/"
+  port: ${RABBITMQ_PORT:-5672}
+  virtual_host: "${RABBITMQ_VHOST:-/}"
 
-  # Opcionales: define la cola para evitar el warning
+  # Cola explícita para publicar y (opcionalmente) suscribirse — evita warning
   queue: "${RABBITMQ_QUEUE:-rasa_events}"
+  queues:
+    - "${RABBITMQ_QUEUE:-rasa_events}"
+
+  # Opcionales (descomenta si los usas)
   # exchange: "${RABBITMQ_EXCHANGE:-rasa}"
   # routing_key: "${RABBITMQ_ROUTING_KEY:-rasa_events}"
 

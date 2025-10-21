@@ -121,6 +121,11 @@ services:
       RABBITMQ_QUEUE: "rasa_events"
       # RABBITMQ_EXCHANGE: "rasa"
       # RABBITMQ_ROUTING_KEY: "rasa_events"
+      # (Opcionales si quieres parametrizar)
+      # RABBITMQ_HOST: "rabbitmq"
+      # RABBITMQ_PORT: "5672"
+      # RABBITMQ_VHOST: "/"
+
     depends_on:
       - action-server
       - rabbitmq
