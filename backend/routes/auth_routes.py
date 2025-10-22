@@ -17,10 +17,8 @@ from backend.services.auth_service import (
     registrar_logout,
     registrar_refresh_token,
 )
-from backend.services.user_service import authenticate_user, find_user_by_email
-from models.auth_model import LoginRequest, TokenResponse
-
-# ✅ Rate limiting por endpoint (seguro: si SlowAPI no está, es no-op)
+from backend.models.auth_model import LoginRequest, TokenResponse
+from backend.services.auth_service import login_user
 from backend.rate_limit import limit
 
 logger = get_logger(__name__)
