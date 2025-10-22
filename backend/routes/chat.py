@@ -151,3 +151,24 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
 
     # 5) Responder en formato Rasa (lista de mensajes)
     return bot_responses
+
+# === Endpoint temporal solo para demo ===
+@chat_router.post("/demo", summary="Demo: chatbot de prueba sin Rasa")
+async def chat_demo(data: ChatRequest):
+    """
+    Endpoint de prueba para el widget.
+    Simula la respuesta del bot sin conectarse a Rasa.
+    """
+    user_message = data.message.lower().strip()
+
+    # Respuestas simuladas
+    if "hola" in user_message:
+        bot_responses = [{"text": "👋 ¡Hola! Soy el bot tutor virtual de Zajuna. ¿En qué puedo ayudarte hoy?"}]
+    elif "gracias" in user_message:
+        bot_responses = [{"text": "😊 ¡De nada! Estoy aquí para ayudarte."}]
+    elif "adiós" in user_message or "chao" in user_message:
+        bot_responses = [{"text": "👋 ¡Hasta pronto! Que tengas un gran día."}]
+    else:
+        bot_responses = [{"text": "🤖 Esta es una respuesta de prueba del bot Zajuna."}]
+
+    return bot_responses

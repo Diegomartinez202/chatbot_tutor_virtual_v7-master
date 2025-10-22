@@ -50,7 +50,8 @@ from backend.routes import logs as logs_legacy  # legacy
 from backend.routes import logs_v2
 from backend.routes.chat import chat_router  # /chat, /chat/health, /chat/debug
 from app.routers import chat_audio
-
+from backend.routes.admin_auth import router as admin_v2_router
+from backend.routes.auth_admin import router as admin_legacy_router 
 # ✅ Montaje adicional directo de tokens para compat (/auth/* además de /api/auth/*)
 from backend.routes.auth_tokens import router as auth_tokens_router
 
@@ -132,7 +133,8 @@ def create_app() -> FastAPI:
     app.include_router(media_router)
     app.include_router(logs_legacy.router)         # legacy
     app.include_router(logs_v2.router)             # v2 separada
-
+    app.include_router(admin_v2_router)
+    app.include_router(admin_legacy_router)
     # ✅ Compatibilidad: endpoints de tokens también expuestos en /auth/*
     app.include_router(auth_tokens_router)         # trae prefix="/auth"
 

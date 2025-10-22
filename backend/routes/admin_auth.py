@@ -114,7 +114,7 @@ except Exception:
 try:
     from backend.services.password_policy import validate_password  # type: ignore
 except Exception:
-    def validate_password(p: str):
+    def validate_password(p: str, **_kwargs):
         # fallback mínima: 8 chars
         ok = len(p) >= int(os.getenv("MIN_PASSWORD_LEN", "8"))
         return ok, ([] if ok else ["La contraseña debe tener al menos 8 caracteres."])
@@ -150,9 +150,6 @@ except Exception:
         if not until:
             return False
         return datetime.now(timezone.utc) < until
-
-# 📌 Prefijo v2 para convivir con tu router legacy en /api/admin
-router = APIRouter(prefix="/api/admin2", tags=["admin-auth-v2"])
 
 # ─────────────────────────────────────────────────────────────
 # Config JWT & Refresh
@@ -248,7 +245,6 @@ def _issue_refresh(user_id: str) -> str:
         "expires_at": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         "revoked": False,
     })
-    # TTL por expires_at (asegurar índice en startup)
     return token
 
 def _rotate_refresh(old_token: Optional[str], user_id: str) -> str:
@@ -346,12 +342,14 @@ async def ensure_admin_indexes():
         pass
 
 # ─────────────────────────────────────────────────────────────
-# Endpoints (con rate limits por endpoint)
+# Core handlers (reutilizados en dos routers)
 # ─────────────────────────────────────────────────────────────
-@router.post("/register")
-@limit("5/minute")  # evitar abuso de registro
-def admin_register(payload: AdminRegisterIn, request: Request):
-    """Crea un usuario para el panel admin/soporte (controlado por ADMIN_REGISTRATION_OPEN)."""
+class _AdminRegisterOut(BaseModel):
+    ok: bool
+    id: Optional[str] = None
+    message: Optional[str] = None
+
+def _core_register(payload: AdminRegisterIn, request: Request):
     if not ADMIN_REGISTRATION_OPEN:
         raise HTTPException(status_code=403, detail="Registro deshabilitado por configuración")
 
@@ -383,9 +381,7 @@ def admin_register(payload: AdminRegisterIn, request: Request):
     ins = users.insert_one(doc)
     return {"ok": True, "id": str(ins.inserted_id), "message": f"Usuario creado con rol {rol}"}
 
-@router.post("/login", response_model=TokenOut)
-@limit("10/minute")  # mitiga fuerza bruta (además de lockouts)
-def admin_login(payload: AdminLoginIn, request: Request, response: Response):
+def _core_login(payload: AdminLoginIn, request: Request, response: Response) -> TokenOut:
     email = payload.email.lower().strip()
     ip = getattr(getattr(request, "state", None), "ip", "") or (request.client.host if request.client else "")
 
@@ -405,12 +401,10 @@ def admin_login(payload: AdminLoginIn, request: Request, response: Response):
     if rol not in ("admin", "soporte"):
         raise HTTPException(status_code=403, detail="No autorizado para panel")
 
-    # éxito → reset de intentos
     reset_attempts(email)
 
-    # tokens
     access = _create_access_token({"sub": str(doc["_id"]), "email": email, "rol": rol})
-    refresh = _issue_refresh(str(doc["_id"]))  # ← corregido paréntesis
+    refresh = _issue_refresh(str(doc["_id"]))
     _set_refresh_cookie(response, refresh)
 
     try:
@@ -420,23 +414,15 @@ def admin_login(payload: AdminLoginIn, request: Request, response: Response):
 
     return TokenOut(access_token=access, refresh_token=refresh)
 
-@router.post("/logout")
-@limit("60/minute")
-def admin_logout(response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
+def _core_logout(response: Response, refresh_token: Optional[str]) -> Dict[str, Any]:
     """Revoca el refresh actual (cookie o body) y limpia cookie."""
-    cookie_rt = None
-    if refresh_token:
-        cookie_rt = refresh_token
+    token = refresh_token
     _clear_refresh_cookie(response)
-    if cookie_rt:
-        _col_refresh_tokens().update_one({"token_hash": _sha256(cookie_rt)}, {"$set": {"revoked": True}})
+    if token:
+        _col_refresh_tokens().update_one({"token_hash": _sha256(token)}, {"$set": {"revoked": True}})
     return {"ok": True}
 
-@router.get("/refresh", response_model=TokenOut)
-@router.post("/refresh", response_model=TokenOut)
-@limit("120/minute")  # clientes pueden refrescar token con frecuencia
-def admin_refresh(request: Request, response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
-    """Entrega nuevo access token; acepta refresh en cookie httpOnly o en body. Rotación activada."""
+def _core_refresh(request: Request, response: Response, refresh_token: Optional[str]) -> TokenOut:
     token = refresh_token or request.cookies.get(REFRESH_COOKIE_NAME)
     if not token:
         raise HTTPException(status_code=401, detail="Refresh token no presente")
@@ -459,22 +445,14 @@ def admin_refresh(request: Request, response: Response, refresh_token: Optional[
     _set_refresh_cookie(response, new_refresh)
     return TokenOut(access_token=access, refresh_token=new_refresh)
 
-@router.get("/me", response_model=AdminMeOut)
-@limit("120/minute")
-async def admin_me(request: Request, user: Dict[str, Any] = Depends(_current_admin_user)):
-    """ Devuelve el perfil del usuario autenticado (admin/soporte). """
+def _core_me(request: Request, user: Dict[str, Any]) -> AdminMeOut:
     try:
         registrar_acceso_perfil(request, user)
     except Exception:
         pass
     return _doc_to_out(user)
 
-@router.post("/change-password")
-@limit("10/minute")
-def admin_change_password(
-    payload: ChangePasswordIn,
-    user: Dict[str, Any] = Depends(_current_admin_user)
-):
+def _core_change_password(payload: ChangePasswordIn, user: Dict[str, Any]) -> Dict[str, Any]:
     if not _verify_password(payload.current_password, user.get("password_hash") or ""):
         raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
     ok, errors = validate_password(payload.new_password)
@@ -483,13 +461,9 @@ def admin_change_password(
     _users().update_one({"_id": user["_id"]}, {"$set": {"password_hash": _hash_password(payload.new_password), "updated_at": datetime.now(timezone.utc)}})
     return {"ok": True, "message": "Contraseña actualizada"}
 
-@router.post("/forgot-password")
-@limit("5/minute")
-def admin_forgot_password(payload: ForgotPasswordIn):
-    """Genera un token de recuperación (placeholder: retornamos el token; en prod → enviar por email)."""
+def _core_forgot_password(payload: ForgotPasswordIn) -> Dict[str, Any]:
     u = _users().find_one({"email": payload.email.lower().strip()})
     if not u:
-        # para no filtrar existencia, devolvemos ok
         return {"ok": True, "message": "Si el correo existe, se enviará un enlace de recuperación"}
 
     raw = secrets.token_urlsafe(32)
@@ -500,12 +474,10 @@ def admin_forgot_password(payload: ForgotPasswordIn):
         "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
         "used": False,
     })
-    # TODO: enviar email aquí (SMTP configurado en tu settings)
+    # TODO: enviar email aquí (SMTP configurado en settings)
     return {"ok": True, "reset_token": raw}
 
-@router.post("/reset-password")
-@limit("5/minute")
-def admin_reset_password(payload: ResetPasswordIn):
+def _core_reset_password(payload: ResetPasswordIn) -> Dict[str, Any]:
     rec = _col_resets().find_one({"token_hash": _sha256(payload.token), "used": False})
     if not rec or rec["expires_at"] < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
@@ -520,18 +492,79 @@ def admin_reset_password(payload: ResetPasswordIn):
     _col_refresh_tokens().update_many({"user_id": rec["user_id"]}, {"$set": {"revoked": True}})
     return {"ok": True, "message": "Contraseña restablecida"}
 
-@router.get("/password-policy")
-@limit("120/minute")
-def get_policy():
-    # snapshot mínimo si no existe el servicio
+def _core_policy_snapshot() -> Dict[str, Any]:
     try:
         from backend.services.password_policy import policy_snapshot  # type: ignore
         return policy_snapshot()
     except Exception:
         return {"min_length": 8, "requires": ["uppercase", "lowercase", "digit", "special"]}
 
-@router.post("/password-policy/check")
-@limit("120/minute")
-def check_policy(password: str = Body(..., embed=True), email: Optional[str] = Body(None), name: Optional[str] = Body(None)):
+def _core_policy_check(password: str, email: Optional[str], name: Optional[str]):
     ok, errors = validate_password(password, email=email, name=name)
     return {"ok": ok, "errors": errors}
+
+# ─────────────────────────────────────────────────────────────
+# Routers: v2 + compat (sin duplicar lógica)
+# ─────────────────────────────────────────────────────────────
+router_v2 = APIRouter(prefix="/api/admin2", tags=["admin-auth-v2"])
+router_legacy = APIRouter(prefix="/api/admin", tags=["admin-auth-legacy-compat"])
+
+def _register_routes(router: APIRouter):
+    @router.post("/register")
+    @limit("5/minute")
+    def admin_register(payload: AdminRegisterIn, request: Request):
+        return _core_register(payload, request)
+
+    @router.post("/login", response_model=TokenOut)
+    @limit("10/minute")
+    def admin_login(payload: AdminLoginIn, request: Request, response: Response):
+        return _core_login(payload, request, response)
+
+    @router.post("/logout")
+    @limit("60/minute")
+    def admin_logout(response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
+        return _core_logout(response, refresh_token)
+
+    @router.get("/refresh", response_model=TokenOut)
+    @router.post("/refresh", response_model=TokenOut)
+    @limit("120/minute")
+    def admin_refresh(request: Request, response: Response, refresh_token: Optional[str] = Body(None, embed=True)):
+        return _core_refresh(request, response, refresh_token)
+
+    @router.get("/me", response_model=AdminMeOut)
+    @limit("120/minute")
+    async def admin_me(request: Request, user: Dict[str, Any] = Depends(_current_admin_user)):
+        return _core_me(request, user)
+
+    @router.post("/change-password")
+    @limit("10/minute")
+    def admin_change_password(payload: ChangePasswordIn, user: Dict[str, Any] = Depends(_current_admin_user)):
+        return _core_change_password(payload, user)
+
+    @router.post("/forgot-password")
+    @limit("5/minute")
+    def admin_forgot_password(payload: ForgotPasswordIn):
+        return _core_forgot_password(payload)
+
+    @router.post("/reset-password")
+    @limit("5/minute")
+    def admin_reset_password(payload: ResetPasswordIn):
+        return _core_reset_password(payload)
+
+    @router.get("/password-policy")
+    @limit("120/minute")
+    def get_policy():
+        return _core_policy_snapshot()
+
+    @router.post("/password-policy/check")
+    @limit("120/minute")
+    def check_policy(password: str = Body(..., embed=True), email: Optional[str] = Body(None), name: Optional[str] = Body(None)):
+        return _core_policy_check(password, email, name)
+
+# Registra en ambos prefijos
+_register_routes(router_v2)
+_register_routes(router_legacy)
+
+# para main.py / routes.__init__.py
+router = router_v2          # Router canónico (v2)
+router_compat = router_legacy  # Compatibilidad /api/admin (legacy)
