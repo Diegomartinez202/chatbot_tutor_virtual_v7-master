@@ -1,14 +1,17 @@
 # backend/routers/auth_logout.py
 from fastapi import APIRouter, Response
 from backend.config.settings import settings
+from backend.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
-@router.post("/logout", summary="Cerrar sesión (borra cookie de refresh)")
+@router.post("/logout", summary="Cerrar sesiÃ³n (borra cookie de refresh)")
 async def logout(response: Response):
     """
     Limpia la cookie httpOnly del refresh token.
-    No requiere autenticación previa para ser idempotente.
+    No requiere autenticaciÃ³n previa para ser idempotente.
     """
     cookie_name = getattr(settings, "refresh_cookie_name", "rt") or "rt"
 
@@ -16,9 +19,10 @@ async def logout(response: Response):
     response.delete_cookie(
         key=cookie_name,
         path="/",
-        domain=None,         # si usas dominio, ponlo aquí
+        domain=None,         # si usas dominio, ponlo aquÃ­
     )
-    # Algunos clientes respetan mejor un Set-Cookie explícito:
+    
+    # Algunos clientes respetan mejor un Set-Cookie explÃ­cito
     response.set_cookie(
         key=cookie_name,
         value="",
@@ -30,4 +34,5 @@ async def logout(response: Response):
         path="/",
     )
 
+    logger.info(f"ðŸšª Logout ejecutado, cookie '{cookie_name}' eliminada")
     return {"detail": "logged out"}

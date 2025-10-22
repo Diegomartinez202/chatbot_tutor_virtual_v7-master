@@ -9,8 +9,10 @@ from backend.utils.jwt_manager import (
     create_refresh_token,
     decode_token,
 )
-from backend.config.settings import settings
-from backend.logger import logger
+from backend.config.settings import settings  
+from backend.utils.logging import get_logger 
+
+logger = get_logger(__name__) 
 
 from backend.services.auth_service import (
     registrar_login_exitoso,
@@ -54,7 +56,7 @@ def login(request_body: LoginRequest, request: Request):
     )
 
     response.set_cookie(
-        key="refresh_token",
+        key=settings.refresh_cookie_name,  
         value=refresh_token,
         httponly=True,
         secure=not settings.debug,
@@ -85,7 +87,7 @@ def logout(request: Request, current_user=Depends(get_current_user)):
     logger.info(f"🚪 Logout: {current_user['email']}")
 
     response = JSONResponse(content={"message": "Sesión cerrada correctamente"})
-    response.delete_cookie("refresh_token")
+    response.delete_cookie(settings.refresh_cookie_name)  
     return response
 
 
@@ -103,7 +105,9 @@ def refresh_token(request: Request, current_user=Depends(get_current_user)):
     }
 
 
+# ========================
 # ✅ NUEVO ENDPOINT CON REFRESH TOKEN EN BODY
+# ========================
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
@@ -113,7 +117,11 @@ class RefreshTokenRequest(BaseModel):
 def refresh_token_manual(data: RefreshTokenRequest, request: Request):
     """🔁 Genera un nuevo access_token usando un refresh_token manual."""
     try:
-        payload = decode_token(data.refresh_token)
+        payload = decode_token(
+            data.refresh_token,
+            secret=settings.secret_key,       
+            algorithm=settings.jwt_algorithm  
+        )
         email = payload.get("email")
         user_id = payload.get("id")
         rol = payload.get("rol")

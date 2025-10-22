@@ -3,15 +3,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from backend.db.mongodb import get_users_collection
-from backend.settings import settings  # ✅ Importación centralizada
+from backend.config.settings import settings  # ✅ Importación actualizada
 
 # ============================
 # 🔐 CONFIGURACIÓN JWT
 # ============================
 
-SECRET_KEY = settings.jwt_secret
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.jwt_expiration_minutes
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.jwt_algorithm  # ✅ Ahora usa settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes  # ✅ actualizado
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

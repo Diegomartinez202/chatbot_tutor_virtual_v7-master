@@ -331,6 +331,22 @@ class Settings(BaseSettings):
             return str(self.redis_url).strip()
         return "memory://"
 
+    @property
+    def jwt_secret(self) -> Optional[str]:
+        # Código legacy usa settings.jwt_secret → ahora es secret_key
+        return self.secret_key
+
+    @property
+    def jwt_expiration_minutes(self) -> int:
+        # Código legacy usa settings.jwt_expiration_minutes
+        # → ahora es access_token_expire_minutes
+        return self.access_token_expire_minutes
+
+    @property
+    def jwt_refresh_cookie_name(self) -> str:
+        # Por si en algún módulo antiguo se usa este nombre
+        return self.refresh_cookie_name
+
 
 # Instancia global
 settings = Settings()
