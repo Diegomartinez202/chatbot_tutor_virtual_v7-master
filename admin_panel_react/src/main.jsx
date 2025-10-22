@@ -3,7 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "@/App";
 import "@/styles/index.css";
-
+import './styles/animations.css';
 import { AuthProvider } from "@/context/AuthContext";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/react-query";

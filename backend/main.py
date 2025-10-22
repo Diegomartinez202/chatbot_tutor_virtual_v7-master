@@ -54,9 +54,9 @@ from backend.routes import admin_users         # /api/admin/users (gestión usua
 # ✅ Intents (moderno + legacy aislado)
 from backend.routes import intent_controller, intent_legacy_controller
 
-# ✅ Router alterno de usuarios (convive con admin_users bajo prefijo)
+# ✅ Router de usuarios (principal + alterno, montados con prefijos distintos)
 from backend.routes import user as user_routes
-from backend.routes import user_controller as user_routes  # (mantengo tu import tal cual)
+from backend.routes import user_controller as user_routes_alt  # alias para evitar sombra
 
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
@@ -135,7 +135,6 @@ def create_app() -> FastAPI:
     app.include_router(api_chat.router)
     app.include_router(media_router)
     app.include_router(stats.router)
-    app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
     app.include_router(logs_legacy.router)
     app.include_router(logs_v2.router)
     app.include_router(auth_refresh_router, prefix="/auth", tags=["auth"])
@@ -154,11 +153,9 @@ def create_app() -> FastAPI:
     app.include_router(admin_auth.router)     # /api/admin2 (MEJORAS)
     app.include_router(admin_users.router)    # /api/admin/users (gestión)
 
-    # ⤵️ NUEVO: Montar user.py con prefijo para NO chocar con admin_users
+    # 👤 Usuarios (principal y alterno, sin colisiones de rutas)
     app.include_router(user_routes.router, prefix="/api/admin2", tags=["Usuarios v2"])
-    # Quedan rutas:
-    #   - /api/admin/users/*       (admin_users.py existente)
-    #   - /api/admin2/admin/*      (user.py alterno)
+    app.include_router(user_routes_alt.router, prefix="/api/admin2/admin", tags=["Usuarios v2 (alt)"])
 
     # 💬 Chat doble montaje (compat)
     app.include_router(chat_router)                 # /chat/*
@@ -499,10 +496,12 @@ from backend.ext.redis_client import close_redis
 
 @app.on_event("startup")
 async def _startup():
-    if (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip() == "fastapi-limiter":
+    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
+    if provider == "fastapi-limiter":
         await init_rate_limit(app)   # si Redis no está disponible, no hace nada
 
 @app.on_event("shutdown")
 async def _shutdown():
-    if (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip() == "fastapi-limiter":
+    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
+    if provider == "fastapi-limiter":
         await close_redis()

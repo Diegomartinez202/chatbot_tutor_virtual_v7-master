@@ -1,46 +1,48 @@
-// src/components/BackButton.jsx
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import IconTooltip from "@/components/ui/IconTooltip";
-import { ArrowLeft } from "lucide-react";
+// src/components/examples/BackButtonDemo.jsx
+import React from "react";
+import BackButton from "@/components/BackButton";
+import assets from "@/config/assets";
 
-const BackButton = ({
-    to = "/",
-    label = "Volver",
-    className = "",
-    icon: Icon = ArrowLeft,
-    tooltip,
-    variant = "outline",
-    size,             // opcional: pasa tal cual a <Button />
-    disabled = false,
-    replace = false,  // opcional: usa navigate(to, { replace })
-    type = "button",
-    onClick,          // opcional: si devuelve e.preventDefault(), no navega
-}) => {
-    const navigate = useNavigate();
-
-    const handleClick = (e) => {
-        if (onClick) onClick(e);
-        if (e?.defaultPrevented) return;
-        navigate(to, { replace });
-    };
-
+export default function BackButtonDemo() {
     return (
-        <IconTooltip label={tooltip || label} side="top">
-            <Button
-                type={type}
-                variant={variant}
-                size={size}
-                disabled={disabled}
-                onClick={handleClick}
-                className={`inline-flex items-center gap-2 ${className}`}
-                aria-label={label}
-            >
-                <Icon className="w-4 h-4" aria-hidden="true" />
-                {label}
-            </Button>
-        </IconTooltip>
-    );
-};
+        <div className="flex flex-col gap-4 p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                Demo de BackButton con animaciones de Tooltip
+            </h2>
 
-export default BackButton;
+            {/* FadeIn por defecto */}
+            <BackButton
+                to="/home"
+                label="Volver a Home"
+                tooltip="Tooltip FadeIn (default)"
+            />
+
+            {/* FadeOut */}
+            <BackButton
+                to="/dashboard"
+                label="Ir al Dashboard"
+                tooltip="Tooltip FadeOut"
+                animation="fadeOut"
+                variant="secondary"
+            />
+
+            {/* Pulse */}
+            <BackButton
+                to="/settings"
+                label="Configuración"
+                tooltip="Tooltip Pulse"
+                animation="pulse"
+                variant="outline"
+            />
+
+            {/* Bounce */}
+            <BackButton
+                to="/profile"
+                label="Mi Perfil"
+                tooltip="Tooltip Bounce"
+                animation="bounce"
+                variant="ghost"
+            />
+        </div>
+    );
+}
