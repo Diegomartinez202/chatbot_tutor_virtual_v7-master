@@ -226,7 +226,8 @@ services:
       DEBUG: "true"
       FRONTEND_SITE_URL: http://localhost:5173
       UVICORN_HOST: 0.0.0.0
-      UVICORN_PORT: 8000
+      UVICORN_PORT: "8000"
+
     volumes:
       - ./backend:/app/backend
     depends_on:

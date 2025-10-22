@@ -72,6 +72,13 @@ class Settings(BaseSettings):
         env_file=_resolve_env_file(),
         case_sensitive=False,
     )
+    # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
+    demo_mode: bool = Field(default=True, alias="DEMO_MODE")
+    """
+    Si demo_mode=True:
+      - El backend aceptará el token simulado: Authorization: Bearer FAKE_TOKEN_ZAJUNA
+      - Ideal para presentaciones o entornos sin conexión real con Zajuna.
+    """
 
     # ✅ ⚙️ Compatibilidad con Pydantic v1 y v2
     if not _V2:
