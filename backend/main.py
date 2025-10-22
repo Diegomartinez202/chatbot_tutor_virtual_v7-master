@@ -33,18 +33,15 @@ except Exception:
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.request_meta import request_meta_middleware  # IP/UA
 
-# 🧭 Routers agregados (nuevo agregador central)
+# 🧭 Router agregador central (incluye auth_routes, auth_tokens, chat, logs, etc.)
 from backend.routes import router as api_router
 
-# 🧭 Routers adicionales/legacy que NO están en el agregador (se mantienen)
+# 🧭 Routers adicionales/legacy que NO están todos en el agregador (se mantienen)
 from backend.routes import exportaciones
 from app.routers import admin_failed
 from backend.routes import helpdesk
 from backend.routes import api_chat
 from app.routes.media import router as media_router
-from backend.routers.auth_refresh import router as auth_refresh_router
-from backend.routers.auth_logout import router as auth_logout_router
-from backend.routers.auth_token import router as auth_token_router
 from backend.routes import auth_admin          # /api/admin (legacy)
 from backend.routes import admin_auth          # /api/admin2 (mejoras auth)
 from backend.routes import admin_users         # /api/admin/users (gestión usuarios)
@@ -53,6 +50,9 @@ from backend.routes import logs as logs_legacy  # legacy
 from backend.routes import logs_v2
 from backend.routes.chat import chat_router  # /chat, /chat/health, /chat/debug
 from app.routers import chat_audio
+
+# ✅ Montaje adicional directo de tokens para compat (/auth/* además de /api/auth/*)
+from backend.routes.auth_tokens import router as auth_tokens_router
 
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
@@ -124,7 +124,7 @@ def create_app() -> FastAPI:
     # Todo lo que agrega backend/routes/__init__.py vivirá bajo /api/...
     app.include_router(api_router, prefix="/api")
 
-    # 🔀 Rutas adicionales/legacy que no están en el agregador (se mantienen)
+    # 🔀 Rutas adicionales/legacy que no están (todas) en el agregador (se mantienen)
     app.include_router(admin_failed.router)
     app.include_router(exportaciones.router)
     app.include_router(helpdesk.router)
@@ -132,9 +132,9 @@ def create_app() -> FastAPI:
     app.include_router(media_router)
     app.include_router(logs_legacy.router)         # legacy
     app.include_router(logs_v2.router)             # v2 separada
-    app.include_router(auth_refresh_router, prefix="/auth", tags=["auth"])
-    app.include_router(auth_token_router,   prefix="/auth", tags=["auth"])
-    app.include_router(auth_logout_router,  prefix="/auth", tags=["auth"])
+
+    # ✅ Compatibilidad: endpoints de tokens también expuestos en /auth/*
+    app.include_router(auth_tokens_router)         # trae prefix="/auth"
 
     # ✅ Intents: legacy aislado bajo /api/legacy
     app.include_router(
@@ -148,10 +148,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_auth.router)     # /api/admin2 (MEJORAS)
     app.include_router(admin_users.router)    # /api/admin/users (gestión)
 
-    # 👤 Usuarios v2 alterno (si existe un router alterno distinto al del agregador)
-    # (No se monta aquí para evitar colisión con /api/admin/users del agregador)
-
-    # 💬 Chat doble montaje (compat): /chat/* y /api/chat/* (el /api/chat ya entra por el agregador)
+    # 💬 Chat doble montaje (compat): /chat/* y /api/chat/* (el /api/chat también entra por agregador)
     app.include_router(chat_router)                 # /chat/*
     app.include_router(chat_router, prefix="/api")  # /api/chat/*
 

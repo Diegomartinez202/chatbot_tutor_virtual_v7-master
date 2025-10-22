@@ -1,143 +1,204 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+# backend/routes/auth_tokens.py
+
+from typing import Optional, Any, Dict
+
+from fastapi import APIRouter, Request, Response, HTTPException, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from backend.config.settings import settings
 from backend.utils.logging import get_logger
-from backend.dependencies.auth import get_current_user
 from backend.utils.jwt_manager import (
+    reissue_tokens_from_refresh,
     create_access_token,
-    decode_token,
+    create_refresh_token,
 )
-from backend.rate_limit import limit
-
-# Auditoría / bitácora
-from backend.services.auth_service import (
-    registrar_logout,
-    registrar_refresh_token,
-)
-
-# Lookup de usuario para refresh manual (body)
-try:
-    from backend.services.auth_service import find_user_by_email  # type: ignore
-except Exception:
-    try:
-        from backend.services.user_service import find_user_by_email  # type: ignore
-    except Exception:
-        def find_user_by_email(_: str):
-            return None  # fallback inocuo si no existe
 
 logger = get_logger(__name__)
 
+# Dejamos el prefijo aquí para que en main.py no tengas que repetirlo
 router = APIRouter(prefix="/auth", tags=["Auth Tokens"])
 
 
-# ========================
-# 🔒 LOGOUT (borra cookie refresh_token)
-# ========================
-@router.post("/logout")
-@limit("30/minute")
-def logout(request: Request, current_user=Depends(get_current_user)):
-    """
-    🔒 Cierra sesión del usuario autenticado.
-    - Registra auditoría.
-    - Elimina cookie httpOnly con refresh_token.
-    """
-    registrar_logout(request, current_user)
-    logger.info(f"🚪 Logout: {current_user.get('email')}")
-
-    resp = JSONResponse({"message": "Sesión cerrada correctamente"})
-    resp.delete_cookie(settings.refresh_cookie_name)
-    return resp
+# ─────────────────────────────────────────────────────────────
+# 🔁 REFRESH (cookie o body)
+# ─────────────────────────────────────────────────────────────
+class RefreshIn(BaseModel):
+    refresh_token: Optional[str] = None  # opcional: puede venir por body o cookie
 
 
-# ========================
-# 🔁 REFRESH (usa cookie + get_current_user)
-# ========================
-@router.post("/refresh")
-@limit("60/minute")
-def refresh_access_token(request: Request, current_user=Depends(get_current_user)):
+@router.post("/refresh", summary="Rotar tokens desde refresh token")
+async def refresh_tokens(request: Request, response: Response, body: Optional[RefreshIn] = None):
     """
-    🔁 Genera un nuevo access token usando el refresh token enviado por cookie (vía get_current_user).
-    - No devuelve ni toca el refresh token.
-    - Registra el evento en auditoría.
+    Rotación de tokens usando refresh token:
+    - Se acepta en body JSON o en cookie httpOnly
+    - Devuelve nuevo access token y renueva la cookie refresh
     """
-    access_token = create_access_token(current_user)
-    registrar_refresh_token(request, current_user)
-    logger.info(f"🔁 Access token renovado (cookie): {current_user.get('email')}")
+    # 1) Tomar refresh token del body o de la cookie
+    cookie_name = (settings.refresh_cookie_name or "rt")
+    token = (body.refresh_token if body else None) or request.cookies.get(cookie_name)
+    if not token:
+        logger.warning("Intento de refresh sin token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
 
+    # 2) Validar y reemitir
+    pair = reissue_tokens_from_refresh(token, allow_typeless=getattr(settings, "jwt_accept_typeless", False))
+    if pair is None:
+        logger.warning("Refresh token inválido o expirado")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+
+    access_token, new_refresh_token = pair
+
+    # 3) Setear cookie httpOnly con el nuevo refresh token
+    secure_cookie = False if (getattr(settings, "app_env", "dev") == "dev") else True
+    response.set_cookie(
+        key=cookie_name,
+        value=new_refresh_token,
+        httponly=True,
+        secure=secure_cookie,
+        samesite="lax",
+        max_age=7 * 24 * 3600,  # 7 días
+        path="/",
+    )
+
+    logger.info(f"🔁 Refresh token exitoso, nueva cookie establecida para '{cookie_name}'")
+
+    # 4) Devolver nuevo access token
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# ─────────────────────────────────────────────────────────────
+# 🔒 LOGOUT (borra cookie de refresh)
+# ─────────────────────────────────────────────────────────────
+@router.post("/logout", summary="Cerrar sesión (borra cookie de refresh)")
+async def logout(response: Response):
+    """
+    Limpia la cookie httpOnly del refresh token.
+    No requiere autenticación previa para ser idempotente.
+    """
+    cookie_name = (getattr(settings, "refresh_cookie_name", "rt") or "rt")
+
+    # Borra cookie (varias directivas para maximizar compatibilidad)
+    response.delete_cookie(
+        key=cookie_name,
+        path="/",
+        domain=None,  # si usas dominio específico, colócalo aquí
+    )
+
+    # Algunos clientes respetan mejor un Set-Cookie explícito
+    response.set_cookie(
+        key=cookie_name,
+        value="",
+        max_age=0,
+        expires=0,
+        httponly=True,
+        secure=False if getattr(settings, "app_env", "dev") == "dev" else True,
+        samesite="lax",
+        path="/",
+    )
+
+    logger.info(f"🚪 Logout ejecutado, cookie '{cookie_name}' eliminada")
+    return {"detail": "logged out"}
+
+
+# ─────────────────────────────────────────────────────────────
+# 🔑 TOKEN (emitir access/refresh al hacer login)
+# ─────────────────────────────────────────────────────────────
+class TokenRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+def _try_builtin_verify(email: str, password: str) -> Optional[Dict[str, Any]]:
+    """
+    Intenta delegar en tu lógica existente de autenticación si está disponible.
+    Debe devolver un dict con al menos: {"id": ..., "email": ..., "role": ...}
+    Devuelve None si no puede verificar o si no existe esa función.
+    """
+    try:
+        # Si tienes un servicio de auth propio, ajústalo aquí:
+        from backend.services.auth_service import verify_user_credentials  # type: ignore
+        # Debe devolver: None si no válido, o un usuario (dict/objeto con id/email/role)
+        user = verify_user_credentials(email, password)
+        if user:
+            # Normalizamos a dict
+            if not isinstance(user, dict):
+                user = {
+                    "id": getattr(user, "id", getattr(user, "_id", str(user))),
+                    "email": getattr(user, "email", email),
+                    "role": getattr(user, "role", "user"),
+                }
+            return user
+    except Exception:
+        # Si el módulo/función no existe o falla, seguimos con bootstrap opcional
+        pass
+    return None
+
+
+def _try_bootstrap_admin(email: str, password: str) -> Optional[Dict[str, Any]]:
+    """
+    Modo bootstrap **opcional**: solo permite login del admin si defines
+    ADMIN_BOOTSTRAP_PASSWORD en el .env. No sustituye tu lógica.
+    """
+    if not settings.admin_bootstrap_password:
+        return None
+    if email.lower() == (settings.admin_email or "").lower() and password == settings.admin_bootstrap_password:
+        return {
+            "id": "admin-bootstrap",
+            "email": email,
+            "role": "admin",
+        }
+    return None
+
+
+@router.post("/token", summary="Emitir access/refresh tokens (login)")
+async def issue_tokens(payload: TokenRequest, response: Response):
+    """
+    Endpoint de emisión de tokens:
+    1) Intenta verificar con tu auth_service (verify_user_credentials)
+    2) Si no, permite bootstrap admin si ADMIN_BOOTSTRAP_PASSWORD está configurado
+    3) Devuelve access como bearer y setea refresh en cookie httpOnly
+    """
+    # 1) Primero intenta tu verificación propia
+    user = _try_builtin_verify(payload.email, payload.password)
+
+    # 2) Si no está disponible o es inválido, intenta bootstrap admin (si configurado)
+    if user is None:
+        user = _try_bootstrap_admin(payload.email, payload.password)
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    # 3) Claims mínimos (agregamos 'typ' = 'access'/'refresh')
+    base_claims = {
+        "sub": str(user.get("id", user.get("_id", user.get("email")))),
+        "email": user.get("email", payload.email),
+        "role": user.get("role", "user"),
+    }
+
+    access_token = create_access_token({**base_claims, "typ": "access"})
+    refresh_token = create_refresh_token({**base_claims, "typ": "refresh"})
+
+    # 4) Cookie httpOnly para refresh (igual flujo que ya usamos)
+    cookie_name = settings.refresh_cookie_name or "rt"
+    secure_cookie = False if (getattr(settings, "app_env", "dev") == "dev") else True
+    response.set_cookie(
+        key=cookie_name,
+        value=refresh_token,
+        httponly=True,
+        secure=secure_cookie,
+        samesite="lax",
+        max_age=7 * 24 * 3600,
+        path="/",
+    )
+
+    # 5) Devolvemos access como bearer (sin romper front)
     return {
         "access_token": access_token,
         "token_type": "bearer",
+        "user": {
+            "id": base_claims["sub"],
+            "email": base_claims["email"],
+            "role": base_claims["role"],
+        },
     }
-
-
-# ========================
-# 🔁 REFRESH (por body) — alternativo
-# ========================
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-
-@router.post("/refresh-token")
-@limit("60/minute")
-def refresh_access_token_manual(data: RefreshTokenRequest, request: Request):
-    """
-    🔁 Alternativa para renovar access token enviando el refresh_token en el body.
-    - Útil para apps móviles o flujos sin cookies httpOnly.
-    """
-    try:
-        payload = decode_token(
-            data.refresh_token,
-            secret=settings.secret_key,
-            algorithm=settings.jwt_algorithm,
-        )
-        email = payload.get("email")
-        user_id = payload.get("id")
-        if not email or not user_id:
-            raise HTTPException(status_code=400, detail="Token inválido")
-
-        user = find_user_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        access_token = create_access_token(user)
-        registrar_refresh_token(request, user)
-        logger.info(f"🔁 Access token renovado (body): {email}")
-
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Error en refresh-token (body): {str(e)}")
-        raise HTTPException(status_code=401, detail="Refresh token inválido o expirado")
-
-
-# ========================
-# 🔎 VERIFICAR / INTROSPECT (opcional)
-# ========================
-class VerifyTokenRequest(BaseModel):
-    token: str
-
-
-@router.post("/token/verify")
-@limit("120/minute")
-def verify_token(req: VerifyTokenRequest):
-    """
-    🔎 Verifica un JWT (access o refresh) y retorna su payload si es válido.
-    - Útil para diagnóstico y pruebas.
-    """
-    try:
-        payload = decode_token(
-            req.token,
-            secret=settings.secret_key,
-            algorithm=settings.jwt_algorithm,
-        )
-        return {"valid": True, "payload": payload}
-    except Exception as e:
-        logger.warning(f"Token inválido en /token/verify: {e}")
-        return {"valid": False, "error": "Token inválido o expirado"}
