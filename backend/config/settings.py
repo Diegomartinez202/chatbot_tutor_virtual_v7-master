@@ -67,27 +67,30 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
-        # ⚠️ NO se activa extra='ignore' porque el usuario NO quiere ignorar nada.
-        # (Consumimos explícitamente todas las variables adicionales vía campos abajo.)
     )
 
     # ✅ ⚙️ Compatibilidad con Pydantic v1 y v2
     if not _V2:
         class Config:
-            # En Pydantic v1 el default de BaseModel es 'ignore', no tocamos nada aquí.
             pass
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")
     mongo_db_name: str = Field(..., alias="MONGO_DB_NAME")
 
-    # 🔐 JWT
+    # 🔐 JWT (emisión/validación HS* y validación RS*/JWKS)
     secret_key: Optional[str] = Field(default=None, alias="SECRET_KEY")  # HS*
-    jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  # RS*
+    jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  # RS* (PEM)
+    jwt_jwks_url: Optional[str] = Field(default=None, alias="JWT_JWKS_URL")      # RS* (JWKS remoto)
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    # ✅ Compatibilidad temporal para aceptar tokens sin "typ"
+    # Validaciones extra opcionales para decodificación
+    jwt_issuer: Optional[str] = Field(default=None, alias="JWT_ISSUER")
+    jwt_audience: Optional[str] = Field(default=None, alias="JWT_AUDIENCE")
+    leeway_seconds: Optional[int] = Field(default=None, alias="JWT_LEEWAY_SECONDS")
+
+    # ✅ Compat temporal para tokens sin "typ"
     jwt_accept_typeless: bool = Field(default=False, alias="JWT_ACCEPT_TYPELESS")
 
     # ✅ Nombre de la cookie de refresh
@@ -110,8 +113,6 @@ class Settings(BaseSettings):
 
     # 👤 Admin
     admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
-
-    # ✅ Password opcional para bootstrap admin
     admin_bootstrap_password: Optional[str] = Field(default=None, alias="ADMIN_BOOTSTRAP_PASSWORD")
 
     # 🧾 Logs y entorno
@@ -151,7 +152,6 @@ class Settings(BaseSettings):
     rate_limit_max_requests: int = Field(default=60, alias="RATE_LIMIT_MAX_REQUESTS")
     redis_url: Optional[str] = Field(None, alias="REDIS_URL")
     rate_limit_storage_uri: Optional[str] = Field(default=None, alias="RATE_LIMIT_STORAGE_URI")
-
     rate_limit_key_strategy: Literal["user_or_ip", "skip_admin", "ip"] = Field(
         default="user_or_ip", alias="RATE_LIMIT_KEY_STRATEGY"
     )
@@ -177,7 +177,7 @@ class Settings(BaseSettings):
     rasa_rest_url: Optional[str] = Field(default=None, alias="RASA_REST_URL")
     rasa_ws_url: Optional[str] = Field(default=None, alias="RASA_WS_URL")
 
-    # Rate limit provider (para main.py que lo lee por os.getenv; aquí lo mapeamos también)
+    # Rate limit provider
     rate_limit_provider: Optional[Literal["builtin", "slowapi", "fastapi-limiter"]] = Field(
         default=None, alias="RATE_LIMIT_PROVIDER"
     )
@@ -245,7 +245,7 @@ class Settings(BaseSettings):
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
 
-    # Normalizador de APP_ENV (NO ignora: mapea valores a los litterals válidos)
+    # Normalizador de APP_ENV
     @field_validator("app_env", mode="before")
     @classmethod
     def _coerce_app_env(cls, v: Any) -> str:
@@ -281,8 +281,9 @@ class Settings(BaseSettings):
 
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
-            if not (self.jwt_public_key and self.jwt_public_key.strip()):
-                raise ValueError("Se requiere JWT_PUBLIC_KEY cuando JWT_ALGORITHM es RS* (p.ej., RS256)")
+            # ✅ Ahora aceptamos PUBLIC KEY o JWKS URL
+            if not ((self.jwt_public_key and self.jwt_public_key.strip()) or (self.jwt_jwks_url and self.jwt_jwks_url.strip())):
+                raise ValueError("Para RS*, define JWT_PUBLIC_KEY (PEM) o JWT_JWKS_URL (JWKS remoto).")
         elif alg.startswith("HS"):
             if not (self.secret_key and self.secret_key.strip()):
                 raise ValueError("Se requiere SECRET_KEY cuando JWT_ALGORITHM es HS* (p.ej., HS256)")
@@ -338,8 +339,7 @@ class Settings(BaseSettings):
 
     @property
     def jwt_expiration_minutes(self) -> int:
-        # Código legacy usa settings.jwt_expiration_minutes
-        # → ahora es access_token_expire_minutes
+        # Código legacy usa settings.jwt_expiration_minutes → ahora es access_token_expire_minutes
         return self.access_token_expire_minutes
 
     @property

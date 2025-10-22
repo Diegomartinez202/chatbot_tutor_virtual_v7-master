@@ -1,123 +1,134 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chatbot Tutor Virtual — Widget</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="icon" href="/favicon.ico" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: transparent;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chatbot Tutor Virtual — Widget</title>
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: transparent;
+        }
 
-    /* 🟣 Burbuja flotante */
-    #chat-toggle {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: #0f172a;
-      color: #fff;
-      font-size: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 9999;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    }
+        /* 🟣 Burbuja flotante */
+        #chat-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #0f172a;
+            color: #fff;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
 
-    #chat-toggle:hover {
-      background: #1e293b;
-    }
+            #chat-toggle:hover {
+                background: #1e293b;
+            }
 
-    /* 🧱 Contenedor del chat */
-    .wrap {
-      position: fixed;
-      bottom: 100px;
-      right: 24px;
-      width: var(--w, 380px);
-      height: var(--h, 560px);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      z-index: 9998;
-      display: none;
-      resize: both;
-      touch-action: none;
-    }
+        /* 🧱 Contenedor del chat */
+        .wrap {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: var(--w, 380px);
+            height: var(--h, 560px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            z-index: 9998;
+            display: none;
+            resize: both;
+            touch-action: none;
+        }
 
-    iframe.chat {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+        iframe.chat {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
 
-    /* Cursor de movimiento */
-    .draggable {
-      cursor: move;
-    }
-  </style>
+        /* Cursor de movimiento */
+        .draggable {
+            cursor: move;
+        }
+    </style>
 </head>
 <body>
-  <!-- 🟣 Botón flotante -->
-  <div id="chat-toggle">💬</div>
+    <!-- 🟣 Botón flotante -->
+    <div id="chat-toggle">💬</div>
 
-  <!-- 💬 Ventana del chat -->
-  <div class="wrap draggable" id="chat-wrap">
-    <iframe id="chat-iframe" class="chat"></iframe>
-  </div>
+    <!-- 💬 Ventana del chat -->
+    <div class="wrap draggable" id="chat-wrap">
+        <iframe id="chat-iframe" class="chat"></iframe>
+    </div>
 
-  <script>
-    // Configuración básica
-    const qs = new URLSearchParams(location.search);
-    const src = qs.get("src") || "";
-    const w = qs.get("w") || "380px";
-    const h = qs.get("h") || "560px";
-    document.documentElement.style.setProperty("--w", w);
-    document.documentElement.style.setProperty("--h", h);
+    <script>
+        // Configuración básica
+        const qs = new URLSearchParams(location.search);
+        const src = qs.get("src") || "";
+        const w = qs.get("w") || "380px";
+        const h = qs.get("h") || "560px";
+        document.documentElement.style.setProperty("--w", w);
+        document.documentElement.style.setProperty("--h", h);
 
-    const frame = document.getElementById("chat-iframe");
-    if (src) frame.src = src;
+        const frame = document.getElementById("chat-iframe");
+        if (src) frame.src = src;
 
-    const toggle = document.getElementById("chat-toggle");
-    const wrap = document.getElementById("chat-wrap");
+        const toggle = document.getElementById("chat-toggle");
+        const wrap = document.getElementById("chat-wrap");
 
-    // Mostrar/ocultar chat
-    toggle.addEventListener("click", () => {
-      wrap.style.display = wrap.style.display === "none" ? "block" : "none";
-    });
+        // Mostrar/ocultar chat
+        toggle.addEventListener("click", () => {
+            wrap.style.display = wrap.style.display === "none" ? "block" : "none";
+        });
 
-    // Permitir arrastre del chat
-    let isDragging = false, offsetX, offsetY;
-    wrap.addEventListener("mousedown", (e) => {
-      if (!e.target.closest("iframe")) {
-        isDragging = true;
-        offsetX = e.clientX - wrap.getBoundingClientRect().left;
-        offsetY = e.clientY - wrap.getBoundingClientRect().top;
-      }
-    });
+        // Permitir arrastre del chat
+        let isDragging = false, offsetX, offsetY;
+        wrap.addEventListener("mousedown", (e) => {
+            if (!e.target.closest("iframe")) {
+                isDragging = true;
+                offsetX = e.clientX - wrap.getBoundingClientRect().left;
+                offsetY = e.clientY - wrap.getBoundingClientRect().top;
+            }
+        });
 
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        wrap.style.left = `${e.clientX - offsetX}px`;
-        wrap.style.top = `${e.clientY - offsetY}px`;
-        wrap.style.bottom = "auto";
-        wrap.style.right = "auto";
-      }
-    });
+        document.addEventListener("mousemove", (e) => {
+            if (isDragging) {
+                wrap.style.left = `${e.clientX - offsetX}px`;
+                wrap.style.top = `${e.clientY - offsetY}px`;
+                wrap.style.bottom = "auto";
+                wrap.style.right = "auto";
+            }
+        });
 
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-    });
-  </script>
+        document.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+    </script>
 </body>
 </html>
+// Suavizar el movimiento y evitar que se salga del viewport
+document.addEventListener("mousemove", (e) => {
+  if (isDragging) {
+    const x = Math.min(Math.max(0, e.clientX - offsetX), window.innerWidth - wrap.offsetWidth);
+    const y = Math.min(Math.max(0, e.clientY - offsetY), window.innerHeight - wrap.offsetHeight);
+    wrap.style.left = `${x}px`;
+    wrap.style.top = `${y}px`;
+    wrap.style.bottom = "auto";
+    wrap.style.right = "auto";
+  }
+});
