@@ -259,3 +259,35 @@
         opacity: 0.5;
     }
 }
+/* ————————————————————————————————
+   Puntos animados “Escribiendo…”
+———————————————————————————————— */
+.typing-dots {
+    display: inline-block;
+    width: 1rem;
+    text-align: left;
+}
+
+    .typing-dots::after {
+        content: '. . .';
+        display: inline-block;
+        animation: typing 1s steps(3, end) infinite;
+    }
+
+@keyframes typing {
+    0%, 20% {
+        content: '';
+    }
+
+    40% {
+        content: '.';
+    }
+
+    60% {
+        content: '..';
+    }
+
+    80%, 100% {
+        content: '...';
+    }
+}

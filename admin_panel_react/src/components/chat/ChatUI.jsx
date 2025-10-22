@@ -1,30 +1,22 @@
 // src/components/chat/ChatUI.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Send, Loader2, User as UserIcon, ExternalLink } from "lucide-react";
+import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
-import IconTooltip from "@/components/ui/IconTooltip";
 import MicButton from "./MicButton";
-import QuickActions from "./QuickActions";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import "./ChatUI.css";
-// ————————————————————————————————
+
 // Helpers
-// ————————————————————————————————
-function getParentOrigin() {
-    try { const ref = document.referrer || ""; if (ref) return new URL(ref).origin; } catch { }
-    return window.location.origin;
-}
+function getParentOrigin() { try { return new URL(document.referrer || "").origin; } catch { return window.location.origin; } }
 function normalize(o) { return String(o || "").trim().replace(/\/+$/, ""); }
 const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "").split(",").map(s => normalize(s)).filter(Boolean);
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
-const SHOW_QUICK_ACTIONS = String(import.meta.env.VITE_SHOW_QUICK_ACTIONS ?? "true") === "true";
 
-// ————————————————————————————————
 // Avatares
-// ————————————————————————————————
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
@@ -33,7 +25,6 @@ function BotAvatar({ size = 28 }) {
         </div>
     );
 }
-
 function getInitials(source) {
     const s = String(source || "").trim();
     if (!s) return "U";
@@ -43,7 +34,6 @@ function getInitials(source) {
     const b = (parts[1] || "").charAt(0);
     return (a + b).toUpperCase() || a.toUpperCase() || "U";
 }
-
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
     const src = user?.avatarUrl || user?.photoUrl || user?.image || user?.photo || USER_AVATAR_FALLBACK || "";
@@ -58,58 +48,102 @@ function UserAvatar({ user, size = 28 }) {
     return <img src={src} alt={user?.nombre || user?.name || user?.email} className="w-full h-full object-cover rounded-full" onError={() => setErr(true)} />;
 }
 
-// ————————————————————————————————
-// ChatUI
-// ————————————————————————————————
+// ChatUI completo
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
     const [messages, setMessages] = useState([{ id: "welcome", role: "bot", text: "¡Hola! Soy tu asistente. ¿En qué puedo ayudarte?" }]);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
-    const [disabledActionGroups, setDisabledActionGroups] = useState(() => new Set());
     const [authToken, setAuthToken] = useState(null);
+    const [typing, setTyping] = useState(false);
     const listRef = useRef(null);
-    const unreadRef = useRef(0);
     const userId = useMemo(() => user?.email || user?._id || null, [user]);
     const parentOrigin = useMemo(() => normalize(getParentOrigin()), []);
     const allowed = useMemo(() => envAllowed, []);
-    const isAllowed = useCallback(origin => normalize(origin) === parentOrigin || (allowed.length > 0 && allowed.includes(normalize(origin))), [parentOrigin, allowed]);
     const needAuth = embed || !user;
 
-    const scrollToBottom = useCallback(() => { requestAnimationFrame(() => { const el = listRef.current; if (!el) return; el.scrollTop = el.scrollHeight + 256; }); }, []);
-    useEffect(() => { scrollToBottom(); }, [messages, sending, scrollToBottom]);
+    // Virtualización con v4+
+    const rowVirtualizer = useVirtualizer({
+        count: messages.length + (typing ? 1 : 0),
+        getScrollElement: () => listRef.current,
+        estimateSize: () => 80,
+        overscan: 5,
+    });
 
-    const postBadge = useCallback((count) => { try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "chat:badge", count }, parentOrigin); } catch { } }, [parentOrigin]);
-    useEffect(() => { unreadRef.current = 0; postBadge(0); }, [postBadge]);
-
+    // Scroll inteligente
+    const isScrolledToBottom = useRef(true);
+    const scrollToBottom = () => {
+        const el = listRef.current;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight;
+    };
     useEffect(() => {
-        const onMsg = (ev) => {
-            if (!isAllowed(ev.origin)) return;
-            const data = ev.data || {};
-            if (data.type === "chat:visibility" && data.open) { unreadRef.current = 0; postBadge(0); }
-            if (data.type === "auth:token" && data.token) setAuthToken(data.token);
+        const el = listRef.current;
+        const onScroll = () => {
+            if (!el) return;
+            const threshold = 50;
+            isScrolledToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
         };
-        window.addEventListener("message", onMsg);
-        return () => window.removeEventListener("message", onMsg);
-    }, [isAllowed, postBadge]);
-
-    const appendBotMessages = useCallback((rsp) => {
-        const out = [];
-        rspToArray(rsp).forEach((item, idx) => {
-            const baseId = `b-${Date.now()}-${idx}`;
-            if (item.text) out.push({ id: `${baseId}-t`, role: "bot", text: item.text });
-            if (item.image) out.push({ id: `${baseId}-img`, role: "bot", image: item.image });
-            if (item.buttons) out.push({ id: `${baseId}-btn`, role: "bot", buttons: item.buttons });
-            if (item.quick_replies) out.push({ id: `${baseId}-qr`, role: "bot", quickReplies: item.quick_replies });
-            if (item.custom?.cards) item.custom.cards.forEach((c, ci) => out.push({ id: `${baseId}-card-${ci}`, role: "bot", card: c }));
-        });
-        if (!out.length) out.push({ id: `b-${Date.now()}-empty`, role: "bot", text: "Hmm… no tengo una respuesta para eso." });
-        setMessages(m => [...m, ...out]);
-        unreadRef.current += out.length; postBadge(unreadRef.current);
-    }, [postBadge]);
+        el?.addEventListener("scroll", onScroll);
+        return () => el?.removeEventListener("scroll", onScroll);
+    }, []);
+    useEffect(() => { if (isScrolledToBottom.current) scrollToBottom(); }, [messages, sending, typing]);
 
     function rspToArray(rsp) { return Array.isArray(rsp) ? rsp : rsp ? [rsp] : []; }
+
+    // Append secuencial + indicador typing
+    const appendBotMessages = useCallback(async (rsp) => {
+        const items = [];
+        rspToArray(rsp).forEach((item, idx) => {
+            const baseId = `b-${Date.now()}-${idx}`;
+            if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
+            if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
+            if (item.buttons) {
+                items.push({
+                    id: `${baseId}-btnGroup`,
+                    role: "bot",
+                    render: () => item.buttons.map((btn, i) => (
+                        <div key={i} className="bot-interactive" onClick={() => handleActionClick(baseId, btn)}>
+                            {btn.title}
+                        </div>
+                    ))
+                });
+            }
+            if (item.quick_replies) {
+                items.push({
+                    id: `${baseId}-qrGroup`,
+                    role: "bot",
+                    render: () => item.quick_replies.map((qr, i) => (
+                        <div key={i} className="bot-interactive" onClick={() => handleActionClick(baseId, qr)}>
+                            {qr.title}
+                        </div>
+                    ))
+                });
+            }
+            if (item.custom?.cards) {
+                item.custom.cards.forEach((c, ci) => {
+                    items.push({
+                        id: `${baseId}-card-${ci}`,
+                        role: "bot",
+                        render: () => (
+                            <div className="bot-interactive p-3 border rounded-md mb-2 cursor-pointer" onClick={() => handleActionClick(baseId, c)}>
+                                {c.title || c.text || "Card"}
+                            </div>
+                        )
+                    });
+                });
+            }
+        });
+        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: "Hmm… no tengo una respuesta para eso." });
+
+        setTyping(true);
+        for (let i = 0; i < items.length; i++) {
+            await new Promise(res => setTimeout(res, 150));
+            setMessages(m => [...m, items[i]]);
+        }
+        setTyping(false);
+    }, []);
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
@@ -119,87 +153,68 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         setInput("");
         try {
             const rsp = await sendRasaMessage({ text, sender: userId || undefined, token: authToken || undefined });
-            appendBotMessages(rsp);
-        } catch (e) { setError(e?.message || "Error al enviar el mensaje"); }
-        finally { setSending(false); scrollToBottom(); };
+            await appendBotMessages(rsp);
+        } catch (e) { setError(e?.message || "Error al enviar el mensaje"); } finally { setSending(false); }
     };
 
     const handleSend = async () => { if (!input.trim() || sending) return; await sendToRasa({ text: input }); };
     const onKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-    const handleActionClick = async (groupId, { title, payload, url }) => { if (url) window.open(url, "_blank", "noopener,noreferrer"); if (!payload) return; setDisabledActionGroups(prev => new Set(prev).add(groupId)); await sendToRasa({ text: payload, displayAs: title }); };
+    const handleActionClick = async (groupId, { title, payload, url }) => { if (url) window.open(url, "_blank", "noopener,noreferrer"); if (!payload) return; await sendToRasa({ text: payload, displayAs: title }); };
 
-    const BotRow = ({ children }) => <div className="flex items-start gap-2 justify-start">{children}</div>;
-    const UserRow = ({ children }) => <div className="flex items-start gap-2 justify-end">{children}</div>;
+    const BotRow = ({ children }) => <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>;
+    const UserRow = ({ children }) => <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>;
 
     return (
         <div className="h-full flex flex-col">
             <div ref={listRef} className="flex-1 overflow-auto px-3 py-4">
-                <div className="max-w-3xl mx-auto space-y-3">
-                    {SHOW_QUICK_ACTIONS && <QuickActions onAction={(p, t) => sendToRasa({ text: p, displayAs: t })} show />}
-                    {messages.map(m => {
+                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+                    {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                        const index = virtualRow.index;
+                        const m = index < messages.length ? messages[index] : null;
+                        const isTypingRow = typing && index === messages.length;
+                        if (!m && !isTypingRow) return null;
+
+                        const style = { position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualRow.start}px)` };
+                        if (isTypingRow) {
+                            return (
+                                <div key="typing" style={style}>
+                                    <BotRow>
+                                        <BotAvatar size={28} />
+                                        <div className="rounded-2xl px-3 py-2 max-w-[50%] text-sm break-words bg-gray-100 text-gray-800 animate-fade-slide">
+                                            Escribiendo<span className="typing-dots">...</span>
+                                        </div>
+                                    </BotRow>
+                                </div>
+                            );
+                        }
+
                         const isUser = m.role === "user";
                         const bubbleCls = isUser ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-800";
                         const commonCls = "rounded-2xl px-3 py-2 max-w-[75%] text-sm break-words";
 
-                        // Cards
-                        if (m.card) return (
-                            <BotRow key={m.id}>
-                                <div className="rounded-xl border bg-white max-w-[75%] overflow-hidden">
-                                    {m.card.image && <img src={m.card.image} alt={m.card.title} className="w-full h-40 object-cover" />}
-                                    <div className="p-3">
-                                        <div className="font-semibold">{m.card.title}</div>
-                                        {m.card.subtitle && <div className="text-xs text-gray-500">{m.card.subtitle}</div>}
-                                        {m.card.buttons && <div className="mt-2 flex flex-wrap gap-2">{m.card.buttons.map(b => (
-                                            <button key={b.id} onClick={() => handleActionClick(m.id, b)} className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50">{b.title}</button>
-                                        ))}</div>}
-                                    </div>
-                                </div>
-                            </BotRow>
-                        );
-
-                        // Quick replies / Buttons
-                        if (m.buttons || m.quickReplies) return (
-                            <BotRow key={m.id}>
-                                <div className="rounded-2xl px-2 py-2 bg-gray-100 text-gray-800 max-w-[90%]">
-                                    <div className="flex flex-wrap gap-2">
-                                        {(m.buttons || m.quickReplies).map(q => (
-                                            <button key={q.id} onClick={() => handleActionClick(m.id, q)} className="px-3 py-1.5 rounded-full border text-sm hover:bg-gray-50">{q.title}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </BotRow>
-                        );
-
-                        // Texto / Markdown / Imagen inline
-                        const content = m.text ? <ReactMarkdown remarkPlugins={[remarkGfm]} className="whitespace-pre-wrap break-words">{m.text}</ReactMarkdown>
-                            : m.image && <div className="flex items-center gap-2"><a href={m.image} target="_blank" rel="noreferrer"><img src={m.image} alt="imagen" className="max-h-40 object-cover rounded-md" /></a></div>;
+                        const content = m.text ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                        ) : m.image ? (
+                            <img src={m.image} alt="img" className="max-h-40 object-cover rounded-md" />
+                        ) : m.render ? (
+                            m.render()
+                        ) : null;
 
                         return isUser ? (
-                            <UserRow key={m.id}>
-                                <div className={commonCls + " " + bubbleCls}>{content}</div>
-                                <UserAvatar user={user} size={28} />
-                            </UserRow>
+                            <div key={m.id} style={style}><UserRow><div className={`${commonCls} ${bubbleCls}`}>{content}</div><UserAvatar user={user} size={28} /></UserRow></div>
                         ) : (
-                            <BotRow key={m.id}>
-                                <BotAvatar size={28} />
-                                <div className={commonCls + " " + bubbleCls}>{content}</div>
-                            </BotRow>
+                            <div key={m.id} style={style}><BotRow><BotAvatar size={28} /><div className={`${commonCls} ${bubbleCls}`}>{content}</div></BotRow></div>
                         );
                     })}
-                    {sending && (
-                        <BotRow>
-                            <BotAvatar size={28} />
-                            <div className="rounded-2xl px-3 py-2 bg-gray-100 text-gray-800 flex items-center gap-2 text-sm animate-pulse"> <Loader2 className="w-4 h-4 animate-spin" /> escribiendo… </div>
-                        </BotRow>
-                    )}
-                    {error && <div className="text-xs text-red-500 mt-1">{error}</div>}
                 </div>
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2 p-2 border-t bg-gray-50">
-                <MicButton onVoice={p => sendToRasa({ text: p })} disabled={sending} />
-                <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKeyDown} placeholder={placeholder} className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-300" disabled={sending} />
-                <button type="submit" disabled={sending || !input.trim()} className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center"><Send className="w-4 h-4" /></button>
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2 p-2 border-t bg-gray-50">
+                <MicButton onVoice={(p) => sendToRasa({ text: p })} disabled={sending} />
+                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKeyDown} placeholder={placeholder} className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-300" disabled={sending} />
+                <button type="submit" disabled={sending || !input.trim()} className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center">
+                    <Send className="w-4 h-4" />
+                </button>
             </form>
         </div>
     );

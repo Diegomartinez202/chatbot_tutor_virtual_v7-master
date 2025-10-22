@@ -4,7 +4,7 @@ import os
 import os.path
 import json
 import logging
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Any
 
 from pydantic import Field, EmailStr
 
@@ -66,13 +66,15 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
+        # ⚠️ NO se activa extra='ignore' porque el usuario NO quiere ignorar nada.
+        # (Consumimos explícitamente todas las variables adicionales vía campos abajo.)
     )
 
     # ✅ ⚙️ Compatibilidad con Pydantic v1 y v2
     if not _V2:
         class Config:
-            # ✅ Permitir variables adicionales sin romper el backend (solo Pydantic v1)
-            extra = "ignore"
+            # En Pydantic v1 el default de BaseModel es 'ignore', no tocamos nada aquí.
+            pass
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")
@@ -161,6 +163,43 @@ class Settings(BaseSettings):
     helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
     # ─────────────────────────────────────────────────────────────
+    # ✅ Campos "compat" para NO ignorar variables extra del .env
+    #    (Se consumen explícitamente, sin usarse si no aplica)
+    # ─────────────────────────────────────────────────────────────
+
+    # Mongo compat
+    mongodb_url: Optional[str] = Field(default=None, alias="MONGODB_URL")
+    mongodb_db: Optional[str] = Field(default=None, alias="MONGODB_DB")
+    mongo_url: Optional[str] = Field(default=None, alias="MONGO_URL")
+    mongo_db: Optional[str] = Field(default=None, alias="MONGO_DB")
+
+    # Rasa compat
+    rasa_rest_url: Optional[str] = Field(default=None, alias="RASA_REST_URL")
+    rasa_ws_url: Optional[str] = Field(default=None, alias="RASA_WS_URL")
+
+    # Rate limit provider (para main.py que lo lee por os.getenv; aquí lo mapeamos también)
+    rate_limit_provider: Optional[Literal["builtin", "slowapi", "fastapi-limiter"]] = Field(
+        default=None, alias="RATE_LIMIT_PROVIDER"
+    )
+
+    # CSP/Embed compat
+    embed_allowed_origins: Optional[List[str]] = Field(default=None, alias="EMBED_ALLOWED_ORIGINS")
+
+    # Rasa tracker compat
+    action_server_url: Optional[str] = Field(default=None, alias="ACTION_SERVER_URL")
+    tracker_mongo_url: Optional[str] = Field(default=None, alias="TRACKER_MONGO_URL")
+    tracker_mongo_db: Optional[str] = Field(default=None, alias="TRACKER_MONGO_DB")
+    tracker_mongo_collection: Optional[str] = Field(default=None, alias="TRACKER_MONGO_COLLECTION")
+
+    # RabbitMQ compat
+    rabbitmq_url: Optional[str] = Field(default=None, alias="RABBITMQ_URL")
+    rabbitmq_user: Optional[str] = Field(default=None, alias="RABBITMQ_USER")
+    rabbitmq_password: Optional[str] = Field(default=None, alias="RABBITMQ_PASSWORD")
+
+    # Docker compose profiles compat
+    compose_profiles: Optional[str] = Field(default=None, alias="COMPOSE_PROFILES")
+
+    # ─────────────────────────────────────────────────────────────
     # Normalizadores CSV/JSON → lista
     # ─────────────────────────────────────────────────────────────
     @field_validator("allowed_origins", "frame_ancestors", mode="before")
@@ -183,6 +222,47 @@ class Settings(BaseSettings):
                     pass
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
+
+    # Normalizador también para EMBED_ALLOWED_ORIGINS (compat)
+    @field_validator("embed_allowed_origins", mode="before")
+    @classmethod
+    def _csv_or_json_embed(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            if s.startswith("["):
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+            return [x.strip() for x in s.split(",") if x.strip()]
+        return v
+
+    # Normalizador de APP_ENV (NO ignora: mapea valores a los litterals válidos)
+    @field_validator("app_env", mode="before")
+    @classmethod
+    def _coerce_app_env(cls, v: Any) -> str:
+        if v is None:
+            return "dev"
+        s = str(v).strip().lower()
+        mapping = {
+            "development": "dev",
+            "develop": "dev",
+            "dev": "dev",
+            "testing": "test",
+            "test": "test",
+            "staging": "test",
+            "prod": "prod",
+            "production": "prod",
+        }
+        return mapping.get(s, s)
 
     # ─────────────────────────────────────────────────────────────
     # Validaciones condicionales
