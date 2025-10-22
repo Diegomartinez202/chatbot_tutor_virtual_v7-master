@@ -1,12 +1,12 @@
-# backend/models/auth_model.py
-
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    """📥 Solicitud de inicio de sesión."""
+    email: str = Field(..., example="usuario@correo.com")
+    password: str = Field(..., example="123456")
 
 class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+    """🔑 Respuesta con tokens de autenticación."""
+    access_token: str = Field(..., description="Token de acceso JWT")
+    refresh_token: str = Field(..., description="Token de refresco JWT")
+    token_type: str = Field(default="bearer", description="Tipo de token (por defecto: bearer)")

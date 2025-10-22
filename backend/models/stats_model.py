@@ -1,30 +1,26 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-
 class IntentMasUsado(BaseModel):
-    intent: str
-    total: int
-
+    intent: str = Field(..., description="Nombre del intent")
+    total: int = Field(..., description="Número de veces utilizado")
 
 class UsuarioResumen(BaseModel):
-    id: str
-    email: str
-    rol: Optional[str] = "usuario"
-    nombre: Optional[str] = ""
-
+    id: str = Field(..., description="ID del usuario")
+    email: str = Field(..., description="Correo electrónico")
+    rol: Optional[str] = Field(default="usuario", description="Rol del usuario")
+    nombre: Optional[str] = Field(default="", description="Nombre del usuario")
 
 class UsuarioPorRol(BaseModel):
-    rol: str
-    total: int
-
+    rol: str = Field(..., description="Rol del usuario")
+    total: int = Field(..., description="Cantidad de usuarios con ese rol")
 
 class LogsPorDia(BaseModel):
-    fecha: str  # formato YYYY-MM-DD
-    total: int
-
+    fecha: str = Field(..., description="Fecha en formato YYYY-MM-DD")
+    total: int = Field(..., description="Cantidad de logs ese día")
 
 class EstadisticasChatbotResponse(BaseModel):
+    """📊 Respuesta general de estadísticas del chatbot."""
     total_logs: int
     total_exportaciones_csv: int
     intents_mas_usados: List[IntentMasUsado]

@@ -1,9 +1,10 @@
-# backend/models/message_model.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
+from datetime import datetime
 
 class MessageCreate(BaseModel):
-    user_id: str
-    text: str
-    sender: Literal["user", "bot"]
-    timestamp: str  # o datetime si prefieres
+    """💬 Mensaje enviado o recibido en el chatbot."""
+    user_id: str = Field(..., description="ID del usuario asociado al mensaje")
+    text: str = Field(..., description="Contenido del mensaje")
+    sender: Literal["user", "bot"] = Field(..., description="Remitente del mensaje: user o bot")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Fecha y hora del mensaje")
