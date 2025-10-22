@@ -1,3 +1,4 @@
+# backend/config/settings.py
 from __future__ import annotations
 
 import os
@@ -86,10 +87,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    # ✅ NUEVO: compatibilidad temporal para aceptar tokens sin "typ"
+    # ✅ Compatibilidad temporal para aceptar tokens sin "typ"
     jwt_accept_typeless: bool = Field(default=False, alias="JWT_ACCEPT_TYPELESS")
 
-    # ✅ NUEVO: nombre de la cookie de refresh
+    # ✅ Nombre de la cookie de refresh
     refresh_cookie_name: str = Field(default="rt", alias="REFRESH_COOKIE_NAME")
 
     # 🤖 Rasa Bot
@@ -110,7 +111,7 @@ class Settings(BaseSettings):
     # 👤 Admin
     admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
 
-    # ✅ NUEVO: password opcional para bootstrap admin
+    # ✅ Password opcional para bootstrap admin
     admin_bootstrap_password: Optional[str] = Field(default=None, alias="ADMIN_BOOTSTRAP_PASSWORD")
 
     # 🧾 Logs y entorno
@@ -164,7 +165,6 @@ class Settings(BaseSettings):
 
     # ─────────────────────────────────────────────────────────────
     # ✅ Campos "compat" para NO ignorar variables extra del .env
-    #    (Se consumen explícitamente, sin usarse si no aplica)
     # ─────────────────────────────────────────────────────────────
 
     # Mongo compat

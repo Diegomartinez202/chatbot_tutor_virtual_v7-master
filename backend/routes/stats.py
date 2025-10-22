@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request, Query
 from backend.dependencies.auth import require_role
 from backend.services import stats_service
 from backend.services.log_service import log_access
-from models.stats_model import EstadisticasChatbotResponse
+from backend.models.stats_model import EstadisticasChatbotResponse
 
 # ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
 from backend.rate_limit import limit

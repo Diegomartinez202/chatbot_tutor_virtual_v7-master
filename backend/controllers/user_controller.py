@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
-from services.user_service import get_users, update_user
-from models.user_model import UserUpdate, UserOut
+from backend.services.user_service import get_users, update_user
+from backend.models.user_model import UserUpdate, UserOut
 from backend.dependencies.auth import require_role
 
 router = APIRouter()

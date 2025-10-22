@@ -124,4 +124,3 @@ def intentos_fallidos_v2(request: Request, current_user=Depends(require_role(["a
 def top_fallbacks_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
     from backend.services.log_service import get_top_failed_intents
     return get_top_failed_intents()
-Observa que este router no reimplementa negocio: todo va contra backend.services.log_service. Sólo “duplica” el expuesto HTTP para el nuevo prefijo.

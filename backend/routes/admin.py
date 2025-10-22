@@ -4,8 +4,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from backend.dependencies.auth import require_role
 from backend.db.mongodb import get_logs_collection, get_test_logs_collection, get_users_collection
 from backend.services.train_service import entrenar_chatbot
-from services.intent_manager import add_intent_and_train, get_all_intents
-from utils.logger import logger
+from backend.services.intent_manager import add_intent_and_train, get_all_intents
+from backend.utils.logger import logger
 from backend.services.log_service import log_access
 from datetime import datetime
 from pathlib import Path
@@ -334,3 +334,4 @@ def exportaciones_csv(
 @router.get("/admin/exportaciones/historial")
 def historial_exportaciones(current_user=Depends(require_role(["admin"]))):
     return get_export_logs()
+

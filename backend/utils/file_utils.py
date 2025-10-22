@@ -52,7 +52,7 @@ def save_csv_s3_and_local(csv_text: str, filename_prefix: str = "export") -> tup
 
 
 # ─────────────────────────────────────────────────────────────
-# Compatibilidad: alias esperado por services/log_service.py
+# Compatibilidad: alias esperado por backend.services/log_service.py
 # (No elimina lógica: solo expone el nombre histórico)
 # ─────────────────────────────────────────────────────────────
 def save_csv_to_s3_and_get_url(csv_text: str, filename_prefix: str = "export") -> str:
