@@ -12,7 +12,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, Response, RedirectResponse
-
+from backend.utils.logging import setup_logging
+setup_logging()
 # 🚀 Settings y logging unificado
 from backend.config.settings import settings
 from backend.utils.logging import setup_logging, get_logger

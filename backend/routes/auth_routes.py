@@ -1,4 +1,3 @@
-# backend/routes/auth_routes.py  (prefijo /auth)
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,10 +8,8 @@ from backend.utils.jwt_manager import (
     create_refresh_token,
     decode_token,
 )
-from backend.config.settings import settings  
-from backend.utils.logging import get_logger 
-
-logger = get_logger(__name__) 
+from backend.config.settings import settings
+from backend.utils.logging import get_logger
 
 from backend.services.auth_service import (
     registrar_login_exitoso,
@@ -25,6 +22,8 @@ from models.auth_model import LoginRequest, TokenResponse
 
 # ✅ Rate limiting por endpoint (seguro: si SlowAPI no está, es no-op)
 from backend.rate_limit import limit
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -56,7 +55,7 @@ def login(request_body: LoginRequest, request: Request):
     )
 
     response.set_cookie(
-        key=settings.refresh_cookie_name,  
+        key=settings.refresh_cookie_name,
         value=refresh_token,
         httponly=True,
         secure=not settings.debug,
@@ -87,7 +86,7 @@ def logout(request: Request, current_user=Depends(get_current_user)):
     logger.info(f"🚪 Logout: {current_user['email']}")
 
     response = JSONResponse(content={"message": "Sesión cerrada correctamente"})
-    response.delete_cookie(settings.refresh_cookie_name)  
+    response.delete_cookie(settings.refresh_cookie_name)
     return response
 
 
@@ -119,12 +118,11 @@ def refresh_token_manual(data: RefreshTokenRequest, request: Request):
     try:
         payload = decode_token(
             data.refresh_token,
-            secret=settings.secret_key,       
-            algorithm=settings.jwt_algorithm  
+            secret=settings.secret_key,
+            algorithm=settings.jwt_algorithm,
         )
         email = payload.get("email")
         user_id = payload.get("id")
-        rol = payload.get("rol")
 
         if not email or not user_id:
             raise HTTPException(status_code=400, detail="Token inválido")
@@ -143,6 +141,9 @@ def refresh_token_manual(data: RefreshTokenRequest, request: Request):
             "token_type": "bearer",
         }
 
+    except HTTPException:
+        # re-lanza errores controlados
+        raise
     except Exception as e:
         logger.error(f"❌ Error al refrescar token: {str(e)}")
-        raise HTTPException(status_code=401, detail="Refresh token inválido")
+        raise HTTPException(status_code=401, detail="Refresh token inválido o expirado")

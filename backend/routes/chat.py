@@ -6,7 +6,7 @@ from time import perf_counter
 from typing import Optional, Any, Dict, List
 
 from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from backend.config.settings import settings
 from backend.middleware.request_id import get_request_id
@@ -32,10 +32,13 @@ class ChatRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     mode: Optional[str] = "anonymous"
 
-    class Config:
-        allow_population_by_field_name = True
-        allow_mutation = True
-        extra = "allow"
+    # 🆕 Pydantic v2: reemplaza Config por model_config
+    # - validate_by_name: permite poblar por nombre de campo cuando hay alias
+    # - extra="allow": acepta claves extra sin romper (como antes)
+    model_config = ConfigDict(
+        validate_by_name=True,
+        extra="allow",
+    )
 
 
 # ==== Endpoints auxiliares ====
