@@ -233,7 +233,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-
+    command: >
+      bash -lc "
+      node /app/build-tailwind.js &&
+      exec uvicorn backend.main:app --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}
   # ============================================================
   # Frontend DEV (Vite)
   # ============================================================
@@ -297,7 +300,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-
+    command: >
+      bash -lc "
+      node /app/build-tailwind.js &&
+      exec uvicorn backend.main:app --host ${UVICORN_HOST} --port ${UVICORN_PORT} --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips='*'
   # ============================================================
   # Frontend PROD (Nginx + build)
   # ============================================================
@@ -318,7 +324,11 @@ services:
       - backend
     networks:
       - app-net
-
+    command: >
+      sh -lc "
+      node /app/build-tailwind.js &&
+      npm run build &&
+      exec nginx -g 'daemon off;'
   # ============================================================
   # Nginx Reverse Proxy (solo en prod) — ÚNICO
   # ============================================================

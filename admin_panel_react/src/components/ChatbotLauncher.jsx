@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Bot } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import assets from "@/config/assets";
-import assets from "@/config/assets";
 import { useAvatarPreload } from "@/hooks/useAvatar";
+
 /**
  * Botón flotante para abrir/cerrar el chat.
  */
@@ -16,12 +16,19 @@ export default function ChatbotLauncher({
     isOpen = false,
 }) {
     const [imgError, setImgError] = useState(false);
-useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
+    useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
+
     return (
         <IconTooltip label={title} side="left">
             <button
                 onClick={onClick}
-                className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                className={`
+          fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
+          bg-white dark:bg-gray-800 
+          focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-300
+          hover:shadow-xl transition-shadow duration-200
+          flex items-center justify-center
+        `}
                 style={{ width: size, height: size }}
                 aria-label={ariaLabel}
                 aria-pressed={isOpen}
@@ -31,7 +38,10 @@ useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
             >
                 {imgError ? (
                     <div
-                        className="w-full h-full rounded-full flex items-center justify-center bg-indigo-600 text-white"
+                        className={`
+              w-full h-full rounded-full flex items-center justify-center
+              bg-indigo-600 text-white
+            `}
                         style={{ width: size, height: size }}
                     >
                         <Bot className="w-1/2 h-1/2" aria-hidden="true" />
@@ -40,7 +50,7 @@ useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
                     <img
                         src={avatarSrc}
                         alt="Chatbot"
-                        className="rounded-full object-cover"
+                        className="rounded-full object-cover transition-transform duration-200 hover:scale-105"
                         style={{ width: size, height: size }}
                         loading="lazy"
                         onError={() => setImgError(true)}
