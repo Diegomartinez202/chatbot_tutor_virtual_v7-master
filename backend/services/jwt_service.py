@@ -6,7 +6,36 @@ import jwt
 from jwt import InvalidTokenError, PyJWKClient
 
 from backend.config.settings import settings
+if settings.demo_mode and token == FAKE_DEMO_TOKEN:
+    logger.warning("[Auth] Modo DEMO activo: aceptando token simulado Zajuna")
+    return True, FAKE_DEMO_CLAIMS
+# === ðŸ”§ MODO DEMO AUTENTICACIÃ“N (FAKE TOKEN ZAJUNA) ===
+# Permite simular un token vÃ¡lido para la sustentaciÃ³n
+FAKE_DEMO_TOKEN = "FAKE_TOKEN_ZAJUNA"
+FAKE_DEMO_CLAIMS = {
+    "sub": "demo_user_zajuna",
+    "name": "Usuario de Prueba Zajuna",
+    "email": "demo@zajuna.edu.co",
+    "role": "student",
+    "iss": "zajuna.demo",
+    "iat": 1730000000,
+    "exp": 1750000000,
+}
 
+def decode_token(auth_header: Optional[str]) -> Tuple[bool, Dict[str, Any]]:
+    """
+    VersiÃ³n extendida: si detecta el token de demo, simula autenticaciÃ³n exitosa.
+    """
+    token = get_bearer_token(auth_header)
+    if not token:
+        return False, {}
+
+    # ðŸ§© Simular autenticaciÃ³n Zajuna en modo demo
+    if token == FAKE_DEMO_TOKEN:
+        return True, FAKE_DEMO_CLAIMS
+
+    # Si no es el token demo, continuar con la verificaciÃ³n normal
+    return decode_raw_token(token)
 
 def get_bearer_token(auth_header: Optional[str]) -> Optional[str]:
     """
@@ -22,9 +51,9 @@ def get_bearer_token(auth_header: Optional[str]) -> Optional[str]:
 
 def _jwt_decode_options() -> Dict[str, Any]:
     """
-    Opciones de verificación ajustables vía settings.
+    Opciones de verificaciï¿½n ajustables vï¿½a settings.
     """
-    # Si tienes un flag para aceptar tokens sin 'typ', etc., puedes ajustarlo aquí.
+    # Si tienes un flag para aceptar tokens sin 'typ', etc., puedes ajustarlo aquï¿½.
     # Por defecto, verificamos exp/iat/nbf.
     return {
         "require": [],  # puedes exigir ["exp", "iat"] si lo deseas
@@ -67,7 +96,7 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
     kwargs = _jwt_decode_kwargs()
 
     try:
-        # HS* (clave simétrica)
+        # HS* (clave simï¿½trica)
         if alg.startswith("HS"):
             secret = getattr(settings, "secret_key", None)
             if not secret:
@@ -75,9 +104,9 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
             claims = jwt.decode(token, secret, **kwargs)
             return True, claims
 
-        # RS* (llave pública PEM o JWKS)
+        # RS* (llave pï¿½blica PEM o JWKS)
         if alg.startswith("RS"):
-            # 1) JWKS si se configuró
+            # 1) JWKS si se configurï¿½
             jwks_url = getattr(settings, "jwt_jwks_url", None)
             if jwks_url:
                 try:
@@ -86,10 +115,10 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
                     claims = jwt.decode(token, signing_key.key, **kwargs)
                     return True, claims
                 except Exception:
-                    # Si JWKS falla, intentamos con clave pública local si existe
+                    # Si JWKS falla, intentamos con clave pï¿½blica local si existe
                     pass
 
-            # 2) Clave pública local (PEM)
+            # 2) Clave pï¿½blica local (PEM)
             pub_key = getattr(settings, "jwt_public_key", None)
             if not pub_key:
                 return False, {}
@@ -108,8 +137,8 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
 
 def verify_token(token: str) -> Dict[str, Any]:
     """
-    Igual que decode_raw_token, pero retorna solo claims (o {} si inválido).
-    Útil si el caller sólo necesita los claims.
+    Igual que decode_raw_token, pero retorna solo claims (o {} si invï¿½lido).
+    ï¿½til si el caller sï¿½lo necesita los claims.
     """
     ok, claims = decode_raw_token(token)
     return claims if ok else {}

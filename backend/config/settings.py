@@ -55,6 +55,10 @@ def _resolve_env_file() -> str:
     candidate = f".env.{app_env}"
     return candidate
 
+class Settings(BaseSettings):
+    demo_mode: bool = True  # 🔧 Activa modo DEMO para la sustentación
+    jwt_algorithm: str = "HS256"
+    secret_key: str = "TU_CLAVE_SECRETA"
 
 class Settings(BaseSettings):
     """
