@@ -1,4 +1,3 @@
-// src/components/chat/MicButton.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     Mic,
@@ -10,22 +9,8 @@ import {
     Play,
     Pause,
 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation"; // o tu función de i18n
 
-/**
- * MicButton
- * - Graba audio con MediaRecorder (WebM/Opus u Ogg/Opus).
- * - Previsualiza y sube por POST a `${CHAT_REST}/audio`.
- * - Llama a onPushUser(transcript) y onPushBot(rasaMessages).
- *
- * Props:
- * - onPushUser: (text) => void
- * - onPushBot: (messagesArray) => void
- * - userId?: string      (opcional; si no, lo resuelve el backend con session_id/anon)
- * - persona?: string     (opcional)
- * - lang?: string        (default "es" | "auto")
- * - sessionId?: string   (opcional)
- * - token?: string       (opcional; si proteges /audio con Bearer)
- */
 export default function MicButton({
     onPushUser,
     onPushBot,
@@ -36,7 +21,8 @@ export default function MicButton({
     token = null,
     disabled = false,
 }) {
-    // Usa el mismo base que el resto del chat
+    const t = useTranslation(); // función de traducción
+
     const CHAT_REST = import.meta.env.VITE_CHAT_REST_URL || "/api/chat";
     const AUDIO_URL = useMemo(
         () => `${String(CHAT_REST).replace(/\/$/, "")}/audio`,
@@ -58,7 +44,6 @@ export default function MicButton({
     const timerRef = useRef(null);
     const audioElRef = useRef(null);
 
-    // Soporte básico
     useEffect(() => {
         if (!window.MediaRecorder) {
             setSupported(false);
@@ -92,7 +77,6 @@ export default function MicButton({
         }
     }, [blob]);
 
-    // timer de grabación
     const startTimer = () => {
         setElapsed(0);
         clearInterval(timerRef.current);
@@ -128,14 +112,12 @@ export default function MicButton({
                 setRecording(false);
             };
 
-            rec.start(100); // recolecta chunks ~100ms
+            rec.start(100);
             startTimer();
             setRecording(true);
         } catch (e) {
             console.error(e);
-            setErr(
-                "No se pudo acceder al micrófono. Revisa permisos del navegador/dispositivo."
-            );
+            setErr(t("mic.no_access"));
             setRecording(false);
         }
     };
@@ -180,9 +162,8 @@ export default function MicButton({
         setErr("");
 
         try {
-            // 15MB aprox: coherente con el backend
             if (blob.size > 15 * 1024 * 1024) {
-                setErr("El audio es demasiado grande (máx. 15 MB).");
+                setErr(t("mic.too_large"));
                 setUploading(false);
                 return;
             }
@@ -215,13 +196,12 @@ export default function MicButton({
             if (transcript) onPushUser?.(transcript);
             if (Array.isArray(botMsgs)) onPushBot?.(botMsgs);
 
-            // reset
             setBlob(null);
             setUploading(false);
             setPlaying(false);
         } catch (e) {
             console.error(e);
-            setErr(e?.message || "Error al subir el audio");
+            setErr(e?.message || t("mic.upload_error"));
             setUploading(false);
         }
     };
@@ -230,7 +210,7 @@ export default function MicButton({
         return (
             <button
                 type="button"
-                title="Micrófono no soportado"
+                title={t("mic.not_supported")}
                 className="inline-flex items-center justify-center rounded-md bg-gray-200 text-gray-500 px-3 py-2 cursor-not-allowed"
                 disabled
                 data-testid="mic-unsupported"
@@ -240,20 +220,14 @@ export default function MicButton({
         );
     }
 
-    // Estados:
-    // - Idle: botón mic → startRecording
-    // - Recording: botón stop + timer
-    // - Preview: <audio> + Enviar / Regrabar / Cancelar
-    // - Uploading: spinner
     return (
         <div className="inline-flex items-center gap-2">
-            {/* Estado grabación */}
             {recording ? (
                 <button
                     type="button"
                     onClick={stopRecording}
                     className="inline-flex items-center justify-center rounded-md bg-red-600 text-white px-3 py-2 hover:bg-red-700"
-                    aria-label="Detener grabación"
+                    aria-label={t("mic.stop_recording")}
                     data-testid="mic-stop"
                 >
                     <Square className="w-4 h-4" />
@@ -262,7 +236,6 @@ export default function MicButton({
                     </span>
                 </button>
             ) : blob ? (
-                // Preview
                 <div className="flex items-center gap-2">
                     <audio
                         ref={audioElRef}
@@ -275,7 +248,7 @@ export default function MicButton({
                         type="button"
                         onClick={togglePlay}
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
-                        aria-label={playing ? "Pausar" : "Reproducir"}
+                        aria-label={playing ? t("mic.pause") : t("mic.play")}
                         data-testid={playing ? "mic-pause" : "mic-play"}
                     >
                         {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -285,7 +258,7 @@ export default function MicButton({
                         onClick={upload}
                         disabled={uploading || disabled}
                         className="inline-flex items-center justify-center rounded-md bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700 disabled:opacity-50"
-                        aria-label="Enviar audio"
+                        aria-label={t("mic.send_audio")}
                         data-testid="mic-upload"
                     >
                         {uploading ? (
@@ -293,7 +266,7 @@ export default function MicButton({
                         ) : (
                             <>
                                 <Upload className="w-4 h-4" />
-                                <span className="ml-2 text-xs">Enviar</span>
+                                <span className="ml-2 text-xs">{t("mic.send")}</span>
                             </>
                         )}
                     </button>
@@ -302,8 +275,8 @@ export default function MicButton({
                         onClick={startRecording}
                         disabled={uploading || disabled}
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
-                        aria-label="Regrabar"
-                        title="Regrabar"
+                        aria-label={t("mic.rerecord")}
+                        title={t("mic.rerecord")}
                         data-testid="mic-rerecord"
                     >
                         <Repeat2 className="w-4 h-4" />
@@ -313,31 +286,28 @@ export default function MicButton({
                         onClick={discard}
                         disabled={uploading}
                         className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50"
-                        aria-label="Cancelar"
-                        title="Cancelar"
+                        aria-label={t("mic.cancel")}
+                        title={t("mic.cancel")}
                         data-testid="mic-cancel"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
             ) : (
-                // Idle
                 <button
                     type="button"
                     onClick={startRecording}
                     disabled={disabled}
                     className="inline-flex items-center justify-center rounded-md border px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
-                    aria-label="Grabar audio"
-                    title="Grabar audio"
-                    data-testid="mic-button"   /* compat con nuevos tests */
+                    aria-label={t("mic.record_audio")}
+                    title={t("mic.record_audio")}
+                    data-testid="mic-button"
                 >
-                    {/* compat con specs antiguos que buscaban "chat-mic" */}
                     <span className="sr-only" data-testid="chat-mic" />
                     <Mic className="w-4 h-4" />
                 </button>
             )}
 
-            {/* Error inline */}
             {err ? (
                 <span className="text-xs text-red-600" data-testid="mic-error">
                     {err}

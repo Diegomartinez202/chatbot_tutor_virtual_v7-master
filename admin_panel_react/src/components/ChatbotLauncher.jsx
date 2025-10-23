@@ -1,47 +1,53 @@
 import React, { useState } from "react";
 import { Bot } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import IconTooltip from "@/components/ui/IconTooltip";
 import assets from "@/config/assets";
 import { useAvatarPreload } from "@/hooks/useAvatar";
 
 /**
- * Botón flotante para abrir/cerrar el chat.
+ * BotÃ³n flotante para abrir/cerrar el chat.
  */
 export default function ChatbotLauncher({
     onClick,
     avatarSrc = assets.BOT_AVATAR,
     size = 64,
-    ariaLabel = "Abrir chat",
-    title = "Abrir chat",
+    ariaLabel,
+    title,
     isOpen = false,
 }) {
+    const { t } = useTranslation();
     const [imgError, setImgError] = useState(false);
     useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
 
+    // Traducciones por defecto (si no se pasan props)
+    const label = title || (isOpen ? t("close_chat") : t("open_chat"));
+    const altText = t("chatbot_avatar_alt", { defaultValue: "Chatbot" });
+
     return (
-        <IconTooltip label={title} side="left">
+        <IconTooltip label={label} side="left">
             <button
                 onClick={onClick}
                 className={`
-          fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
-          bg-white dark:bg-gray-800 
-          focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-300
-          hover:shadow-xl transition-shadow duration-200
-          flex items-center justify-center
-        `}
+                    fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
+                    bg-white dark:bg-gray-800 
+                    focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-300
+                    hover:shadow-xl transition-shadow duration-200
+                    flex items-center justify-center
+                `}
                 style={{ width: size, height: size }}
-                aria-label={ariaLabel}
+                aria-label={ariaLabel || label}
                 aria-pressed={isOpen}
                 aria-expanded={isOpen}
-                title={title}
+                title={label}
                 type="button"
             >
                 {imgError ? (
                     <div
                         className={`
-              w-full h-full rounded-full flex items-center justify-center
-              bg-indigo-600 text-white
-            `}
+                            w-full h-full rounded-full flex items-center justify-center
+                            bg-indigo-600 text-white
+                        `}
                         style={{ width: size, height: size }}
                     >
                         <Bot className="w-1/2 h-1/2" aria-hidden="true" />
@@ -49,7 +55,7 @@ export default function ChatbotLauncher({
                 ) : (
                     <img
                         src={avatarSrc}
-                        alt="Chatbot"
+                        alt={altText}
                         className="rounded-full object-cover transition-transform duration-200 hover:scale-105"
                         style={{ width: size, height: size }}
                         loading="lazy"
