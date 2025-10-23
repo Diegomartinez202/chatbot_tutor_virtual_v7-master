@@ -1,7 +1,7 @@
 // src/components/ResumenSistema.jsx
 import React, { useEffect, useState } from "react";
 import { getStats } from "@/services/api";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/Card";
 import Badge from "@/components/Badge";
 import IconTooltip from "@/components/ui/IconTooltip";
 import toast from "react-hot-toast";

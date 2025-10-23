@@ -6,7 +6,7 @@ import BotonesAdmin from "@/components/BotonesAdmin";
 import ResumenSistema from "@/components/ResumenSistema";
 import StatsChart from "@/components/StatsChart";
 import IconTooltip from "@/components/ui/IconTooltip";
-import { Button } from "@/components/ui"; // ← barrel aquí
+import { Button } from "@/components/ui/index.js"; 
 
 function Dashboard() {
     const [desde, setDesde] = useState("");
