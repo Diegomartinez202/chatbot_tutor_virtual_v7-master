@@ -57,7 +57,21 @@ from backend.routes.auth_tokens import router as auth_tokens_router
 
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
+# =========================================================
+# 🚀 INICIALIZACIÓN DEL BACKEND - MODO DEMO
+# =========================================================
 
+from backend.config.settings import settings
+
+if getattr(settings, "demo_mode", False):
+    print("\n" + "=" * 70)
+    print("⚠️  MODO DEMO ACTIVADO")
+    print("   El backend está aceptando el token simulado de Zajuna.")
+    print("   Usa el siguiente header en tus pruebas de autenticación:")
+    print("   Authorization: Bearer FAKE_TOKEN_ZAJUNA")
+    print("=" * 70 + "\n")
+else:
+    print("✅ Modo producción: autenticación real activa.\n")
 # Redis opcional (para rate-limit builtin en producción)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
@@ -103,7 +117,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # 🌐 CORS (una sola vez)
+    # 🌐 CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
@@ -122,42 +136,36 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # 🔀 Rutas API principales vía agregador
-    # Todo lo que agrega backend/routes/__init__.py vivirá bajo /api/...
     app.include_router(api_router, prefix="/api")
 
-    # 🔀 Rutas adicionales/legacy que no están (todas) en el agregador (se mantienen)
+    # 🔀 Rutas adicionales/legacy
     app.include_router(admin_failed.router)
     app.include_router(exportaciones.router)
     app.include_router(helpdesk.router)
-    app.include_router(api_chat.router)            # si existe un API específico distinto al chat principal
+    app.include_router(api_chat.router)
     app.include_router(media_router)
-    app.include_router(logs_legacy.router)         # legacy
-    app.include_router(logs_v2.router)             # v2 separada
+    app.include_router(logs_legacy.router)
+    app.include_router(logs_v2.router)
     app.include_router(admin_v2_router)
     app.include_router(admin_legacy_router)
-    # ✅ Compatibilidad: endpoints de tokens también expuestos en /auth/*
-    app.include_router(auth_tokens_router)         # trae prefix="/auth"
+    app.include_router(auth_tokens_router)
+    app.include_router(intent_legacy_controller.router, prefix="/api/legacy", tags=["intents-legacy"])
+    app.include_router(auth_admin.router)
+    app.include_router(admin_auth.router)
+    app.include_router(admin_users.router)
+    app.include_router(chat_router)
+    app.include_router(chat_router, prefix="/api")
+    app.include_router(chat_audio.router)
 
-    # ✅ Intents: legacy aislado bajo /api/legacy
-    app.include_router(
-        intent_legacy_controller.router,
-        prefix="/api/legacy",
-        tags=["intents-legacy"]
-    )
+    # ───────────── Routers demo (solo pruebas con FAKE_TOKEN_ZAJUNA) ─────────────
+    if getattr(settings, "demo_mode", False):
+        try:
+            from backend.routes.demo_routes import router as demo_router
+            app.include_router(demo_router, prefix="/demo")
+        except Exception:
+            log.warning("No se pudo cargar demo_routes; ignorando.")
 
-    # 🔐 Admin (legacy y v2 conviven)
-    app.include_router(auth_admin.router)     # /api/admin  (NO TOCAR)
-    app.include_router(admin_auth.router)     # /api/admin2 (MEJORAS)
-    app.include_router(admin_users.router)    # /api/admin/users (gestión)
-
-    # 💬 Chat doble montaje (compat): /chat/* y /api/chat/* (el /api/chat también entra por agregador)
-    app.include_router(chat_router)                 # /chat/*
-    app.include_router(chat_router, prefix="/api")  # /api/chat/*
-
-    # 🎙️ Audio
-    app.include_router(chat_audio.router)           # /api/chat/audio
-
-    # 🔒 CSP (embebidos) — configurable por ENV `EMBED_ALLOWED_ORIGINS`
+    # 🔒 CSP (embebidos)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp: Response = await call_next(request)
@@ -498,3 +506,4 @@ async def _shutdown():
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()
+

@@ -26,6 +26,26 @@ import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
  * - Si se pasa children, renderiza tu UI; si no, <ChatUI />
  * - Prop opcional `embedHeight` para controlar la altura en modo embed
  */
+
+// ---- Config de endpoints con fallbacks sólidos al proxy de Nginx ----
+const API_BASE =
+    import.meta.env.VITE_API_BASE /* genérico */ ||
+    "/api";
+
+const CHAT_REST_URL =
+    import.meta.env.VITE_CHAT_REST_URL /* el que ya usas */ ||
+    `${API_BASE.replace(/\/$/, "")}/chat`;
+
+const RASA_HTTP_URL =
+    import.meta.env.VITE_RASA_REST_URL /* el que ya usas */ ||
+    import.meta.env.VITE_RASA_HTTP /* genérico */ ||
+    "/rasa";
+
+const RASA_WS_URL =
+    import.meta.env.VITE_RASA_WS_URL /* el que ya usas */ ||
+    import.meta.env.VITE_RASA_WS /* genérico */ ||
+    "/ws";
+
 const DEFAULT_BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
@@ -54,33 +74,31 @@ export default function ChatPage({
     const defaultConnect = useMemo(() => {
         if (connectFn) return connectFn;
 
-        if (TRANSPORT === "ws" && import.meta.env.VITE_RASA_WS_URL) {
-            // Valida que el socket abre/cierra (no manda mensajes)
-            return () => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL });
+        if (TRANSPORT === "ws") {
+            // Validar que el socket abre/cierra (no manda mensajes)
+            return () => connectWS({ wsUrl: RASA_WS_URL });
         }
         // Por defecto: health REST/WS universal (no golpea /api/chat)
-        return connectChatHealth;
+        return () =>
+            connectChatHealth({
+                restUrl: CHAT_REST_URL,
+                rasaHttpUrl: RASA_HTTP_URL,
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [connectFn]);
+    }, [connectFn, TRANSPORT]);
 
     const connect = useCallback(async () => {
         setStatus("connecting");
         try {
             // Log suave para ayudar a depurar 404/URLs en desarrollo
             if (import.meta.env.MODE !== "production") {
-                const restUrl = import.meta.env.VITE_CHAT_REST_URL || "(no definido)";
-                const rasaRest =
-                    import.meta.env.VITE_RASA_REST_URL ||
-                    import.meta.env.VITE_RASA_REST ||
-                    "(no definido)";
-                const wsUrl = import.meta.env.VITE_RASA_WS_URL || "(no definido)";
                 // eslint-disable-next-line no-console
                 console.info(
-                    "[ChatPage] mode=%s | REST=%s | RASA_REST=%s | WS=%s",
+                    "[ChatPage] mode=%s | REST=%s | RASA_HTTP=%s | WS=%s",
                     TRANSPORT.toUpperCase(),
-                    restUrl,
-                    rasaRest,
-                    wsUrl
+                    CHAT_REST_URL,
+                    RASA_HTTP_URL,
+                    RASA_WS_URL
                 );
             }
 

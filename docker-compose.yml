@@ -227,7 +227,6 @@ services:
       FRONTEND_SITE_URL: http://localhost:5173
       UVICORN_HOST: 0.0.0.0
       UVICORN_PORT: "8000"
-
     volumes:
       - ./backend:/app/backend
     depends_on:
@@ -245,7 +244,12 @@ services:
       retries: 5
     command: >
       bash -lc "
-      node /app/build-tailwind.js &&
+      if command -v node >/dev/null 2>&1; then
+        echo '[backend-dev] Node encontrado, ejecutando build Tailwind' ;
+        node /app/build-tailwind.js || echo '[backend-dev] build-tailwind falló, continuo con Uvicorn';
+      else
+        echo '[backend-dev] Node no instalado en dev, omitiendo build-tailwind';
+      fi ;
       exec uvicorn backend.main:app --reload --host ${UVICORN_HOST} --port ${UVICORN_PORT}
       "
 
@@ -260,12 +264,22 @@ services:
     command: sh -lc "npm ci && npm run dev -- --host --port 5173"
     volumes:
       - ./admin_panel_react:/app
-    env_file:
-      - ./.env.local
     environment:
-      VITE_API_BASE: http://localhost:8000
-      VITE_RASA_HTTP: http://localhost:5005
-      VITE_RASA_WS: ws://localhost:5005
+      # ✅ Apunta SIEMPRE al proxy (Nginx dev en :8080)
+      VITE_API_BASE: /api
+      VITE_RASA_HTTP: /rasa
+      VITE_RASA_WS: /ws
+
+      # ✅ Además define las variables que usa ChatPage.jsx (compatibilidad)
+      VITE_CHAT_REST_URL: /api/chat
+      VITE_RASA_REST_URL: /rasa
+      VITE_RASA_WS_URL: /ws
+
+      # (Opcionales, por si tu app muestra info)
+      VITE_BOT_AVATAR: /bot-avatar.png
+      VITE_SHOW_CHAT_HARNESS: "false"
+      VITE_CHAT_REQUIRE_AUTH: "false"
+      VITE_CHAT_TRANSPORT: "rest"
     ports:
       - "5173:5173"
     depends_on:
