@@ -6,12 +6,12 @@
 FROM node:18-alpine AS build
 WORKDIR /app
 
-# Instala dependencias con lockfile y caché de npm (más rápido en CI)
+# Instala dependencias con lock y caché
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-# Variables de build para Vite (puedes sobreescribir con --build-arg)
+# Variables de build para Vite (sobrescribibles con --build-arg)
 ARG VITE_API_BASE=/api
 ARG VITE_RASA_HTTP=/rasa
 ARG VITE_RASA_WS=/ws
@@ -19,8 +19,14 @@ ENV VITE_API_BASE=${VITE_API_BASE} \
     VITE_RASA_HTTP=${VITE_RASA_HTTP} \
     VITE_RASA_WS=${VITE_RASA_WS}
 
-# Copia el código y construye
+# Copia el código
 COPY . .
+
+# --- sanity check: falla temprano si no existe tu App ---
+# Acepta: src/App.jsx, src/App.tsx o src/app.jsx (tu caso)
+RUN [ -f "src/App.jsx" -o -f "src/App.tsx" -o -f "src/app.jsx" ] || (echo "❌ No existe src/App.jsx, src/App.tsx ni src/app.jsx" && exit 1)
+
+# Compila
 RUN npm run build
 
 ############################
@@ -28,15 +34,16 @@ RUN npm run build
 ############################
 FROM nginx:1.27-alpine AS runtime
 
-# Config SPA (fallback a index.html + cache agresiva de assets con hash)
+# SPA config (fallback a index.html)
+RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copia artefactos generados por Vite
+# Artefactos de Vite
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-# Salud simple
+# Healthcheck sencillo
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD wget -qO- http://127.0.0.1/ > /dev/null || exit 1
 
