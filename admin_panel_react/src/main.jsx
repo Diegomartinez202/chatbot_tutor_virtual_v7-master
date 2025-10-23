@@ -1,4 +1,3 @@
-// admin_panel_react/src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -10,7 +9,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/react-query";
 import { Toaster } from "react-hot-toast";
 
-// ⚠️ Tu archivo es src/app.jsx (minúsculas). En Linux el FS es case-sensitive.
+// ⚠️ Tu archivo es src/app.jsx (minúsculas)
 import App from "@/app.jsx";
 
 import { BrowserRouter } from "react-router-dom";

@@ -5,6 +5,7 @@ import IconTooltip from "@/components/ui/IconTooltip";
 import { Shield, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Badge from "@/components/Badge";
+import { toast } from "react-hot-toast";
 
 const rolesDisponibles = ["admin", "soporte", "usuario"];
 
@@ -33,12 +34,24 @@ function AssignRoles() {
 
     const handleRoleChange = async (userId, newRole) => {
         try {
+            const user = users.find((u) => (u.id || u._id) === userId);
+            if (!user) throw new Error("Usuario no encontrado");
+
+            const currentRole = currentUser?.rol;
+
+            // Validaciones de permisos según rol
+            if (userId === currentUser?._id) {
+                toast.error("No puedes cambiar tu propio rol");
+                return;
+            }
+            if ((newRole === "admin" || newRole === "soporte") && currentRole !== "admin") {
+                toast.error("No tienes permisos para asignar este rol");
+                return;
+            }
+
             setCargando(true);
             setMensaje("");
             setMensajeTipo(null);
-
-            const user = users.find((u) => (u.id || u._id) === userId);
-            if (!user) throw new Error("Usuario no encontrado");
 
             await axiosClient.put(`/admin/users/${userId}`, {
                 email: user.email,
@@ -78,11 +91,7 @@ function AssignRoles() {
                     role="status"
                     aria-live="polite"
                 >
-                    {mensajeTipo === "ok" ? (
-                        <CheckCircle className="w-4 h-4" />
-                    ) : (
-                        <XCircle className="w-4 h-4" />
-                    )}
+                    {mensajeTipo === "ok" ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                     <span>{mensaje}</span>
                 </p>
             )}
@@ -106,7 +115,7 @@ function AssignRoles() {
                     {users.map((user) => {
                         const uid = user.id || user._id;
                         const isSelf = uid === currentUser?._id;
-                        const roleValue = (user.rol || "usuario");
+                        const roleValue = user.rol || "usuario";
 
                         return (
                             <tr key={uid} className="border-t">
@@ -121,9 +130,9 @@ function AssignRoles() {
                                         side="top"
                                     >
                                         <select
-                                            value={user.rol}
+                                            value={roleValue}
                                             onChange={(e) => handleRoleChange(uid, e.target.value)}
-                                            disabled={cargando || isSelf}
+                                            disabled={cargando || isSelf || (currentUser?.rol !== "admin" && ["admin", "soporte"].includes(roleValue))}
                                             className="border p-1 rounded bg-white"
                                             aria-label={`Cambiar rol de ${user.email}`}
                                         >

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Users as UsersIcon, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 import { getUsers, createUser, deleteUser } from "@/services/api";
 import IconTooltip from "@/components/ui/IconTooltip";
@@ -12,6 +13,9 @@ import Badge from "@/components/Badge";
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { user: currentUser } = useAuth();
+
+    const canCreate = currentUser?.rol === "admin" || currentUser?.rol === "soporte";
 
     const loadUsers = async () => {
         setLoading(true);
@@ -64,7 +68,6 @@ export default function UserManagement() {
 
     return (
         <div className="p-6 space-y-4">
-            {/* Encabezado */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <IconTooltip label="Gestión de usuarios del sistema" side="top">
@@ -81,11 +84,10 @@ export default function UserManagement() {
                         tooltipLabel="Recargar lista de usuarios"
                         variant="outline"
                     />
-                    <UserModal onSubmit={handleCreate} />
+                    {canCreate && <UserModal onSubmit={handleCreate} />}
                 </div>
             </div>
 
-            {/* Tabla */}
             <div className="rounded-md border bg-white overflow-x-auto">
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100">
@@ -126,7 +128,6 @@ export default function UserManagement() {
                                         <td className="px-4 py-2">{nombre}</td>
                                         <td className="px-4 py-2">{email}</td>
                                         <td className="px-4 py-2">
-                                            {/* Badge estático para rol (NO el badge de chat) */}
                                             <Badge type="role" value={rol} />
                                         </td>
                                         <td className="px-4 py-2">
@@ -150,7 +151,6 @@ export default function UserManagement() {
                 </table>
             </div>
 
-            {/* Mensaje de ayuda */}
             <div className="flex items-center gap-2 text-xs text-gray-500">
                 <AlertCircle className="w-4 h-4" />
                 Consejo: Puedes añadir edición inline o por modal más adelante (actualización de rol/contraseña).

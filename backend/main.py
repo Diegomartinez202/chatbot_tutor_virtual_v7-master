@@ -55,13 +55,17 @@ from backend.routes.auth_admin import router as admin_legacy_router
 # ✅ Montaje adicional directo de tokens para compat (/auth/* además de /api/auth/*)
 from backend.routes.auth_tokens import router as auth_tokens_router
 
+# ✅ Rutas extra que pediste mantener
+from backend.routes import auth, admin
+
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - MODO DEMO
 # =========================================================
-from backend.config.settings import settings
+# (Se mantiene el banner informativo)
+from backend.config.settings import settings as _settings_dup_ref  # mantener compat si otro módulo lo usa
 
 if getattr(settings, "demo_mode", False):
     print("\n" + "=" * 70)
@@ -157,14 +161,8 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(chat_router, prefix="/api")
     app.include_router(chat_audio.router)
-
-    # ───────────── Routers demo (solo pruebas con FAKE_TOKEN_ZAJUNA) ─────────────
-    if getattr(settings, "demo_mode", False):
-        try:
-            from backend.routes.demo_routes import router as demo_router
-            app.include_router(demo_router, prefix="/demo")
-        except Exception:
-            log.warning("No se pudo cargar demo_routes; ignorando.")
+    app.include_router(auth.router)
+    app.include_router(admin.router)
 
     # 🔒 CSP (embebidos)
     @app.middleware("http")

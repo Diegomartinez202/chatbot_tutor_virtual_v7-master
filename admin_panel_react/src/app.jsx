@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
@@ -28,11 +27,11 @@ import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 
-
 // Chat
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
-import '@/styles/index.css';
+import "@/styles/index.css";
+
 // Flag opcional para habilitar la página de pruebas del chat
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 
@@ -49,14 +48,14 @@ function CatchAllRedirect() {
     return <Navigate to={to} replace />;
 }
 
-/** Rutas públicas que NO deben verse si ya hay sesión (p. ej. /login) */
+/** Rutas públicas que NO deben verse si ya hay sesión */
 function PublicOnlyRoute({ children }) {
     const { isAuthenticated, user } = useAuth();
     if (!isAuthenticated) return children;
     return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
 }
 
-/** Permite AuthCallback si trae token en query/hash; si no trae token y ya hay sesión, redirige por rol */
+/** Permite AuthCallback si trae token en query/hash */
 function PublicOnlyOrToken({ children }) {
     const { isAuthenticated, user } = useAuth();
     const location = useLocation();
@@ -75,7 +74,7 @@ function PublicOnlyOrToken({ children }) {
     return children;
 }
 
-/** Carga perezosa segura para páginas públicas opcionales (no rompe si el archivo no existe) */
+/** Carga perezosa segura para páginas públicas opcionales */
 function lazyWithFallback(loader, name) {
     return React.lazy(async () => {
         try {
@@ -93,7 +92,6 @@ function lazyWithFallback(loader, name) {
     });
 }
 
-// Estas rutas son opcionales: si no tienes los archivos, el fallback evita errores.
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
 
@@ -120,8 +118,6 @@ export default function App() {
                         </PublicOnlyOrToken>
                     }
                 />
-
-                {/* Páginas públicas opcionales (quedan listas si las creas) */}
                 <Route
                     path="/register"
                     element={
@@ -143,13 +139,11 @@ export default function App() {
                     }
                 />
 
-                {/* 💬 Chat normal y variantes embed/widget */}
+                {/* 💬 Chat */}
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
                 <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
                 <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
-
-                {/* 🧪 Harness de QA (opcional, vía flag) */}
                 {SHOW_HARNESS && <Route path="/chat-harness" element={<Harness />} />}
 
                 {/* 🔒 Protegidas (sin rol específico) */}
@@ -272,7 +266,7 @@ export default function App() {
                     }
                 />
 
-                {/* 🆕 Admin: rutas públicas de registro/login del panel */}
+                {/* Admin: registro/login del panel */}
                 <Route
                     path="/admin/register"
                     element={

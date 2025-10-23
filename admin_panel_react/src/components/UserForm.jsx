@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import IconTooltip from "@/components/ui/IconTooltip";
 import { toast } from "react-hot-toast";
 import { UserPlus, User, Mail, Lock, Shield, Info, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const UserForm = ({ onSubmit }) => {
+    const { user: currentUser } = useAuth(); // ✅ Obtener usuario actual para validar rol
+
     const [formData, setFormData] = useState({
         nombre: "",
         email: "",
@@ -16,6 +19,19 @@ const UserForm = ({ onSubmit }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        // 🔒 Protección de rol: solo admin puede asignar roles sensibles
+        if (name === "rol") {
+            if (
+                (value === "admin" || value === "soporte") &&
+                currentUser?.rol !== "admin"
+            ) {
+                toast.error("No tienes permisos para asignar este rol");
+                setFormData((prev) => ({ ...prev, rol: "usuario" }));
+                return;
+            }
+        }
+
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
@@ -29,8 +45,20 @@ const UserForm = ({ onSubmit }) => {
 
         try {
             setSubmitting(true);
+
+            // 🔒 Forzar rol "usuario" si no tiene permisos para roles superiores
+            const safeData = {
+                ...formData,
+                rol:
+                    (formData.rol === "admin" || formData.rol === "soporte") &&
+                        currentUser?.rol !== "admin"
+                        ? "usuario"
+                        : formData.rol,
+            };
+
             // onSubmit puede ser sync o async
-            await Promise.resolve(onSubmit?.(formData));
+            await Promise.resolve(onSubmit?.(safeData));
+
             toast.success("Usuario creado correctamente");
             setFormData({ nombre: "", email: "", password: "", rol: "usuario" });
         } catch (err) {

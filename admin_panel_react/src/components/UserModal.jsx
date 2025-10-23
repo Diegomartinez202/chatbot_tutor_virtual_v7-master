@@ -1,15 +1,27 @@
 // src/components/UserModal.jsx
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { UserPlus, X, Info } from "lucide-react";
+import { UserPlus, X, Info, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import IconTooltip from "@/components/ui/IconTooltip";
 import UserForm from "./UserForm";
+import { useAuth } from "@/context/AuthContext"; // ✅ para validar rol de usuario
+import { toast } from "react-hot-toast";
 
 const UserModal = ({ onSubmit }) => {
     const [open, setOpen] = useState(false);
     const dialogRef = useRef(null);
+    const { user } = useAuth(); // ✅ usuario actual
+
+    // 🔒 Validación de permisos
+    const canCreateUser = user?.rol === "admin" || user?.rol === "soporte";
 
     const handleSubmit = (data) => {
+        // 🔒 Validación interna adicional por si alguien forza desde la consola
+        if (!canCreateUser) {
+            toast.error("No tienes permisos para crear usuarios.");
+            return;
+        }
+
         onSubmit?.(data);
         setOpen(false);
     };
@@ -24,26 +36,20 @@ const UserModal = ({ onSubmit }) => {
         if (e.key === "Escape") onClose();
     }, []);
 
-    // Enfoque inicial y focus trap (accesibilidad)
     useEffect(() => {
         if (!open) return;
         const node = dialogRef.current;
         if (!node) return;
 
-        // Enfocar el modal (o el primer campo) al abrir
         const tryFocusFirst = () => {
             const focusables = node.querySelectorAll(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
-            if (focusables.length) {
-                (focusables[0] /** @type {HTMLElement} */)?.focus?.();
-            } else {
-                node.focus();
-            }
+            if (focusables.length) focusables[0]?.focus?.();
+            else node.focus();
         };
         setTimeout(tryFocusFirst, 0);
 
-        // Focus trap con Tab/Shift+Tab
         const handleKeyDown = (ev) => {
             if (ev.key !== "Tab") return;
             const focusables = Array.from(
@@ -51,11 +57,10 @@ const UserModal = ({ onSubmit }) => {
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
                 )
             ).filter((el) => !el.hasAttribute("disabled") && !el.getAttribute("aria-hidden"));
-            if (focusables.length === 0) return;
+            if (!focusables.length) return;
 
             const first = focusables[0];
             const last = focusables[focusables.length - 1];
-
             if (!ev.shiftKey && document.activeElement === last) {
                 ev.preventDefault();
                 first.focus();
@@ -73,6 +78,16 @@ const UserModal = ({ onSubmit }) => {
             node.removeEventListener("keydown", handleKeyDown);
         };
     }, [open, onEsc]);
+
+    // 🚫 No mostrar botón ni modal si no hay permisos
+    if (!canCreateUser) {
+        return (
+            <div className="text-center text-gray-500 mt-4 flex items-center justify-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-red-500" />
+                <span>No tienes permisos para crear usuarios.</span>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -123,7 +138,7 @@ const UserModal = ({ onSubmit }) => {
                             <h2 id="new-user-title" className="text-xl font-bold">
                                 Nuevo Usuario
                             </h2>
-                            <IconTooltip label="Completa los campos y asigna un rol. Email y contrase�a son obligatorios.">
+                            <IconTooltip label="Completa los campos y asigna un rol. Email y contraseña son obligatorios.">
                                 <Info className="w-4 h-4 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
