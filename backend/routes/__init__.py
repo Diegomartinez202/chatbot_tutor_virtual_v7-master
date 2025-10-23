@@ -8,12 +8,10 @@ from fastapi import APIRouter
 router = APIRouter()
 
 # =====================================================
-# 🔐 Importación de módulos de rutas
+# 🔐 Importación de módulos de rutas (coinciden con tus archivos reales)
 # =====================================================
-# Importamos cada archivo de rutas directamente, sin dependencias cruzadas.
-# Evita ciclos de importación: NINGÚN archivo dentro de routes debe importar "router" desde aquí.
 from backend.routes import (
-    auth_routes,
+    auth,                # <— tu archivo es backend/routes/auth.py
     auth_tokens,
     chat,
     logs,
@@ -27,7 +25,7 @@ from backend.routes import (
 # =====================================================
 # 🔐 Autenticación y Tokens
 # =====================================================
-router.include_router(auth_routes.router, tags=["Auth"])
+router.include_router(auth.router, tags=["Auth"])
 router.include_router(auth_tokens.router, tags=["Auth Tokens"])
 
 # =====================================================

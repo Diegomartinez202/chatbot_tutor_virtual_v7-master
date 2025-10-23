@@ -1,4 +1,6 @@
-# backend/services/user_service.py
+# =====================================================
+# 🧩 backend/services/user_service.py
+# =====================================================
 from __future__ import annotations
 
 from typing import List, Optional, Dict, Any
@@ -19,10 +21,9 @@ logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# ============================================================
+# =====================================================
 # Utilidades
-# ============================================================
-
+# =====================================================
 def is_valid_object_id(oid: str) -> bool:
     """Valida si un string puede convertirse en ObjectId."""
     valid = ObjectId.is_valid(oid)
@@ -30,10 +31,9 @@ def is_valid_object_id(oid: str) -> bool:
     return valid
 
 
-# ============================================================
+# =====================================================
 # Consultas básicas
-# ============================================================
-
+# =====================================================
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     """Obtiene un usuario por su email (devuelve dict con _id como str)."""
     try:
@@ -69,10 +69,9 @@ def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-# ============================================================
+# =====================================================
 # CRUD de usuarios
-# ============================================================
-
+# =====================================================
 def list_users() -> List[UserOut]:
     """Lista todos los usuarios excluyendo las contraseñas."""
     try:
@@ -88,8 +87,8 @@ def list_users() -> List[UserOut]:
 
 def get_users() -> List[UserOut]:
     """
-    En algunos controladores se importa get_users (en lugar de list_users).
-    Devolvemos exactamente lo mismo que list_users sin alias raros.
+    Algunos controladores importan get_users.
+    Devuelve exactamente lo mismo que list_users.
     """
     return list_users()
 
@@ -128,6 +127,31 @@ def create_user(nombre: str, email: str, password: str, rol: str = "usuario") ->
         return None
 
 
+def crear_usuario_si_no_existe(nombre: str, email: str, password: str, rol: str = "usuario") -> Optional[Dict[str, Any]]:
+    """
+    Si el usuario ya existe (por email), no lo crea y devuelve None.
+    Si no existe, lo crea y devuelve sus datos.
+    """
+    try:
+        email_norm = (email or "").strip().lower()
+        existente = get_user_by_email(email_norm)
+        if existente:
+            logger.info(f"Usuario {email_norm} ya existe, no se crea nuevamente.")
+            return None
+
+        nuevo = create_user(nombre=nombre, email=email_norm, password=password, rol=rol)
+        if nuevo:
+            logger.info(f"Usuario creado exitosamente: {email_norm}")
+            return nuevo
+
+        logger.warning(f"No se pudo crear usuario {email_norm}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error en crear_usuario_si_no_existe({email}): {e}")
+        return None
+
+
 def update_user(user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Actualiza campos básicos del usuario.
@@ -145,7 +169,6 @@ def update_user(user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
         if "email" in payload and payload["email"]:
             payload["email"] = str(payload["email"]).strip().lower()
-            # comprobar duplicado con otro _id
             col = get_users_collection()
             dup = col.find_one({"email": payload["email"], "_id": {"$ne": ObjectId(user_id)}})
             if dup:
@@ -165,7 +188,6 @@ def update_user(user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             logger.warning(f"No se encontró usuario para actualizar: {user_id}")
             return None
 
-        # devolver actualizado
         updated = col.find_one({"_id": ObjectId(user_id)}, {"password": 0})
         if updated:
             updated["_id"] = str(updated["_id"])
@@ -195,38 +217,37 @@ def delete_user_by_id(user_id: str) -> bool:
         return False
 
 
-# ============================================================
+# =====================================================
 # Autenticación
-# ============================================================
-
+# =====================================================
 def verify_user_credentials(email: str, password: str) -> Optional[Dict[str, Any]]:
     """
     Verifica credenciales (email + password).
     Devuelve el usuario si la contraseña es correcta; si no, None.
     """
     try:
-        user = get_user_by_email(email)
+        email_norm = (email or "").strip().lower()
+        user = get_user_by_email(email_norm)
         if not user:
-            logger.warning(f"Login fallido: usuario {email} no encontrado")
+            logger.warning(f"Login fallido: usuario {email_norm} no encontrado")
             return None
         hashed = user.get("password")
         if not hashed:
-            logger.warning(f"Usuario {email} sin contraseña definida")
+            logger.warning(f"Usuario {email_norm} sin contraseña definida")
             return None
         if pwd_context.verify(password, hashed):
-            logger.info(f"Usuario {email} autenticado correctamente")
+            logger.info(f"Usuario {email_norm} autenticado correctamente")
             return user
-        logger.warning(f"Contraseña incorrecta para usuario {email}")
+        logger.warning(f"Contraseña incorrecta para usuario {email_norm}")
         return None
     except Exception as e:
         logger.error(f"Error verificando credenciales de {email}: {e}")
         return None
 
 
-# ============================================================
+# =====================================================
 # Exportación CSV
-# ============================================================
-
+# =====================================================
 def export_users_csv() -> StreamingResponse:
     """Exporta los usuarios a CSV (sin contraseñas)."""
     try:

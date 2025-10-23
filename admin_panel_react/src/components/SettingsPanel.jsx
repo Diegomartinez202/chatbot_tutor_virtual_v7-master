@@ -11,6 +11,7 @@ import {
     Info,
 } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
+import i18n from "@/i18n"; // âœ… Importa i18n directamente
 
 const LS_KEY = "app:settings";
 
@@ -21,6 +22,7 @@ const readLS = () => {
         return {};
     }
 };
+
 const writeLS = (obj) => localStorage.setItem(LS_KEY, JSON.stringify(obj));
 
 export default function SettingsPanel({
@@ -38,15 +40,23 @@ export default function SettingsPanel({
         highContrast: false,
         ...readLS(),
     };
+
     const [state, setState] = useState(initial);
 
-    // Aplicar efectos de accesibilidad/tema
+    // âœ… Actualiza efectos visuales y lenguaje
     useEffect(() => {
+        // Apariencia y accesibilidad
         document.documentElement.classList.toggle("dark", !!state.darkMode);
         document.documentElement.style.fontSize = `${16 * (state.fontScale || 1)}px`;
         document.documentElement.classList.toggle("high-contrast", !!state.highContrast);
+
+        // Guardar en localStorage
         writeLS(state);
+
+        // âœ… Cambio de idioma: usa i18n y callback externo si existe
         if (onLanguageChange) onLanguageChange(state.language);
+        i18n.changeLanguage(state.language);
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
 
@@ -71,7 +81,7 @@ export default function SettingsPanel({
             >
                 <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 id="settings-title" className="text-lg font-semibold">
-                        Configuración
+                        ConfiguraciÃ³n
                     </h2>
                     <IconTooltip label="Cerrar panel" side="left">
                         <button
@@ -92,7 +102,7 @@ export default function SettingsPanel({
                             <h3 className="text-sm font-medium flex items-center gap-2">
                                 <Moon size={16} /> Apariencia
                             </h3>
-                            <IconTooltip label="Activa modo oscuro, ajusta el tamaño de fuente.">
+                            <IconTooltip label="Activa modo oscuro, ajusta el tamaÃ±o de fuente.">
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
@@ -115,8 +125,8 @@ export default function SettingsPanel({
                             </IconTooltip>
 
                             <label className="text-sm flex items-center gap-2">
-                                <span className="whitespace-nowrap">Tamaño de fuente</span>
-                                <IconTooltip label="Ajusta el tamaño de la tipografía de toda la app.">
+                                <span className="whitespace-nowrap">TamaÃ±o de fuente</span>
+                                <IconTooltip label="Ajusta el tamaÃ±o de la tipografÃ­a de toda la app.">
                                     <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                                 </IconTooltip>
                                 <input
@@ -131,7 +141,7 @@ export default function SettingsPanel({
                                     aria-valuemin={0.85}
                                     aria-valuemax={1.3}
                                     aria-valuenow={state.fontScale}
-                                    aria-label="Tamaño de fuente"
+                                    aria-label="TamaÃ±o de fuente"
                                 />
                                 <span className="text-xs tabular-nums text-gray-600">{fontPct}%</span>
                             </label>
@@ -144,7 +154,7 @@ export default function SettingsPanel({
                             <h3 className="text-sm font-medium flex items-center gap-2">
                                 <AccessibilityIcon size={16} /> Accesibilidad
                             </h3>
-                            <IconTooltip label="Mejoras de contraste para usuarios con baja visión.">
+                            <IconTooltip label="Mejoras de contraste para usuarios con baja visiÃ³n.">
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
@@ -184,24 +194,24 @@ export default function SettingsPanel({
                             onChange={(e) => setState((s) => ({ ...s, language: e.target.value }))}
                             aria-label="Seleccionar idioma"
                         >
-                            <option value="es">Español</option>
+                            <option value="es">EspaÃ±ol</option>
                             <option value="en">English</option>
                         </select>
                     </section>
 
-                    {/* Sesión / Chat */}
+                    {/* SesiÃ³n / Chat */}
                     <section className="space-y-2">
-                        <h3 className="text-sm font-medium">Sesión / Chat</h3>
+                        <h3 className="text-sm font-medium">SesiÃ³n / Chat</h3>
                         <div className="flex gap-2 flex-wrap">
                             {isAuthenticated ? (
-                                <IconTooltip label="Cerrar sesión en la aplicación">
+                                <IconTooltip label="Cerrar sesiÃ³n en la aplicaciÃ³n">
                                     <button
                                         type="button"
                                         onClick={onLogout}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50"
-                                        aria-label="Cerrar sesión"
+                                        aria-label="Cerrar sesiÃ³n"
                                     >
-                                        <LogOut size={14} /> Cerrar sesión
+                                        <LogOut size={14} /> Cerrar sesiÃ³n
                                     </button>
                                 </IconTooltip>
                             ) : (
