@@ -7,7 +7,7 @@ import ResumenSistema from "@/components/ResumenSistema";
 import StatsChart from "@/components/StatsChart";
 import IconTooltip from "@/components/ui/IconTooltip";
 import { Button } from "@/components/ui/index.js"; 
-
+import '@/styles/index.css';
 function Dashboard() {
     const [desde, setDesde] = useState("");
     const [hasta, setHasta] = useState("");

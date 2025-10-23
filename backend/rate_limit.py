@@ -1,34 +1,67 @@
 # backend/rate_limit.py
 """
-Puente para usar decoradores de rate limit sin importar desde main.py.
-- Si SlowAPI está activo, expose @limit(...) real.
-- Si NO está activo, el decorador es NO-OP (no hace nada).
+Adapter for request rate limiting.
+
+- If a limiter with `.limit` (e.g., slowapi.Limiter) is available, register it
+  via `set_limiter(limiter)` and use its @limit decorator.
+- If there is no limiter or rate limiting is disabled, @limit returns a no-op
+  decorator that leaves the function unchanged.
 """
 
-from typing import Callable, Optional
+from __future__ import annotations
 
-try:
-    from slowapi import Limiter  # type: ignore
-except Exception:
-    Limiter = None  # type: ignore
+import functools
+import os
+from typing import Any, Callable, Optional, TypeVar
 
-_limiter: Optional["Limiter"] = None
+F = TypeVar("F", bound=Callable[..., Any])
 
-def set_limiter(lim) -> None:
-    """Lo llama main.py cuando inicializa SlowAPI."""
+_limiter: Optional[Any] = None
+
+
+def set_limiter(limiter: Any) -> None:
+    """
+    Register a limiter instance (for example slowapi.Limiter).
+    Called from main.py during startup if SlowAPI is enabled.
+    """
     global _limiter
-    _limiter = lim
+    _limiter = limiter
 
-def limit(rule: str) -> Callable:
+
+def get_limiter() -> Optional[Any]:
+    """Return the currently configured limiter (or None)."""
+    return _limiter
+
+
+def _rate_limit_enabled() -> bool:
     """
-    Uso en routers:
-        from backend.rate_limit import limit
-        @router.post("/api/chat")
-        @limit("60/minute")
-        def send_message(...): ...
+    Check if rate limiting is enabled via environment variables.
+    Defaults to enabled unless RATE_LIMIT_ENABLED="false".
     """
-    if _limiter is None:
-        # Decorador no-op si SlowAPI no está activo
-        def _noop(fn): return fn
-        return _noop
-    return _limiter.limit(rule)
+    val = (os.getenv("RATE_LIMIT_ENABLED") or "true").strip().lower()
+    return val in ("1", "true", "yes", "y", "on")
+
+
+def limit(rule: str) -> Callable[[F], F]:
+    """
+    Decorator factory that mirrors slowapi's @limiter.limit when available.
+
+    Example:
+        @limit("5/minute")
+        def endpoint(...): ...
+
+    If no limiter is configured or RATE_LIMIT_ENABLED is false,
+    returns a no-op decorator.
+    """
+    if not _rate_limit_enabled() or _limiter is None or not hasattr(_limiter, "limit"):
+        def _noop_decorator(func: F) -> F:
+            @functools.wraps(func)
+            def _wrapped(*args: Any, **kwargs: Any) -> Any:
+                return func(*args, **kwargs)
+            return _wrapped
+        return _noop_decorator
+
+    return _limiter.limit(rule)  # type: ignore[return-value]
+
+
+__all__ = ["set_limiter", "get_limiter", "limit"]

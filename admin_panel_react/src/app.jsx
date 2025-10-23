@@ -3,7 +3,6 @@ import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
 import { useAuth } from "@/context/AuthContext";
-
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
@@ -33,7 +32,7 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 // Chat
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
-
+import '@/styles/index.css';
 // Flag opcional para habilitar la página de pruebas del chat
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 
