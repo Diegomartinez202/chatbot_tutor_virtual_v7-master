@@ -66,7 +66,10 @@ class Settings(BaseSettings):
     Incluye soporte para JWT (HS y RS), MongoDB, Rasa, SMTP, S3,
     CSP/embebido, rate limiting, helpdesk, etc.
     """
-
+class Settings:
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    ADMIN_REGISTER_KEY: str = os.getenv("ADMIN_REGISTER_KEY", "")
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "clave_super_segura")
     # === Configuración general ===
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),

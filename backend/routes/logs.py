@@ -1,126 +1,180 @@
-# backend/routes/logs_v2.py
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from typing import List
-import re
+# backend/routes/logs.py
+# ASCII-only comments to avoid encoding issues in some containers.
 
-from backend.dependencies.auth import require_role, get_current_user
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Response
+from fastapi.responses import StreamingResponse
+
 from backend.services.log_service import (
+    # file utilities
     listar_archivos_log,
     obtener_contenido_log,
+    # csv exports
     exportar_logs_csv_stream,
+    exportar_logs_csv_filtrado,
+    registrar_exportacion_csv,
+    # unread helpers
     contar_mensajes_no_leidos,
     marcar_mensajes_como_leidos,
+    # logs and stats
     get_logs,
-    log_access,
+    get_export_stats,
     get_export_logs,
-    get_export_stats_by_day,
+    get_fallback_logs,
+    get_top_failed_intents,
 )
 
-from backend.models.log_model import LogModel
-from backend.rate_limit import limit  # no-op si SlowAPI no está activo
+router = APIRouter(prefix="/api/logs", tags=["Logs"])
 
-# 👇 prefijo v2 (sustentación)
-router = APIRouter(prefix="/api/admin2", tags=["Logs v2"])
 
-# 📄 1. Listar logs (misma lógica/roles/servicios)
-@router.get("/admin/logs", response_model=List[LogModel], summary="📄 Listar logs desde MongoDB (v2)")
-@limit("30/minute")
-def listar_logs_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    logs = get_logs()
-    log_access(
-        user_id=current_user["_id"],
-        email=current_user["email"],
-        rol=current_user["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200 if logs else 204,
-        ip=getattr(request.state, "ip", None),
-        user_agent=getattr(request.state, "user_agent", None),
-    )
-    return logs
+# ----------------------------
+# Local log files (if any)
+# ----------------------------
+@router.get("/files")
+def list_log_files():
+    """
+    List local .log files under settings.log_dir (if available).
+    """
+    return listar_archivos_log()
 
-# ⬇️ 2. Descargar archivo de log local
-@router.get("/admin/logs/{filename}", summary="⬇️ Descargar archivo de log local (v2)")
-@limit("10/minute")
-def descargar_log_v2(filename: str, request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    if not re.match(r"^train_.*\.log$", filename):
-        raise HTTPException(status_code=400, detail="Nombre de archivo inválido")
 
-    file_path = obtener_contenido_log(filename)
-    if not file_path:
+@router.get("/files/{filename}")
+def get_log_file(filename: str):
+    """
+    Return the path to a local log file if it exists; 404 otherwise.
+    """
+    path = obtener_contenido_log(filename)
+    if not path:
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    # Return content path or small hint. If you want to stream the file,
+    # you can open it and return StreamingResponse, but we keep current behavior.
+    return {"path": path}
 
-    log_access(
-        user_id=current_user["_id"],
-        email=current_user["email"],
-        rol=current_user["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200,
-        ip=getattr(request.state, "ip", None),
-        user_agent=getattr(request.state, "user_agent", None),
-    )
-    return FileResponse(file_path, media_type="text/plain", filename=filename)
 
-# 📤 3. Exportar logs a CSV
-@router.get("/admin/logs/export", summary="📤 Exportar logs a CSV (v2)", response_class=StreamingResponse)
-@limit("10/minute")
-def exportar_logs_csv_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    output = exportar_logs_csv_stream()
-    log_access(
-        user_id=current_user["_id"],
-        email=current_user["email"],
-        rol=current_user["rol"],
-        endpoint=str(request.url.path),
-        method=request.method,
-        status=200,
-        ip=getattr(request.state, "ip", None),
-        user_agent=getattr(request.state, "user_agent", None),
-        tipo="exportacion_csv",
-    )
-    return StreamingResponse(
-        output,
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=logs_exportados.csv"},
-    )
+# ----------------------------
+# CSV exports
+# ----------------------------
+@router.get("/export.csv")
+def export_logs_csv():
+    """
+    Stream a simple CSV of logs (columns: user_id, message, timestamp, sender, intent).
+    """
+    sio = exportar_logs_csv_stream()
+    headers = {"Content-Disposition": 'attachment; filename="logs.csv"'}
+    return StreamingResponse(sio, media_type="text/csv", headers=headers)
 
-# 📊 4. Exportaciones por día (para gráfico)
-@router.get("/admin/logs/exports", summary="📊 Estadísticas de exportaciones por día (v2)")
-@limit("30/minute")
-def estadisticas_exportaciones_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    data = get_export_stats_by_day()
-    return JSONResponse(content=data)
 
-# 📄 5. Lista detallada de exportaciones
-@router.get("/admin/logs/exports/list", summary="📄 Lista detallada de exportaciones CSV (v2)")
-@limit("30/minute")
-def listar_exportaciones_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    data = get_export_logs()
-    return JSONResponse(content=data)
+@router.get("/export/filtered.csv")
+def export_logs_csv_filtered(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+):
+    """
+    Generate a filtered CSV (string) for downloads or S3; returns CSV directly.
+    Date format expected: ISO8601 (e.g., 2025-01-31T00:00:00).
+    """
+    dt_desde: Optional[datetime] = datetime.fromisoformat(desde) if desde else None
+    dt_hasta: Optional[datetime] = datetime.fromisoformat(hasta) if hasta else None
 
-# 🔴 6. Contar mensajes no leídos (por usuario)
-@router.get("/logs/unread_count", summary="🔴 No leídos (v2)")
-@limit("60/minute")
-def get_unread_count_v2(user_id: str = Query(...), current_user=Depends(get_current_user)):
+    csv_text = exportar_logs_csv_filtrado(dt_desde, dt_hasta)
+    headers = {"Content-Disposition": 'attachment; filename="logs_filtered.csv"'}
+    return Response(content=csv_text, media_type="text/csv", headers=headers)
+
+
+@router.post("/export/register")
+def register_csv_export(
+    user_id: str,
+    email: str,
+    rol: str,
+    ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+):
+    """
+    Register a CSV export (persists a 'descarga' log) and uploads to S3 via save_csv_to_s3_and_get_url.
+    Returns a presigned URL.
+    """
+    dt_desde: Optional[datetime] = datetime.fromisoformat(desde) if desde else None
+    dt_hasta: Optional[datetime] = datetime.fromisoformat(hasta) if hasta else None
+
+    # Build a minimal user dict expected by registrar_exportacion_csv
+    user = {
+        "_id": user_id,
+        "id": user_id,  # keep both to be safe
+        "email": email,
+        "rol": rol,
+        "ip": ip,
+        "user_agent": user_agent,
+    }
+    url = registrar_exportacion_csv(user, dt_desde, dt_hasta)
+    if not url:
+        raise HTTPException(status_code=500, detail="No se pudo registrar la exportacion")
+    return {"url": url}
+
+
+# ----------------------------
+# Unread helpers
+# ----------------------------
+@router.get("/unread/{user_id}")
+def unread_count(user_id: str):
+    """
+    Return unread count per user_id.
+    """
     return {"unread": contar_mensajes_no_leidos(user_id)}
 
-# ✅ 7. Marcar mensajes como leídos
-@router.post("/logs/mark_read", summary="✅ Marcar mensajes como leídos (v2)")
-@limit("20/minute")
-def marcar_mensajes_leidos_v2(user_id: str = Query(...), current_user=Depends(get_current_user)):
-    return {"updated_count": marcar_mensajes_como_leidos(user_id)}
 
-# 📉 8. Fallidos (fallbacks) recientes
-@router.get("/admin/intents/failures", summary="📉 Intentos fallidos (v2)")
-@limit("30/minute")
-def intentos_fallidos_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    from backend.services.log_service import get_fallback_logs
-    return get_fallback_logs()
+@router.post("/mark-read/{user_id}")
+def mark_read(user_id: str):
+    """
+    Mark pending messages as read for user_id.
+    """
+    modified = marcar_mensajes_como_leidos(user_id)
+    return {"updated": modified}
 
-# 📊 9. Top fallidos
-@router.get("/admin/intents/failures/top", summary="📊 Top intents fallidos (v2)")
-@limit("30/minute")
-def top_fallbacks_v2(request: Request, current_user=Depends(require_role(["admin", "soporte"]))):
-    from backend.services.log_service import get_top_failed_intents
+
+# ----------------------------
+# Logs and stats
+# ----------------------------
+@router.get("")
+def list_logs(limit: int = 100):
+    """
+    Return latest 'acceso' logs.
+    """
+    return get_logs(limit=limit)
+
+
+@router.get("/exports")
+def list_export_logs(limit: int = 50):
+    """
+    Return latest 'descarga' logs.
+    """
+    return get_export_logs(limit=limit)
+
+
+@router.get("/stats/by-day")
+def export_stats_by_day():
+    """
+    Return per-day export stats. Aligns with service name `get_export_stats`.
+    """
+    return get_export_stats()
+
+
+@router.get("/fallbacks")
+def list_fallback_logs(limit: int = 100):
+    """
+    Return latest NLU fallback logs.
+    """
+    return get_fallback_logs(limit=limit)
+
+
+@router.get("/top-failed")
+def top_failed_intents():
+    """
+    Return top 5 failed intents (fallback-like).
+    """
     return get_top_failed_intents()

@@ -1,91 +1,63 @@
-# backend/ext/redis_client.py
+# backend/ext/rate_limit.py
 from __future__ import annotations
 
 import logging
-import os
-from typing import Optional
+from typing import Optional, List
+from fastapi import FastAPI, Depends
+
+# Try to use fastapi-limiter if available; otherwise fall back to no-op
+try:
+    from fastapi_limiter import FastAPILimiter  # type: ignore
+    from fastapi_limiter.depends import RateLimiter  # type: ignore
+    _HAS_FASTAPI_LIMITER = True
+except Exception:  # pragma: no cover
+    FastAPILimiter = None  # type: ignore
+    RateLimiter = None  # type: ignore
+    _HAS_FASTAPI_LIMITER = False
+
+from .redis_client import get_redis, redis_enabled
 
 logger = logging.getLogger(__name__)
 
-try:
-    import redis.asyncio as aioredis  # type: ignore
-except Exception:  # pragma: no cover
-    aioredis = None  # type: ignore
-
-
-# Single cached client for the process
-_redis_client: Optional["aioredis.Redis"] = None
-
-
-def _norm_bool(val: Optional[str], default: bool = True) -> bool:
+async def init_rate_limit(app: FastAPI) -> None:
     """
-    Parse typical boolean env values. Defaults to True when unset.
+    Initialize fastapi-limiter only if Redis is enabled and available.
+    If initialization fails, continue without rate limiting (no exceptions).
     """
-    if val is None:
-        return default
-    v = val.strip().lower()
-    return v in ("1", "true", "yes", "y", "on")
-
-
-def get_redis_url() -> str:
-    """
-    Resolve the Redis URL from environment.
-    Priority:
-      1) RATE_LIMIT_STORAGE_URI
-      2) REDIS_URL
-      3) redis://redis:6379/0 (default)
-    """
-    url = os.getenv("RATE_LIMIT_STORAGE_URI") or os.getenv("REDIS_URL")
-    return (url or "redis://redis:6379/0").strip()
-
-
-def redis_enabled() -> bool:
-    """
-    Decide if Redis-based features should be enabled.
-    Enabled when:
-      - RATE_LIMIT_BACKEND == "redis"
-      - and aioredis is importable
-    """
-    backend = (os.getenv("RATE_LIMIT_BACKEND") or "memory").strip().lower()
-    return backend == "redis" and aioredis is not None
-
-
-async def get_redis() -> Optional["aioredis.Redis"]:
-    """
-    Return a connected Redis client or None.
-    Does not raise if connection fails; it logs and returns None instead.
-    """
-    global _redis_client
+    if not _HAS_FASTAPI_LIMITER:
+        logger.info("[rate-limit] fastapi-limiter not installed; skipping.")
+        return
 
     if not redis_enabled():
-        logger.info("[redis] disabled (RATE_LIMIT_BACKEND != redis or aioredis missing)")
-        return None
-
-    if _redis_client is not None:
-        # Best effort: assume still valid
-        return _redis_client
+        logger.info("[rate-limit] disabled (RATE_LIMIT_BACKEND != 'redis').")
+        return
 
     try:
-        url = get_redis_url()
-        _redis_client = aioredis.from_url(url, encoding="utf-8", decode_responses=True)  # type: ignore[attr-defined]
-        # Light liveness check
-        await _redis_client.ping()  # type: ignore[func-returns-value]
-        logger.info("[redis] connected ok: %s", url)
-        return _redis_client
-    except Exception as e:
-        logger.warning("[redis] connection failed: %s", e)
-        _redis_client = None
-        return None
+        redis = await get_redis()
+        if redis is None:
+            logger.warning("[rate-limit] Redis not available; skipping limiter.")
+            return
+        await FastAPILimiter.init(redis)  # type: ignore[attr-defined]
+        logger.info("[rate-limit] initialized with Redis backend.")
+    except Exception as exc:
+        logger.warning("[rate-limit] initialization failed: %s (limiter disabled)", exc)
 
+def limiter(times: int = 30, seconds: int = 60) -> List:
+    """
+    Returns a list with a RateLimiter dependency when available; otherwise [].
+    Usage in routes:
+        @router.post("/chat", dependencies=limiter(30, 60))
+    """
+    if not _HAS_FASTAPI_LIMITER:
+        return []
 
-async def close_redis() -> None:
-    """
-    Close the cached Redis client if present.
-    """
-    global _redis_client
-    if _redis_client is not None:
-        try:
-            await _redis_client.aclose()  # type: ignore[attr-defined]
-        except Exception:
-            pass
-        _redis_client = None
+    try:
+        # If FastAPILimiter.init() wasn't called (no redis), don't attach a dead dep
+        if getattr(FastAPILimiter, "redis", None) is None:  # type: ignore[attr-defined]
+            return []
+        return [Depends(RateLimiter(times=times, seconds=seconds))]  # type: ignore[misc]
+    except Exception as exc:
+        logger.debug("[rate-limit] fallback to no-op: %s", exc)
+        return []
+
+__all__ = ["init_rate_limit", "limiter"]

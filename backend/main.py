@@ -7,7 +7,7 @@ from typing import Deque, DefaultDict, Any, Dict
 from time import time
 from collections import defaultdict, deque
 import os
-
+from backend.controllers import admin_controller, user_controller
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -52,6 +52,7 @@ from backend.routes.chat import chat_router  # /chat, /chat/health, /chat/debug
 from app.routers import chat_audio
 from backend.routes.admin_auth import router as admin_v2_router
 from backend.routes.auth_admin import router as admin_legacy_router
+from backend.controllers import admin_controller
 # ✅ Montaje adicional directo de tokens para compat (/auth/* además de /api/auth/*)
 from backend.routes.auth_tokens import router as auth_tokens_router
 
@@ -163,7 +164,9 @@ def create_app() -> FastAPI:
     app.include_router(chat_audio.router)
     app.include_router(auth.router)
     app.include_router(admin.router)
-
+    app.include_router(admin_controller.router, prefix="/api", tags=["Admin"])
+    app.include_router(user_controller.router, prefix="/api", tags=["Usuarios"])
+    app.include_router(admin_controller.router)
     # 🔒 CSP (embebidos)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):

@@ -31,7 +31,7 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 import "@/styles/index.css";
-
+import "./i18n";
 // Flag opcional para habilitar la página de pruebas del chat
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 
@@ -96,6 +96,37 @@ const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Reg
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
 
 export default function App() {
+    const { i18n, t } = useTranslation();
+    const [settingsOpen, setSettingsOpen] = useState(false);
+
+    const handleLanguageChange = (lang) => {
+        i18n.changeLanguage(lang);
+    };
+
+    return (
+        <div className="app">
+            <button
+                onClick={() => setSettingsOpen(true)}
+                className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-2 rounded"
+            >
+                ⚙️ {t("settings")}
+            </button>
+
+            {settingsOpen && (
+                <SettingsPanel
+                    open={settingsOpen}
+                    onClose={() => setSettingsOpen(false)}
+                    onLanguageChange={handleLanguageChange} // 👈 conexión real con i18next
+                />
+            )}
+
+            <main className="p-6">
+                <h1>{t("welcome_message")}</h1>
+                <p>{t("description")}</p>
+            </main>
+        </div>
+    );
+}
     return (
         <TooltipProvider>
             <Routes>

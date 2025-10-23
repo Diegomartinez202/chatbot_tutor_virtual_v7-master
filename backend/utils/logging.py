@@ -1,10 +1,16 @@
-# backend/utils/logging.py
+# =====================================================
+# 🧩 backend/utils/logging.py
+# =====================================================
 import logging
 import os
+from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from logging import Logger
+from typing import Any
 
-# Intentamos importar configuración dinámica y variables globales
+# =====================================================
+# ⚙️ Configuración dinámica y settings
+# =====================================================
 try:
     from backend.config.settings import settings, configure_logging
 except Exception:
@@ -19,7 +25,9 @@ except Exception:
         pass
 
 
-# Intentamos importar request_id si existe middleware
+# =====================================================
+# 🧩 Middleware opcional: Request ID
+# =====================================================
 try:
     from backend.middleware.request_id import get_request_id  # ContextVar
 except Exception:
@@ -28,6 +36,9 @@ except Exception:
         return None
 
 
+# =====================================================
+# 🔐 Filtro para request_id
+# =====================================================
 class RequestIdFilter(logging.Filter):
     """Agrega el request_id al registro de log"""
     def filter(self, record: logging.LogRecord) -> bool:
@@ -35,6 +46,53 @@ class RequestIdFilter(logging.Filter):
         return True
 
 
+# =====================================================
+# 🧱 Función robusta para coercer log_dir
+# =====================================================
+def _coerce_log_dir(value: Any, fallback: str = "./logs") -> str:
+    """
+    Convierte log_dir en str tolerando:
+      - str, Path
+      - FieldInfo (Pydantic v1/v2)
+      - None u otros tipos
+    """
+    if isinstance(value, (str, Path)):
+        return str(value)
+
+    try:
+        # Pydantic v2
+        from pydantic.fields import FieldInfo as V2FieldInfo  # type: ignore
+    except Exception:
+        V2FieldInfo = None  # type: ignore
+
+    try:
+        # Pydantic v1
+        from pydantic.fields import ModelField as V1ModelField  # type: ignore
+    except Exception:
+        V1ModelField = None  # type: ignore
+
+    if V2FieldInfo and isinstance(value, V2FieldInfo):
+        # FieldInfo de Pydantic v2 tiene atributo default
+        return str(getattr(value, "default", fallback) or fallback)
+
+    if V1ModelField and isinstance(value, V1ModelField):
+        default_val = getattr(value, "default", None)
+        if default_val is not None:
+            return str(default_val)
+        factory = getattr(value, "default_factory", None)
+        if callable(factory):
+            try:
+                return str(factory())
+            except Exception:
+                pass
+        return fallback
+
+    return fallback
+
+
+# =====================================================
+# 🪵 Configuración del Logging
+# =====================================================
 def setup_logging(level: int | None = None) -> None:
     """
     Configura el logging global del sistema:
@@ -43,7 +101,7 @@ def setup_logging(level: int | None = None) -> None:
     - request_id opcional (si existe)
     - Integración con uvicorn/httpx
     """
-    # Invoca configuración base
+    # Invoca configuración base (si existe)
     try:
         configure_logging(level=level)
     except Exception:
@@ -53,11 +111,13 @@ def setup_logging(level: int | None = None) -> None:
     formatter = logging.Formatter(fmt)
     rid_filter = RequestIdFilter()
 
-    # Asegurar carpeta
-    log_dir = getattr(settings, "log_dir", "./logs")
+    # 🧩 Asegurar carpeta de logs con coerción robusta
+    raw_dir = getattr(settings, "log_dir", "./logs")
+    log_dir = _coerce_log_dir(raw_dir, "./logs")
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "system.log")
 
+    # Limpiar handlers previos del root
     root = logging.getLogger()
     root.handlers.clear()
 
@@ -68,7 +128,12 @@ def setup_logging(level: int | None = None) -> None:
     root.addHandler(stream_h)
 
     # Handler archivo rotativo
-    file_h = RotatingFileHandler(log_path, maxBytes=10_000_000, backupCount=5, encoding="utf-8")
+    file_h = RotatingFileHandler(
+        log_path,
+        maxBytes=10_000_000,
+        backupCount=5,
+        encoding="utf-8",
+    )
     file_h.setFormatter(formatter)
     file_h.addFilter(rid_filter)
     root.addHandler(file_h)
@@ -77,16 +142,19 @@ def setup_logging(level: int | None = None) -> None:
     level_eff = logging.DEBUG if getattr(settings, "debug", False) else logging.INFO
     root.setLevel(level if level is not None else level_eff)
 
-    # Alinear loggers de librerías comunes
+    # Alinear loggers comunes
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx"):
         lg = logging.getLogger(name)
         lg.handlers.clear()
         lg.propagate = True
         lg.setLevel(root.level)
 
-    root.info("✅ Logging inicializado correctamente")
+    root.info("✅ Logging inicializado correctamente (directorio: %s)", log_dir)
 
 
+# =====================================================
+# 🔎 Acceso a logger de módulo
+# =====================================================
 def get_logger(name: str) -> Logger:
     """Obtiene un logger de módulo (hereda formato del root)."""
     return logging.getLogger(name)

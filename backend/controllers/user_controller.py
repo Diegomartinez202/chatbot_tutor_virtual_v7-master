@@ -1,5 +1,3 @@
-# backend/controllers/user_controller.py
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
 from backend.services.user_service import get_users, update_user
