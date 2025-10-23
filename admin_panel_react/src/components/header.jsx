@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import React from "react";
 import { NavLink, useNavigate, Link, useLocation } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
@@ -23,7 +22,10 @@ import SettingsPanel from "@/components/SettingsPanel";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
 import assets from "@/config/assets";
+import { useTranslation } from "react-i18next"; // 👈 i18n
+
 const Header = () => {
+    const { t } = useTranslation(); // 👈 traducción activa
     const { user, logout: doLogout } = useAuth();
     const logout = doLogout || (() => { });
     const role = user?.rol || "usuario";
@@ -51,26 +53,26 @@ const Header = () => {
     };
 
     // ────────────────────────────────────────────────────────────
-    // Breadcrumb simple (sin claves duplicadas)
+    // Breadcrumb simple
     // ────────────────────────────────────────────────────────────
     const labelMap = {
-        "": "Inicio",
-        dashboard: "Dashboard",
-        logs: "Logs",
-        intents: "Intents",
-        "intents-page": "Intents (página)",
-        "intents-fallidos": "Intentos fallidos",
-        "stadisticas-logs": "Estadísticas",
-        "exportar-logs": "Exportar logs",
-        exportaciones: "Exportaciones",
-        users: "Usuarios",
-        "user-management": "Usuarios",
-        admin: "Admin",
-        diagnostico: "Pruebas",
-        chat: "Chat",
-        iframe: "Iframe",
-        auth: "Auth",
-        callback: "Callback",
+        "": t("inicio"),
+        dashboard: t("dashboard"),
+        logs: t("logs"),
+        intents: t("intents"),
+        "intents-page": t("intents_pagina"),
+        "intents-fallidos": t("intentos_fallidos"),
+        "stadisticas-logs": t("estadisticas"),
+        "exportar-logs": t("exportar_logs"),
+        exportaciones: t("exportaciones"),
+        users: t("usuarios"),
+        "user-management": t("gestion_usuarios"),
+        admin: t("admin"),
+        diagnostico: t("pruebas"),
+        chat: t("chat"),
+        iframe: t("iframe"),
+        auth: t("auth"),
+        callback: t("callback"),
     };
 
     const path = location.pathname.replace(/^\/+|\/+$/g, "");
@@ -83,19 +85,18 @@ const Header = () => {
     }
 
     // ────────────────────────────────────────────────────────────
-    // Navegación lateral (mantiene tu lógica de negocio)
+    // Navegación lateral
     // ────────────────────────────────────────────────────────────
     const navLinks = [
-        { to: "/", label: "Inicio", icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: "Página de bienvenida" },
-        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: "Vista general del sistema" },
-        { to: "/logs", label: "Logs", icon: FileText, roles: ["admin", "soporte"], tip: "Historial de conversaciones" },
-        { to: "/intents", label: "Intents", icon: MessageSquareText, roles: ["admin"], tip: "Gestión de intents" },
-        { to: "/stadisticas-logs", label: "Estadísticas", icon: BarChart2, roles: ["admin"], tip: "Métricas de uso" },
-        { to: "/admin/diagnostico", label: "Pruebas", icon: FlaskConical, roles: ["admin", "soporte"], tip: "Diagnóstico y conexión" },
-        { to: "/user-management", label: "Usuarios", icon: UsersIcon, roles: ["admin"], tip: "Gestión de usuarios" },
-        // Compatibilidad /chat
-        { to: "/chat", label: "Chat", icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: "Abrir chat de ayuda", isChat: true },
-        { to: "/intentos-fallidos", label: "Intentos fallidos", icon: BarChart2, roles: ["admin"], tip: "Intents no reconocidos" },
+        { to: "/", label: t("inicio"), icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: t("pagina_bienvenida") },
+        { to: "/dashboard", label: t("dashboard"), icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: t("vista_general") },
+        { to: "/logs", label: t("logs"), icon: FileText, roles: ["admin", "soporte"], tip: t("historial_conversaciones") },
+        { to: "/intents", label: t("intents"), icon: MessageSquareText, roles: ["admin"], tip: t("gestion_intents") },
+        { to: "/stadisticas-logs", label: t("estadisticas"), icon: BarChart2, roles: ["admin"], tip: t("metricas_uso") },
+        { to: "/admin/diagnostico", label: t("pruebas"), icon: FlaskConical, roles: ["admin", "soporte"], tip: t("diagnostico_conexion") },
+        { to: "/user-management", label: t("usuarios"), icon: UsersIcon, roles: ["admin"], tip: t("gestion_usuarios") },
+        { to: "/chat", label: t("chat"), icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: t("abrir_chat"), isChat: true },
+        { to: "/intentos-fallidos", label: t("intentos_fallidos"), icon: BarChart2, roles: ["admin"], tip: t("intents_no_reconocidos") },
     ];
     const canSee = (l) => !l.roles || l.roles.includes(role);
 
@@ -103,15 +104,15 @@ const Header = () => {
         <>
             <aside className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between">
                 <div className="p-6">
-                    {/* Brand / Home: avatar mini + título clicable al inicio */}
+                    {/* Brand / Home */}
                     <div className="flex items-center gap-3 mb-4">
-                        <Link to="/" className="shrink-0" aria-label="Ir a inicio">
+                        <Link to="/" className="shrink-0" aria-label={t("ir_inicio")}>
                             <img
                                 src={AVATAR}
                                 onError={(e) => {
                                     e.currentTarget.src = "/bot-avatar.png";
                                 }}
-                                alt="Inicio"
+                                alt={t("inicio")}
                                 className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
                                 loading="eager"
                             />
@@ -120,10 +121,9 @@ const Header = () => {
                             <Link to="/" className="text-lg font-bold hover:underline">
                                 Chatbot Tutor Virtual
                             </Link>
-                            <div className="text-xs text-white/70">Panel de administración</div>
+                            <div className="text-xs text-white/70">{t("panel_administracion")}</div>
                         </div>
 
-                        {/* Badge global de chat */}
                         <div className="ml-auto flex items-center gap-2">
                             <Bell className="w-5 h-5" />
                             <Badge mode="chat" size="xs" />
@@ -148,7 +148,7 @@ const Header = () => {
                     {/* Encabezado secundario */}
                     <div className="flex items-center gap-2 mb-4">
                         <UserCircle className="w-5 h-5" />
-                        <h2 className="text-sm font-semibold">Bienvenido</h2>
+                        <h2 className="text-sm font-semibold">{t("bienvenido")}</h2>
                     </div>
 
                     {/* Info de usuario */}
@@ -160,7 +160,7 @@ const Header = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4" />
-                                <span>Rol: {user.rol}</span>
+                                <span>{t("rol")}: {user.rol}</span>
                             </div>
                         </div>
                     )}
@@ -204,14 +204,14 @@ const Header = () => {
 
                 {/* Config + Logout */}
                 <div className="p-6 flex items-center justify-between gap-2">
-                    <IconTooltip label="Configuración" side="top">
+                    <IconTooltip label={t("configuracion")} side="top">
                         <button
                             onClick={() => setOpenSettings(true)}
                             className="inline-flex items-center gap-2 px-3 py-2 rounded bg-white/10 hover:bg-white/20"
-                            aria-label="Configuración"
+                            aria-label={t("configuracion")}
                             type="button"
                         >
-                            <Cog size={16} /> Config.
+                            <Cog size={16} /> {t("configuracion_corta")}
                         </button>
                     </IconTooltip>
                     <LogoutButton />
