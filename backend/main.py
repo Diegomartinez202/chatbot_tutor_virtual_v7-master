@@ -51,16 +51,16 @@ from backend.routes import logs_v2
 from backend.routes.chat import chat_router  # /chat, /chat/health, /chat/debug
 from app.routers import chat_audio
 from backend.routes.admin_auth import router as admin_v2_router
-from backend.routes.auth_admin import router as admin_legacy_router 
+from backend.routes.auth_admin import router as admin_legacy_router
 # ✅ Montaje adicional directo de tokens para compat (/auth/* además de /api/auth/*)
 from backend.routes.auth_tokens import router as auth_tokens_router
 
 # Publica el limiter para decoradores @limit(...) sin imports circulares
 from backend.rate_limit import set_limiter  # el helper es tolerante si no hay SlowAPI
+
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - MODO DEMO
 # =========================================================
-
 from backend.config.settings import settings
 
 if getattr(settings, "demo_mode", False):
@@ -72,6 +72,7 @@ if getattr(settings, "demo_mode", False):
     print("=" * 70 + "\n")
 else:
     print("✅ Modo producción: autenticación real activa.\n")
+
 # Redis opcional (para rate-limit builtin en producción)
 try:
     import redis.asyncio as aioredis  # pip install "redis>=5"
@@ -270,6 +271,13 @@ def create_app() -> FastAPI:
         # Default o cualquier otro valor → builtin
         _activate_builtin_rate_limit(app)
 
+    # =========================================================
+    # ✅ Health y utilidades públicas (ONE TRUE HEALTH)
+    # =========================================================
+    @app.get("/health", include_in_schema=False)
+    async def health():
+        return {"ok": True}
+
     # 🔁 Redirects de assets al frontend
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
@@ -374,14 +382,10 @@ def create_app() -> FastAPI:
             return RedirectResponse(url=f"{FRONT_BASE}/chat-widget.js", status_code=301)
         return JSONResponse({"detail": "chat-widget vive en el frontend."}, status_code=501)
 
-    # 🌱 Root + Health
-    @app.get("/")
+    # 🌱 Root
+    @app.get("/", include_in_schema=False)
     def root():
         return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
-
-    @app.get("/health")
-    async def health():
-        return {"ok": True}
 
     # Logs de arranque
     if settings.debug:
@@ -506,4 +510,3 @@ async def _shutdown():
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()
-
