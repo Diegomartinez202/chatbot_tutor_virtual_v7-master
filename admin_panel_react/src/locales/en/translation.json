@@ -29,5 +29,14 @@
   "metricas_uso": "Usage metrics",
   "diagnostico_conexion": "Diagnostics and connection",
   "abrir_chat": "Open help chat",
-  "intents_no_reconocidos": "Unrecognized intents"
+  "intents_no_reconocidos": "Unrecognized intents",
+  "welcome": "Hi! I'm your assistant. How can I help you?",
+  "typing": "Typing",
+  "noResponse": "Hmm… I don’t have an answer for that.",
+  "authRequired": "You need to log in to continue.",
+  "errorSending": "Error sending the message.",
+  "title": "Assistant",
+  "connecting": "Connecting…",
+  "errorConnection": "We couldn’t connect to the chat service.",
+  "retry": "Retry"
 }

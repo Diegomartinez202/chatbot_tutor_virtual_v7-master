@@ -7,6 +7,7 @@ import ChatUI from "@/components/chat/ChatUI";
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next"; // 🟢 i18n hook agregado
 
 // Health universal (REST/WS) — no envía mensajes al bot, solo comprueba disponibilidad
 import { connectChatHealth } from "@/services/chat/health";
@@ -60,6 +61,7 @@ export default function ChatPage({
     embedHeight = "560px",
     children,
 }) {
+    const { t } = useTranslation(); // 🟢 inicializa traducción
     const [params] = useSearchParams();
     const isEmbed = forceEmbed || params.get("embed") === "1";
 
@@ -163,21 +165,26 @@ export default function ChatPage({
             <div className={bodyClass} data-testid="chat-root">
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
-                        <ChatbotLoading avatarSrc={avatarSrc} label="Conectando…" />
+                        <ChatbotLoading
+                            avatarSrc={avatarSrc}
+                            label={t("chat.connecting")} // 🔵 traducido
+                        />
                         <ChatbotStatusMini status="connecting" />
                     </div>
                 )}
 
                 {status === "error" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-                        <p className="text-gray-700">No pudimos conectar con el servicio de chat.</p>
+                        <p className="text-gray-700">
+                            {t("chat.errorConnection")} {/* 🔵 traducido */}
+                        </p>
                         <button
                             onClick={connect}
                             className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-100"
                             type="button"
                         >
                             <RefreshCw className="w-4 h-4" />
-                            Reintentar
+                            {t("chat.retry")} {/* 🔵 traducido */}
                         </button>
                     </div>
                 )}

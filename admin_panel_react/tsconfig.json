@@ -28,6 +28,7 @@
   },
   "include": [
     "src",
+    "src/locales/**/*.json",
     "vite.config.ts",
     "vite.config.js"
   ],

@@ -1,3 +1,6 @@
+# backend/routes/auth.py
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -13,7 +16,6 @@ from backend.services.auth_service import (
     login_user,
 )
 from backend.services.user_service import crear_usuario_si_no_existe
-from backend.utils.security import hash_password
 
 logger = get_logger(__name__)
 
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 # ========================
-# 🔐 MODELOS Pydantic
+# Modelos Pydantic
 # ========================
 class RegisterRequest(BaseModel):
     nombre: str
@@ -30,16 +32,16 @@ class RegisterRequest(BaseModel):
 
 
 # ========================
-# 🔐 LOGIN DE USUARIO
+# Login de usuario
 # ========================
 @router.post("/login")
 @limit("10/minute")
 def login_user_route(data: RegisterRequest, request: Request):
-    """🔐 Login de usuario"""
+    """Login de usuario con email y password."""
     user = login_user(data.email, data.password)
     if not user:
-        logger.warning(f"❌ Login fallido: {data.email}")
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        logger.warning(f"Login fallido: {data.email}")
+        raise HTTPException(status_code=401, detail="Credenciales invalidas")
 
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(user)
@@ -65,12 +67,12 @@ def login_user_route(data: RegisterRequest, request: Request):
 
 
 # ========================
-# 👤 PERFIL AUTENTICADO
+# Perfil autenticado
 # ========================
 @router.get("/me")
 @limit("60/minute")
 def get_profile(request: Request, current_user=Depends(get_current_user)):
-    """Devuelve perfil del usuario autenticado"""
+    """Devuelve el perfil del usuario autenticado."""
     registrar_acceso_perfil(request, current_user)
     return {
         "email": current_user.get("email"),
@@ -80,12 +82,12 @@ def get_profile(request: Request, current_user=Depends(get_current_user)):
 
 
 # ========================
-# 🆕 REGISTRO DE USUARIO
+# Registro de usuario
 # ========================
 @router.post("/register")
 @limit("5/minute")
 def register_user(data: RegisterRequest, request: Request):
-    """🆕 Crea un nuevo usuario"""
+    """Crea un nuevo usuario y retorna tokens."""
     try:
         nuevo_usuario = crear_usuario_si_no_existe(
             nombre=data.nombre.strip(),
@@ -96,10 +98,10 @@ def register_user(data: RegisterRequest, request: Request):
         if not nuevo_usuario:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El correo ya está registrado.",
+                detail="El correo ya esta registrado.",
             )
 
-        logger.info(f"👤 Usuario registrado: {data.email}")
+        logger.info(f"Usuario registrado: {data.email}")
 
         # Auto login tras registro
         access_token = create_access_token(nuevo_usuario)
@@ -127,7 +129,7 @@ def register_user(data: RegisterRequest, request: Request):
         return response
 
     except Exception as e:
-        logger.error(f"❌ Error en registro: {str(e)}")
+        logger.error(f"Error en registro: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error interno al registrar usuario: {str(e)}"
         )

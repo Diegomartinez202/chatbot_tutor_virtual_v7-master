@@ -1,60 +1,64 @@
 # =====================================================
-# 🧩 backend/routes/__init__.py
+# backend/routes/__init__.py
 # =====================================================
 from __future__ import annotations
+
 from fastapi import APIRouter
 
 # Router principal del backend
 router = APIRouter()
 
 # =====================================================
-# 🔐 Importación de módulos de rutas (coinciden con tus archivos reales)
+# Importacion de modulos de rutas (usar imports relativos
+# para evitar circular imports durante la inicializacion
+# del paquete backend.routes)
 # =====================================================
-from backend.routes import (
-    auth,                # <— tu archivo es backend/routes/auth.py
-    auth_tokens,
-    chat,
-    logs,
-    stats,
-    train,
-    test_controller,
-    user_controller,
-    intent_controller,
-)
+from . import auth
+from . import auth_tokens
+from . import chat
+from . import logs
+from . import stats
+from . import train
+from . import test_controller
+from . import user_controller
+from . import intent_controller
 
 # =====================================================
-# 🔐 Autenticación y Tokens
+# Auth y Tokens
 # =====================================================
 router.include_router(auth.router, tags=["Auth"])
 router.include_router(auth_tokens.router, tags=["Auth Tokens"])
 
 # =====================================================
-# 💬 Chat (proxy hacia Rasa)
+# Chat (proxy hacia Rasa)
 # =====================================================
 router.include_router(chat.router, tags=["Chat"])
 
 # =====================================================
-# 📋 Logs
+# Logs
 # =====================================================
 router.include_router(logs.router, prefix="/logs", tags=["Logs"])
 
 # =====================================================
-# 📊 Estadísticas
+# Estadisticas
 # =====================================================
-router.include_router(stats.router, prefix="/admin", tags=["Estadísticas"])
+router.include_router(stats.router, prefix="/admin", tags=["Estadisticas"])
 
 # =====================================================
-# 🧠 Entrenamiento y Test
+# Entrenamiento y Test
 # =====================================================
 router.include_router(train.router, prefix="/admin", tags=["Entrenamiento"])
 router.include_router(test_controller.router, prefix="/admin", tags=["Test"])
 
 # =====================================================
-# 👥 Usuarios
+# Usuarios
 # =====================================================
 router.include_router(user_controller.router, prefix="/admin", tags=["Usuarios"])
 
 # =====================================================
-# ➕ Intents
+# Intents
 # =====================================================
 router.include_router(intent_controller.router, prefix="/admin", tags=["Intents"])
+
+# Opcional: exponer el router desde el paquete
+__all__ = ["router"]

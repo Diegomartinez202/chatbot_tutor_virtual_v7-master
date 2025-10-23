@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useTranslation } from "react-i18next"; // ✅ NUEVO
 import "./ChatUI.css";
 
 // Helpers
@@ -51,7 +52,9 @@ function UserAvatar({ user, size = 28 }) {
 // ChatUI completo
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
-    const [messages, setMessages] = useState([{ id: "welcome", role: "bot", text: "¡Hola! Soy tu asistente. ¿En qué puedo ayudarte?" }]);
+    const { t } = useTranslation(); // ✅ NUEVO
+
+    const [messages, setMessages] = useState([{ id: "welcome", role: "bot", text: t("chat.welcome") }]); // ✅ traducido
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
@@ -135,7 +138,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                 });
             }
         });
-        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: "Hmm… no tengo una respuesta para eso." });
+        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: t("chat.noResponse") }); // ✅ traducido
 
         setTyping(true);
         for (let i = 0; i < items.length; i++) {
@@ -143,18 +146,18 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             setMessages(m => [...m, items[i]]);
         }
         setTyping(false);
-    }, []);
+    }, [t]);
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
-        if (needAuth && !authToken) { window.parent?.postMessage({ type: "auth:needed" }, parentOrigin); setError("Necesitas iniciar sesión para continuar."); return; }
+        if (needAuth && !authToken) { window.parent?.postMessage({ type: "auth:needed" }, parentOrigin); setError(t("chat.authRequired")); return; } // ✅ traducido
         setSending(true);
         setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
         try {
             const rsp = await sendRasaMessage({ text, sender: userId || undefined, token: authToken || undefined });
             await appendBotMessages(rsp);
-        } catch (e) { setError(e?.message || "Error al enviar el mensaje"); } finally { setSending(false); }
+        } catch (e) { setError(e?.message || t("chat.errorSending")); } finally { setSending(false); }
     };
 
     const handleSend = async () => { if (!input.trim() || sending) return; await sendToRasa({ text: input }); };
@@ -181,7 +184,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                                     <BotRow>
                                         <BotAvatar size={28} />
                                         <div className="rounded-2xl px-3 py-2 max-w-[50%] text-sm break-words bg-gray-100 text-gray-800 animate-fade-slide">
-                                            Escribiendo<span className="typing-dots">...</span>
+                                            {t("chat.typing")}<span className="typing-dots">...</span> {/* ✅ traducido */}
                                         </div>
                                     </BotRow>
                                 </div>
