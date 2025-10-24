@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -30,8 +31,10 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 // Chat
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
+
 import "@/styles/index.css";
 import "./i18n";
+
 // Flag opcional para habilitar la página de pruebas del chat
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 
@@ -94,6 +97,7 @@ function lazyWithFallback(loader, name) {
 
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
+const SettingsPanel = lazyWithFallback(() => import("@/components/SettingsPanel"), "SettingsPanel");
 
 export default function App() {
     const { i18n, t } = useTranslation();
@@ -104,31 +108,26 @@ export default function App() {
     };
 
     return (
-        <div className="app">
+        <TooltipProvider>
+            {/* Botón flotante de configuración e i18n */}
             <button
                 onClick={() => setSettingsOpen(true)}
-                className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-2 rounded"
+                className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded z-50"
             >
                 ⚙️ {t("settings")}
             </button>
 
-            {settingsOpen && (
-                <SettingsPanel
-                    open={settingsOpen}
-                    onClose={() => setSettingsOpen(false)}
-                    onLanguageChange={handleLanguageChange} // 👈 conexión real con i18next
-                />
-            )}
+            {/* Panel de ajustes (lazy) */}
+            <React.Suspense fallback={null}>
+                {settingsOpen && (
+                    <SettingsPanel
+                        open={settingsOpen}
+                        onClose={() => setSettingsOpen(false)}
+                        onLanguageChange={handleLanguageChange}
+                    />
+                )}
+            </React.Suspense>
 
-            <main className="p-6">
-                <h1>{t("welcome_message")}</h1>
-                <p>{t("description")}</p>
-            </main>
-        </div>
-    );
-}
-    return (
-        <TooltipProvider>
             <Routes>
                 {/* 🌐 Públicas */}
                 <Route path="/" element={<HomePage />} />

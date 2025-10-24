@@ -20,11 +20,9 @@ from backend.config.settings import settings
 
 # 🧩 Middlewares propios actualizados
 from backend.middleware.request_id import RequestIdMiddleware
-from backend.middleware.request_meta import request_meta_middleware
-from backend.middleware.log_middleware import LoggingMiddleware       # ✅ nuevo
+from backend.middleware.request_meta_middleware import request_meta_middleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.auth_middleware import AuthMiddleware
-
 # 🧭 Routers agregadores y controladores
 from backend.routes import router as api_router
 from backend.controllers import admin_controller as admin_ctrl

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request, Query
 from backend.dependencies.auth import require_role
-from backend.services import stats_service
+import backend.services.stats_service as stats_service
 from backend.services.log_service import log_access
 from backend.models.stats_model import EstadisticasChatbotResponse
 

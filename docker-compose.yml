@@ -1,4 +1,4 @@
-﻿name: tutorbot-local
+name: tutorbot-local
 # version: "3.9"
 
 # ============================================================
@@ -228,6 +228,8 @@ services:
       # Defaults (evitan warnings si faltan en .env)
       UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
       UVICORN_PORT: ${UVICORN_PORT:-8000}
+      CHOKIDAR_USEPOLLING: "true"   
+      WATCHPACK_POLLING: "true"       
     volumes:
       - ./backend:/app/backend
     depends_on:

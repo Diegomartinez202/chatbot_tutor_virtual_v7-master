@@ -19,11 +19,11 @@ export default defineConfig({
     server: {
         host: "localhost",
         port: Number(process.env.PORT) || 5173,
-        // si el puerto está ocupado, Vite elige otro (5174/5175/…)
-        strictPort: false,
+        strictPort: false, // Si el puerto está ocupado, usa otro
         open: true,
-        // Si quieres ocultar el overlay de errores:
-        // hmr: { overlay: false },
+        hmr: {
+            overlay: false, // 🚫 Desactiva el overlay rojo de errores en el navegador
+        },
     },
 
     preview: {
