@@ -29,9 +29,9 @@ export default function SettingsPanel({
     open,
     onClose,
     isAuthenticated = false,
-    onLogout, // () => void
-    onCloseChat, // () => void (si usas launcher)
-    onLanguageChange, // (lang) => void
+    onLogout,
+    onCloseChat,
+    onLanguageChange,
 }) {
     const initial = {
         language: "es",
@@ -43,22 +43,35 @@ export default function SettingsPanel({
 
     const [state, setState] = useState(initial);
 
-    // ✅ Actualiza efectos visuales y lenguaje
+    // ✅ Aplica y guarda configuración visual / idioma
     useEffect(() => {
-        // Apariencia y accesibilidad
         document.documentElement.classList.toggle("dark", !!state.darkMode);
         document.documentElement.style.fontSize = `${16 * (state.fontScale || 1)}px`;
         document.documentElement.classList.toggle("high-contrast", !!state.highContrast);
 
-        // Guardar en localStorage
         writeLS(state);
 
-        // ✅ Cambio de idioma: usa i18n y callback externo si existe
         if (onLanguageChange) onLanguageChange(state.language);
         i18n.changeLanguage(state.language);
-
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
+
+    // ✅ Mantener “Modo oscuro” y “Alto contraste” activos al recargar
+    useEffect(() => {
+        const saved = readLS();
+
+        if (saved?.darkMode) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+
+        if (saved?.highContrast) {
+            document.documentElement.classList.add("high-contrast");
+        } else {
+            document.documentElement.classList.remove("high-contrast");
+        }
+    }, []);
 
     if (!open) return null;
 
@@ -115,7 +128,10 @@ export default function SettingsPanel({
                                 <button
                                     type="button"
                                     onClick={() => setState((s) => ({ ...s, darkMode: !s.darkMode }))}
-                                    className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 dark:hover:bg-zinc-800 inline-flex items-center gap-1.5"
+                                    className={`px-3 py-1.5 text-sm rounded border inline-flex items-center gap-1.5 transition 
+                                    ${state.darkMode
+                                            ? "bg-zinc-800 text-white hover:bg-zinc-700"
+                                            : "bg-white text-zinc-900 hover:bg-zinc-50"}`}
                                     aria-pressed={state.darkMode}
                                     aria-label={state.darkMode ? "Tema claro" : "Tema oscuro"}
                                 >
@@ -191,11 +207,16 @@ export default function SettingsPanel({
                         <select
                             className="border rounded px-3 py-1.5 text-sm bg-white dark:bg-zinc-900"
                             value={state.language}
-                            onChange={(e) => setState((s) => ({ ...s, language: e.target.value }))}
+                            onChange={(e) => {
+                                const newLang = e.target.value;
+                                setState((s) => ({ ...s, language: newLang }));
+                                i18n.changeLanguage(newLang); // ✅ cambio inmediato
+                                if (onLanguageChange) onLanguageChange(newLang);
+                            }}
                             aria-label="Seleccionar idioma"
                         >
-                            <option value="es">Español</option>
-                            <option value="en">English</option>
+                            <option value="es">🇪🇸 Español</option>
+                            <option value="en">🇬🇧 English</option>
                         </select>
                     </section>
 
@@ -208,7 +229,7 @@ export default function SettingsPanel({
                                     <button
                                         type="button"
                                         onClick={onLogout}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white"
                                         aria-label="Cerrar sesión"
                                     >
                                         <LogOut size={14} /> Cerrar sesión
@@ -219,7 +240,7 @@ export default function SettingsPanel({
                                     <button
                                         type="button"
                                         onClick={onCloseChat}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white"
                                         aria-label="Cerrar chat"
                                     >
                                         <DoorClosed size={14} /> Cerrar chat

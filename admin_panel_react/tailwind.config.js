@@ -6,7 +6,7 @@ module.exports = {
         "./public/**/*.html"
     ],
     darkMode: "class",
-    safelist: ["dark", "high-contrast"],
+    safelist: ["dark", "high-contrast"], // ✅ Mantiene clases incluso sin uso directo
     theme: {
         extend: {
             colors: {

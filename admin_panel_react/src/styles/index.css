@@ -327,17 +327,17 @@ body.dark {
         color: var(--color-text);
     }
 
-        /* --- Botones --- */
-        body.dark button,
-        body.dark .chatbot-input button {
-            background-color: var(--color-primary);
-            color: white;
-        }
+    /* --- Botones --- */
+    body.dark button,
+    body.dark .chatbot-input button {
+         background-color: var(--color-primary);
+         color: white;
+    }
 
-            body.dark button:hover,
-            body.dark .chatbot-input button:hover {
-                background-color: var(--color-primary-light);
-            }
+    body.dark button:hover,
+    body.dark .chatbot-input button:hover {
+    background-color: var(--color-primary-light);
+    }
 
     /* --- Cabecera chatbot degradado --- */
     body.dark .chatbot-header {
@@ -375,4 +375,68 @@ body.dark {
     /* --- Scrollbar personalizada --- */
     body.dark .chatbot-body::-webkit-scrollbar-thumb {
         background-color: var(--color-border);
+    }
+/* =========================================================
+   🎨 MODO ALTO CONTRASTE
+   ========================================================= */
+
+html.high-contrast {
+    /* Fondo general */
+    background-color: #000 !important;
+    color: #fff !important;
+}
+
+    /* Textos y títulos */
+    html.high-contrast h1,
+    html.high-contrast h2,
+    html.high-contrast h3,
+    html.high-contrast p,
+    html.high-contrast span,
+    html.high-contrast label {
+        color: #fff !important;
+    }
+
+    /* Botones y enlaces */
+    html.high-contrast button,
+    html.high-contrast a {
+        background-color: #fff !important;
+        color: #000 !important;
+        border: 2px solid #fff !important;
+    }
+
+    /* Inputs, select, sliders */
+    html.high-contrast input,
+    html.high-contrast select,
+    html.high-contrast textarea {
+        background-color: #000 !important;
+        color: #fff !important;
+        border: 2px solid #fff !important;
+    }
+
+    /* Tooltips y paneles */
+    html.high-contrast .tooltip,
+    html.high-contrast .card,
+    html.high-contrast .panel {
+        background-color: #111 !important;
+        color: #fff !important;
+        border: 1px solid #fff !important;
+    }
+/* 🌗 Estilos base para modo claro/oscuro */
+html {
+    background-color: #f9fafb; /* fondo claro */
+    color: #111827; /* texto oscuro */
+}
+
+    html.dark {
+        background-color: #0f172a; /* fondo oscuro */
+        color: #f1f5f9; /* texto claro */
+    }
+
+    /* 🌓 Alto contraste */
+    html.high-contrast {
+        filter: contrast(1.25);
+    }
+
+    html.dark.high-contrast {
+        filter: contrast(1.4);
     }

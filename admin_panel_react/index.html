@@ -17,14 +17,8 @@
     <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- CSS: carga automática según entorno -->
-    <script>
-        const cssPath =
-            window.location.hostname === 'localhost'
-                ? 'http://localhost:8000/static/css/index.css'
-                : '/static/css/index.css';
-        document.write(`<link rel="stylesheet" href="${cssPath}">`);
-    </script>
+    <!-- CSS del backend (ruta relativa, Nginx lo enruta) -->
+    <link rel="stylesheet" href="/static/css/index.css" />
 
     <!-- Favicons / Manifest (href reales + data-base-href para build en subcarpetas) -->
     <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
