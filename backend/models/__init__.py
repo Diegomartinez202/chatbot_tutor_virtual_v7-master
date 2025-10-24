@@ -8,18 +8,18 @@ Ejemplo:
     from backend.models import UserOut, LogModel, MessageCreate
 """
 
-from backend.models.auth_model import LoginRequest, TokenResponse
-from backend.models.log_model import LogModel
-from backend.models.message_model import MessageCreate
-from backend.models.stats_model import (
+from backend.models import LoginRequest, TokenResponse
+from backend.models import LogModel
+from backend.models import MessageCreate
+from backend.models import (
     IntentMasUsado,
     UsuarioResumen,
     UsuarioPorRol,
     LogsPorDia,
     EstadisticasChatbotResponse,
 )
-from backend.models.test_log_model import TestLog
-from backend.models.user_model import (
+from backend.models import TestLog
+from backend.models import (
     RolEnum,
     UserLogin,
     UserToken,

@@ -10,13 +10,13 @@ Todos los esquemas están alineados con Pydantic v2.
 """
 
 # 🗨️ Chat
-from backend.schemas.chat import ChatRequest
+from backend.schemas import ChatRequest
 
 # 🧠 Intents
-from backend.schemas.intent import IntentIn, IntentOut, IntentsImport
+from backend.schemas import IntentIn, IntentOut, IntentsImport
 
 # 👤 Usuarios
-from backend.schemas.user_schema import UserCreate, UserOut, Rol
+from backend.schemas import UserCreate, UserOut, Rol
 
 __all__ = [
     # Chat

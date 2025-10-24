@@ -8,7 +8,7 @@ PROTECTED_ENDPOINTS = [
     "/api/admin/logs",      # logs del sistema (admin)
     "/api/users",           # listado de usuarios (si existe)
     "/api/exportaciones",   # historial de exportaciones (si existe y protegido)
-    "/api/stats",           # métricas (si las protegiste)
+    "/api/stats",           # mÃ©tricas (si las protegiste)
 ]
 
 @pytest.fixture(scope="session")
@@ -65,21 +65,21 @@ def test_protected_requires_auth(client):
         if r.status_code == 404:
             pytest.skip(f"Endpoint inexistente en este build: {path}")
         # Si existe y es protegido, esperamos 401 (sin credenciales) o 403 (bloqueo inmediato)
-        assert r.status_code in (401, 403), f"{path} devolvió {r.status_code}, se esperaba 401/403"
+        assert r.status_code in (401, 403), f"{path} devolviÃ³ {r.status_code}, se esperaba 401/403"
 
 def test_protected_for_user_role_forbidden(client_user):
-    """Con token de usuario normal: debería ser 403 en rutas solo-admin (si existen)."""
+    """Con token de usuario normal: deberÃ­a ser 403 en rutas solo-admin (si existen)."""
     for path in PROTECTED_ENDPOINTS:
         r = client_user.get(path)
         if r.status_code == 404:
             pytest.skip(f"Endpoint inexistente en este build: {path}")
         # En rutas solo-admin esperamos 403; si alguna ruta permite usuario normal, puede dar 200.
-        assert r.status_code in (200, 403), f"{path} devolvió {r.status_code}, se esperaba 200/403"
+        assert r.status_code in (200, 403), f"{path} devolviÃ³ {r.status_code}, se esperaba 200/403"
 
 def test_protected_for_admin_ok(client_admin):
-    """Con token admin: deberían responder OK (200/204) en endpoints existentes."""
+    """Con token admin: deberÃ­an responder OK (200/204) en endpoints existentes."""
     for path in PROTECTED_ENDPOINTS:
         r = client_admin.get(path)
         if r.status_code == 404:
             pytest.skip(f"Endpoint inexistente en este build: {path}")
-        assert r.status_code in (200, 204), f"{path} devolvió {r.status_code}, se esperaba 200/204"
+        assert r.status_code in (200, 204), f"{path} devolviÃ³ {r.status_code}, se esperaba 200/204"

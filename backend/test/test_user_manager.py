@@ -31,5 +31,5 @@ def test_crear_y_validar_usuario():
     # Eliminar usuario
     assert eliminar_usuario(email) is True
 
-    # Confirmar eliminación
+    # Confirmar eliminaciÃ³n
     assert buscar_usuario_por_email(email) is None
