@@ -8,3 +8,9 @@ class MessageCreate(BaseModel):
     text: str = Field(..., description="Contenido del mensaje")
     sender: Literal["user", "bot"] = Field(..., description="Remitente del mensaje: user o bot")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Fecha y hora del mensaje")
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "extra": "ignore",
+    }

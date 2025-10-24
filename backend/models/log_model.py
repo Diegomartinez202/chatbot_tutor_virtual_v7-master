@@ -10,3 +10,9 @@ class LogModel(BaseModel):
     method: str = Field(..., description="Método HTTP utilizado")
     status: int = Field(..., description="Código de estado HTTP resultante")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Marca de tiempo del evento")
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "extra": "ignore",
+    }

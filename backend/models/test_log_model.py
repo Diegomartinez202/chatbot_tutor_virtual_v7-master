@@ -7,3 +7,9 @@ class TestLog(BaseModel):
     test_name: str = Field(..., description="Nombre de la prueba ejecutada")
     result: str = Field(..., description="Resultado descriptivo de la prueba")
     success: bool = Field(..., description="Indicador de éxito o fallo")
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "extra": "ignore",
+    }

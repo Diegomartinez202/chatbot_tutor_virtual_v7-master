@@ -18,6 +18,17 @@ def save_csv_s3_and_local(csv_text: str, filename_prefix: str = "export") -> tup
     csv_bytes = io.BytesIO(csv_text.encode("utf-8"))
     csv_bytes.seek(0)
 
+    # ✅ NUEVO BLOQUE: si S3 está deshabilitado, forzar modo local
+    if not getattr(settings, "s3_enabled", False):
+        local_dir = os.path.join(settings.static_dir, "exports")
+        os.makedirs(local_dir, exist_ok=True)
+        local_path = os.path.join(local_dir, filename)
+        with open(local_path, "w", encoding="utf-8") as f:
+            f.write(csv_text)
+        archivo_url = f"/static/exports/{filename}"  # URL local accesible desde FastAPI
+        return csv_bytes, archivo_url
+
+    # ✅ (resto del código original)
     s3_client = boto3.client(
         "s3",
         aws_access_key_id=settings.aws_access_key_id,
@@ -25,7 +36,6 @@ def save_csv_s3_and_local(csv_text: str, filename_prefix: str = "export") -> tup
         region_name=settings.aws_s3_region,
         endpoint_url=settings.aws_s3_endpoint_url
     )
-
     try:
         s3_client.upload_fileobj(
             csv_bytes,
@@ -37,7 +47,7 @@ def save_csv_s3_and_local(csv_text: str, filename_prefix: str = "export") -> tup
     except (BotoCoreError, ClientError) as e:
         raise RuntimeError(f"❌ Error al subir a S3: {e}")
 
-    # 💾 Solo guardar local si estás en modo debug/desarrollo
+    # 💾 Guardar local si debug
     if settings.debug:
         try:
             local_dir = os.path.join(settings.static_dir, "exports")
