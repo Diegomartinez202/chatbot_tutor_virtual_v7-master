@@ -9,7 +9,7 @@ import {
     Play,
     Pause,
 } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation"; // o tu función de i18n
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function MicButton({
     onPushUser,
