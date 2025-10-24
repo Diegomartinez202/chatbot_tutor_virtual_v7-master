@@ -31,6 +31,11 @@ def is_valid_object_id(oid: str) -> bool:
     return valid
 
 
+def _norm_email(email: str) -> str:
+    """Normaliza email a minúsculas y sin espacios."""
+    return (email or "").strip().lower()
+
+
 # =====================================================
 # Consultas básicas
 # =====================================================
@@ -38,7 +43,7 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     """Obtiene un usuario por su email (devuelve dict con _id como str)."""
     try:
         col = get_users_collection()
-        user = col.find_one({"email": (email or "").strip().lower()})
+        user = col.find_one({"email": _norm_email(email)})
         if user:
             user["_id"] = str(user["_id"])
             logger.debug(f"Usuario encontrado por email: {email}")
@@ -108,7 +113,7 @@ def create_user(nombre: str, email: str, password: str, rol: str = "usuario") ->
         hashed_password = pwd_context.hash(password)
         user_data: Dict[str, Any] = {
             "nombre": (nombre or "").strip(),
-            "email": (email or "").strip().lower(),
+            "email": _norm_email(email),
             "password": hashed_password,
             "rol": rol,
             "fecha_registro": datetime.utcnow(),
@@ -116,7 +121,7 @@ def create_user(nombre: str, email: str, password: str, rol: str = "usuario") ->
 
         result = col.insert_one(user_data)
         user_data["_id"] = str(result.inserted_id)
-        logger.info(f"Nuevo usuario registrado correctamente: {email}")
+        logger.info(f"Nuevo usuario registrado correctamente: {user_data['email']}")
         return user_data
 
     except DuplicateKeyError:
@@ -133,7 +138,7 @@ def crear_usuario_si_no_existe(nombre: str, email: str, password: str, rol: str 
     Si no existe, lo crea y devuelve sus datos.
     """
     try:
-        email_norm = (email or "").strip().lower()
+        email_norm = _norm_email(email)
         existente = get_user_by_email(email_norm)
         if existente:
             logger.info(f"Usuario {email_norm} ya existe, no se crea nuevamente.")
@@ -168,7 +173,7 @@ def update_user(user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         payload = {k: v for k, v in (data or {}).items() if k in allowed_fields}
 
         if "email" in payload and payload["email"]:
-            payload["email"] = str(payload["email"]).strip().lower()
+            payload["email"] = _norm_email(payload["email"])
             col = get_users_collection()
             dup = col.find_one({"email": payload["email"], "_id": {"$ne": ObjectId(user_id)}})
             if dup:
@@ -226,7 +231,7 @@ def verify_user_credentials(email: str, password: str) -> Optional[Dict[str, Any
     Devuelve el usuario si la contraseña es correcta; si no, None.
     """
     try:
-        email_norm = (email or "").strip().lower()
+        email_norm = _norm_email(email)
         user = get_user_by_email(email_norm)
         if not user:
             logger.warning(f"Login fallido: usuario {email_norm} no encontrado")

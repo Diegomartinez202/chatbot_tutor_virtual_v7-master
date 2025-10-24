@@ -1,4 +1,6 @@
-# backend/services/intent_manager.py
+# =====================================================
+# 🧩 backend/services/intent_manager.py
+# =====================================================
 from __future__ import annotations
 
 import os
@@ -8,7 +10,6 @@ from pathlib import Path
 from typing import List, Dict, Any, Iterable
 
 import yaml  # PyYAML
-
 from backend.config.settings import settings
 
 # ============================
@@ -28,7 +29,6 @@ def _as_str(value: Any, default: str) -> str:
     try:
         if isinstance(value, (str, os.PathLike)):
             return str(value)
-        # Evitar usar repr de FieldInfo; si no es str, devolvemos default
         return default
     except Exception:
         return default
@@ -73,17 +73,16 @@ def guardar_intent(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     data = {
         "intent": "nombre_intent",
-        "examples": ["frase 1", "frase 2", ...]  # también se admite string con saltos de línea
-        "responses": ["respuesta 1", "respuesta 2"]
+        "examples": ["frase 1", "frase 2", ...]  # o string con saltos de línea
+        "responses": ["respuesta 1", "respuesta 2"]  # o string con saltos / pipes
     }
     """
     intent_name = data["intent"]
     examples: Iterable[str] = data.get("examples") or []
     responses: Iterable[str] = data.get("responses") or []
 
-    # Normalizar examples/responses si vienen como string
+    # Normalización flexible
     if isinstance(examples, str):
-        # Permite separar por saltos de línea o por " - "
         examples = [ln.strip("- ").strip() for ln in examples.splitlines() if ln.strip()]
     if isinstance(responses, str):
         responses = [ln.strip() for ln in responses.splitlines() if ln.strip()]
@@ -118,7 +117,9 @@ def agregar_respuesta_en_domain(intent_name: str, responses: List[str]) -> None:
         domain_data = yaml.safe_load(f) or {}
 
     utter_key = f"utter_{intent_name}"
-    domain_data.setdefault("responses", {})[utter_key] = [{"text": r} for r in responses if isinstance(r, str)]
+    domain_data.setdefault("responses", {})[utter_key] = [
+        {"text": r} for r in responses if isinstance(r, str)
+    ]
     if intent_name not in domain_data.get("intents", []):
         domain_data.setdefault("intents", []).append(intent_name)
 
@@ -252,7 +253,7 @@ def cargar_intents(items: Any) -> Dict[str, Any]:
     Acepta lista de dicts (de JSON o CSV.DictReader) con claves:
       - intent (str)
       - examples (str con líneas o lista[str])
-      - responses (str con líneas, separado por |, o lista[str])
+      - responses (str con líneas o separadas por |, o lista[str])
     Crea intents que no existan. No elimina ni reescribe.
     """
     if not isinstance(items, list):
@@ -274,7 +275,6 @@ def cargar_intents(items: Any) -> Dict[str, Any]:
         responses = row.get("responses") or []
 
         if isinstance(examples, str):
-            # Permitir pipe o saltos de línea
             if "|" in examples:
                 examples = [x.strip() for x in examples.split("|") if x.strip()]
             else:
@@ -317,7 +317,6 @@ def exportar_intents_csv():
             domain_data = yaml.safe_load(f) or {}
             resp = domain_data.get("responses", {}) or {}
             for k, v in resp.items():
-                # k = utter_intentName
                 if not k.startswith("utter_"):
                     continue
                 intent = k.replace("utter_", "", 1)
@@ -333,14 +332,12 @@ def exportar_intents_csv():
     for entry in nlu:
         it = entry.get("intent")
         ex_raw = entry.get("examples") or ""
-        # examples viene con líneas "- ejemplo"
         examples_list = [
             ln.strip("- ").strip()
             for ln in str(ex_raw).splitlines()
             if ln.strip()
         ]
         resp_list = responses_map.get(it, [])
-        # Para CSV compacto, separamos por pipe
         out.write(
             f"{it},\"{' | '.join(examples_list)}\",\"{' | '.join(resp_list)}\"\n"
         )

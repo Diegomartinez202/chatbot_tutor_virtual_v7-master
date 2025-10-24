@@ -63,8 +63,8 @@ MONGO_DB = (os.getenv("MONGO_DB") or os.getenv("MONGODB_DB") or "chatbot_admin")
 
 _get_db = None
 try:
-    # Si tienes helpers centralizados, los usamos
     from backend.db.mongodb import get_database, get_users_collection  # type: ignore
+
     _get_db = get_database
 
     def _db():
@@ -73,8 +73,8 @@ try:
     def _users():
         return get_users_collection()
 except Exception:
-    # Fallback
     from pymongo import MongoClient  # type: ignore
+
     _client = MongoClient(MONGO_URL)
     _fallback_db = _client[MONGO_DB]
 
@@ -84,14 +84,18 @@ except Exception:
     def _users():
         return _fallback_db["users"]
 
+
 def _col_refresh_tokens():
     return _db()["admin_refresh_tokens"]
+
 
 def _col_attempts():
     return _db()["auth_attempts"]
 
+
 def _col_resets():
     return _db()["admin_password_resets"]
+
 
 # ─────────────────────────────────────────────────────────────
 # Loggers/registradores (si existen)
@@ -104,20 +108,22 @@ except Exception:
     def registrar_login_exitoso(request, user): ...
     def registrar_acceso_perfil(request, user): ...
 
+
 # Dependencia de rol (si existe)
 try:
     from backend.dependencies.auth import require_role  # type: ignore
 except Exception:
     require_role = None  # fallback manual
 
+
 # Password policy / security helpers
 try:
     from backend.services.password_policy import validate_password  # type: ignore
 except Exception:
     def validate_password(p: str, **_kwargs):
-        # fallback mínima: 8 chars
         ok = len(p) >= int(os.getenv("MIN_PASSWORD_LEN", "8"))
         return ok, ([] if ok else ["La contraseña debe tener al menos 8 caracteres."])
+
 
 try:
     from backend.services.security import (  # type: ignore
@@ -151,10 +157,11 @@ except Exception:
             return False
         return datetime.now(timezone.utc) < until
 
+
 # ─────────────────────────────────────────────────────────────
 # Config JWT & Refresh
 # ─────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("SECRET_KEY", "change_me_please")  # cámbiala en prod
+SECRET_KEY = os.getenv("SECRET_KEY", "change_me_please")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") or "60")
 
@@ -175,6 +182,7 @@ APP_ENV = os.getenv("APP_ENV", "dev")
 COOKIE_SECURE = APP_ENV not in ("dev", "local")
 COOKIE_SAMESITE = "lax"
 
+
 # ─────────────────────────────────────────────────────────────
 # Modelos
 # ─────────────────────────────────────────────────────────────
@@ -184,9 +192,11 @@ class AdminRegisterIn(BaseModel):
     password: str = Field(..., min_length=4, max_length=128)
     accept_terms: bool = Field(True)
 
+
 class AdminLoginIn(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=4)
+
 
 class TokenOut(BaseModel):
     access_token: str
@@ -194,22 +204,27 @@ class TokenOut(BaseModel):
     expires_in: int = Field(default=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     refresh_token: Optional[str] = None  # se devuelve también por compat
 
+
 class AdminMeOut(BaseModel):
     id: str
     email: EmailStr
     nombre: Optional[str] = None
     rol: str
 
+
 class ChangePasswordIn(BaseModel):
     current_password: str
     new_password: str
 
+
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
+
 
 class ResetPasswordIn(BaseModel):
     token: str
     new_password: str
+
 
 # ─────────────────────────────────────────────────────────────
 # Helpers JWT / Tokens
@@ -224,6 +239,7 @@ def _create_access_token(claims: Dict[str, Any], minutes: int = ACCESS_TOKEN_EXP
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
+
 def _doc_to_out(doc: Dict[str, Any]) -> AdminMeOut:
     return AdminMeOut(
         id=str(doc["_id"]),
@@ -232,31 +248,38 @@ def _doc_to_out(doc: Dict[str, Any]) -> AdminMeOut:
         rol=doc.get("rol") or doc.get("role", "usuario"),
     )
 
+
 def _sha256(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
 
 def _issue_refresh(user_id: str) -> str:
     token = secrets.token_urlsafe(48)
     col = _col_refresh_tokens()
-    col.insert_one({
-        "user_id": ObjectId(user_id),
-        "token_hash": _sha256(token),
-        "created_at": datetime.now(timezone.utc),
-        "expires_at": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        "revoked": False,
-    })
+    col.insert_one(
+        {
+            "user_id": ObjectId(user_id),
+            "token_hash": _sha256(token),
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+            "revoked": False,
+        }
+    )
     return token
+
 
 def _rotate_refresh(old_token: Optional[str], user_id: str) -> str:
     if old_token:
         _col_refresh_tokens().update_one(
             {"token_hash": _sha256(old_token), "user_id": ObjectId(user_id)},
-            {"$set": {"revoked": True}}
+            {"$set": {"revoked": True}},
         )
     return _issue_refresh(user_id)
 
+
 def _fetch_refresh(token: str):
     return _col_refresh_tokens().find_one({"token_hash": _sha256(token), "revoked": False})
+
 
 def _clear_refresh_cookie(response: Response):
     response.delete_cookie(
@@ -266,6 +289,7 @@ def _clear_refresh_cookie(response: Response):
         secure=COOKIE_SECURE,
         path="/",
     )
+
 
 def _set_refresh_cookie(response: Response, token: str):
     response.set_cookie(
@@ -277,6 +301,7 @@ def _set_refresh_cookie(response: Response, token: str):
         path="/",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
     )
+
 
 # Fallback auth si no existe require_role
 def _decode_bearer(auth_header: Optional[str]) -> Dict[str, Any]:
@@ -290,6 +315,7 @@ def _decode_bearer(auth_header: Optional[str]) -> Dict[str, Any]:
     except Exception:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+
 def _load_user_by_sub(sub: str) -> Dict[str, Any]:
     try:
         oid = ObjectId(sub)
@@ -299,6 +325,7 @@ def _load_user_by_sub(sub: str) -> Dict[str, Any]:
     if not doc:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return doc
+
 
 async def _current_admin_user(request: Request, authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     if require_role:  # usa tu dependencia si existe
@@ -315,6 +342,7 @@ async def _current_admin_user(request: Request, authorization: Optional[str] = H
     except Exception:
         pass
     return user
+
 
 # ─────────────────────────────────────────────────────────────
 # Índices
@@ -341,6 +369,7 @@ async def ensure_admin_indexes():
     except Exception:
         pass
 
+
 # ─────────────────────────────────────────────────────────────
 # Core handlers (reutilizados en dos routers)
 # ─────────────────────────────────────────────────────────────
@@ -348,6 +377,7 @@ class _AdminRegisterOut(BaseModel):
     ok: bool
     id: Optional[str] = None
     message: Optional[str] = None
+
 
 def _core_register(payload: AdminRegisterIn, request: Request):
     if not ADMIN_REGISTRATION_OPEN:
@@ -380,6 +410,7 @@ def _core_register(payload: AdminRegisterIn, request: Request):
     }
     ins = users.insert_one(doc)
     return {"ok": True, "id": str(ins.inserted_id), "message": f"Usuario creado con rol {rol}"}
+
 
 def _core_login(payload: AdminLoginIn, request: Request, response: Response) -> TokenOut:
     email = payload.email.lower().strip()
@@ -414,6 +445,7 @@ def _core_login(payload: AdminLoginIn, request: Request, response: Response) -> 
 
     return TokenOut(access_token=access, refresh_token=refresh)
 
+
 def _core_logout(response: Response, refresh_token: Optional[str]) -> Dict[str, Any]:
     """Revoca el refresh actual (cookie o body) y limpia cookie."""
     token = refresh_token
@@ -421,6 +453,7 @@ def _core_logout(response: Response, refresh_token: Optional[str]) -> Dict[str, 
     if token:
         _col_refresh_tokens().update_one({"token_hash": _sha256(token)}, {"$set": {"revoked": True}})
     return {"ok": True}
+
 
 def _core_refresh(request: Request, response: Response, refresh_token: Optional[str]) -> TokenOut:
     token = refresh_token or request.cookies.get(REFRESH_COOKIE_NAME)
@@ -445,6 +478,7 @@ def _core_refresh(request: Request, response: Response, refresh_token: Optional[
     _set_refresh_cookie(response, new_refresh)
     return TokenOut(access_token=access, refresh_token=new_refresh)
 
+
 def _core_me(request: Request, user: Dict[str, Any]) -> AdminMeOut:
     try:
         registrar_acceso_perfil(request, user)
@@ -452,14 +486,19 @@ def _core_me(request: Request, user: Dict[str, Any]) -> AdminMeOut:
         pass
     return _doc_to_out(user)
 
+
 def _core_change_password(payload: ChangePasswordIn, user: Dict[str, Any]) -> Dict[str, Any]:
     if not _verify_password(payload.current_password, user.get("password_hash") or ""):
         raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
     ok, errors = validate_password(payload.new_password)
     if not ok:
         raise HTTPException(status_code=400, detail="; ".join(errors))
-    _users().update_one({"_id": user["_id"]}, {"$set": {"password_hash": _hash_password(payload.new_password), "updated_at": datetime.now(timezone.utc)}})
+    _users().update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password_hash": _hash_password(payload.new_password), "updated_at": datetime.now(timezone.utc)}},
+    )
     return {"ok": True, "message": "Contraseña actualizada"}
+
 
 def _core_forgot_password(payload: ForgotPasswordIn) -> Dict[str, Any]:
     u = _users().find_one({"email": payload.email.lower().strip()})
@@ -467,15 +506,18 @@ def _core_forgot_password(payload: ForgotPasswordIn) -> Dict[str, Any]:
         return {"ok": True, "message": "Si el correo existe, se enviará un enlace de recuperación"}
 
     raw = secrets.token_urlsafe(32)
-    _col_resets().insert_one({
-        "user_id": u["_id"],
-        "token_hash": _sha256(raw),
-        "created_at": datetime.now(timezone.utc),
-        "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-        "used": False,
-    })
+    _col_resets().insert_one(
+        {
+            "user_id": u["_id"],
+            "token_hash": _sha256(raw),
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+            "used": False,
+        }
+    )
     # TODO: enviar email aquí (SMTP configurado en settings)
     return {"ok": True, "reset_token": raw}
+
 
 def _core_reset_password(payload: ResetPasswordIn) -> Dict[str, Any]:
     rec = _col_resets().find_one({"token_hash": _sha256(payload.token), "used": False})
@@ -486,28 +528,36 @@ def _core_reset_password(payload: ResetPasswordIn) -> Dict[str, Any]:
     if not ok:
         raise HTTPException(status_code=400, detail="; ".join(errors))
 
-    _users().update_one({"_id": rec["user_id"]}, {"$set": {"password_hash": _hash_password(payload.new_password), "updated_at": datetime.now(timezone.utc)}})
+    _users().update_one(
+        {"_id": rec["user_id"]},
+        {"$set": {"password_hash": _hash_password(payload.new_password), "updated_at": datetime.now(timezone.utc)}},
+    )
     _col_resets().update_one({"_id": rec["_id"]}, {"$set": {"used": True}})
     # revocar todos los refresh del usuario
     _col_refresh_tokens().update_many({"user_id": rec["user_id"]}, {"$set": {"revoked": True}})
     return {"ok": True, "message": "Contraseña restablecida"}
 
+
 def _core_policy_snapshot() -> Dict[str, Any]:
     try:
         from backend.services.password_policy import policy_snapshot  # type: ignore
+
         return policy_snapshot()
     except Exception:
         return {"min_length": 8, "requires": ["uppercase", "lowercase", "digit", "special"]}
 
+
 def _core_policy_check(password: str, email: Optional[str], name: Optional[str]):
     ok, errors = validate_password(password, email=email, name=name)
     return {"ok": ok, "errors": errors}
+
 
 # ─────────────────────────────────────────────────────────────
 # Routers: v2 + compat (sin duplicar lógica)
 # ─────────────────────────────────────────────────────────────
 router_v2 = APIRouter(prefix="/api/admin2", tags=["admin-auth-v2"])
 router_legacy = APIRouter(prefix="/api/admin", tags=["admin-auth-legacy-compat"])
+
 
 def _register_routes(router: APIRouter):
     @router.post("/register")
@@ -558,13 +608,18 @@ def _register_routes(router: APIRouter):
 
     @router.post("/password-policy/check")
     @limit("120/minute")
-    def check_policy(password: str = Body(..., embed=True), email: Optional[str] = Body(None), name: Optional[str] = Body(None)):
+    def check_policy(
+        password: str = Body(..., embed=True),
+        email: Optional[str] = Body(None),
+        name: Optional[str] = Body(None),
+    ):
         return _core_policy_check(password, email, name)
+
 
 # Registra en ambos prefijos
 _register_routes(router_v2)
 _register_routes(router_legacy)
 
 # para main.py / routes.__init__.py
-router = router_v2          # Router canónico (v2)
+router = router_v2           # Router canónico (v2)
 router_compat = router_legacy  # Compatibilidad /api/admin (legacy)

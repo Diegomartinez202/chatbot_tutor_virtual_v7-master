@@ -1,9 +1,12 @@
-# backend/services/password_policy.py
+# =====================================================
+# ðŸ§© backend/services/password_policy.py
+# =====================================================
 from __future__ import annotations
 
 import re
 from typing import Tuple, List, Optional
 
+# ParÃ¡metros base (mantiene tu lÃ³gica)
 MIN_LEN = 8
 RE_UPPER = re.compile(r"[A-Z]")
 RE_LOWER = re.compile(r"[a-z]")
@@ -11,34 +14,39 @@ RE_DIGIT = re.compile(r"[0-9]")
 RE_SPECIAL = re.compile(r"[^\w]")
 
 BANNED = {
-    "password", "contraseña", "12345678", "qwerty", "admin", "zajuna", "abc123", "11111111"
+    "password", "contraseÃ±a", "12345678", "qwerty", "admin", "zajuna", "abc123", "11111111"
 }
+
 
 def validate_password(pw: str, *, email: Optional[str] = None, name: Optional[str] = None) -> Tuple[bool, List[str]]:
     errs: List[str] = []
     if not pw or len(pw) < MIN_LEN:
         errs.append(f"Debe tener al menos {MIN_LEN} caracteres.")
-    if not RE_UPPER.search(pw):
-        errs.append("Debe incluir al menos una letra mayúscula.")
-    if not RE_LOWER.search(pw):
-        errs.append("Debe incluir al menos una letra minúscula.")
-    if not RE_DIGIT.search(pw):
-        errs.append("Debe incluir al menos un número.")
-    if not RE_SPECIAL.search(pw):
-        errs.append("Debe incluir al menos un carácter especial (por ejemplo: !@#$%&*).")
+    if not RE_UPPER.search(pw or ""):
+        errs.append("Debe incluir al menos una letra mayÃºscula.")
+    if not RE_LOWER.search(pw or ""):
+        errs.append("Debe incluir al menos una letra minÃºscula.")
+    if not RE_DIGIT.search(pw or ""):
+        errs.append("Debe incluir al menos un nÃºmero.")
+    if not RE_SPECIAL.search(pw or ""):
+        errs.append("Debe incluir al menos un carÃ¡cter especial (por ejemplo: !@#$%&*).")
 
-    low = pw.lower()
+    low = (pw or "").lower()
     if low in BANNED:
-        errs.append("La contraseña es demasiado común.")
+        errs.append("La contraseÃ±a es demasiado comÃºn.")
+
     # evitar contener email o nombre
-    if email and email.split("@", 1)[0].lower() in low:
-        errs.append("No debe contener tu email o parte de él.")
+    if email:
+        local = email.split("@", 1)[0].lower()
+        if local and local in low:
+            errs.append("No debe contener tu email o parte de Ã©l.")
     if name:
         parts = [p for p in re.split(r"\s+", name.strip().lower()) if p]
         if any(p and p in low for p in parts):
             errs.append("No debe contener tu nombre.")
 
     return (len(errs) == 0, errs)
+
 
 def policy_snapshot():
     return {

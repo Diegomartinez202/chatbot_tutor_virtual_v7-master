@@ -1,19 +1,21 @@
-# backend/services/jwt_service.py
+# =====================================================
+# 🧩 backend/services/jwt_service.py
+# =====================================================
 from __future__ import annotations
 
 from typing import Optional, Tuple, Dict, Any
+import logging
 import jwt
 from jwt import InvalidTokenError, PyJWKClient
 
 from backend.config.settings import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
 # === 🔧 MODO DEMO AUTENTICACIÓN (FAKE TOKEN ZAJUNA) ===
 # Permite simular un token válido para la sustentación sin conexión al sistema real.
 FAKE_DEMO_TOKEN = "FAKE_TOKEN_ZAJUNA"
-FAKE_DEMO_CLAIMS = {
+FAKE_DEMO_CLAIMS: Dict[str, Any] = {
     "sub": "demo_user_zajuna",
     "name": "Usuario de Prueba Zajuna",
     "email": "demo@zajuna.edu.co",
@@ -25,28 +27,21 @@ FAKE_DEMO_CLAIMS = {
 
 
 # ============================================================
-# 🔑 FUNCIÓN PRINCIPAL DE DECODIFICACIÓN DE TOKEN
+# 🔍 UTILIDADES
 # ============================================================
-def decode_token(auth_header: Optional[str]) -> Tuple[bool, Dict[str, Any]]:
+def _as_str(value: Any, default: str = "") -> str:
     """
-    Versión extendida: incluye soporte para token simulado de Zajuna en modo DEMO.
+    Coerciona a str valores que podrían venir como FieldInfo u otros tipos
+    desde pydantic. Si no es usable, retorna default.
     """
-    token = get_bearer_token(auth_header)
-    if not token:
-        return False, {}
-
-    # 🧩 Simular autenticación Zajuna en modo demo
-    if settings.demo_mode and token == FAKE_DEMO_TOKEN:
-        logger.warning("[Auth] Modo DEMO activo: aceptando token simulado Zajuna")
-        return True, FAKE_DEMO_CLAIMS
-
-    # Si no es el token demo, continuar con la verificación normal
-    return decode_raw_token(token)
+    try:
+        if isinstance(value, str):
+            return value
+        return str(value)
+    except Exception:
+        return default
 
 
-# ============================================================
-# 🔍 UTILIDADES JWT
-# ============================================================
 def get_bearer_token(auth_header: Optional[str]) -> Optional[str]:
     """
     Extrae el token Bearer de un header Authorization.
@@ -64,7 +59,8 @@ def _jwt_decode_options() -> Dict[str, Any]:
     Opciones de verificación ajustables vía settings.
     """
     return {
-        "require": [],  # puedes exigir ["exp", "iat"] si lo deseas
+        # puedes exigir ["exp", "iat"] si tu emisor lo garantiza
+        "require": [],
     }
 
 
@@ -72,20 +68,21 @@ def _jwt_decode_kwargs() -> Dict[str, Any]:
     """
     Construye kwargs para jwt.decode en base a settings.
     """
+    alg = _as_str(getattr(settings, "jwt_algorithm", "HS256")).upper() or "HS256"
     kwargs: Dict[str, Any] = {
-        "algorithms": [settings.jwt_algorithm.upper()],
+        "algorithms": [alg],
         "options": _jwt_decode_options(),
     }
 
     # issuer (opcional)
     iss = getattr(settings, "jwt_issuer", None)
     if iss:
-        kwargs["issuer"] = iss
+        kwargs["issuer"] = _as_str(iss)
 
     # audience (opcional)
     aud = getattr(settings, "jwt_audience", None)
     if aud:
-        kwargs["audience"] = aud
+        kwargs["audience"] = _as_str(aud)
 
     # leeway (opcional, segundos)
     leeway = getattr(settings, "leeway_seconds", None)
@@ -103,13 +100,14 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
     Decodifica/verifica un JWT crudo (sin 'Bearer ') usando HS* o RS*/JWKS.
     Devuelve (ok, claims).
     """
-    alg = settings.jwt_algorithm.upper()
+    alg = _as_str(getattr(settings, "jwt_algorithm", "HS256")).upper() or "HS256"
     kwargs = _jwt_decode_kwargs()
 
     try:
         # HS* (clave simétrica)
         if alg.startswith("HS"):
             secret = getattr(settings, "secret_key", None)
+            secret = _as_str(secret)
             if not secret:
                 return False, {}
             claims = jwt.decode(token, secret, **kwargs)
@@ -118,7 +116,7 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
         # RS* (llave pública PEM o JWKS)
         if alg.startswith("RS"):
             # 1) JWKS si se configuró
-            jwks_url = getattr(settings, "jwt_jwks_url", None)
+            jwks_url = _as_str(getattr(settings, "jwt_jwks_url", "")).strip()
             if jwks_url:
                 try:
                     jwk_client = PyJWKClient(jwks_url)
@@ -131,6 +129,7 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
 
             # 2) Clave pública local (PEM)
             pub_key = getattr(settings, "jwt_public_key", None)
+            pub_key = _as_str(pub_key)
             if not pub_key:
                 return False, {}
             claims = jwt.decode(token, pub_key, **kwargs)
@@ -144,6 +143,27 @@ def decode_raw_token(token: str) -> Tuple[bool, Dict[str, Any]]:
     except Exception:
         # Cualquier otro error: no exponemos detalles por seguridad
         return False, {}
+
+
+# ============================================================
+# 🔑 FUNCIÓN PRINCIPAL DE DECODIFICACIÓN DE TOKEN
+# ============================================================
+def decode_token(auth_header: Optional[str]) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Versión extendida: incluye soporte para token simulado de Zajuna en modo DEMO.
+    """
+    token = get_bearer_token(auth_header)
+    if not token:
+        return False, {}
+
+    # 🧩 Simular autenticación Zajuna en modo demo
+    demo_mode = bool(getattr(settings, "demo_mode", False))
+    if demo_mode and token == FAKE_DEMO_TOKEN:
+        logger.warning("[Auth] Modo DEMO activo: aceptando token simulado Zajuna")
+        return True, FAKE_DEMO_CLAIMS
+
+    # Si no es el token demo, continuar con la verificación normal
+    return decode_raw_token(token)
 
 
 # ============================================================

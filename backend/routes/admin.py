@@ -1,20 +1,43 @@
 # backend/routes/admin.py
-from fastapi import APIRouter, HTTPException, Query, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
-from backend.dependencies.auth import require_role
-from backend.db.mongodb import get_logs_collection, get_test_logs_collection, get_users_collection
-from backend.services.train_service import entrenar_chatbot
-from backend.services.intent_manager import add_intent_and_train, get_all_intents
-from backend.utils.logger import logger
-from backend.services.log_service import log_access
+from __future__ import annotations
+
 from datetime import datetime
 from pathlib import Path
-from bson.son import SON
-import subprocess
-import requests
-from fastapi import APIRouter, Response
 import os
-from backend.services.log_service import registrar_exportacion_csv, get_export_logs
+import subprocess
+
+import requests
+from bson.son import SON
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+    Depends,
+    Form,
+    Request,
+    Response,
+)
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+
+from backend.dependencies.auth import require_role
+from backend.db.mongodb import (
+    get_logs_collection,
+    get_test_logs_collection,
+    get_users_collection,
+)
+from backend.services.train_service import entrenar_chatbot
+# ⬇️ Ajuste: usamos las funciones reales del intent_manager
+from backend.services.intent_manager import (
+    guardar_intent,
+    entrenar_rasa,
+    obtener_intents,
+)
+from backend.utils.logger import logger
+from backend.services.log_service import (
+    log_access,
+    registrar_exportacion_csv,
+    get_export_logs,
+)
 
 router = APIRouter()
 
@@ -32,7 +55,7 @@ def verificar_estado_rasa(current_user=Depends(require_role(["admin"]))):
             rol=current_user["rol"],
             endpoint="/admin/rasa/status",
             method="GET",
-            status=200
+            status=200,
         )
 
         return {"message": "Rasa está activo", "status": res.json()}
@@ -53,7 +76,7 @@ def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["adm
             rol=current_user["rol"],
             endpoint="/admin/train",
             method="GET",
-            status=200
+            status=200,
         )
 
         return {"message": "Simulación de entrenamiento realizada con éxito"}
@@ -67,7 +90,7 @@ def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["adm
         rol=current_user["rol"],
         endpoint="/admin/train",
         method="GET",
-        status=200 if resultado else 500
+        status=200 if (resultado and resultado.get("status") == "ok") else 500,
     )
 
     return resultado
@@ -79,7 +102,9 @@ def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
     try:
         logger.info(f"🧪 Ejecutando pruebas automáticas por {current_user['email']}")
 
-        resultado = subprocess.run(["bash", "scripts/test_all.sh"], capture_output=True, text=True)
+        resultado = subprocess.run(
+            ["bash", "scripts/test_all.sh"], capture_output=True, text=True
+        )
 
         log_access(
             user_id=current_user["_id"],
@@ -87,7 +112,7 @@ def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
             rol=current_user["rol"],
             endpoint="/admin/test-all",
             method="POST",
-            status=200 if resultado.returncode == 0 else 500
+            status=200 if resultado.returncode == 0 else 500,
         )
 
         log_entry = {
@@ -104,7 +129,7 @@ def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
             "message": "Pruebas ejecutadas y logueadas",
             "stdout": resultado.stdout,
             "stderr": resultado.stderr,
-            "returncode": resultado.returncode
+            "returncode": resultado.returncode,
         }
 
     except Exception as e:
@@ -125,10 +150,15 @@ def cargar_intent_form(
     intent_name: str = Form(...),
     examples: str = Form(...),
     response: str = Form(...),
-    current_user=Depends(require_role(["admin"]))
+    current_user=Depends(require_role(["admin"])),
 ):
     ejemplos_list = [e.strip() for e in examples.splitlines() if e.strip()]
-    add_intent_and_train(intent_name, ejemplos_list, response)
+    # ⬇️ Antes: add_intent_and_train. Mantengo la lógica: crear + entrenar
+    guardar_intent(
+        {"intent": intent_name, "examples": ejemplos_list, "responses": [response]}
+    )
+    entrenar_rasa()
+
     logger.info(f"📥 Nueva carga de intent: {intent_name}")
 
     log_access(
@@ -137,7 +167,7 @@ def cargar_intent_form(
         rol=current_user["rol"],
         endpoint="/admin/cargar_intent",
         method="POST",
-        status=200
+        status=200,
     )
 
     return RedirectResponse(url="/admin/form", status_code=303)
@@ -157,7 +187,7 @@ def obtener_logs_de_sistema(current_user=Depends(require_role(["admin"]))):
         rol=current_user["rol"],
         endpoint="/admin/logs-file",
         method="GET",
-        status=200
+        status=200,
     )
 
     return FileResponse(log_path, media_type="text/plain", filename="system.log")
@@ -173,18 +203,22 @@ def get_stats(current_user=Depends(require_role(["admin"]))):
     total_usuarios = usuarios_col.count_documents({})
 
     intents_mas_usados = list(
-        logs_col.aggregate([
-            {"$group": {"_id": "$intent", "total": {"$sum": 1}}},
-            {"$sort": SON([("total", -1)])},
-            {"$limit": 5}
-        ])
+        logs_col.aggregate(
+            [
+                {"$group": {"_id": "$intent", "total": {"$sum": 1}}},
+                {"$sort": SON([("total", -1)])},
+                {"$limit": 5},
+            ]
+        )
     )
 
     usuarios_por_rol = list(
-        usuarios_col.aggregate([
-            {"$group": {"_id": "$rol", "total": {"$sum": 1}}},
-            {"$project": {"rol": "$_id", "total": 1, "_id": 0}}
-        ])
+        usuarios_col.aggregate(
+            [
+                {"$group": {"_id": "$rol", "total": {"$sum": 1}}},
+                {"$project": {"rol": "$_id", "total": 1, "_id": 0}},
+            ]
+        )
     )
 
     ultimos_usuarios = list(
@@ -192,18 +226,23 @@ def get_stats(current_user=Depends(require_role(["admin"]))):
     )
 
     logs_por_dia = list(
-        logs_col.aggregate([
-            {"$match": {"timestamp": {"$exists": True}}},
-            {
-                "$group": {
-                    "_id": {
-                        "$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}
-                    },
-                    "total": {"$sum": 1}
-                }
-            },
-            {"$sort": SON([("_id", 1)])}
-        ])
+        logs_col.aggregate(
+            [
+                {"$match": {"timestamp": {"$exists": True}}},
+                {
+                    "$group": {
+                        "_id": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$timestamp",
+                            }
+                        },
+                        "total": {"$sum": 1},
+                    }
+                },
+                {"$sort": SON([("_id", 1)])},
+            ]
+        )
     )
 
     log_access(
@@ -212,7 +251,7 @@ def get_stats(current_user=Depends(require_role(["admin"]))):
         rol=current_user["rol"],
         endpoint="/admin/stats",
         method="GET",
-        status=200
+        status=200,
     )
 
     return {
@@ -221,7 +260,7 @@ def get_stats(current_user=Depends(require_role(["admin"]))):
         "intents_mas_usados": intents_mas_usados,
         "usuarios_por_rol": usuarios_por_rol,
         "ultimos_usuarios": ultimos_usuarios,
-        "logs_por_dia": logs_por_dia
+        "logs_por_dia": logs_por_dia,
     }
 
 
@@ -231,7 +270,7 @@ def get_logs_filtered(
     level: str = Query(None),
     start_date: str = Query(None),
     end_date: str = Query(None),
-    current_user=Depends(require_role(["admin"]))
+    current_user=Depends(require_role(["admin"])),
 ):
     collection = get_logs_collection()
     query = {}
@@ -249,7 +288,8 @@ def get_logs_filtered(
     logs = list(collection.find(query).sort("timestamp", -1).limit(500))
     for log in logs:
         log["_id"] = str(log["_id"])
-        log["timestamp"] = log["timestamp"].isoformat()
+        if isinstance(log.get("timestamp"), datetime):
+            log["timestamp"] = log["timestamp"].isoformat()
 
     log_access(
         user_id=current_user["_id"],
@@ -257,7 +297,7 @@ def get_logs_filtered(
         rol=current_user["rol"],
         endpoint="/admin/logs",
         method="GET",
-        status=200 if logs else 204
+        status=200 if logs else 204,
     )
 
     return logs
@@ -266,7 +306,8 @@ def get_logs_filtered(
 # ✅ Listar todos los intents con trazabilidad
 @router.get("/admin/intents")
 def listar_intents(current_user=Depends(require_role(["admin", "soporte"]))):
-    intents = get_all_intents()
+    # ⬇️ Antes: get_all_intents. Mantiene intención de negocio (listar todos)
+    intents = obtener_intents()
 
     log_access(
         user_id=current_user["_id"],
@@ -274,20 +315,22 @@ def listar_intents(current_user=Depends(require_role(["admin", "soporte"]))):
         rol=current_user["rol"],
         endpoint="/admin/intents",
         method="GET",
-        status=200 if intents else 204
+        status=200 if intents else 204,
     )
     return intents
+
+
 @router.post("/admin/restart")
 def restart_server(current_user=Depends(require_role(["admin"]))):
     os.system("touch restart_signal.txt")
-    
+
     log_access(
         user_id=current_user["_id"],
         email=current_user["email"],
         rol=current_user["rol"],
         endpoint="/admin/restart",
         method="POST",
-        status=200
+        status=200,
     )
 
     return {"message": "🔁 Servidor reiniciado (simulado)"}
@@ -295,8 +338,12 @@ def restart_server(current_user=Depends(require_role(["admin"]))):
 
 @router.get("/admin/export-tests")
 def export_test_results(current_user=Depends(require_role(["admin"]))):
-    csv_data = "Prueba,Estado,Mensaje,Latencia\nBackend conectado,200 OK,Todo bien,120ms\nIntents disponibles,200 OK,23 intents,98ms"
-    filename = f"resultados_diagnostico_{datetime.datetime.now().strftime('%Y-%m-%d')}.csv"
+    csv_data = (
+        "Prueba,Estado,Mensaje,Latencia\n"
+        "Backend conectado,200 OK,Todo bien,120ms\n"
+        "Intents disponibles,200 OK,23 intents,98ms"
+    )
+    filename = f"resultados_diagnostico_{datetime.now().strftime('%Y-%m-%d')}.csv"
 
     log_access(
         user_id=current_user["_id"],
@@ -304,27 +351,30 @@ def export_test_results(current_user=Depends(require_role(["admin"]))):
         rol=current_user["rol"],
         endpoint="/admin/export-tests",
         method="GET",
-        status=200
+        status=200,
     )
 
     return Response(
         content=csv_data,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-    @router.get("/admin/exportaciones")
+
+
+# ✅ Exportaciones CSV → S3 + registro
+@router.get("/admin/exportaciones")
 def exportaciones_csv(
     request: Request,
     desde: datetime = Query(None),
     hasta: datetime = Query(None),
-    current_user=Depends(require_role(["admin"]))
+    current_user=Depends(require_role(["admin"])),
 ):
     user = {
         "_id": current_user["_id"],
         "email": current_user["email"],
         "rol": current_user["rol"],
-        "ip": request.state.ip,
-        "user_agent": request.state.user_agent,
+        "ip": getattr(request.state, "ip", None),
+        "user_agent": getattr(request.state, "user_agent", None),
     }
 
     url = registrar_exportacion_csv(user=user, desde=desde, hasta=hasta)
@@ -334,4 +384,3 @@ def exportaciones_csv(
 @router.get("/admin/exportaciones/historial")
 def historial_exportaciones(current_user=Depends(require_role(["admin"]))):
     return get_export_logs()
-

@@ -1,4 +1,6 @@
-# backend/services/stats_service.py
+# =====================================================
+# 🧩 backend/services/stats_service.py
+# =====================================================
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

@@ -55,7 +55,7 @@ def exportar_logs_csv(
 
     csv_bytes, archivo_url = exportar_logs_csv_filtrado(desde_dt, hasta_dt)
 
-    db["exportaciones"].insert_one({
+    _get_db()["exportaciones"].insert_one({
         "usuario": user["email"],
         "tipo": "logs",
         "fecha": datetime.utcnow(),
@@ -100,7 +100,7 @@ def listar_exportaciones(
     if usuario:
         query["usuario"] = {"$regex": usuario, "$options": "i"}
 
-    exportaciones = list(db["exportaciones"].find(query).sort("fecha", -1).limit(limit))
+    exportaciones = list(_get_db()["exportaciones"].find(query).sort("fecha", -1).limit(limit))
     for e in exportaciones:
         e["_id"] = str(e["_id"])
         e["fecha"] = e.get("fecha", datetime.utcnow()).isoformat()
@@ -146,7 +146,7 @@ async def exportar_estadisticas_csv(
     csv_text = output.getvalue()
     csv_bytes, archivo_url = save_csv_to_s3_and_get_url(csv_text, filename_prefix="estadisticas")
 
-    db["exportaciones"].insert_one({
+    _get_db()["exportaciones"].insert_one({
         "usuario": user["email"],
         "tipo": "estadisticas",
         "archivo": archivo_url,

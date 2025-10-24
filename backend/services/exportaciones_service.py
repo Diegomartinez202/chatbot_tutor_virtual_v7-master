@@ -1,31 +1,54 @@
-# backend/services/exportaciones_service.py
+# =====================================================
+# 🧩 backend/services/exportaciones_service.py
+# =====================================================
+from __future__ import annotations
+
 from datetime import datetime
+from typing import List, Dict, Any, Optional
 from bson import ObjectId
+
 from backend.db.mongodb import get_database
 
-# 🔧 Crear handle local seguro (evita errores si Mongo aún no está inicializado)
-db = get_database()
+
+def _col():
+    """
+    Obtiene la colección 'exportaciones' de forma perezosa (lazy) y segura.
+    Evita fallos por inicialización de Mongo en tiempo de import.
+    """
+    return get_database()["exportaciones"]
 
 
-def get_exportaciones(desde, hasta, usuario, tipo, skip, limit):
+def get_exportaciones(
+    desde: Optional[datetime],
+    hasta: Optional[datetime],
+    usuario: Optional[str],
+    tipo: Optional[str],
+    skip: int,
+    limit: int,
+) -> List[Dict[str, Any]]:
     """
     Consulta la colección 'exportaciones' aplicando filtros dinámicos.
     Mantiene compatibilidad total con la versión anterior.
     """
-    query = {}
+    query: Dict[str, Any] = {}
     if desde and hasta:
         query["fecha"] = {"$gte": desde, "$lte": hasta}
+    elif desde:
+        query["fecha"] = {"$gte": desde}
+    elif hasta:
+        query["fecha"] = {"$lte": hasta}
+
     if usuario:
         query["usuario"] = {"$regex": usuario, "$options": "i"}
     if tipo:
         query["tipo"] = tipo
 
     exportaciones = (
-        db["exportaciones"]
+        _col()
         .find(query)
         .sort("fecha", -1)
-        .skip(skip)
-        .limit(limit)
+        .skip(int(skip or 0))
+        .limit(int(limit or 50))
     )
 
     return [

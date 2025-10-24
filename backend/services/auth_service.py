@@ -3,13 +3,13 @@
 # =====================================================
 from __future__ import annotations
 
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from backend.utils.logging import get_logger
 from backend.services.log_service import log_access
 from backend.services.user_service import (
     verify_user_credentials,
-    get_user_by_email,
+    get_user_by_email,  # (conservamos por compat si lo usas en otro lado)
 )
 
 logger = get_logger(__name__)
@@ -22,7 +22,7 @@ def _sanitize_email(email: str) -> str:
 # =====================================================
 # 🔐 Autenticación
 # =====================================================
-def login_user(email: str, password: str) -> Optional[Dict]:
+def login_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     """
     Valida credenciales y retorna el usuario si son correctas.
     - Normaliza el email
@@ -52,7 +52,7 @@ def login_user(email: str, password: str) -> Optional[Dict]:
 # =====================================================
 # 📝 Registro de eventos (se mantiene tu lógica)
 # =====================================================
-def registrar_login_exitoso(request, user: Dict) -> None:
+def registrar_login_exitoso(request, user: Dict[str, Any]) -> None:
     """Registra un login exitoso en logs de acceso."""
     try:
         log_access(
@@ -65,12 +65,14 @@ def registrar_login_exitoso(request, user: Dict) -> None:
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
-        logger.info(f"🔐 Login exitoso para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}")
+        logger.info(
+            f"🔐 Login exitoso para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+        )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar login exitoso: {e}")
 
 
-def registrar_acceso_perfil(request, user: Dict) -> None:
+def registrar_acceso_perfil(request, user: Dict[str, Any]) -> None:
     """Registra acceso a perfil de usuario."""
     try:
         log_access(
@@ -83,12 +85,14 @@ def registrar_acceso_perfil(request, user: Dict) -> None:
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
-        logger.info(f"👤 Perfil accedido por {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}")
+        logger.info(
+            f"👤 Perfil accedido por {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+        )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar acceso a perfil: {e}")
 
 
-def registrar_logout(request, user: Dict) -> None:
+def registrar_logout(request, user: Dict[str, Any]) -> None:
     """Registra cierre de sesión."""
     try:
         log_access(
@@ -101,12 +105,14 @@ def registrar_logout(request, user: Dict) -> None:
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
-        logger.info(f"🚪 Logout de {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}")
+        logger.info(
+            f"🚪 Logout de {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+        )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar logout: {e}")
 
 
-def registrar_refresh_token(request, user: Dict) -> None:
+def registrar_refresh_token(request, user: Dict[str, Any]) -> None:
     """Registra generación de nuevo refresh token."""
     try:
         log_access(
@@ -119,6 +125,8 @@ def registrar_refresh_token(request, user: Dict) -> None:
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
-        logger.info(f"🔄 Refresh token generado para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}")
+        logger.info(
+            f"🔄 Refresh token generado para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+        )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar refresh token: {e}")

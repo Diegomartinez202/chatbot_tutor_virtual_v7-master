@@ -1,6 +1,9 @@
-# backend/services/train_service.py
+# =====================================================
+# 🧩 backend/services/train_service.py
+# =====================================================
 from __future__ import annotations
 
+import shlex
 import subprocess
 from typing import Dict, Optional
 
@@ -15,7 +18,7 @@ def entrenar_chatbot() -> Dict[str, str]:
     No lanza excepciones: encapsula errores y devuelve status apropiado.
     """
     try:
-        cmd = (settings.rasa_train_command or "").strip()
+        cmd = (getattr(settings, "rasa_train_command", "") or "").strip()
         if not cmd:
             return {
                 "status": "error",
@@ -23,8 +26,9 @@ def entrenar_chatbot() -> Dict[str, str]:
                 "error": "missing_command",
             }
 
+        # shlex.split maneja comillas/espacios correctamente
         result = subprocess.run(
-            cmd.split(),
+            shlex.split(cmd),
             capture_output=True,
             text=True,
             check=False,
@@ -54,7 +58,7 @@ def entrenar_chatbot() -> Dict[str, str]:
 def entrenar_y_loggear(user: Optional[Dict] = None) -> Dict[str, str]:
     """
     Llama a entrenar_chatbot y registra el evento en logs.
-    El parametro user es opcional y puede contener:
+    El parámetro user es opcional y puede contener:
       {_id|id, email, rol, ip, user_agent}
     """
     result = entrenar_chatbot()
@@ -70,7 +74,7 @@ def entrenar_y_loggear(user: Optional[Dict] = None) -> Dict[str, str]:
     ip = user.get("ip")
     user_agent = user.get("user_agent")
 
-    # Registrar acceso/accion
+    # Registrar acceso/acción (best-effort)
     try:
         log_access(
             user_id=user_id if user_id is not None else "",
@@ -84,7 +88,6 @@ def entrenar_y_loggear(user: Optional[Dict] = None) -> Dict[str, str]:
             tipo="accion",
         )
     except Exception:
-        # No romper si el log falla
-        pass
+        pass  # No romper si el log falla
 
     return result

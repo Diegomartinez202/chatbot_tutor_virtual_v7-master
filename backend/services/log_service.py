@@ -1,18 +1,32 @@
+# =====================================================
+# 🧩 backend/services/log_service.py
+# =====================================================
+from __future__ import annotations
+
 import os
 import csv
-from bson import ObjectId
 from io import StringIO
 from datetime import datetime
-from collections import defaultdict
+from typing import Optional, Dict, Any, List
+
+from bson import ObjectId
 
 from backend.db.mongodb import get_logs_collection
-# ❌ Evita import circular de LOG_DIR
-# from backend.config.settings import LOG_DIR
 from backend.config.settings import settings
 from backend.utils.file_utils import save_csv_to_s3_and_get_url
 
-# Mantener variable original para no tocar el resto del código
-LOG_DIR = settings.log_dir
+# ─────────────────────────────────────────────────────
+# LOG_DIR robusto (evita FieldInfo / tipos no-str)
+# ─────────────────────────────────────────────────────
+def _as_str(value: Any, default: str) -> str:
+    try:
+        if isinstance(value, str):
+            return value
+        return str(value)
+    except Exception:
+        return default
+
+LOG_DIR = _as_str(getattr(settings, "log_dir", "./logs"), "./logs")
 
 
 # 📂 Utilidades de archivos locales
@@ -29,7 +43,7 @@ def obtener_contenido_log(filename: str):
     return ruta if os.path.exists(ruta) else None
 
 
-# 📤 Exportación CSV simple
+# 📤 Exportación CSV simple (stream en memoria)
 def exportar_logs_csv_stream():
     logs = get_logs_collection().find()
     output = StringIO()
@@ -69,8 +83,19 @@ def get_logs(limit: int = 100):
 
 
 # 🟦 Registrar logs manualmente
-def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, status: int, ip: str = None, user_agent: str = None, tipo: str = "acceso"):
-    doc = {
+def log_access(
+    user_id: str,
+    email: str,
+    rol: str,
+    endpoint: str,
+    method: str,
+    status: int,
+    ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    tipo: str = "acceso",
+    extra: Optional[Dict[str, Any]] = None,
+):
+    doc: Dict[str, Any] = {
         "user_id": str(user_id),
         "email": email,
         "rol": rol,
@@ -80,14 +105,23 @@ def log_access(user_id: str, email: str, rol: str, endpoint: str, method: str, s
         "timestamp": datetime.utcnow(),
         "ip": ip,
         "user_agent": user_agent,
-        "tipo": tipo
+        "tipo": tipo,
     }
+    if isinstance(extra, dict):
+        doc.update(extra)
     get_logs_collection().insert_one(doc)
 
 
 # 🟨 Middleware automático
-def log_access_middleware(endpoint: str, method: str, status: int, ip: str, user_agent: str, user: dict = None):
-    doc = {
+def log_access_middleware(
+    endpoint: str,
+    method: str,
+    status: int,
+    ip: str,
+    user_agent: str,
+    user: Optional[dict] = None,
+):
+    doc: Dict[str, Any] = {
         "endpoint": endpoint,
         "method": method,
         "status": status,
@@ -155,8 +189,12 @@ def get_top_failed_intents():
 
 
 # ✅ FILTRADO Y SUBIDA A S3
-def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
-    query = {"tipo": "descarga"}
+def exportar_logs_csv_filtrado(desde: datetime | None = None, hasta: datetime | None = None):
+    """
+    Genera CSV de logs (tipo: descarga) y lo sube a S3.
+    ➜ Retorna (csv_bytes, archivo_url) para usar directo con StreamingResponse.
+    """
+    query: Dict[str, Any] = {"tipo": "descarga"}
     if desde or hasta:
         query["timestamp"] = {}
         if desde:
@@ -180,13 +218,20 @@ def exportar_logs_csv_filtrado(desde: datetime = None, hasta: datetime = None):
             log.get("ip", ""),
             log.get("user_agent", "")
         ])
-    return csv_str.getvalue()
+    csv_text = csv_str.getvalue()
+
+    # ⬆️ Subir y obtener (bytes, url)
+    csv_bytes, archivo_url = save_csv_to_s3_and_get_url(csv_text, filename_prefix="logs")
+    return csv_bytes, archivo_url
 
 
-# ✅ NUEVA FUNCIÓN ÚNICA Y REUTILIZABLE
-def registrar_exportacion_csv(user: dict, desde: datetime = None, hasta: datetime = None):
-    csv_content = exportar_logs_csv_filtrado(desde, hasta)
-    url = save_csv_to_s3_and_get_url(csv_content, filename_prefix="logs")
+# ✅ NUEVA FUNCIÓN ÚNICA Y REUTILIZABLE (usa la de arriba)
+def registrar_exportacion_csv(user: dict, desde: datetime | None = None, hasta: datetime | None = None) -> str:
+    """
+    Genera y sube CSV a S3 (con filtros) y registra la descarga.
+    Retorna la URL del archivo.
+    """
+    csv_bytes, url = exportar_logs_csv_filtrado(desde, hasta)
 
     log_access(
         user_id=user.get("_id") or user.get("id"),
