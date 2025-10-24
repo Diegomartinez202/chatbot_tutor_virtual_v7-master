@@ -1,18 +1,26 @@
-from fastapi import APIRouter, Depends, Request, Query
-from fastapi.responses import StreamingResponse
-from backend.dependencies.auth import require_role
-from backend.services import stats_service
-from backend.services.log_service import exportar_logs_csv_filtrado, log_access
-from backend.db.mongodb import db
-from backend.utils.file_utils import save_csv_to_s3_and_get_url
+# backend/routes/exportaciones.py
+from __future__ import annotations
+
 from datetime import datetime
 from io import StringIO
 import csv
+
+from fastapi import APIRouter, Depends, Request, Query
+from fastapi.responses import StreamingResponse
+
+from backend.dependencies.auth import require_role
+from backend.services import stats_service
+from backend.services.log_service import exportar_logs_csv_filtrado, log_access
+from backend.db.mongodb import get_database
+from backend.utils.file_utils import save_csv_to_s3_and_get_url
 
 # ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
 from backend.rate_limit import limit
 
 router = APIRouter()
+
+# usar DB a través del helper
+db = get_database()
 
 
 @router.get(
@@ -20,7 +28,7 @@ router = APIRouter()
     summary="📤 Exportar logs en formato CSV (tipo: descarga)",
     response_class=StreamingResponse
 )
-@limit("10/minute")  # ⛳ 10 descargas/min por IP/usuario (según estrategia)
+@limit("10/minute")
 def exportar_logs_csv(
     request: Request,
     desde: str = Query(None, description="Fecha inicio YYYY-MM-DD"),
@@ -40,8 +48,8 @@ def exportar_logs_csv(
         endpoint="/admin/exportaciones",
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent,
+        ip=getattr(request.state, "ip", None),
+        user_agent=getattr(request.state, "user_agent", None),
         tipo="descarga"
     )
 
@@ -57,7 +65,6 @@ def exportar_logs_csv(
     headers = {
         "Content-Disposition": f"attachment; filename={archivo_url.split('/')[-1]}"
     }
-
     return StreamingResponse(csv_bytes, media_type="text/csv", headers=headers)
 
 
@@ -65,7 +72,7 @@ def exportar_logs_csv(
     "/admin/exportaciones/lista",
     summary="📄 Lista de exportaciones registradas"
 )
-@limit("30/minute")  # ⛳ Listado puede ser consultado con más frecuencia
+@limit("30/minute")
 def listar_exportaciones(
     desde: str = Query(None),
     hasta: str = Query(None),
@@ -79,14 +86,14 @@ def listar_exportaciones(
         try:
             desde_dt = datetime.strptime(desde, "%Y-%m-%d")
             query["fecha"] = {"$gte": desde_dt}
-        except:
+        except Exception:
             return {"error": "Fecha desde inválida"}
     if hasta:
         try:
             hasta_dt = datetime.strptime(hasta, "%Y-%m-%d")
             query.setdefault("fecha", {})
             query["fecha"]["$lte"] = hasta_dt
-        except:
+        except Exception:
             return {"error": "Fecha hasta inválida"}
     if tipo:
         query["tipo"] = tipo
@@ -101,7 +108,7 @@ def listar_exportaciones(
 
 
 @router.get("/admin/exportaciones/stats", summary="📊 Exportar estadísticas del chatbot (CSV)")
-@limit("6/minute")  # ⛳ Export de estadísticas es más costoso
+@limit("6/minute")
 async def exportar_estadisticas_csv(
     request: Request,
     desde: str = Query(None),
@@ -153,10 +160,12 @@ async def exportar_estadisticas_csv(
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=getattr(request.state, "ip", None),
+        user_agent=getattr(request.state, "user_agent", None)
     )
 
-    return StreamingResponse(csv_bytes, media_type="text/csv", headers={
-        "Content-Disposition": "attachment; filename=estadisticas.csv"
-    })
+    return StreamingResponse(
+        csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=estadisticas.csv"}
+    )
