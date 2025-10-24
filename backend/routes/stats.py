@@ -12,6 +12,7 @@ from backend.rate_limit import limit
 
 router = APIRouter(tags=["stats"])
 
+
 @router.get(
     "/admin/stats",
     summary="📊 Obtener estadísticas del chatbot",
@@ -39,8 +40,8 @@ async def get_stats(
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent,
+        ip=getattr(request.state, "ip", None),
+        user_agent=getattr(request.state, "user_agent", None),
     )
 
     return {

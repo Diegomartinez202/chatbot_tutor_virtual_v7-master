@@ -1,13 +1,24 @@
-# backend/routes/intent_legacy_controller.py
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Request
+
 from backend.dependencies.auth import require_role
 from backend.services import intent_manager
 from backend.services.log_service import log_access
 
-# ✅ Rate limiting por endpoint
+# ✅ Rate limiting por endpoint (no-op si SlowAPI no está activo)
 from backend.rate_limit import limit
 
 router = APIRouter()
+
+
+def _ip(request: Request) -> str:
+    return getattr(request.state, "ip", None) or (request.client.host if request.client else "unknown")
+
+
+def _ua(request: Request) -> str:
+    return getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
+
 
 # ============================
 # 🔍 Buscar intents con filtros
@@ -34,11 +45,12 @@ def buscar_intents(
         endpoint=str(request.url.path),
         method=request.method,
         status=200 if result else 204,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return result
+
 
 # ============================
 # 📄 Obtener todos los intents
@@ -55,11 +67,12 @@ def listar_intents(request: Request, payload=Depends(require_role(["admin", "sop
         endpoint=str(request.url.path),
         method=request.method,
         status=200 if data else 204,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return data
+
 
 # ============================
 # ➕ Agregar un intent manualmente
@@ -80,11 +93,12 @@ def agregar_intent(request: Request, data: dict = Body(...), payload=Depends(req
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return result
+
 
 # ============================
 # 🗑️ Eliminar un intent
@@ -102,11 +116,12 @@ def eliminar_intent(intent_name: str, request: Request, payload=Depends(require_
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return result
+
 
 # ============================
 # 🔁 Cargar intents automáticamente
@@ -123,11 +138,12 @@ def cargar_intents(request: Request, payload=Depends(require_role(["admin"]))):
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return result
+
 
 # ============================
 # ✏️ Actualizar un intent existente (sin nombre en URL)
@@ -153,11 +169,12 @@ def actualizar_intent(request: Request, data: dict = Body(...), payload=Depends(
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return {"message": f"✏️ Intent '{intent_name}' actualizado correctamente"}
+
 
 # ============================
 # ✏️ Actualizar intent por nombre (en URL)
@@ -198,8 +215,8 @@ def actualizar_intent_url(
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return {"message": "✅ Intent actualizado correctamente", "data": result}

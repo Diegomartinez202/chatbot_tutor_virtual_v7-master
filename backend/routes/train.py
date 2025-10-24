@@ -7,7 +7,6 @@ import os, httpx
 from backend.services.train_service import entrenar_y_loggear
 from backend.dependencies.auth import require_role
 from backend.services.log_service import log_access
-from backend.config.settings import settings  # 👈 compat con .env
 
 # ✅ Rate limiting por endpoint (no-op si SlowAPI está deshabilitado)
 from backend.rate_limit import limit
@@ -15,6 +14,7 @@ from backend.rate_limit import limit
 from backend.middleware.request_id import get_request_id
 
 router = APIRouter()
+
 
 class TrainPayload(BaseModel):
     mode: Optional[Literal["local", "ci"]] = None
@@ -34,7 +34,6 @@ async def _trigger_ci(branch: str = "main", request_id: Optional[str] = None):
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
-    # Propagamos trazabilidad si existe
     if request_id:
         headers["X-Request-ID"] = request_id
 
@@ -53,10 +52,10 @@ async def entrenar_bot(
     body: Optional[TrainPayload] = None,
     payload=Depends(require_role(["admin"]))
 ):
-    mode_env = os.getenv("TRAIN_MODE", "local").lower()  # fallback global
+    mode_env = os.getenv("TRAIN_MODE", "local").lower()
     mode = (body.mode if body else None) or mode_env
     branch = (body.branch if body else None) or "main"
-    rid = get_request_id()  # trazabilidad
+    rid = get_request_id()
 
     try:
         if mode == "ci":
@@ -65,13 +64,11 @@ async def entrenar_bot(
             msg = resultado["message"]
             log_path = None
         else:
-            # Modo LOCAL (comportamiento actual)
             resultado = entrenar_y_loggear()
             ok = resultado.get("success", False)
             msg = "✅ Bot entrenado correctamente" if ok else "❌ Error al entrenar el bot"
             log_path = resultado.get("log_path")
 
-        # Logging de acceso
         log_access(
             user_id=payload["_id"],
             email=payload["email"],

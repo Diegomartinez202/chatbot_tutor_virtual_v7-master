@@ -1,5 +1,3 @@
-
-# backend/routes/intent_controller.py
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
@@ -47,7 +45,8 @@ def listar_intents(request: Request, payload=Depends(require_role(["admin"]))):
         endpoint="/admin/intents",
         method="GET",
         status=200,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
     return obtener_intents()
 
@@ -64,7 +63,8 @@ def crear_intent(request: Request, data: dict, payload=Depends(require_role(["ad
             endpoint="/admin/intents",
             method="POST",
             status=400,
-            extra={"ip": _ip(request), "user_agent": _ua(request)}
+            ip=_ip(request),
+            user_agent=_ua(request),
         )
         raise HTTPException(status_code=400, detail="⚠️ El intent ya existe")
 
@@ -79,7 +79,8 @@ def crear_intent(request: Request, data: dict, payload=Depends(require_role(["ad
         endpoint="/admin/intents",
         method="POST",
         status=201,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return resultado
@@ -98,7 +99,8 @@ def eliminar_intent_por_nombre(intent_name: str, request: Request, payload=Depen
         endpoint=f"/admin/intents/{intent_name}",
         method="DELETE",
         status=200,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return resultado
@@ -118,7 +120,8 @@ def recargar_intents(request: Request, payload=Depends(require_role(["admin"])))
         endpoint="/admin/intents/recargar",
         method="POST",
         status=200,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return resultado
@@ -146,7 +149,8 @@ async def subir_archivo_intents(request: Request, file: UploadFile = File(...), 
             endpoint="/admin/intents/upload",
             method="POST",
             status=400,
-            extra={"ip": _ip(request), "user_agent": _ua(request)}
+            ip=_ip(request),
+            user_agent=_ua(request),
         )
         raise HTTPException(status_code=400, detail="Formato de archivo no soportado")
 
@@ -161,7 +165,8 @@ async def subir_archivo_intents(request: Request, file: UploadFile = File(...), 
         endpoint="/admin/intents/upload",
         method="POST",
         status=201,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return resultado
@@ -180,11 +185,12 @@ def exportar_intents(request: Request, payload=Depends(require_role(["admin"])))
         endpoint="/admin/intents/export",
         method="GET",
         status=200,
-        extra={"ip": _ip(request), "user_agent": _ua(request)}
+        ip=_ip(request),
+        user_agent=_ua(request),
     )
 
     return StreamingResponse(
         output,
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=intents_exportados.csv"}
+        headers={"Content-Disposition": "attachment; filename=intents_exportados.csv"},
     )

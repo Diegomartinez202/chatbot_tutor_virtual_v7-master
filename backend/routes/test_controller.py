@@ -34,8 +34,8 @@ def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin
             endpoint=str(request.url.path),
             method=request.method,
             status=200 if resultado.returncode == 0 else 500,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
 
         return {
@@ -53,8 +53,8 @@ def ejecutar_test_general(request: Request, payload=Depends(require_role(["admin
             endpoint=str(request.url.path),
             method=request.method,
             status=500,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
         return {"success": False, "message": "Error ejecutando test", "error": str(e)}
 
@@ -69,8 +69,8 @@ def ping_backend(request: Request, payload=Depends(require_role(["admin"]))):
         endpoint=str(request.url.path),
         method=request.method,
         status=200,
-        ip=request.state.ip,
-        user_agent=request.state.user_agent,
+        ip=getattr(request.state, "ip", None),
+        user_agent=getattr(request.state, "user_agent", None),
     )
     return {"message": "✅ Backend activo", "pong": True}
 
@@ -88,8 +88,8 @@ def status_rasa(request: Request, payload=Depends(require_role(["admin"]))):
             endpoint=str(request.url.path),
             method=request.method,
             status=response.status_code,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
 
         ok = (response.status_code == 200)
@@ -113,8 +113,8 @@ def status_rasa(request: Request, payload=Depends(require_role(["admin"]))):
             endpoint=str(request.url.path),
             method=request.method,
             status=500,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
         return {"success": False, "message": "❌ No se pudo conectar con Rasa", "error": str(e)}
 
@@ -131,8 +131,7 @@ def exportar_resultados_test(request: Request, payload=Depends(require_role(["ad
         )
         duracion = round(time.time() - start_time, 2)
 
-        # CSV muy simple con resultado y duración
-        # (guardado en S3/local y además se devuelve como descarga)
+        # CSV simple con resultado y duración
         csv_text = "resultado,test,duracion\n"
         csv_text += (
             f"{'OK' if resultado.returncode == 0 else 'FALLO'},"
@@ -152,11 +151,10 @@ def exportar_resultados_test(request: Request, payload=Depends(require_role(["ad
             endpoint=str(request.url.path),
             method=request.method,
             status=200,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
 
-        # Retornamos descarga directa del CSV (además queda guardado en S3/local)
         return StreamingResponse(
             csv_bytes,
             media_type="text/csv",
@@ -171,8 +169,8 @@ def exportar_resultados_test(request: Request, payload=Depends(require_role(["ad
             endpoint=str(request.url.path),
             method=request.method,
             status=500,
-            ip=request.state.ip,
-            user_agent=request.state.user_agent,
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
         )
         return {"success": False, "error": str(e)}
 
