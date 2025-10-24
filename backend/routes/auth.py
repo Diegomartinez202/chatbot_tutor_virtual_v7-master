@@ -128,6 +128,8 @@ def register_user(data: RegisterRequest, request: Request):
 
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error en registro: {str(e)}")
         raise HTTPException(

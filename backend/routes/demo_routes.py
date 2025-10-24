@@ -1,4 +1,6 @@
 # backend/routes/demo_routes.py
+from __future__ import annotations
+
 from fastapi import APIRouter, Request, HTTPException, Depends
 from typing import Dict
 from backend.config.settings import settings
@@ -14,15 +16,15 @@ def demo_auth(request: Request) -> Dict:
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization header missing or invalid")
-    
-    token = auth_header.split(" ")[1]
+
+    token = auth_header.split(" ", 1)[1]
     if settings.demo_mode and token == FAKE_TOKEN:
         # Claims de prueba
         return {
             "sub": "demo_user",
             "rol": "demo",
             "email": "demo@zajuna.com",
-            "name": "Demo User"
+            "name": "Demo User",
         }
     raise HTTPException(status_code=401, detail="Invalid token")
 

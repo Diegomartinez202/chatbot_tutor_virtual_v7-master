@@ -1,9 +1,9 @@
 # backend/routes/auth_tokens.py
+from __future__ import annotations
 
 from typing import Optional, Any, Dict
 
 from fastapi import APIRouter, Request, Response, HTTPException, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
 from backend.config.settings import settings
@@ -16,7 +16,7 @@ from backend.utils.jwt_manager import (
 
 logger = get_logger(__name__)
 
-# Dejamos el prefijo aquí para que en main.py no tengas que repetirlo
+# Prefijo para agrupar con /auth
 router = APIRouter(prefix="/auth", tags=["Auth Tokens"])
 
 
@@ -34,14 +34,12 @@ async def refresh_tokens(request: Request, response: Response, body: Optional[Re
     - Se acepta en body JSON o en cookie httpOnly
     - Devuelve nuevo access token y renueva la cookie refresh
     """
-    # 1) Tomar refresh token del body o de la cookie
     cookie_name = (settings.refresh_cookie_name or "rt")
     token = (body.refresh_token if body else None) or request.cookies.get(cookie_name)
     if not token:
         logger.warning("Intento de refresh sin token")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
 
-    # 2) Validar y reemitir
     pair = reissue_tokens_from_refresh(token, allow_typeless=getattr(settings, "jwt_accept_typeless", False))
     if pair is None:
         logger.warning("Refresh token inválido o expirado")
@@ -49,7 +47,6 @@ async def refresh_tokens(request: Request, response: Response, body: Optional[Re
 
     access_token, new_refresh_token = pair
 
-    # 3) Setear cookie httpOnly con el nuevo refresh token
     secure_cookie = False if (getattr(settings, "app_env", "dev") == "dev") else True
     response.set_cookie(
         key=cookie_name,
@@ -62,13 +59,11 @@ async def refresh_tokens(request: Request, response: Response, body: Optional[Re
     )
 
     logger.info(f"🔁 Refresh token exitoso, nueva cookie establecida para '{cookie_name}'")
-
-    # 4) Devolver nuevo access token
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 # ─────────────────────────────────────────────────────────────
-# 🔒 LOGOUT (borra cookie de refresh)
+# 🚪 LOGOUT (borra cookie de refresh)
 # ─────────────────────────────────────────────────────────────
 @router.post("/logout", summary="Cerrar sesión (borra cookie de refresh)")
 async def logout(response: Response):
@@ -78,14 +73,13 @@ async def logout(response: Response):
     """
     cookie_name = (getattr(settings, "refresh_cookie_name", "rt") or "rt")
 
-    # Borra cookie (varias directivas para maximizar compatibilidad)
+    # Borrar cookie
     response.delete_cookie(
         key=cookie_name,
         path="/",
-        domain=None,  # si usas dominio específico, colócalo aquí
+        domain=None,
     )
-
-    # Algunos clientes respetan mejor un Set-Cookie explícito
+    # Set explícito para maximizar compatibilidad
     response.set_cookie(
         key=cookie_name,
         value="",
@@ -111,17 +105,16 @@ class TokenRequest(BaseModel):
 
 def _try_builtin_verify(email: str, password: str) -> Optional[Dict[str, Any]]:
     """
-    Intenta delegar en tu lógica existente de autenticación si está disponible.
-    Debe devolver un dict con al menos: {"id": ..., "email": ..., "role": ...}
-    Devuelve None si no puede verificar o si no existe esa función.
+    Intenta delegar en tu lógica existente de autenticación.
+    Preferimos backend.services.user_service.verify_user_credentials.
+    Si no está, probamos backend.services.auth_service.verify_user_credentials.
+    Debe devolver un dict usuario o None.
     """
+    # 1) user_service
     try:
-        # Si tienes un servicio de auth propio, ajústalo aquí:
-        from backend.services.auth_service import verify_user_credentials  # type: ignore
-        # Debe devolver: None si no válido, o un usuario (dict/objeto con id/email/role)
+        from backend.services.user_service import verify_user_credentials  # type: ignore
         user = verify_user_credentials(email, password)
         if user:
-            # Normalizamos a dict
             if not isinstance(user, dict):
                 user = {
                     "id": getattr(user, "id", getattr(user, "_id", str(user))),
@@ -130,8 +123,23 @@ def _try_builtin_verify(email: str, password: str) -> Optional[Dict[str, Any]]:
                 }
             return user
     except Exception:
-        # Si el módulo/función no existe o falla, seguimos con bootstrap opcional
         pass
+
+    # 2) auth_service (fallback)
+    try:
+        from backend.services.auth_service import verify_user_credentials  # type: ignore
+        user = verify_user_credentials(email, password)  # type: ignore
+        if user:
+            if not isinstance(user, dict):
+                user = {
+                    "id": getattr(user, "id", getattr(user, "_id", str(user))),
+                    "email": getattr(user, "email", email),
+                    "role": getattr(user, "role", "user"),
+                }
+            return user
+    except Exception:
+        pass
+
     return None
 
 
@@ -155,21 +163,20 @@ def _try_bootstrap_admin(email: str, password: str) -> Optional[Dict[str, Any]]:
 async def issue_tokens(payload: TokenRequest, response: Response):
     """
     Endpoint de emisión de tokens:
-    1) Intenta verificar con tu auth_service (verify_user_credentials)
+    1) Intenta verificar con la lógica existente (user_service/auth_service)
     2) Si no, permite bootstrap admin si ADMIN_BOOTSTRAP_PASSWORD está configurado
     3) Devuelve access como bearer y setea refresh en cookie httpOnly
     """
-    # 1) Primero intenta tu verificación propia
+    # 1) Verificación propia
     user = _try_builtin_verify(payload.email, payload.password)
 
-    # 2) Si no está disponible o es inválido, intenta bootstrap admin (si configurado)
+    # 2) Bootstrap admin (si configurado)
     if user is None:
         user = _try_bootstrap_admin(payload.email, payload.password)
 
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    # 3) Claims mínimos (agregamos 'typ' = 'access'/'refresh')
     base_claims = {
         "sub": str(user.get("id", user.get("_id", user.get("email")))),
         "email": user.get("email", payload.email),
@@ -179,7 +186,6 @@ async def issue_tokens(payload: TokenRequest, response: Response):
     access_token = create_access_token({**base_claims, "typ": "access"})
     refresh_token = create_refresh_token({**base_claims, "typ": "refresh"})
 
-    # 4) Cookie httpOnly para refresh (igual flujo que ya usamos)
     cookie_name = settings.refresh_cookie_name or "rt"
     secure_cookie = False if (getattr(settings, "app_env", "dev") == "dev") else True
     response.set_cookie(
@@ -192,7 +198,6 @@ async def issue_tokens(payload: TokenRequest, response: Response):
         path="/",
     )
 
-    # 5) Devolvemos access como bearer (sin romper front)
     return {
         "access_token": access_token,
         "token_type": "bearer",

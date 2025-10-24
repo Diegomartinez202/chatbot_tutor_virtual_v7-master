@@ -66,10 +66,18 @@ async def chat_debug(request: Request):
 
 
 # ==== Endpoint principal ====
-@chat_router.post("", summary="Enviar mensaje al chatbot y registrar en MongoDB", dependencies=limiter(times=60, seconds=60))
+@chat_router.post(
+    "",
+    summary="Enviar mensaje al chatbot y registrar en MongoDB",
+    dependencies=limiter(times=60, seconds=60),
+)
 @limit("60/minute")
 async def send_message_to_bot(data: ChatRequest, request: Request):
-    ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+    ip = (
+        getattr(request.state, "ip", None)
+        or request.headers.get("x-forwarded-for")
+        or (request.client.host if request.client else "unknown")
+    )
     user_agent = getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
     rid = get_request_id()
 
@@ -87,7 +95,9 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     t0 = perf_counter()
     try:
         try:
-            bot_responses: List[Dict[str, Any]] = await process_user_message(data.message, data.sender_id, metadata=enriched_meta)
+            bot_responses: List[Dict[str, Any]] = await process_user_message(
+                data.message, data.sender_id, metadata=enriched_meta
+            )
         except TypeError:
             bot_responses = await process_user_message(data.message, data.sender_id)
     except Exception as e:
@@ -98,7 +108,10 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     intent = None
     try:
         if bot_responses and isinstance(bot_responses[0], dict):
-            intent = bot_responses[0].get("intent", {}).get("name") or bot_responses[0].get("metadata", {}).get("intent")
+            intent = (
+                bot_responses[0].get("intent", {}).get("name")
+                or bot_responses[0].get("metadata", {}).get("intent")
+            )
     except Exception:
         pass
 

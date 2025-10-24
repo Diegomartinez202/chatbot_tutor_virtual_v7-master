@@ -19,28 +19,30 @@ from backend.rate_limit import limit
 
 router = APIRouter()
 
-# usar DB a través del helper
+# Usar DB a través del helper (evita ImportError por 'db' global)
 db = get_database()
 
 
 @router.get(
     "/admin/exportaciones",
     summary="📤 Exportar logs en formato CSV (tipo: descarga)",
-    response_class=StreamingResponse
+    response_class=StreamingResponse,
 )
 @limit("10/minute")
 def exportar_logs_csv(
     request: Request,
     desde: str = Query(None, description="Fecha inicio YYYY-MM-DD"),
     hasta: str = Query(None, description="Fecha fin YYYY-MM-DD"),
-    user=Depends(require_role(["admin", "soporte"]))
+    user=Depends(require_role(["admin", "soporte"])),
 ):
+    # Parseo defensivo de fechas
     try:
         desde_dt = datetime.strptime(desde, "%Y-%m-%d") if desde else None
         hasta_dt = datetime.strptime(hasta, "%Y-%m-%d") if hasta else None
     except ValueError:
         return {"error": "Formato de fecha inválido. Usa YYYY-MM-DD"}
 
+    # Registrar acceso
     log_access(
         user_id=user["_id"],
         email=user["email"],
@@ -50,27 +52,31 @@ def exportar_logs_csv(
         status=200,
         ip=getattr(request.state, "ip", None),
         user_agent=getattr(request.state, "user_agent", None),
-        tipo="descarga"
+        tipo="descarga",
     )
 
-    csv_bytes, archivo_url = exportar_logs_csv_filtrado(desde_dt, hasta_dt)
+    # 1) Obtener CSV (texto) de logs
+    csv_text = exportar_logs_csv_filtrado(desde_dt, hasta_dt)
+    # 2) Subir/serializar y obtener bytes + URL
+    csv_bytes, archivo_url = save_csv_to_s3_and_get_url(csv_text, filename_prefix="logs")
 
-    _get_db()["exportaciones"].insert_one({
-        "usuario": user["email"],
-        "tipo": "logs",
-        "fecha": datetime.utcnow(),
-        "archivo": archivo_url
-    })
+    # 3) Registrar exportación
+    db["exportaciones"].insert_one(
+        {
+            "usuario": user["email"],
+            "tipo": "logs",
+            "fecha": datetime.utcnow(),
+            "archivo": archivo_url,
+        }
+    )
 
-    headers = {
-        "Content-Disposition": f"attachment; filename={archivo_url.split('/')[-1]}"
-    }
+    headers = {"Content-Disposition": f"attachment; filename={archivo_url.split('/')[-1]}"}
     return StreamingResponse(csv_bytes, media_type="text/csv", headers=headers)
 
 
 @router.get(
     "/admin/exportaciones/lista",
-    summary="📄 Lista de exportaciones registradas"
+    summary="📄 Lista de exportaciones registradas",
 )
 @limit("30/minute")
 def listar_exportaciones(
@@ -79,7 +85,7 @@ def listar_exportaciones(
     tipo: str = Query(None),
     usuario: str = Query(None),
     limit: int = Query(50),
-    user=Depends(require_role(["admin", "soporte"]))
+    user=Depends(require_role(["admin", "soporte"])),
 ):
     query = {}
     if desde:
@@ -100,7 +106,7 @@ def listar_exportaciones(
     if usuario:
         query["usuario"] = {"$regex": usuario, "$options": "i"}
 
-    exportaciones = list(_get_db()["exportaciones"].find(query).sort("fecha", -1).limit(limit))
+    exportaciones = list(db["exportaciones"].find(query).sort("fecha", -1).limit(limit))
     for e in exportaciones:
         e["_id"] = str(e["_id"])
         e["fecha"] = e.get("fecha", datetime.utcnow()).isoformat()
@@ -113,7 +119,7 @@ async def exportar_estadisticas_csv(
     request: Request,
     desde: str = Query(None),
     hasta: str = Query(None),
-    user=Depends(require_role(["admin", "soporte"]))
+    user=Depends(require_role(["admin", "soporte"])),
 ):
     total_logs = await stats_service.obtener_total_logs(desde, hasta)
     total_exportaciones_csv = await stats_service.obtener_total_exportaciones_csv(desde, hasta)
@@ -146,12 +152,14 @@ async def exportar_estadisticas_csv(
     csv_text = output.getvalue()
     csv_bytes, archivo_url = save_csv_to_s3_and_get_url(csv_text, filename_prefix="estadisticas")
 
-    _get_db()["exportaciones"].insert_one({
-        "usuario": user["email"],
-        "tipo": "estadisticas",
-        "archivo": archivo_url,
-        "fecha": datetime.utcnow()
-    })
+    db["exportaciones"].insert_one(
+        {
+            "usuario": user["email"],
+            "tipo": "estadisticas",
+            "archivo": archivo_url,
+            "fecha": datetime.utcnow(),
+        }
+    )
 
     log_access(
         user_id=user["_id"],
@@ -161,11 +169,11 @@ async def exportar_estadisticas_csv(
         method=request.method,
         status=200,
         ip=getattr(request.state, "ip", None),
-        user_agent=getattr(request.state, "user_agent", None)
+        user_agent=getattr(request.state, "user_agent", None),
     )
 
     return StreamingResponse(
         csv_bytes,
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=estadisticas.csv"}
+        headers={"Content-Disposition": "attachment; filename=estadisticas.csv"},
     )
