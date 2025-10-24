@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
 # =====================================================
 # 🧩 backend/controllers/user_controller.py
 # =====================================================
 from __future__ import annotations
 
 from typing import List, Optional, Dict, Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel, EmailStr
 

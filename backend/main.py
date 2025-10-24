@@ -21,6 +21,7 @@ from backend.config.settings import settings
 # 🧩 Middlewares propios actualizados
 from backend.middleware.request_id import RequestIdMiddleware
 from backend.middleware.request_meta_middleware import request_meta_middleware
+from backend.middleware.log_middleware import LoggingMiddleware  # 👈 AÑADE ESTA LÍNEA
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.auth_middleware import AuthMiddleware
 # 🧭 Routers agregadores y controladores
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     app.add_middleware(AuthMiddleware)
 
     # 📁 Archivos estáticos
+    Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)  # 👈 asegura que la carpeta exista
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # 🔀 Rutas API principales
