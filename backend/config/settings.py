@@ -9,10 +9,10 @@ from typing import List, Optional, Literal, Any
 
 from pydantic import Field, EmailStr
 
-# 🔧 Compatibilidad con entornos donde pydantic_settings puede no resolverse
+# 🔧 Compat pydantic_settings
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
-except ImportError:  # Fallback para evitar error en IDE (sin romper ejecución)
+except ImportError:  # Fallback IDE
     try:
         import pydantic_settings as _ps  # type: ignore
         BaseSettings = getattr(_ps, "BaseSettings")  # type: ignore
@@ -22,7 +22,7 @@ except ImportError:  # Fallback para evitar error en IDE (sin romper ejecución)
             "⚠️ No se pudo importar 'pydantic_settings'. Ejecuta: pip install pydantic-settings"
         )
 
-# 🔧 Compatibilidad Pydantic v1/v2
+# 🔧 Compat Pydantic v1/v2
 try:
     from pydantic import field_validator, model_validator  # type: ignore
     _V2 = True
@@ -39,10 +39,10 @@ except Exception:
 
 def _resolve_env_file() -> str:
     """
-    Permite usar:
-      - ENV_FILE=/ruta/custom.env  (toma prioridad)
-      - .env (si existe)
-      - .env.<APP_ENV>  (fallback: .env.dev)
+    Orden de resolución:
+      - ENV_FILE=/ruta/custom.env
+      - .env
+      - .env.<APP_ENV> (fallback: .env.dev via APP_ENV=dev)
     """
     explicit = os.getenv("ENV_FILE")
     if explicit and os.path.exists(explicit):
@@ -66,13 +66,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
+        extra="ignore",  # ✅ ignora envs no mapeados (e.g., NODE_ENV)
     )
-
-    # ✅ Compat Pydantic v1
-    if not _V2:
-        class Config:  # type: ignore
-            env_file = _resolve_env_file()
-            case_sensitive = False
 
     # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
@@ -92,10 +87,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    # Validaciones extra opcionales para decodificación / dependencias.auth
+    # Validaciones extra opcionales para decodificación
     jwt_issuer: Optional[str] = Field(default=None, alias="JWT_ISSUER")
     jwt_audience: Optional[str] = Field(default=None, alias="JWT_AUDIENCE")
-    jwt_leeway_seconds: int = Field(default=0, alias="JWT_LEEWAY_SECONDS")  # ← usado por dependencies/auth
+    jwt_leeway_seconds: int = Field(default=0, alias="JWT_LEEWAY_SECONDS")
     jwt_accept_typeless: bool = Field(default=True, alias="JWT_ACCEPT_TYPELESS")
 
     # ✅ Nombre de la cookie de refresh
@@ -172,7 +167,7 @@ class Settings(BaseSettings):
     helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
     # ─────────────────────────────────────────────────────────────
-    # ✅ Campos "compat" para NO ignorar variables extra del .env
+    # ✅ Campos "compat" para NO romper por variables extra en .env/CI
     # ─────────────────────────────────────────────────────────────
 
     # Mongo compat
@@ -201,6 +196,10 @@ class Settings(BaseSettings):
 
     # Docker compose profiles compat
     compose_profiles: Optional[str] = Field(default=None, alias="COMPOSE_PROFILES")
+
+    # --- Sinks de compatibilidad (evitan errores por "extra") ---
+    node_env: Optional[str] = Field(default=None, alias="NODE_ENV")
+    environment_compat: Optional[str] = Field(default=None, alias="ENVIRONMENT")
 
     # ─────────────────────────────────────────────────────────────
     # Normalizadores CSV/JSON → lista
@@ -285,7 +284,10 @@ class Settings(BaseSettings):
         # JWT requisitos según algoritmo
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
-            if not ((self.jwt_public_key and self.jwt_public_key.strip()) or (self.jwt_jwks_url and self.jwt_jwks_url.strip())):
+            if not (
+                (self.jwt_public_key and self.jwt_public_key.strip())
+                or (self.jwt_jwks_url and self.jwt_jwks_url.strip())
+            ):
                 raise ValueError("Para RS*, define JWT_PUBLIC_KEY (PEM) o JWT_JWKS_URL (JWKS remoto).")
         elif alg.startswith("HS"):
             if not (self.secret_key and self.secret_key.strip()):
@@ -355,6 +357,7 @@ class Settings(BaseSettings):
 
 # Instancia global
 settings = Settings()
+
 
 # ─────────────────────────────────────────────────────────────
 # Logging centralizado (helper)
