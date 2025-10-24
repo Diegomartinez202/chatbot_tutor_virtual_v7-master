@@ -1,66 +1,83 @@
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from fastapi import status
-from fastapi.responses import JSONResponse
+from __future__ import annotations
 
-from backend.utils.jwt_manager import decode_token
-from backend.config.settings import settings  
-from backend.utils.logging import get_logger  
-
-logger = get_logger(__name__)
-
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        token = request.headers.get("Authorization")
-        if token and token.startswith("Bearer "):
-            try:
-                decoded = decode_token(
-                    token.split(" ")[1],
-                    secret=settings.secret_key,       
-                    algorithm=settings.jwt_algorithm  
-                )
-                request.state.user = decoded  # 👈 Se puede usar luego en access log
-                logger.debug(f"Token válido para usuario: {decoded.get('email')}")
-            except Exception as e:
-                logger.warning(f"Token inválido: {str(e)}")
-                # No se interrumpe la request; solo no se asigna user
-        return await call_next(request)
-    # =========================================================
-# 🔐 MIDDLEWARE AUTENTICACIÓN CON MODO DEMO ZAJUNA
-# =========================================================
-
-from fastapi import Request, HTTPException
+from fastapi import Request
 from fastapi.security.utils import get_authorization_scheme_param
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.config.settings import settings
-from backend.services import jwt_service
+from backend.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+# Intentamos usar primero el jwt_manager (usado en tu proyecto)
+_decode_funcs = []
+try:
+    from backend.utils.jwt_manager import decode_token as _jm_decode  # type: ignore
+    _decode_funcs.append(("jwt_manager", _jm_decode))
+except Exception:
+    pass
+
+# Luego jwt_service (también presente en tu base)
+try:
+    from backend.services import jwt_service  # type: ignore
+    _decode_funcs.append(("jwt_service.decode_token", jwt_service.decode_token))
+    # Soporte FAKE token para demo si existe
+    FAKE_TOKEN = getattr(jwt_service, "FAKE_DEMO_TOKEN", "FAKE_TOKEN_ZAJUNA")
+    FAKE_CLAIMS = getattr(jwt_service, "FAKE_DEMO_CLAIMS", {
+        "sub": "demo_user",
+        "rol": "demo",
+        "email": "demo@zajuna.com",
+        "name": "Demo User",
+    })
+except Exception:
+    jwt_service = None  # type: ignore
+    FAKE_TOKEN = "FAKE_TOKEN_ZAJUNA"
+    FAKE_CLAIMS = {
+        "sub": "demo_user",
+        "rol": "demo",
+        "email": "demo@zajuna.com",
+        "name": "Demo User",
+    }
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """
-    Middleware que valida el token JWT o, si demo_mode=True,
-    acepta el token FAKE_TOKEN_ZAJUNA para la sustentación.
+    Middleware de **identificación**:
+      - Si DEMO_MODE y token == FAKE_TOKEN_ZAJUNA → asigna claims de demo.
+      - Si hay Authorization Bearer real → intenta decodificar con las
+        implementaciones disponibles (jwt_manager, luego jwt_service).
+      - Nunca bloquea la request; si falla, continúa sin user.
+      - La autorización se resuelve en los endpoints con `require_role`.
     """
-
     async def dispatch(self, request: Request, call_next):
-        # Extrae encabezado Authorization
         auth_header = request.headers.get("Authorization")
         scheme, token = get_authorization_scheme_param(auth_header)
 
-        # 🔧 MODO DEMO: aceptar token simulado
-        if settings.demo_mode:
-            if token == jwt_service.FAKE_DEMO_TOKEN:
-                request.state.user = jwt_service.FAKE_DEMO_CLAIMS
-                response = await call_next(request)
-                return response
+        # DEMO: aceptar token simulado sin romper nada
+        if settings.demo_mode and token == FAKE_TOKEN:
+            request.state.user = FAKE_CLAIMS
+            return await call_next(request)
 
-        # Modo normal → verificar token real
-        ok, claims = jwt_service.decode_token(auth_header)
-        if not ok:
-            raise HTTPException(status_code=401, detail="Token inválido o no autorizado")
+        # Intentar decodificación real si viene Bearer <token>
+        if scheme.lower() == "bearer" and token:
+            for name, fn in _decode_funcs:
+                try:
+                    ok_claims = None
+                    # jwt_manager.decode_token(header) → (is_valid, claims) o solo claims según tu versión.
+                    result = fn(auth_header) if name == "jwt_service.decode_token" else fn(auth_header)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        is_valid, claims = result
+                        ok_claims = claims if is_valid else None
+                    else:
+                        # Algunas implementaciones devuelven solo claims o dict
+                        ok_claims = result
 
-        # Guardar usuario en request.state
-        request.state.user = claims
-        response = await call_next(request)
-        return response
+                    if ok_claims:
+                        request.state.user = ok_claims
+                        logger.debug(f"[auth] Token válido ({name}). email={ok_claims.get('email')}")
+                        break
+                except Exception as e:
+                    logger.debug(f"[auth] {name} falló: {e}")
+
+        # Si no hubo token o fue inválido, seguimos sin `request.state.user`
+        return await call_next(request)

@@ -9,14 +9,14 @@ from typing import List, Optional, Literal, Any
 
 from pydantic import Field, EmailStr
 
-# 🔧 Compatibilidad con entornos donde pydantic_settings puede no resolverse correctamente
+# 🔧 Compatibilidad con entornos donde pydantic_settings puede no resolverse
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:  # Fallback para evitar error en IDE (sin romper ejecución)
     try:
-        import pydantic_settings as _ps
-        BaseSettings = getattr(_ps, "BaseSettings")
-        SettingsConfigDict = getattr(_ps, "SettingsConfigDict")
+        import pydantic_settings as _ps  # type: ignore
+        BaseSettings = getattr(_ps, "BaseSettings")  # type: ignore
+        SettingsConfigDict = getattr(_ps, "SettingsConfigDict")  # type: ignore
     except Exception:
         raise ImportError(
             "⚠️ No se pudo importar 'pydantic_settings'. Ejecuta: pip install pydantic-settings"
@@ -24,12 +24,12 @@ except ImportError:  # Fallback para evitar error en IDE (sin romper ejecución)
 
 # 🔧 Compatibilidad Pydantic v1/v2
 try:
-    from pydantic import field_validator, model_validator
+    from pydantic import field_validator, model_validator  # type: ignore
     _V2 = True
 except Exception:
     from pydantic import validator as field_validator  # type: ignore
 
-    def model_validator(*args, **kwargs):  # type: ignore
+    def model_validator(*_args, **_kwargs):  # type: ignore
         def _decor(f):
             return f
         return _decor
@@ -52,60 +52,51 @@ def _resolve_env_file() -> str:
         return ".env"
 
     app_env = (os.getenv("APP_ENV") or "dev").strip()
-    candidate = f".env.{app_env}"
-    return candidate
+    return f".env.{app_env}"
 
-class Settings(BaseSettings):
-    demo_mode: bool = True  # 🔧 Activa modo DEMO para la sustentación
-    jwt_algorithm: str = "HS256"
-    secret_key: str = "TU_CLAVE_SECRETA"
 
 class Settings(BaseSettings):
     """
     Configuración centralizada del proyecto.
-    Incluye soporte para JWT (HS y RS), MongoDB, Rasa, SMTP, S3,
+    Incluye soporte para JWT (HS/RS), MongoDB, Rasa, SMTP, S3,
     CSP/embebido, rate limiting, helpdesk, etc.
     """
-class Settings:
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    ADMIN_REGISTER_KEY: str = os.getenv("ADMIN_REGISTER_KEY", "")
-    JWT_SECRET: str = os.getenv("JWT_SECRET", "clave_super_segura")
+
     # === Configuración general ===
     model_config = SettingsConfigDict(
         env_file=_resolve_env_file(),
         case_sensitive=False,
     )
+
+    # ✅ Compat Pydantic v1
+    if not _V2:
+        class Config:  # type: ignore
+            env_file = _resolve_env_file()
+            case_sensitive = False
+
     # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
     """
     Si demo_mode=True:
-      - El backend aceptará el token simulado: Authorization: Bearer FAKE_TOKEN_ZAJUNA
-      - Ideal para presentaciones o entornos sin conexión real con Zajuna.
+      - El backend puede aceptar el token simulado FAKE_TOKEN_ZAJUNA (vía rutas demo).
     """
-
-    # ✅ ⚙️ Compatibilidad con Pydantic v1 y v2
-    if not _V2:
-        class Config:
-            pass
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")
     mongo_db_name: str = Field(..., alias="MONGO_DB_NAME")
 
-    # 🔐 JWT (emisión/validación HS* y validación RS*/JWKS)
+    # 🔐 JWT (HS* y compat RS*)
     secret_key: Optional[str] = Field(default=None, alias="SECRET_KEY")  # HS*
     jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  # RS* (PEM)
     jwt_jwks_url: Optional[str] = Field(default=None, alias="JWT_JWKS_URL")      # RS* (JWKS remoto)
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    # Validaciones extra opcionales para decodificación
+    # Validaciones extra opcionales para decodificación / dependencias.auth
     jwt_issuer: Optional[str] = Field(default=None, alias="JWT_ISSUER")
     jwt_audience: Optional[str] = Field(default=None, alias="JWT_AUDIENCE")
-    leeway_seconds: Optional[int] = Field(default=None, alias="JWT_LEEWAY_SECONDS")
-
-    # ✅ Compat temporal para tokens sin "typ"
-    jwt_accept_typeless: bool = Field(default=False, alias="JWT_ACCEPT_TYPELESS")
+    jwt_leeway_seconds: int = Field(default=0, alias="JWT_LEEWAY_SECONDS")  # ← usado por dependencies/auth
+    jwt_accept_typeless: bool = Field(default=True, alias="JWT_ACCEPT_TYPELESS")
 
     # ✅ Nombre de la cookie de refresh
     refresh_cookie_name: str = Field(default="rt", alias="REFRESH_COOKIE_NAME")
@@ -125,7 +116,7 @@ class Settings:
     email_from: EmailStr = Field(..., alias="EMAIL_FROM")
     email_to: EmailStr = Field(..., alias="EMAIL_TO")
 
-    # 👤 Admin
+    # 👤 Admin bootstrap opcional
     admin_email: EmailStr = Field(..., alias="ADMIN_EMAIL")
     admin_bootstrap_password: Optional[str] = Field(default=None, alias="ADMIN_BOOTSTRAP_PASSWORD")
 
@@ -136,10 +127,11 @@ class Settings:
         default_factory=lambda: ["http://localhost:5173"], alias="ALLOWED_ORIGINS"
     )
 
-    # 📁 Rutas estáticas
+    # 📁 Rutas estáticas / frontend
     static_dir: str = Field(default="backend/static", alias="STATIC_DIR")
     template_dir: str = Field(default="backend/templates", alias="TEMPLATE_DIR")
     favicon_path: str = Field(default="backend/static/favicon.ico", alias="FAVICON_PATH")
+    frontend_site_url: str = Field(default="http://localhost:5173", alias="FRONTEND_SITE_URL")
 
     # ☁️ S3
     aws_access_key_id: Optional[str] = Field(None, alias="AWS_ACCESS_KEY_ID")
@@ -154,7 +146,6 @@ class Settings:
     # 🧩 Embebido (CSP + redirects)
     frame_ancestors: List[str] = Field(default_factory=lambda: ["'self'"], alias="FRAME_ANCESTORS")
     embed_enabled: bool = Field(default=True, alias="EMBED_ENABLED")
-    frontend_site_url: str = Field(default="http://localhost:5173", alias="FRONTEND_SITE_URL")
 
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="APP_ENV")
@@ -168,6 +159,9 @@ class Settings:
     rate_limit_storage_uri: Optional[str] = Field(default=None, alias="RATE_LIMIT_STORAGE_URI")
     rate_limit_key_strategy: Literal["user_or_ip", "skip_admin", "ip"] = Field(
         default="user_or_ip", alias="RATE_LIMIT_KEY_STRATEGY"
+    )
+    rate_limit_provider: Optional[Literal["builtin", "slowapi", "fastapi-limiter"]] = Field(
+        default=None, alias="RATE_LIMIT_PROVIDER"
     )
 
     # 📞 Helpdesk / Escalada a humano
@@ -190,11 +184,6 @@ class Settings:
     # Rasa compat
     rasa_rest_url: Optional[str] = Field(default=None, alias="RASA_REST_URL")
     rasa_ws_url: Optional[str] = Field(default=None, alias="RASA_WS_URL")
-
-    # Rate limit provider
-    rate_limit_provider: Optional[Literal["builtin", "slowapi", "fastapi-limiter"]] = Field(
-        default=None, alias="RATE_LIMIT_PROVIDER"
-    )
 
     # CSP/Embed compat
     embed_allowed_origins: Optional[List[str]] = Field(default=None, alias="EMBED_ALLOWED_ORIGINS")
@@ -237,7 +226,6 @@ class Settings:
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
 
-    # Normalizador también para EMBED_ALLOWED_ORIGINS (compat)
     @field_validator("embed_allowed_origins", mode="before")
     @classmethod
     def _csv_or_json_embed(cls, v):
@@ -253,7 +241,7 @@ class Settings:
                 try:
                     parsed = json.loads(s)
                     if isinstance(parsed, list):
-                        return [str(x).strip() for x in parsed if str(x).strip()]
+                        return [str(x).strip() for x in parsed if x and str(x).strip()]
                 except Exception:
                     pass
             return [x.strip() for x in s.split(",") if x.strip()]
@@ -283,6 +271,7 @@ class Settings:
     # ─────────────────────────────────────────────────────────────
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
+        # Redis requerido si backend de rate limit es redis
         if (
             self.rate_limit_enabled
             and self.rate_limit_backend == "redis"
@@ -293,9 +282,9 @@ class Settings:
                 "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
             )
 
+        # JWT requisitos según algoritmo
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
-            # ✅ Ahora aceptamos PUBLIC KEY o JWKS URL
             if not ((self.jwt_public_key and self.jwt_public_key.strip()) or (self.jwt_jwks_url and self.jwt_jwks_url.strip())):
                 raise ValueError("Para RS*, define JWT_PUBLIC_KEY (PEM) o JWT_JWKS_URL (JWKS remoto).")
         elif alg.startswith("HS"):
@@ -317,6 +306,7 @@ class Settings:
 
     @property
     def rasa_rest_base(self) -> str:
+        # Alias práctico; muchos servicios leen settings.rasa_url
         return self.rasa_url
 
     @property
@@ -346,6 +336,7 @@ class Settings:
             return str(self.redis_url).strip()
         return "memory://"
 
+    # Compat con código legacy
     @property
     def jwt_secret(self) -> Optional[str]:
         # Código legacy usa settings.jwt_secret → ahora es secret_key

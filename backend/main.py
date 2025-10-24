@@ -6,10 +6,6 @@ load_dotenv()
 
 import os
 from pathlib import Path
-from time import time
-from typing import Deque, DefaultDict, Any, Dict
-from collections import defaultdict, deque
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -21,29 +17,23 @@ setup_logging()
 log = get_logger(__name__)
 
 from backend.config.settings import settings
+
+# 🧩 Middlewares propios actualizados
 from backend.middleware.request_id import RequestIdMiddleware
-
-# 🧩 Middlewares propios
-from backend.middleware.auth_middleware import AuthMiddleware
-try:
-    from backend.middleware.logging_middleware import LoggingMiddleware
-    _LOGGING_MIDDLEWARE_AVAILABLE = True
-except Exception:
-    LoggingMiddleware = None  # type: ignore
-    _LOGGING_MIDDLEWARE_AVAILABLE = False
-
+from backend.middleware.request_meta import request_meta_middleware
+from backend.middleware.log_middleware import LoggingMiddleware       # ✅ nuevo
 from backend.middleware.access_log_middleware import AccessLogMiddleware
-from backend.middleware.request_meta import request_meta_middleware  # IP/UA
+from backend.middleware.auth_middleware import AuthMiddleware
 
-# 🧭 Router agregador central (auth, tokens, chat, logs, stats, train, intents, etc.)
+# 🧭 Routers agregadores y controladores
 from backend.routes import router as api_router
+from backend.controllers import admin_controller as admin_ctrl
+from backend.controllers import user_controller as users_ctrl
 
-# Rate limit helper
-from backend.rate_limit import set_limiter  # no-op si no corresponde
-
-# FastAPI-Limiter opcional
+# ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
+
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -51,7 +41,7 @@ from backend.ext.redis_client import close_redis
 if getattr(settings, "demo_mode", False):
     print("\n" + "=" * 70)
     print("⚠️  MODO DEMO ACTIVADO")
-    print("   El backend acepta un token simulado para pruebas.")
+    print("   El backend acepta el token simulado para pruebas.")
     print("=" * 70 + "\n")
 else:
     print("✅ Modo producción: autenticación real activa.\n")
@@ -93,11 +83,22 @@ def create_app() -> FastAPI:
     # ➕ Middleware IP/UA
     app.middleware("http")(request_meta_middleware)
 
-    # 📁 Estáticos
+    # 🧾 Logging HTTP con duración, IP, user y request-id
+    app.add_middleware(LoggingMiddleware)
+
+    # 📜 Access logs a base de datos (usa request.state.user)
+    app.add_middleware(AccessLogMiddleware)
+
+    # 🔐 Auth: agrega request.state.user (JWT o demo)
+    app.add_middleware(AuthMiddleware)
+
+    # 📁 Archivos estáticos
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # 🔀 Rutas API principales vía agregador
+    # 🔀 Rutas API principales
     app.include_router(api_router)
+    app.include_router(admin_ctrl.router)
+    app.include_router(users_ctrl.router)
 
     # 🔒 CSP (embebidos)
     @app.middleware("http")
@@ -110,15 +111,9 @@ def create_app() -> FastAPI:
         resp.headers["X-Frame-Options"] = "SAMEORIGIN"
         return resp
 
-    # 🧠 Middlewares personalizados
-    app.add_middleware(AccessLogMiddleware)
-    if _LOGGING_MIDDLEWARE_AVAILABLE and LoggingMiddleware:
-        app.add_middleware(LoggingMiddleware)
-    app.add_middleware(AuthMiddleware)
-
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
 
-    # ✅ Health y utilidades públicas
+    # ✅ Health check
     @app.get("/health", include_in_schema=False)
     async def health():
         return {"ok": True}
@@ -129,7 +124,6 @@ def create_app() -> FastAPI:
             return RedirectResponse(url=f"{FRONT_BASE}/favicon.ico", status_code=302)
         return Response(status_code=404)
 
-    # 🧭 Assets comunes de PWA/Widget (redirect a frontend si aplica)
     @app.get("/site.webmanifest", include_in_schema=False)
     async def manifest():
         if FRONT_BASE:
@@ -145,13 +139,12 @@ def create_app() -> FastAPI:
             "theme_color": "#0f172a",
             "background_color": "#ffffff",
             "icons": [
-                {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-                {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+                {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png"},
+                {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png"},
             ],
         }
         return JSONResponse(data, media_type="application/manifest+json")
 
-    # 🌱 Root
     @app.get("/", include_in_schema=False)
     def root():
         return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
@@ -171,20 +164,22 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+
 # ─────────────────────────────────────────────────────
-# FastAPI-Limiter (opcional) — SOLO si RATE_LIMIT_PROVIDER=fastapi-limiter
+# FastAPI-Limiter opcional
 # ─────────────────────────────────────────────────────
 @app.on_event("startup")
 async def _startup():
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
-        await init_rate_limit(app)   # si Redis no está disponible, no hace nada
+        await init_rate_limit(app)
 
 @app.on_event("shutdown")
 async def _shutdown():
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()
+
 
 # 🔥 Standalone
 if __name__ == "__main__":
