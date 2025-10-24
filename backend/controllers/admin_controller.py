@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
@@ -52,7 +52,7 @@ except Exception:
 JWT_ALG = "HS256"
 
 
-def _local_create_access_token(claims: Dict, expires_delta: Optional[timedelta] = None) -> str:
+def _local_create_access_token(claims: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
     Genera JWT con prioridad:
       1) backend.dependencies.auth.create_access_token (si está)
@@ -78,7 +78,7 @@ def _local_create_access_token(claims: Dict, expires_delta: Optional[timedelta] 
     return _pyjwt.encode(to_encode, settings.secret_key, algorithm=JWT_ALG)
 
 
-def _local_decode_token(token: str) -> Dict:
+def _local_decode_token(token: str) -> Dict[str, Any]:
     """
     Decodifica JWT con prioridad:
       1) backend.dependencies.auth.verify_token (si está)
