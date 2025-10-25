@@ -34,7 +34,11 @@ from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
 from backend.routes.chat_proxy import router as chat_router
 from backend.routes.me_settings import router as me_router         
-from backend.db.mongo import connect_to_mongo, close_mongo   
+from backend.db.mongo import connect_to_mongo, close_mongo    
+from backend.routes.me_settings import router as me_settings_router
+from backend.middleware.cors_csp import add_cors_and_csp
+from backend.routes.user_settings import router as user_settings_router  # ✅ NUEVO
+
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
 # =========================================================
@@ -91,9 +95,12 @@ def create_app() -> FastAPI:
 
     # 🔐 Auth: agrega request.state.user (JWT o demo)
     app.add_middleware(AuthMiddleware)
-    app.include_router(me_settings_router)   # ← expone /api/me/settings
+    app.include_router(me_settings_router)  
+    app = FastAPI(...)
+    add_cors_and_csp(app)
+
     # 📁 Archivos estáticos
-    Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)  # 👈 asegura que la carpeta exista
+    Path(STATIC_DIR).mkdir(parents=True, exist_ok=True) 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # 🔀 Rutas API principales
@@ -102,6 +109,9 @@ def create_app() -> FastAPI:
     app.include_router(users_ctrl.router)
     app.include_router(chat_router)
     app.include_router(me_router)     
+    app.include_router(me_settings_router)
+    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])
+    app.include_router(user_settings_router)  
 
     # 🔒 CSP (embebidos)
     @app.middleware("http")

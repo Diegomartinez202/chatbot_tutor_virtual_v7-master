@@ -313,10 +313,30 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins_list(self) -> List[str]:
-        return list(self.allowed_origins or [])
+        """
+        Unión de ALLOWED_ORIGINS + EMBED_ALLOWED_ORIGINS para CORS.
+        """
+        merged, seen = [], set()
+        for lst in (self.allowed_origins or []), (self.embed_allowed_origins or []):
+            for o in lst:
+                s = (o or "").strip()
+                if s and s not in seen:
+                    merged.append(s)
+                    seen.add(s)
+        return merged
 
     def build_csp(self) -> str:
-        fa = " ".join(self.frame_ancestors or ["'self'"])
+        """
+        CSP con frame-ancestors unificado: FRAME_ANCESTORS + EMBED_ALLOWED_ORIGINS.
+        """
+        merged_fa, seen = [], set()
+        for lst in (self.frame_ancestors or []), (self.embed_allowed_origins or []):
+            for o in lst:
+                s = (o or "").strip()
+                if s and s not in seen:
+                    merged_fa.append(s)
+                    seen.add(s)
+        fa = " ".join(merged_fa or ["'self'"])
         return (
             "default-src 'self'; "
             f"frame-ancestors {fa}; "

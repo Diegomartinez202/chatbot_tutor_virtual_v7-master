@@ -25,5 +25,6 @@
   "language_help": "Selecciona el idioma de la interfaz.",
   "session_chat": "Sesión / Chat",
   "logout_app": "Cerrar sesión en la aplicación",
-  "close_chat": "Cerrar el panel/flotante de chat"
+  "close_chat": "Cerrar el panel/flotante de chat",
+  "prefs_synced": "Preferencias sincronizadas"
 }

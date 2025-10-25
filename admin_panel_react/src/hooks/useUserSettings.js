@@ -1,4 +1,4 @@
-// admin_panel_react/src/components/SettingsPanel.jsx
+// src/components/SettingsPanel.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     X,
@@ -15,7 +15,25 @@ import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast"; // 🆕 toaster
 import { STORAGE_KEYS } from "@/lib/constants";
-import { useUserSettings } from "@/hooks/useUserSettings"; // 🆕 hook de carga/guardado
+
+// ===== Token helper (sin romper SSR/tests) =====
+function getAccessTokenSafe() {
+    try {
+        // 1) Si tu app expone en memoria (ej. Zustand): window.__APP_ACCESS_TOKEN__
+        if (typeof window !== "undefined" && window.__APP_ACCESS_TOKEN__) {
+            return String(window.__APP_ACCESS_TOKEN__);
+        }
+        // 2) Fallback a localStorage
+        if (typeof window !== "undefined") {
+            return (
+                window.localStorage.getItem(STORAGE_KEYS.accessToken) ||
+                window.localStorage.getItem("zajuna_token") ||
+                null
+            );
+        }
+    } catch { /* ignore */ }
+    return null;
+}
 
 const LS_KEY = "app:settings";
 
@@ -39,32 +57,23 @@ const writeLS = (obj) => {
     }
 };
 
-/** Token (store/localStorage) para Authorization */
-function getAuthToken() {
-    try {
-        return localStorage.getItem(STORAGE_KEYS.accessToken) || null;
-    } catch {
-        return null;
-    }
-}
-
 /** (Opcional) sincronizar preferencia con backend
  *  - No se ejecuta si no defines VITE_USER_SETTINGS_URL
  *  - Retorna { ok: boolean, status?: number, skipped?: boolean }
  */
 async function maybeSyncToBackend(prefs) {
-    const url = import.meta.env.VITE_USER_SETTINGS_URL || "/api/me/settings"; // ej: /api/me/settings
+    const url = import.meta.env.VITE_USER_SETTINGS_URL; // ej: /api/me/settings
     if (!url) return { ok: false, skipped: true }; // ❌ sin endpoint → no hace nada
 
     try {
+        const token = getAccessTokenSafe();
         const headers = { "Content-Type": "application/json" };
-        const token = getAuthToken();
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const res = await fetch(url, {
             method: "PUT",
             headers,
-            credentials: "include",
+            // ✅ ahora por header Authorization (no cookies httpOnly)
             body: JSON.stringify({
                 language: prefs.language,
                 theme: prefs.darkMode ? "dark" : "light",
@@ -82,6 +91,35 @@ async function maybeSyncToBackend(prefs) {
     }
 }
 
+/** (Nuevo) GET inicial para precargar preferencias remotas.
+ *    - Si no hay endpoint, se omite.
+ *    - Si 200, aplicamos al panel y a localStorage sin romper local.
+ */
+async function maybeFetchPrefsFromBackend() {
+    const url = import.meta.env.VITE_USER_SETTINGS_URL;
+    if (!url) return { ok: false, skipped: true };
+
+    try {
+        const token = getAccessTokenSafe();
+        const headers = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const res = await fetch(url, { method: "GET", headers });
+        if (!res.ok) return { ok: false, status: res.status };
+
+        const data = await res.json().catch(() => ({}));
+        const prefs = {
+            language: data.language ?? "es",
+            darkMode: (data.theme ?? "light") === "dark",
+            fontScale: typeof data.fontScale === "number" ? data.fontScale : 1,
+            highContrast: !!data.highContrast,
+        };
+        return { ok: true, prefs };
+    } catch {
+        return { ok: false };
+    }
+}
+
 export default function SettingsPanel({
     open,
     onClose,
@@ -93,9 +131,6 @@ export default function SettingsPanel({
     // i18n namespaces: textos del panel en 'config', textos comunes en defaultNS ('common')
     const { t: tConfig } = useTranslation("config");
     const { t } = useTranslation(); // defaultNS=common (logout, etc.)
-
-    // 🆕 Carga inicial desde backend (GET) + estado local
-    const { prefs: serverPrefs, loading: loadingServerPrefs, load: reloadPrefs } = useUserSettings({ autoLoad: true });
 
     const initial = useMemo(
         () => ({
@@ -109,25 +144,7 @@ export default function SettingsPanel({
     );
 
     const [state, setState] = useState(initial);
-
-    // 🆕 Cuando lleguen las prefs del backend, mezclamos con las locales (sin romper overrides del usuario)
-    useEffect(() => {
-        if (!loadingServerPrefs && serverPrefs) {
-            setState((prev) => {
-                const merged = {
-                    ...prev,
-                    language: serverPrefs.language ?? prev.language,
-                    darkMode: (serverPrefs.theme ?? "light") === "dark" ? true : prev.darkMode,
-                    fontScale: Number(serverPrefs.fontScale ?? prev.fontScale),
-                    highContrast: !!(serverPrefs.highContrast ?? prev.highContrast),
-                };
-                // Persistimos el merged (para no perder en reload)
-                writeLS(merged);
-                return merged;
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loadingServerPrefs, serverPrefs?.language, serverPrefs?.theme, serverPrefs?.fontScale, serverPrefs?.highContrast]);
+    const [loadedRemote, setLoadedRemote] = useState(false);
 
     // 🆕 debounce para no mostrar múltiples toasts si el usuario mueve el slider
     const toastTimerRef = useRef(null);
@@ -138,6 +155,34 @@ export default function SettingsPanel({
             toastTimerRef.current = null;
         }, 450);
     };
+
+    // 🆕 GET inicial (una sola vez cuando se abra el panel por primera vez)
+    useEffect(() => {
+        let alive = true;
+        if (!open || loadedRemote) return;
+
+        (async () => {
+            const res = await maybeFetchPrefsFromBackend();
+            if (!alive) return;
+
+            if (res.ok && res.prefs) {
+                // Actualiza estado y persistencia local sin romper tus defaults
+                const merged = { ...state, ...res.prefs };
+                setState(merged);
+                writeLS(merged);
+
+                // Aplica i18n inmediatamente si vino language
+                if (merged.language) {
+                    i18n.changeLanguage(merged.language);
+                    onLanguageChange?.(merged.language);
+                }
+            }
+            setLoadedRemote(true);
+        })();
+
+        return () => { alive = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     // Aplicar tema/escala/contraste + persistir + cambiar idioma + sync backend (opcional)
     useEffect(() => {
@@ -168,8 +213,6 @@ export default function SettingsPanel({
             // Mostrar toaster sólo si hubo backend y respondió OK
             if (result.ok && !result.skipped) {
                 scheduleToast();
-                // Releer para asegurar consistencia visual si otra pestaña cambió algo
-                reloadPrefs?.();
             }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps

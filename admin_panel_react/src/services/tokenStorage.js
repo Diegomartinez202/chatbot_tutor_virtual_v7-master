@@ -1,5 +1,5 @@
 // src/services/tokenStorage.js
-// AlmacÈn robusto para tokens en memoria + localStorage (varios nombres por compatibilidad)
+// Almac√©n robusto para tokens en memoria + localStorage (varios nombres por compatibilidad)
 
 const KEYS = [
     "auth_token",
@@ -29,7 +29,7 @@ export function setToken(token) {
         clearToken();
         return;
     }
-    // Clave ìoficialî
+    // Clave ‚Äúoficial‚Äù
     localStorage.setItem("auth_token", token);
     // Espejos por compatibilidad
     localStorage.setItem("access_token", token);
@@ -43,7 +43,7 @@ export function clearToken() {
 }
 
 export function getRefreshToken() {
-    // Si manejas refresh_token, gu·rdalo aquÌ:
+    // Si manejas refresh_token, gu√°rdalo aqu√≠:
     //  - localStorage.setItem("refresh_token", x)
     try {
         return localStorage.getItem("refresh_token");

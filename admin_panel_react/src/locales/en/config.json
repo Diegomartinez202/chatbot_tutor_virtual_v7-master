@@ -10,5 +10,6 @@
   "loginPanel": "Login (panel)",
   "zajuna": "Zajuna",
   "loginZajuna": "Login with Zajuna",
-  "registerZajuna": "Sign up with Zajuna"
+  "registerZajuna": "Sign up with Zajuna",
+  "prefs_synced": "Preferences synced"
 }

@@ -26,6 +26,13 @@ try:
     except Exception as idx_e:
         print(f"⚠️ No se pudo crear/verificar índice de email: {idx_e}")
 
+    # 🟩 Índice único en user_settings.user_id (preferencias por usuario)
+    try:
+        client[MONGO_DB_NAME]["user_settings"].create_index("user_id", unique=True)
+        print("✅ Índice único en 'user_settings.user_id' creado/verificado")
+    except Exception as idx_e2:
+        print(f"⚠️ No se pudo crear/verificar índice de user_settings.user_id: {idx_e2}")
+
 except errors.ServerSelectionTimeoutError as e:
     print("❌ Error: No se pudo conectar a MongoDB (timeout)")
     print(e)
@@ -57,3 +64,7 @@ def get_intents_collection():
 
 def get_test_logs_collection():
     return get_database()["test_logs"]
+
+def get_user_settings_collection():
+    """Colección de preferencias por usuario."""
+    return get_database()["user_settings"]

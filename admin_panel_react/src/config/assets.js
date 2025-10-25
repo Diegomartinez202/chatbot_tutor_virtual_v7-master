@@ -1,6 +1,6 @@
 // assets.js
-// Centraliza rutas p˙blicas servidas desde /public
-// Compatible con desarrollo, producciÛn en subcarpetas y entornos sin BASE_URL
+// Centraliza rutas p√∫blicas servidas desde /public
+// Compatible con desarrollo, producci√≥n en subcarpetas y entornos sin BASE_URL
 
 const getBaseUrl = () => {
     try {
@@ -8,7 +8,7 @@ const getBaseUrl = () => {
         const baseEnv = import.meta.env?.BASE_URL || "/";
         return baseEnv.replace(/\/+$/, "/"); // eliminar barras al final
     } catch {
-        // Fallback si import.meta.env no est· disponible (ej: entornos especiales)
+        // Fallback si import.meta.env no est√° disponible (ej: entornos especiales)
         const origin = window.location.origin;
         const baseTag = document.querySelector("base")?.getAttribute("href") || "/";
         return new URL(baseTag, origin).href.replace(/\/+$/, "/");
@@ -17,13 +17,13 @@ const getBaseUrl = () => {
 
 const BASE = getBaseUrl();
 
-// FunciÛn para generar rutas absolutas de assets
+// Funci√≥n para generar rutas absolutas de assets
 const abs = (path) => {
     const cleanPath = path.replace(/^\/+/, ""); // eliminar barras al inicio
     try {
         return `${BASE}${cleanPath}`;
     } catch {
-        console.warn(`Ruta inv·lida: ${path}`);
+        console.warn(`Ruta inv√°lida: ${path}`);
         return cleanPath;
     }
 };
