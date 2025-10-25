@@ -17,19 +17,32 @@ export default defineConfig({
     },
 
     server: {
-        host: "localhost",
+        host: true, // escucha en 0.0.0.0 (útil en Docker)
         port: Number(process.env.PORT) || 5173,
-        strictPort: false, // Si el puerto está ocupado, usa otro
-        open: true,
+        strictPort: false,
+        open: false, // evita xdg-open
         hmr: {
-            overlay: false, // 🚫 Desactiva el overlay rojo de errores en el navegador
+            overlay: false, // sin overlay rojo
+        },
+        proxy: {
+            "/static": {
+                // Si usas Docker con red interna, cambia a "http://backend:8000"
+                target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
+                changeOrigin: true,
+            },
+            // Si quieres también proxyear la API en dev, descomenta:
+            "/api": {
+            target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
+            changeOrigin: true,
+            },
         },
     },
 
     preview: {
-        host: "localhost",
+        host: true,
         port: 5173,
         strictPort: false,
+        open: false,
     },
 
     // Evita "process is not defined" si algún código lee process.env

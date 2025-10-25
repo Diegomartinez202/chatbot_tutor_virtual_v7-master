@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
 from backend.dependencies.auth import get_current_user
-from backend.utils.jwt_manager import create_access_token, create_refresh_token
+from backend.services.token_service import create_access_token, create_refresh_token
 from backend.config.settings import settings
 from backend.utils.logging import get_logger
 from backend.rate_limit import limit
