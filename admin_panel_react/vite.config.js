@@ -6,10 +6,9 @@ import { resolve } from "node:path";
 export default defineConfig({
     plugins: [react()],
 
-    // útil para despliegues en subdirectorios (GitHub Pages, etc.)
+    // útil si alguna vez sirves en subcarpetas
     base: "./",
 
-    // Alias @ → src
     resolve: {
         alias: {
             "@": resolve(__dirname, "src"),
@@ -17,35 +16,50 @@ export default defineConfig({
     },
 
     server: {
-        host: true, // escucha en 0.0.0.0 (útil en Docker)
+        host: true,                     // escucha en 0.0.0.0 dentro del contenedor
         port: Number(process.env.PORT) || 5173,
         strictPort: false,
-        open: false, // evita xdg-open
-        hmr: {
-            overlay: false, // sin overlay rojo
-        },
+        open: false,                    // evita xdg-open en Linux/containers
+        hmr: { overlay: false },
+
+        // 🔁 PROXY: desde Vite → a servicios del compose
+        // - En DEV con tus servicios actuales, desde el contenedor de Vite
+        //   el backend se llama http://backend-dev:8000 (¡no localhost!)
         proxy: {
+            // estáticos del backend (FastAPI mount /static) => evita el MIME text/html
             "/static": {
-                // Si usas Docker con red interna, cambia a "http://backend:8000"
-                target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
+                target: "http://backend-dev:8000",
                 changeOrigin: true,
             },
-            // Si quieres también proxyear la API en dev, descomenta:
+
+            // si quieres pegarle a la API directamente durante el dev (opcional):
             "/api": {
-            target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
-            changeOrigin: true,
+                target: "http://backend-dev:8000",
+                changeOrigin: true,
+            },
+
+            // si quieres pegarle directo a Rasa desde Vite (opcional):
+            // OJO: ya tienes Nginx dev para esto; si usas 8080, no lo necesitas.
+            "/rasa": {
+                target: "http://rasa:5005",
+                changeOrigin: true,
+                rewrite: (p) => p.replace(/^\/rasa/, ""), // /rasa/... -> /
+            },
+            "/ws": {
+                target: "ws://rasa:5005",
+                changeOrigin: true,
+                ws: true,
+                rewrite: (p) => p.replace(/^\/ws/, ""), // /ws -> /
             },
         },
     },
 
     preview: {
-        host: true,
+        host: "localhost",
         port: 5173,
         strictPort: false,
-        open: false,
     },
 
-    // Evita "process is not defined" si algún código lee process.env
     define: {
         "process.env": {},
     },
