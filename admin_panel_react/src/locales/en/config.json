@@ -1,0 +1,14 @@
+{
+  "title": "Settings",
+  "accessibility": "Accessibility",
+  "language": "Language",
+  "theme": "Theme",
+  "dark": "Dark",
+  "light": "Light",
+  "adminPanel": "Admin panel",
+  "registerPanel": "Register (panel)",
+  "loginPanel": "Login (panel)",
+  "zajuna": "Zajuna",
+  "loginZajuna": "Login with Zajuna",
+  "registerZajuna": "Sign up with Zajuna"
+}

@@ -3,10 +3,9 @@ module.exports = {
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
-        "./public/**/*.html"
+        "./public/**/*.html",
     ],
-    darkMode: "class",
-    safelist: ["dark", "high-contrast"], // ✅ Mantiene clases incluso sin uso directo
+    darkMode: "class", // ✅ usar clase en lugar de media
     theme: {
         extend: {
             colors: {
@@ -19,5 +18,6 @@ module.exports = {
             },
         },
     },
+    safelist: ["dark", "high-contrast", "bg-accent", "hover:bg-secondary"], // asegurar que Tailwind genere estas clases
     plugins: [],
 };

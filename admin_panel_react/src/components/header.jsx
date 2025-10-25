@@ -22,10 +22,12 @@ import SettingsPanel from "@/components/SettingsPanel";
 import IconTooltip from "@/components/ui/IconTooltip";
 import Badge from "@/components/Badge";
 import assets from "@/config/assets";
-import { useTranslation } from "react-i18next"; // 👈 i18n
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "@/components/LanguageSelector";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Header = () => {
-    const { t } = useTranslation(); // 👈 traducción activa
+    const { t } = useTranslation(); // defaultNS=common
     const { user, logout: doLogout } = useAuth();
     const logout = doLogout || (() => { });
     const role = user?.rol || "usuario";
@@ -35,10 +37,8 @@ const Header = () => {
 
     const [openSettings, setOpenSettings] = React.useState(false);
 
-    // Avatar configurable + fallback seguro desde assets normalizados
     const AVATAR = import.meta.env.VITE_BOT_AVATAR || assets.BOT_AVATAR;
 
-    // Abrir el widget de chat si está presente; si no, navegar a /chat
     const openChat = (e) => {
         try {
             if (window.ChatWidget?.open) {
@@ -52,9 +52,6 @@ const Header = () => {
         }
     };
 
-    // ────────────────────────────────────────────────────────────
-    // Breadcrumb simple
-    // ────────────────────────────────────────────────────────────
     const labelMap = {
         "": t("inicio"),
         dashboard: t("dashboard"),
@@ -72,7 +69,7 @@ const Header = () => {
         chat: t("chat"),
         iframe: t("iframe"),
         auth: t("auth"),
-        callback: t("callback"),
+        callback: t("callback")
     };
 
     const path = location.pathname.replace(/^\/+|\/+$/g, "");
@@ -84,9 +81,6 @@ const Header = () => {
         crumbs.push({ to: acc, label: labelMap[seg] || seg });
     }
 
-    // ────────────────────────────────────────────────────────────
-    // Navegación lateral
-    // ────────────────────────────────────────────────────────────
     const navLinks = [
         { to: "/", label: t("inicio"), icon: HomeIcon, roles: ["admin", "soporte", "usuario"], tip: t("pagina_bienvenida") },
         { to: "/dashboard", label: t("dashboard"), icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"], tip: t("vista_general") },
@@ -96,7 +90,7 @@ const Header = () => {
         { to: "/admin/diagnostico", label: t("pruebas"), icon: FlaskConical, roles: ["admin", "soporte"], tip: t("diagnostico_conexion") },
         { to: "/user-management", label: t("usuarios"), icon: UsersIcon, roles: ["admin"], tip: t("gestion_usuarios") },
         { to: "/chat", label: t("chat"), icon: MessageSquareText, roles: ["admin", "soporte", "usuario"], tip: t("abrir_chat"), isChat: true },
-        { to: "/intentos-fallidos", label: t("intentos_fallidos"), icon: BarChart2, roles: ["admin"], tip: t("intents_no_reconocidos") },
+        { to: "/intentos-fallidos", label: t("intentos_fallidos"), icon: BarChart2, roles: ["admin"], tip: t("intents_no_reconocidos") }
     ];
     const canSee = (l) => !l.roles || l.roles.includes(role);
 
@@ -109,9 +103,7 @@ const Header = () => {
                         <Link to="/" className="shrink-0" aria-label={t("ir_inicio")}>
                             <img
                                 src={AVATAR}
-                                onError={(e) => {
-                                    e.currentTarget.src = "/bot-avatar.png";
-                                }}
+                                onError={(e) => { e.currentTarget.src = "/bot-avatar.png"; }}
                                 alt={t("inicio")}
                                 className="w-10 h-10 rounded-lg object-contain bg-white/10 p-1"
                                 loading="eager"
@@ -202,8 +194,9 @@ const Header = () => {
                     </nav>
                 </div>
 
-                {/* Config + Logout */}
+                {/* Config + Header actions */}
                 <div className="p-6 flex items-center justify-between gap-2">
+                    {/* Botón de configuración */}
                     <IconTooltip label={t("configuracion")} side="top">
                         <button
                             onClick={() => setOpenSettings(true)}
@@ -214,7 +207,18 @@ const Header = () => {
                             <Cog size={16} /> {t("configuracion_corta")}
                         </button>
                     </IconTooltip>
-                    <LogoutButton />
+
+                    {/* Botones de cabecera: idioma, tema, salir */}
+                    <div className="header-actions flex items-center gap-2 justify-end">
+                        <LanguageSelector />
+                        <ThemeToggle />
+                        <button
+                            onClick={logout}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded bg-accent text-white hover:bg-secondary transition"
+                        >
+                            {t("logout")}
+                        </button>
+                    </div>
                 </div>
             </aside>
 

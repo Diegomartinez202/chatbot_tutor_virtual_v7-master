@@ -29,7 +29,11 @@ export async function connectRasaRest(opts = {}) {
         (typeof localStorage !== "undefined" ? localStorage.getItem("zajuna_token") : null);
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const res = await fetch(healthUrl, { method: "GET", headers });
+    const res = await fetch(healthUrl, {
+        method: "GET",
+        headers,
+        credentials: "include", // 👈 por si usas cookie HttpOnly
+    });
     if (!res.ok) throw new Error(`Healthcheck failed: ${res.status}`);
     return true;
 }
@@ -73,6 +77,7 @@ export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, to
     const res = await fetch(host, {
         method: "POST",
         headers,
+        credentials: "include", // 👈 por si usas cookie HttpOnly
         body: JSON.stringify(body),
     });
 

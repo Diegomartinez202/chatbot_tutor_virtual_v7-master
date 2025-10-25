@@ -8,7 +8,7 @@ import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "@/store/authStore";            // 🆕 lee token centralizado
+import { useAuthStore } from "@/store/authStore";            // 🆕 token centralizado
 import { STORAGE_KEYS } from "@/lib/constants";             // 🆕 fallback a localStorage
 import "./ChatUI.css";
 
@@ -90,7 +90,8 @@ function UserAvatar({ user, size = 28 }) {
 
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
-    const { t, i18n } = useTranslation();
+    const { t: tChat, i18n } = useTranslation("chat");
+    const { t: tConfig } = useTranslation("config");
 
     // 🆕 Token centralizado (Zustand) + fallback a localStorage + soporte embed via postMessage
     const storeToken = useAuthStore((s) => s.accessToken);
@@ -98,12 +99,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
 
     // Inicializa token desde store/localStorage
     useEffect(() => {
-        // 1) store
         if (storeToken) {
             setAuthToken(storeToken);
             return;
         }
-        // 2) localStorage (compatibilidad)
         try {
             const ls = localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
             if (ls) setAuthToken(ls);
@@ -115,7 +114,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         if (!embed) return;
         const onMsg = (ev) => {
             try {
-                // Seguridad básica: valida orígenes permitidos si los configuraste
                 const origin = normalize(ev.origin || "");
                 if (envAllowed.length && !envAllowed.includes(origin)) return;
 
@@ -135,7 +133,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             const label = (btn.getAttribute("aria-label") || btn.textContent || "")
                 .trim()
                 .toLowerCase();
-            const isOurMenu = label === (t("config.title") || "").trim().toLowerCase();
+            const isOurMenu = label === (tConfig("title") || "").trim().toLowerCase();
             const looksSettings = label === "settings";
             return looksSettings && !isOurMenu;
         };
@@ -147,22 +145,20 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         };
 
         sweep(); // primera pasada
-
         const obs = new MutationObserver((muts) => {
             for (const m of muts) {
                 if (m.type === "childList") sweep();
             }
         });
         obs.observe(document.body, { childList: true, subtree: true });
-
         return () => obs.disconnect();
-    }, [t]);
+    }, [tConfig]);
 
     // Mensaje de bienvenida traducido
     const [messages, setMessages] = useState([]);
     useEffect(() => {
-        setMessages([{ id: "welcome", role: "bot", text: t("chat.welcome") }]);
-    }, [i18n.resolvedLanguage, t]);
+        setMessages([{ id: "welcome", role: "bot", text: tChat("welcome") }]);
+    }, [i18n.resolvedLanguage, tChat]);
 
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
@@ -254,7 +250,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                 });
             }
         });
-        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: t("chat.noResponse") });
+        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
 
         setTyping(true);
         for (let i = 0; i < items.length; i++) {
@@ -262,21 +258,20 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             setMessages(m => [...m, items[i]]);
         }
         setTyping(false);
-    }, [t]);
+    }, [tChat]);
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
         if (needAuth && !authToken) {
             // En embed, solicita autenticación al contenedor
             window.parent?.postMessage({ type: "auth:needed" }, parentOrigin);
-            setError(t("chat.authRequired"));
+            setError(tChat("authRequired"));
             return;
         }
         setSending(true);
         setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
         try {
-            // 🆕 pasa el token si existe (store/localStorage o embed)
             const rsp = await sendRasaMessage({
                 text,
                 sender: userId || undefined,
@@ -284,7 +279,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             });
             await appendBotMessages(rsp);
         } catch (e) {
-            setError(e?.message || t("chat.errorSending"));
+            setError(e?.message || tChat("errorSending"));
         } finally {
             setSending(false);
         }
@@ -300,7 +295,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             handleSend();
         }
     };
-    const handleActionClick = async (groupId, { title, payload, url }) => {
+    const handleActionClick = async (_groupId, { title, payload, url }) => {
         if (url) window.open(url, "_blank", "noopener,noreferrer");
         if (!payload) return;
         await sendToRasa({ text: payload, displayAs: title });
@@ -338,7 +333,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                                     <BotRow>
                                         <BotAvatar size={28} />
                                         <div className="rounded-2xl px-3 py-2 max-w-[50%] text-sm break-words bg-gray-100 text-gray-800 animate-fade-slide">
-                                            {t("chat.typing")}
+                                            {tChat("typing")}
                                             <span className="typing-dots">...</span>
                                         </div>
                                     </BotRow>

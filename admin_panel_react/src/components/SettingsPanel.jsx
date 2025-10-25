@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import i18n from "@/i18n";
+import { useTranslation } from "react-i18next";
 
 const LS_KEY = "app:settings";
 
+/** Lee settings locales sin romper SSR/tests */
 const safeReadLS = () => {
     try {
         if (typeof window === "undefined") return {};
@@ -34,6 +36,31 @@ const writeLS = (obj) => {
     }
 };
 
+/** (Opcional) sincronizar preferencia con backend
+ *  - No se ejecuta si no defines VITE_USER_SETTINGS_URL
+ *  - Idempotente y silencioso si falla
+ */
+async function maybeSyncToBackend(prefs) {
+    const url = import.meta.env.VITE_USER_SETTINGS_URL; // ej: /api/me/settings
+    if (!url) return; // no hay endpoint → no hace nada
+
+    try {
+        await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                language: prefs.language,
+                theme: prefs.darkMode ? "dark" : "light",
+                fontScale: prefs.fontScale,
+                highContrast: !!prefs.highContrast,
+            }),
+        });
+    } catch {
+        // silencioso: evitamos romper UX si el backend no está listo
+    }
+}
+
 export default function SettingsPanel({
     open,
     onClose,
@@ -42,7 +69,10 @@ export default function SettingsPanel({
     onCloseChat,
     onLanguageChange,
 }) {
-    // Estado inicial consolidado (memoizado para evitar reprocesos)
+    // i18n namespaces: textos del panel en 'config', textos comunes en defaultNS ('common')
+    const { t: tConfig } = useTranslation("config");
+    const { t } = useTranslation(); // defaultNS=common (logout, etc.)
+
     const initial = useMemo(
         () => ({
             language: "es",
@@ -56,11 +86,11 @@ export default function SettingsPanel({
 
     const [state, setState] = useState(initial);
 
-    // Aplicar tema, tamaño de fuente y contraste + persistir + cambiar idioma
+    // Aplicar tema/escala/contraste + persistir + cambiar idioma + sync backend
     useEffect(() => {
         const html = document.documentElement;
 
-        // Tema oscuro
+        // Tema
         html.classList.toggle("dark", !!state.darkMode);
 
         // Tamaño base de fuente
@@ -70,14 +100,17 @@ export default function SettingsPanel({
         // Alto contraste
         html.classList.toggle("high-contrast", !!state.highContrast);
 
-        // Guardar
+        // Guardar local
         writeLS(state);
 
         // Idioma
         if (state.language) {
             i18n.changeLanguage(state.language);
-            if (onLanguageChange) onLanguageChange(state.language);
+            onLanguageChange?.(state.language);
         }
+
+        // (Opcional) sincronizar con backend si configuraste la URL
+        maybeSyncToBackend(state);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
 
@@ -110,13 +143,13 @@ export default function SettingsPanel({
             >
                 <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 id="settings-title" className="text-lg font-semibold">
-                        Configuración
+                        {tConfig("title")}
                     </h2>
-                    <IconTooltip label="Cerrar panel" side="left">
+                    <IconTooltip label={t("close")} side="left">
                         <button
                             onClick={onClose}
                             className="p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                            aria-label="Cerrar"
+                            aria-label={t("close")}
                             type="button"
                         >
                             <X size={18} />
@@ -129,41 +162,37 @@ export default function SettingsPanel({
                     <section className="space-y-2">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-medium flex items-center gap-2">
-                                <Moon size={16} /> Apariencia
+                                <Moon size={16} /> {tConfig("theme")}
                             </h3>
-                            <IconTooltip label="Activa modo oscuro y ajusta el tamaño de fuente.">
+                            <IconTooltip label={tConfig("theme_help", "Ajusta el tema y el tamaño de fuente")}>
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <IconTooltip
-                                label={
-                                    state.darkMode ? "Cambiar a tema claro" : "Cambiar a tema oscuro"
-                                }
+                                label={state.darkMode ? tConfig("light") : tConfig("dark")}
                                 side="top"
                             >
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setState((s) => ({ ...s, darkMode: !s.darkMode }))
-                                    }
+                                    onClick={() => setState((s) => ({ ...s, darkMode: !s.darkMode }))}
                                     className={`px-3 py-1.5 text-sm rounded border inline-flex items-center gap-1.5 transition 
-                    ${state.darkMode
+                                        ${state.darkMode
                                             ? "bg-zinc-800 text-white hover:bg-zinc-700"
                                             : "bg-white text-zinc-900 hover:bg-zinc-50"
                                         }`}
                                     aria-pressed={state.darkMode}
-                                    aria-label={state.darkMode ? "Tema claro" : "Tema oscuro"}
+                                    aria-label={state.darkMode ? tConfig("light") : tConfig("dark")}
                                 >
                                     {state.darkMode ? <Sun size={14} /> : <Moon size={14} />}
-                                    {state.darkMode ? "Claro" : "Oscuro"}
+                                    {state.darkMode ? tConfig("light") : tConfig("dark")}
                                 </button>
                             </IconTooltip>
 
                             <label className="text-sm flex items-center gap-2">
-                                <span className="whitespace-nowrap">Tamaño de fuente</span>
-                                <IconTooltip label="Ajusta el tamaño de la tipografía de toda la app.">
+                                <span className="whitespace-nowrap">{tConfig("font_size", "Tamaño de fuente")}</span>
+                                <IconTooltip label={tConfig("font_size_help", "Ajusta el tamaño de la tipografía de toda la app.")}>
                                     <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                                 </IconTooltip>
                                 <input
@@ -181,11 +210,9 @@ export default function SettingsPanel({
                                     aria-valuemin={0.85}
                                     aria-valuemax={1.3}
                                     aria-valuenow={Number(state.fontScale) || 1}
-                                    aria-label="Tamaño de fuente"
+                                    aria-label={tConfig("font_size", "Tamaño de fuente")}
                                 />
-                                <span className="text-xs tabular-nums text-gray-600">
-                                    {fontPct}%
-                                </span>
+                                <span className="text-xs tabular-nums text-gray-600">{fontPct}%</span>
                             </label>
                         </div>
                     </section>
@@ -194,9 +221,9 @@ export default function SettingsPanel({
                     <section className="space-y-2">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-medium flex items-center gap-2">
-                                <AccessibilityIcon size={16} /> Accesibilidad
+                                <AccessibilityIcon size={16} /> {tConfig("accessibility")}
                             </h3>
-                            <IconTooltip label="Mejoras de contraste para usuarios con baja visión.">
+                            <IconTooltip label={tConfig("high_contrast_help", "Mejora el contraste para baja visión.")}>
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
@@ -209,13 +236,15 @@ export default function SettingsPanel({
                                     setState((s) => ({ ...s, highContrast: e.target.checked }))
                                 }
                                 aria-checked={!!state.highContrast}
-                                aria-label="Alto contraste"
+                                aria-label={tConfig("high_contrast", "Alto contraste")}
                             />
-                            Alto contraste
+                            {tConfig("high_contrast", "Alto contraste")}
                         </label>
                         <p className="text-xs text-zinc-500">
-                            Puedes ajustar estilos adicionales en tu CSS global con la clase{" "}
-                            <code>html.high-contrast</code>.
+                            {tConfig(
+                                "high_contrast_hint",
+                                "Puedes ajustar estilos adicionales en tu CSS global con la clase html.high-contrast."
+                            )}
                         </p>
                     </section>
 
@@ -223,9 +252,9 @@ export default function SettingsPanel({
                     <section className="space-y-2">
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-medium flex items-center gap-2">
-                                <Languages size={16} /> Idioma
+                                <Languages size={16} /> {tConfig("language")}
                             </h3>
-                            <IconTooltip label="Selecciona el idioma de la interfaz.">
+                            <IconTooltip label={tConfig("language_help", "Selecciona el idioma de la interfaz.")}>
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
@@ -237,9 +266,9 @@ export default function SettingsPanel({
                                 const newLang = e.target.value;
                                 setState((s) => ({ ...s, language: newLang }));
                                 i18n.changeLanguage(newLang); // cambio inmediato
-                                if (onLanguageChange) onLanguageChange(newLang);
+                                onLanguageChange?.(newLang);
                             }}
-                            aria-label="Seleccionar idioma"
+                            aria-label={tConfig("language")}
                         >
                             <option value="es">🇪🇸 Español</option>
                             <option value="en">🇬🇧 English</option>
@@ -248,39 +277,39 @@ export default function SettingsPanel({
 
                     {/* Sesión / Chat */}
                     <section className="space-y-2">
-                        <h3 className="text-sm font-medium">Sesión / Chat</h3>
+                        <h3 className="text-sm font-medium">{tConfig("session_chat", "Sesión / Chat")}</h3>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
                             {isAuthenticated ? (
-                                <IconTooltip label="Cerrar sesión en la aplicación">
+                                <IconTooltip label={tConfig("logout_app", "Cerrar sesión en la aplicación")}>
                                     <button
                                         type="button"
                                         onClick={onLogout}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white"
-                                        aria-label="Cerrar sesión"
+                                        aria-label={t("logout")}
                                     >
-                                        <LogOut size={14} /> Cerrar sesión
+                                        <LogOut size={14} /> {t("logout")}
                                     </button>
                                 </IconTooltip>
                             ) : (
-                                <IconTooltip label="Cerrar el panel/flotante de chat">
+                                <IconTooltip label={tConfig("close_chat", "Cerrar el panel/flotante de chat")}>
                                     <button
                                         type="button"
                                         onClick={onCloseChat}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded border bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white"
-                                        aria-label="Cerrar chat"
+                                        aria-label={t("close_chat")}
                                     >
-                                        <DoorClosed size={14} /> Cerrar chat
+                                        <DoorClosed size={14} /> {t("close_chat")}
                                     </button>
                                 </IconTooltip>
                             )}
                             {/* Indicador de tema actual */}
                             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
                                 {state.highContrast ? (
-                                    <span title="Modo alto contraste">⚡ Alto contraste</span>
+                                    <span title={tConfig("high_contrast")}>⚡ {tConfig("high_contrast")}</span>
                                 ) : state.darkMode ? (
-                                    <span title="Modo oscuro">🌙 Oscuro</span>
+                                    <span title={tConfig("dark")}>🌙 {tConfig("dark")}</span>
                                 ) : (
-                                    <span title="Modo claro">☀️ Claro</span>
+                                    <span title={tConfig("light")}>☀️ {tConfig("light")}</span>
                                 )}
                             </div>
                         </div>

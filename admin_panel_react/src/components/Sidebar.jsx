@@ -14,6 +14,7 @@ import {
     PanelLeft,
 } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
+import { useTranslation } from "react-i18next";
 
 // 🔧 Si en el futuro agregas la ruta /intentos-fallidos,
 // pon esto en true para mostrar el ítem en el menú.
@@ -22,24 +23,27 @@ const ENABLE_INTENTOS_FALLIDOS = true;
 const Sidebar = () => {
     const { user } = useAuth();
     const role = user?.rol || "usuario";
+    const { t } = useTranslation(); // defaultNS = common
 
     // Rutas armonizadas con AppRoutes.jsx
     const menuSections = {
         Cuenta: [
-            { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"] },
+            { to: "/dashboard", label: t("dashboard"), icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"] },
+            // "Perfil" no está en el JSON; dejamos literal para NO romper
             { to: "/profile", label: "Perfil", icon: UserIcon, roles: ["admin", "soporte", "usuario"] },
         ],
         IA: [
-            { to: "/intents", label: "Intents", icon: Brain, roles: ["admin"] },
-            { to: "/stadisticas-logs", label: "Estadísticas v2", icon: BarChart, roles: ["admin"] },
-            { to: "/admin/diagnostico", label: "Diagnóstico", icon: FlaskConical, roles: ["admin", "soporte"] },
+            { to: "/intents", label: t("intents"), icon: Brain, roles: ["admin"] },
+            { to: "/stadisticas-logs", label: t("estadisticas"), icon: BarChart, roles: ["admin"] },
+            // Mantengo tu ruta original "admin/diagnostico"
+            { to: "/admin/diagnostico", label: t("pruebas"), icon: FlaskConical, roles: ["admin", "soporte"] },
         ],
         Administración: [
-            { to: "/logs", label: "Logs", icon: FileText, roles: ["admin", "soporte"] },
-            { to: "/user-management", label: "Usuarios", icon: Users, roles: ["admin"] },
-            { to: "/exportaciones", label: "Exportaciones", icon: Download, roles: ["admin"] },
+            { to: "/logs", label: t("logs"), icon: FileText, roles: ["admin", "soporte"] },
+            { to: "/user-management", label: t("usuarios"), icon: Users, roles: ["admin"] },
+            { to: "/exportaciones", label: t("exportaciones"), icon: Download, roles: ["admin"] },
             // Oculto por defecto hasta que exista la ruta:
-            { to: "/intentos-fallidos", label: "Fallos del bot", icon: Bug, roles: ["admin"], hidden: !ENABLE_INTENTOS_FALLIDOS },
+            { to: "/intentos-fallidos", label: t("intentos_fallidos"), icon: Bug, roles: ["admin"], hidden: !ENABLE_INTENTOS_FALLIDOS },
         ],
     };
 

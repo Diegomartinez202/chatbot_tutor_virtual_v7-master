@@ -1,0 +1,8 @@
+{
+  "welcome": "¡Hola! Soy tu asistente. ¿En qué puedo ayudarte?",
+  "typing": "Escribiendo",
+  "noResponse": "Hmm… no tengo una respuesta para eso.",
+  "authRequired": "Necesitas iniciar sesión para continuar.",
+  "errorSending": "Error al enviar el mensaje.",
+  "chat_connection_error": "No pudimos conectar con el servicio de chat."
+}

@@ -9,59 +9,94 @@ import ChatbotStatusMini from "@/components/ChatbotStatusMini";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next"; // 🟢 i18n hook agregado
 
-// Health universal (REST/WS) — no envía mensajes al bot, solo comprueba disponibilidad
+// Health universal (REST/WS)
 import { connectChatHealth } from "@/services/chat/health";
-// Conexión WS opcional (si lo quieres usar como connectFn)
 import { connectWS } from "@/services/chat/connectWS";
 
-// Harness QA (solo se muestra si el flag lo permite)
 import Harness from "@/pages/Harness";
-
-// ⚙️ Menú de configuración (accesibilidad: idioma/tema, salir, accesos admin/SSO, etc.)
 import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-/**
- * Página completa del chat.
- * - Ruta /chat (con o sin login según VITE_CHAT_REQUIRE_AUTH) y modo embed (?embed=1)
- * - Estados: connecting | ready | error
- * - Si se pasa children, renderiza tu UI; si no, <ChatUI />
- * - Prop opcional `embedHeight` para controlar la altura en modo embed
- */
-
-// ---- Config de endpoints con fallbacks sólidos al proxy de Nginx ----
 const API_BASE =
-    import.meta.env.VITE_API_BASE /* genérico */ ||
-    "/api";
+    import.meta.env.VITE_API_BASE || "/api";
 
 const CHAT_REST_URL =
-    import.meta.env.VITE_CHAT_REST_URL /* el que ya usas */ ||
-    `${API_BASE.replace(/\/$/, "")}/chat`;
+    import.meta.env.VITE_CHAT_REST_URL || `${API_BASE.replace(/\/$/, "")}/chat`;
 
 const RASA_HTTP_URL =
-    import.meta.env.VITE_RASA_REST_URL /* el que ya usas */ ||
-    import.meta.env.VITE_RASA_HTTP /* genérico */ ||
-    "/rasa";
+    import.meta.env.VITE_RASA_REST_URL || import.meta.env.VITE_RASA_HTTP || "/rasa";
 
 const RASA_WS_URL =
-    import.meta.env.VITE_RASA_WS_URL /* el que ya usas */ ||
-    import.meta.env.VITE_RASA_WS /* genérico */ ||
-    "/ws";
+    import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
 
 const DEFAULT_BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
 const TRANSPORT = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
 
+// 🔗 Endpoint de preferencias de usuario (lectura inicial)
+const USER_SETTINGS_URL =
+    (import.meta.env.VITE_USER_SETTINGS_URL && String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
+    "/api/me/settings";
+
+// Helpers
+function applyPrefsToDocument(prefs, i18n) {
+    try {
+        const html = document.documentElement;
+        const dark = prefs?.theme === "dark";
+        const hc = !!prefs?.highContrast;
+        const scale = Number(prefs?.fontScale || 1);
+
+        html.classList.toggle("dark", dark);
+        html.classList.toggle("high-contrast", hc);
+        html.style.fontSize = `${16 * scale}px`;
+
+        const lang = (prefs?.language === "en" ? "en" : "es");
+        i18n?.changeLanguage?.(lang);
+
+        // Sincroniza con SettingsPanel/localStorage
+        const current = JSON.parse(localStorage.getItem("app:settings") || "{}");
+        const merged = {
+            ...current,
+            language: lang,
+            darkMode: dark,
+            fontScale: scale,
+            highContrast: hc,
+        };
+        localStorage.setItem("app:settings", JSON.stringify(merged));
+    } catch { /* no-op */ }
+}
+
+async function fetchUserSettingsIfPossible(token) {
+    try {
+        const headers = { "Accept": "application/json" };
+        const init = {
+            method: "GET",
+            headers,
+            credentials: "include", // cookie HttpOnly si aplica
+        };
+        // Adjuntar Authorization si tenemos token en LS
+        if (token) {
+            init.headers = { ...headers, Authorization: `Bearer ${token}` };
+        }
+
+        const rsp = await fetch(USER_SETTINGS_URL, init);
+        if (!rsp.ok) return null;
+        return await rsp.json();
+    } catch {
+        return null;
+    }
+}
+
 export default function ChatPage({
     forceEmbed = false,
     avatarSrc = DEFAULT_BOT_AVATAR,
     title = "Asistente",
-    // Tip: puedes pasar un connectFn propio desde arriba si quieres forzar uno
     connectFn,
     embedHeight = "560px",
     children,
 }) {
-    const { t } = useTranslation(); // 🟢 inicializa traducción
+    const { t, i18n } = useTranslation(); // i18n
     const [params] = useSearchParams();
     const isEmbed = forceEmbed || params.get("embed") === "1";
 
@@ -70,29 +105,19 @@ export default function ChatPage({
 
     const [status, setStatus] = useState("connecting"); // connecting | ready | error
 
-    // Elegimos la función de conexión por defecto:
-    // - Si prop connectFn viene, se respeta.
-    // - Si TRANSPORT=ws, validamos socket; si no, health universal (REST/WS).
+    // Por defecto: valida WS si TRANSPORT=ws; de lo contrario health universal
     const defaultConnect = useMemo(() => {
         if (connectFn) return connectFn;
-
         if (TRANSPORT === "ws") {
-            // Validar que el socket abre/cierra (no manda mensajes)
             return () => connectWS({ wsUrl: RASA_WS_URL });
         }
-        // Por defecto: health REST/WS universal (no golpea /api/chat)
-        return () =>
-            connectChatHealth({
-                restUrl: CHAT_REST_URL,
-                rasaHttpUrl: RASA_HTTP_URL,
-            });
+        return () => connectChatHealth({ restUrl: CHAT_REST_URL, rasaHttpUrl: RASA_HTTP_URL });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [connectFn, TRANSPORT]);
 
     const connect = useCallback(async () => {
         setStatus("connecting");
         try {
-            // Log suave para ayudar a depurar 404/URLs en desarrollo
             if (import.meta.env.MODE !== "production") {
                 // eslint-disable-next-line no-console
                 console.info(
@@ -105,7 +130,7 @@ export default function ChatPage({
             }
 
             if (defaultConnect) {
-                await defaultConnect(); // ← usa health / handshake, no /api/chat
+                await defaultConnect();
             } else {
                 await new Promise((r) => setTimeout(r, 600));
             }
@@ -117,36 +142,46 @@ export default function ChatPage({
         }
     }, [defaultConnect]);
 
-    useEffect(() => {
-        connect();
-    }, [connect]);
+    useEffect(() => { connect(); }, [connect]);
 
-    // 🔒 Control de acceso:
-    // - Si ES embed → nunca exigimos login
-    // - Si NO es embed → exigimos login SOLO si VITE_CHAT_REQUIRE_AUTH === "true"
+    // 🔒 Redirección a login si así lo exige tu configuración (no en embed)
     useEffect(() => {
         if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) {
             navigate("/login", { replace: true });
         }
     }, [isEmbed, isAuthenticated, navigate]);
 
+    // 🟢 Al estar READY y si el usuario está autenticado, lee y aplica preferencias del backend
+    useEffect(() => {
+        if (status !== "ready") return;
+        if (!isAuthenticated) return;
+
+        // Token LS opcional por si usas Authorization en vez (o además) de cookie HttpOnly
+        let token = null;
+        try {
+            token = localStorage.getItem(STORAGE_KEYS.accessToken) || null;
+        } catch { /* no-op */ }
+
+        (async () => {
+            const prefs = await fetchUserSettingsIfPossible(token);
+            if (prefs && typeof document !== "undefined") {
+                applyPrefsToDocument(prefs, i18n);
+            }
+        })();
+    }, [status, isAuthenticated, i18n]);
+
     if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) return null;
 
-    // Si el flag del Harness está activo y NO es embed → muestra la página de QA
     if (SHOW_HARNESS && !isEmbed) {
         return <Harness />;
     }
 
-    // Estilos/estructura del contenedor según modo
     const wrapperClass = isEmbed ? "p-0" : "p-6 min-h-[70vh] flex flex-col";
-    const bodyClass = isEmbed
-        ? "h-full"
-        : "flex-1 bg-white rounded border shadow overflow-hidden";
+    const bodyClass = isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden";
     const wrapperStyle = isEmbed ? { height: embedHeight } : undefined;
 
     return (
         <div className={wrapperClass} style={wrapperStyle}>
-            {/* Header (oculto en embed) */}
             {!isEmbed && (
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -155,19 +190,17 @@ export default function ChatPage({
                     </div>
                     <div className="flex items-center gap-2">
                         <ChatbotStatusMini status={status} />
-                        {/* ⚙️ Menú de configuración */}
                         <ChatConfigMenu />
                     </div>
                 </div>
             )}
 
-            {/* Body */}
             <div className={bodyClass} data-testid="chat-root">
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
                         <ChatbotLoading
                             avatarSrc={avatarSrc}
-                            label={t("chat.connecting")} // 🔵 traducido
+                            label={t("chat.connecting")}
                         />
                         <ChatbotStatusMini status="connecting" />
                     </div>
@@ -175,23 +208,20 @@ export default function ChatPage({
 
                 {status === "error" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-                        <p className="text-gray-700">
-                            {t("chat.errorConnection")} {/* 🔵 traducido */}
-                        </p>
+                        <p className="text-gray-700">{t("chat.errorConnection")}</p>
                         <button
                             onClick={connect}
                             className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-100"
                             type="button"
                         >
                             <RefreshCw className="w-4 h-4" />
-                            {t("chat.retry")} {/* 🔵 traducido */}
+                            {t("chat.retry")}
                         </button>
                     </div>
                 )}
 
                 {status === "ready" && (
                     <div className="w-full h-full">
-                        {/* Tu widget real; si no pasas children, usa ChatUI */}
                         {children ?? <ChatUI embed={isEmbed} />}
                     </div>
                 )}
@@ -200,13 +230,8 @@ export default function ChatPage({
     );
 }
 
-/* Ejemplos de uso:
-   - REST (default health check):
-     <ChatPage />
-
-   - Forzar WebSocket:
-     <ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
-
-   - Forzar modo embed con altura custom:
-     <ChatPage forceEmbed embedHeight="100vh" />
+/* Ejemplos:
+   <ChatPage />
+   <ChatPage connectFn={() => connectWS({ wsUrl: import.meta.env.VITE_RASA_WS_URL })} />
+   <ChatPage forceEmbed embedHeight="100vh" />
 */

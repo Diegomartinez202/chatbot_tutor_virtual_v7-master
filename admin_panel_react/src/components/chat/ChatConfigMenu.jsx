@@ -212,7 +212,7 @@ export default function ChatConfigMenu({ className = "" }) {
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm text-red-600"
+                            className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm text-red-600 whitespace-nowrap"
                         >
                             <LogOut className="w-4 h-4" />
                             {t("config.logout")}

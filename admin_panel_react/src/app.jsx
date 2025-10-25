@@ -1,3 +1,4 @@
+// src/app.jsx
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
@@ -31,7 +32,7 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
-import "@/styles/index.css";
+// Asegura i18n cargado
 import "@/i18n";
 
 // Flag opcional para habilitar la página de pruebas del chat

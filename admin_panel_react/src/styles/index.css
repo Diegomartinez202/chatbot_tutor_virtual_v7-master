@@ -383,8 +383,24 @@ html.dark .panel {
     color: #f4f4f5;
 }
 
-html.high-contrast .highlight {
-    background-color: #ffea00 !important;
+/* Colores de alto contraste para botones de header */
+html.high-contrast .header-actions button {
+    background-color: #fff !important;
     color: #000 !important;
-    font-weight: bold;
+    border: 2px solid #fff !important;
+}
+
+/* Header actions */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* separación entre botones */
+    justify-content: flex-end;
+}
+
+/* Alto contraste (opcional) */
+html.high-contrast .header-actions button {
+    background-color: #fff !important;
+    color: #000 !important;
+    border: 2px solid #fff !important;
 }

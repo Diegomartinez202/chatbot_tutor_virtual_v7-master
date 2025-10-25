@@ -28,12 +28,13 @@ from backend.middleware.auth_middleware import AuthMiddleware
 from backend.routes import router as api_router
 from backend.controllers import admin_controller as admin_ctrl
 from backend.controllers import user_controller as users_ctrl
-
+from backend.app.routes.me_settings import router as me_settings_router
 # ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
-
-
+from backend.routes.chat_proxy import router as chat_router
+from backend.routes.me_settings import router as me_router         
+from backend.db.mongo import connect_to_mongo, close_mongo   
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
 # =========================================================
@@ -90,7 +91,7 @@ def create_app() -> FastAPI:
 
     # 🔐 Auth: agrega request.state.user (JWT o demo)
     app.add_middleware(AuthMiddleware)
-
+    app.include_router(me_settings_router)   # ← expone /api/me/settings
     # 📁 Archivos estáticos
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)  # 👈 asegura que la carpeta exista
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -99,6 +100,8 @@ def create_app() -> FastAPI:
     app.include_router(api_router)
     app.include_router(admin_ctrl.router)
     app.include_router(users_ctrl.router)
+    app.include_router(chat_router)
+    app.include_router(me_router)     
 
     # 🔒 CSP (embebidos)
     @app.middleware("http")
@@ -185,3 +188,19 @@ async def _shutdown():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
+# ─────────────────────────────────────────────────────
+# Startup / Shutdown (Mongo + rate limit si procede)
+# ─────────────────────────────────────────────────────
+@app.on_event("startup")
+async def _startup():
+    await connect_to_mongo()   # ⬅️ abre conexión Mongo
+    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
+    if provider == "fastapi-limiter":
+        await init_rate_limit(app)
+
+@app.on_event("shutdown")
+async def _shutdown():
+    await close_mongo()        # ⬅️ cierra conexión Mongo
+    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
+    if provider == "fastapi-limiter":
+        await close_redis()
