@@ -19,11 +19,8 @@ const LANG_KEY = "chat.lang";
 
 function applyTheme(theme) {
     const html = document.documentElement;
-    if (theme === "dark") {
-        html.classList.add("dark");
-    } else {
-        html.classList.remove("dark");
-    }
+    if (theme === "dark") html.classList.add("dark");
+    else html.classList.remove("dark");
 }
 
 export default function ChatConfigMenu({ className = "" }) {
@@ -32,8 +29,8 @@ export default function ChatConfigMenu({ className = "" }) {
     const [lang, setLang] = useState("es");
 
     const navigate = useNavigate();
-    const { logout } = useAuth?.() || {};
-    const { t, i18n } = useTranslation();
+    const { logout } = useAuth();
+    const { t, i18n } = useTranslation(); // ✅ usamos claves "config.*"
 
     const zajunaSSO = useMemo(
         () =>
@@ -43,6 +40,7 @@ export default function ChatConfigMenu({ className = "" }) {
         []
     );
 
+    // Cargar preferencias guardadas y aplicarlas
     useEffect(() => {
         try {
             const savedTheme = localStorage.getItem(THEME_KEY) || "light";
@@ -62,9 +60,7 @@ export default function ChatConfigMenu({ className = "" }) {
     const toggleTheme = () => {
         const next = theme === "dark" ? "light" : "dark";
         setTheme(next);
-        try {
-            localStorage.setItem(THEME_KEY, next);
-        } catch { }
+        try { localStorage.setItem(THEME_KEY, next); } catch { }
         applyTheme(next);
         window.dispatchEvent(
             new CustomEvent("chat:pref:theme", { detail: { theme: next } })
@@ -73,9 +69,7 @@ export default function ChatConfigMenu({ className = "" }) {
 
     const changeLang = (value) => {
         setLang(value);
-        try {
-            localStorage.setItem(LANG_KEY, value);
-        } catch { }
+        try { localStorage.setItem(LANG_KEY, value); } catch { }
         i18n.changeLanguage(value);
         window.dispatchEvent(
             new CustomEvent("chat:pref:lang", { detail: { lang: value } })
@@ -84,29 +78,26 @@ export default function ChatConfigMenu({ className = "" }) {
 
     const handleLogout = async () => {
         try {
-            if (typeof logout === "function") {
-                await logout();
-            } else {
-                localStorage.clear?.();
-            }
+            if (typeof logout === "function") await logout();
+            else localStorage.clear?.();
         } catch { }
         navigate("/", { replace: true });
     };
 
     const goZajuna = () => {
-        if (zajunaSSO) {
-            window.location.href = zajunaSSO;
-        }
+        if (zajunaSSO) window.location.href = zajunaSSO;
     };
 
     return (
         <div className={`relative ${className}`}>
+            {/* ✅ Este es el botón que USAS: se queda y traduce bien */}
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50"
                 aria-haspopup="menu"
                 aria-expanded={open ? "true" : "false"}
+                aria-label={t("config.title")}
             >
                 <Settings className="w-4 h-4" />
                 {t("config.title")}
@@ -126,9 +117,7 @@ export default function ChatConfigMenu({ className = "" }) {
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Languages className="w-4 h-4 text-gray-600" />
-                                <span className="text-sm">
-                                    {t("config.language")}
-                                </span>
+                                <span className="text-sm">{t("config.language")}</span>
                             </div>
                             <select
                                 value={lang}

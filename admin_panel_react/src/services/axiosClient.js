@@ -2,6 +2,7 @@
 import axios from "axios";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { apiBase, apiUrl } from "@/lib/apiUrl";
+import { getAccessToken } from "@/state/tokenProvider"; // 👈 agregado
 
 /** Base URL segura (normalizada) */
 const BASE_URL = apiBase();
@@ -10,9 +11,9 @@ const BASE_URL = apiBase();
 const WITH_CREDS = true;
 
 const axiosClient = axios.create({
-    baseURL: BASE_URL,
+    baseURL: BASE_URL, // ✅ Mejora solicitada: base centralizada
     timeout: 10000,
-    withCredentials: WITH_CREDS,
+    withCredentials: WITH_CREDS, // ✅ Mejora solicitada: cookies httpOnly
 });
 
 // Aceptar JSON por defecto
@@ -20,6 +21,8 @@ axiosClient.defaults.headers.common.Accept = "application/json";
 
 /* ─────────────────────────────────────────────────────────────
  * Manejo de refresh con cola para evitar condiciones de carrera
+ * (Tu lógica avanzada: la conservamos tal cual porque es mejor
+ * que un interceptor simple y no rompe nada.)
  * ────────────────────────────────────────────────────────────*/
 let isRefreshing = false;
 /** @type {Array<{resolve:(t:string|null)=>void, reject:(err:any)=>void}>} */
@@ -32,7 +35,7 @@ const processQueue = (error, token = null) => {
 
 /* ─────────────────────────────────────────────────────────────
  * Interceptor de REQUEST
- * - Inyecta Authorization si hay token
+ * - Inyecta Authorization si hay token (store → localStorage)
  * - Ajusta Content-Type sólo si no es FormData
  * ────────────────────────────────────────────────────────────*/
 axiosClient.interceptors.request.use(
@@ -40,14 +43,21 @@ axiosClient.interceptors.request.use(
         // Header Authorization (si no viene explícito)
         try {
             if (!config.headers?.Authorization) {
-                const token = localStorage.getItem(STORAGE_KEYS.accessToken);
+                // 1) Store (Redux/Zustand) si está inyectado
+                let token = getAccessToken();
+
+                // 2) Fallback a tu clave actual (no rompemos nada)
+                if (!token) {
+                    token = localStorage.getItem(STORAGE_KEYS.accessToken);
+                }
+
                 if (token) {
                     config.headers = config.headers || {};
                     config.headers.Authorization = `Bearer ${token}`;
                 }
             }
         } catch {
-            // localStorage no disponible (SSR, iframes restringidos, etc.)
+            // localStorage/store no disponible
         }
 
         // Asegura Content-Type si mandamos JSON plano (no tocar FormData)
@@ -182,11 +192,7 @@ export function clearAuthToken() {
  * Nunca lanza: devuelve { ok, status, data|error, url }.
  */
 export async function healthCheckApi({ signal } = {}) {
-    const candidates = [
-        apiUrl("/health"),
-        apiUrl("/"),
-        BASE_URL, // por si /health no existe
-    ];
+    const candidates = [apiUrl("/health"), apiUrl("/"), BASE_URL];
 
     for (const url of candidates) {
         try {
@@ -199,12 +205,7 @@ export async function healthCheckApi({ signal } = {}) {
                 return { ok: true, status: res.status, data: res.data, url };
             }
         } catch (e) {
-            // continúa con el siguiente candidato
-            if (e?.response) {
-                // si hay respuesta pero no es 2xx, seguimos probando
-            } else {
-                // network/timeout: seguimos probando
-            }
+            // continuar
         }
     }
     return { ok: false, status: 0, error: "API health-check falló", url: candidates[candidates.length - 1] };
@@ -224,7 +225,6 @@ export async function healthCheckChat({ signal } = {}) {
     const REST = (import.meta.env.VITE_CHAT_REST_URL || "").trim();
     const RASA = (import.meta.env.VITE_RASA_REST_URL || "").trim();
 
-    /** intenta una lista de URLs hasta que alguna responda 2xx */
     async function tryList(urls) {
         for (const url of urls) {
             if (!url) continue;
@@ -241,7 +241,6 @@ export async function healthCheckChat({ signal } = {}) {
     }
 
     if (TRANSPORT === "rest") {
-        // Preferimos el endpoint REST declarado. Algunos backends aceptan GET simple.
         const baseRest = REST || apiUrl("/chat");
         const candidates = [
             baseRest, // GET directo (si responde 200)
@@ -256,10 +255,7 @@ export async function healthCheckChat({ signal } = {}) {
     // TRANSPORT === "ws" o uso de Rasa REST directo
     const rasaWebhook = RASA || ""; // p.ej. http://localhost:5005/webhooks/rest/webhook
     const rasaBase = rasaWebhook.replace(/\/webhooks\/rest\/webhook\/?$/, "");
-    const candidates = [
-        rasaBase ? rasaBase + "/version" : "",
-        rasaBase, // GET raíz de Rasa devuelve HTML 200
-    ];
+    const candidates = [rasaBase ? rasaBase + "/version" : "", rasaBase];
     return tryList(candidates);
 }
 

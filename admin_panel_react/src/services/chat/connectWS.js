@@ -1,16 +1,41 @@
 // src/services/chat/connectWS.js
 
+function toAbsoluteWs(urlLike) {
+    const raw = String(urlLike || "").trim();
+    if (!raw) throw new Error("wsUrl requerido");
+
+    // Si ya es ws:// o wss://
+    if (/^wss?:\/\//i.test(raw)) return raw;
+
+    // Si es http(s)://... lo convertimos a ws(s)://...
+    if (/^https?:\/\//i.test(raw)) {
+        return raw.replace(/^http/i, "ws");
+    }
+
+    // Si es relativo, armamos con el origen actual
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+
+    if (raw.startsWith("/")) {
+        return `${proto}://${host}${raw}`;
+    }
+    // relativo sin "/"
+    return `${proto}://${host}/${raw.replace(/^\/+/, "")}`;
+}
+
 /**
  * Conecta a un WebSocket y resuelve cuando abre.
- * Útil como connectFn para ChatWidget/ChatPage (solo health).
+ * Ãštil como connectFn para ChatWidget/ChatPage (solo health).
  */
 export function connectWS({ wsUrl, token, protocols, timeoutMs = 5000 } = {}) {
     return new Promise((resolve, reject) => {
         try {
             if (!wsUrl) return reject(new Error("wsUrl requerido"));
 
+            const abs = toAbsoluteWs(wsUrl);
+
             // Token por querystring si viene
-            const url = new URL(wsUrl);
+            const url = new URL(abs);
             if (token && !url.searchParams.get("token")) {
                 url.searchParams.set("token", token);
             }
@@ -51,7 +76,9 @@ export function createWSClient({
     keepAliveMs = 30000,
 } = {}) {
     if (!wsUrl) throw new Error("wsUrl requerido");
-    const url = new URL(wsUrl);
+
+    const abs = toAbsoluteWs(wsUrl);
+    const url = new URL(abs);
     if (token && !url.searchParams.get("token")) {
         url.searchParams.set("token", token);
     }

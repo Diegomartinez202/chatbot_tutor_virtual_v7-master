@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Any
 from bson import ObjectId
 from passlib.hash import bcrypt
 from pymongo.errors import DuplicateKeyError
+from pymongo import ASCENDING
 
 from backend.db.mongodb import get_database
 
@@ -31,13 +32,31 @@ def _sanitize_user(doc: Dict[str, Any] | None, *, include_password: bool = False
     return out
 
 
+def _norm_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def _ensure_unique_email_index() -> None:
+    """
+    Best-effort: asegura un índice único en email si aún no existe.
+    No altera la lógica de negocio ni falla si ya existe.
+    """
+    try:
+        db = get_database()
+        db[USERS_COLLECTION].create_index([("email", ASCENDING)], unique=True, name="uniq_email")
+    except Exception:
+        # No romper si el índice ya existe o no se puede crear en este entorno
+        pass
+
+
 # 🔹 Crear nuevo usuario
 def crear_usuario(email: str, password: str, rol: str = "admin") -> dict:
     db = get_database()
-    hashed_password = bcrypt.hash(password)
+    _ensure_unique_email_index()  # opcional, no crítico
 
+    hashed_password = bcrypt.hash(password)
     usuario = {
-        "email": (email or "").strip().lower(),
+        "email": _norm_email(email),
         "password": hashed_password,
         "rol": rol,
     }
@@ -52,7 +71,7 @@ def crear_usuario(email: str, password: str, rol: str = "admin") -> dict:
 # 🔹 Buscar usuario por email
 def buscar_usuario_por_email(email: str) -> Optional[dict]:
     db = get_database()
-    doc = db[USERS_COLLECTION].find_one({"email": (email or "").strip().lower()})
+    doc = db[USERS_COLLECTION].find_one({"email": _norm_email(email)})
     return _sanitize_user(doc, include_password=True)  # mantener compat para validar_credenciales
 
 
@@ -68,7 +87,7 @@ def validar_credenciales(email: str, password: str) -> Optional[dict]:
 # 🔹 Eliminar usuario por email
 def eliminar_usuario(email: str) -> bool:
     db = get_database()
-    result = db[USERS_COLLECTION].delete_one({"email": (email or "").strip().lower()})
+    result = db[USERS_COLLECTION].delete_one({"email": _norm_email(email)})
     return result.deleted_count > 0
 
 
@@ -91,7 +110,7 @@ def actualizar_usuario(user_id: str, updates: dict) -> dict:
 
     # Normalización de email
     if "email" in payload and isinstance(payload["email"], str):
-        payload["email"] = payload["email"].strip().lower()
+        payload["email"] = _norm_email(payload["email"])
 
     # Re-hash si cambian password
     if "password" in payload and payload["password"]:

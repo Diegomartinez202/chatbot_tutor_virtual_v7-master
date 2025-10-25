@@ -51,7 +51,7 @@ def enviar_correo(asunto: str, cuerpo: str, destinatario: Optional[str] = None) 
         with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
             server.starttls()
             server.login(smtp_user, smtp_pass)
-            server.sendmail(remitente, destinatario_final, mensaje.as_string())
+            server.sendmail(remitente, [destinatario_final], mensaje.as_string())
 
         logger.info(f"✅ Correo enviado correctamente a {destinatario_final}")
         return True

@@ -31,6 +31,8 @@ def get_exportaciones(
     Mantiene compatibilidad total con la versión anterior.
     """
     query: Dict[str, Any] = {}
+
+    # Rango de fechas (respeta casos con solo desde / solo hasta)
     if desde and hasta:
         query["fecha"] = {"$gte": desde, "$lte": hasta}
     elif desde:
@@ -38,12 +40,13 @@ def get_exportaciones(
     elif hasta:
         query["fecha"] = {"$lte": hasta}
 
+    # Filtros opcionales
     if usuario:
         query["usuario"] = {"$regex": usuario, "$options": "i"}
     if tipo:
         query["tipo"] = tipo
 
-    exportaciones = (
+    cursor = (
         _col()
         .find(query)
         .sort("fecha", -1)
@@ -51,13 +54,21 @@ def get_exportaciones(
         .limit(int(limit or 50))
     )
 
-    return [
-        {
-            "_id": str(e.get("_id", ObjectId())),
-            "usuario": e.get("usuario", "desconocido"),
-            "tipo": e.get("tipo", "desconocido"),
-            "fecha": e.get("fecha").isoformat() if e.get("fecha") else None,
-            "archivo": e.get("archivo"),
-        }
-        for e in exportaciones
-    ]
+    items: List[Dict[str, Any]] = []
+    for e in cursor:
+        _id = e.get("_id", ObjectId())
+        fecha_val = e.get("fecha")
+        # Si por alguna razón 'fecha' no es datetime, lo devolvemos como None
+        fecha_iso = fecha_val.isoformat() if isinstance(fecha_val, datetime) else None
+
+        items.append(
+            {
+                "_id": str(_id),
+                "usuario": e.get("usuario", "desconocido"),
+                "tipo": e.get("tipo", "desconocido"),
+                "fecha": fecha_iso,
+                "archivo": e.get("archivo"),
+            }
+        )
+
+    return items

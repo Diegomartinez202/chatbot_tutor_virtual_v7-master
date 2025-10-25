@@ -6,19 +6,44 @@ function trimSlash(s) {
     return String(s || "").replace(/\/+$/, "");
 }
 function stripWebhook(path) {
-    // Para Rasa REST: Ö/webhooks/rest/webhook -> base
-    return String(path || "").replace(/\/webhooks\/rest\/webhook$/i, "");
+    // Para Rasa REST: ‚Ä¶/webhooks/rest/webhook -> base
+    return String(path || "").replace(/\/webhooks\/rest\/webhook\/?$/i, "");
+}
+
+function toAbsoluteWs(urlLike) {
+    const raw = String(urlLike || "").trim();
+    if (!raw) throw new Error("WS URL vac√≠o");
+
+    // Si ya es ws:// o wss:// lo usamos tal cual
+    if (/^wss?:\/\//i.test(raw)) return raw;
+
+    // Si es http(s)://... lo convertimos a ws(s)://...
+    if (/^https?:\/\//i.test(raw)) {
+        return raw.replace(/^http/i, "ws");
+    }
+
+    // Si es relativo ("/ws" o "ws"), armamos con el host actual
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+
+    if (raw.startsWith("/")) {
+        return `${proto}://${host}${raw}`;
+    }
+    // relativo sin "/": lo pegamos al origen
+    return `${proto}://${host}/${raw.replace(/^\/+/, "")}`;
 }
 
 async function tryGet(url) {
     const res = await axios.get(url, { timeout: 5000 });
-    return res.status >= 200 && res.status < 500; // 404 no es "caÌda" del host
+    // 2xx / 3xx / incluso 404 nos sirven para saber que el host responde
+    return res.status >= 200 && res.status < 500;
 }
 
 async function wsPing(wsUrl) {
+    const abs = toAbsoluteWs(wsUrl);
     return new Promise((resolve, reject) => {
         try {
-            const ws = new WebSocket(wsUrl);
+            const ws = new WebSocket(abs);
             const timer = setTimeout(() => {
                 try { ws.close(); } catch { }
                 reject(new Error("WS timeout"));
@@ -41,23 +66,21 @@ async function wsPing(wsUrl) {
 
 /**
  * Health universal del chat:
+ * - WS: intenta abrir/cerrar el socket (no env√≠a mensajes)
  * - REST: prueba /health, /status, /live, /ready en el host
- * - WS: intenta abrir y cerrar el socket
- * No envÌa mensajes reales al bot.
  */
 export async function connectChatHealth() {
     const mode = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
 
     if (mode === "ws") {
-        const wsUrl = import.meta.env.VITE_RASA_WS_URL;
-        if (!wsUrl) throw new Error("VITE_RASA_WS_URL no configurado");
+        const wsUrl = import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
         await wsPing(wsUrl);
         return true;
     }
 
     // REST
-    const restChatUrl = trimSlash(import.meta.env.VITE_CHAT_REST_URL || "");
-    const rasaRest = trimSlash(import.meta.env.VITE_RASA_REST_URL || "");
+    const restChatUrl = trimSlash(import.meta.env.VITE_CHAT_REST_URL || "/api/chat");
+    const rasaRest = trimSlash(import.meta.env.VITE_RASA_REST_URL || import.meta.env.VITE_RASA_HTTP || "");
 
     const candidates = [];
 
@@ -79,7 +102,7 @@ export async function connectChatHealth() {
         candidates.push(`${base}/health`);
     }
 
-    // Fallback local por si est·s desarrollando
+    // Fallback local por si est√°s desarrollando
     if (candidates.length === 0) {
         candidates.push("/api/health");
     }

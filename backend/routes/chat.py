@@ -13,12 +13,9 @@ from backend.services.jwt_service import decode_token
 from backend.db.mongodb import get_logs_collection
 from backend.services.chat_service import process_user_message
 from backend.utils.logging import get_logger
-
-# ✅ Rate limiting por endpoint
 from backend.rate_limit import limit
 from backend.ext.rate_limit import limiter
 
-# Mantén este nombre: main.py hace `from backend.routes.chat import chat_router`
 chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
 
@@ -29,17 +26,14 @@ class ChatRequest(BaseModel):
     message: str
     metadata: Optional[Dict[str, Any]] = None
     mode: Optional[str] = "anonymous"
-
-    model_config = ConfigDict(
-        validate_by_name=True,
-        extra="allow",
-    )
+    model_config = ConfigDict(validate_by_name=True, extra="allow")
 
 
 # ==== Endpoints auxiliares ====
 @chat_router.get("/health", summary="Healthcheck de chat")
 async def chat_health():
-    return {"ok": True}
+    """Verifica que el servicio de chat esté operativo."""
+    return {"ok": True, "rasa_url": settings.rasa_url}
 
 
 @chat_router.get("/debug", summary="Inspección de request (solo DEBUG)")
@@ -66,17 +60,12 @@ async def chat_debug(request: Request):
 
 
 # ==== Endpoint principal ====
-@chat_router.post(
-    "",
-    summary="Enviar mensaje al chatbot y registrar en MongoDB",
-    dependencies=limiter(times=60, seconds=60),
-)
+@chat_router.post("", summary="Enviar mensaje al chatbot y registrar en MongoDB",
+                  dependencies=limiter(times=60, seconds=60))
 @limit("60/minute")
 async def send_message_to_bot(data: ChatRequest, request: Request):
-    ip = (
-        getattr(request.state, "ip", None)
-        or request.headers.get("x-forwarded-for")
-        or (request.client.host if request.client else "unknown")
+    ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") or (
+        request.client.host if request.client else "unknown"
     )
     user_agent = getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
     rid = get_request_id()
@@ -94,17 +83,18 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     # Comunicación con Rasa
     t0 = perf_counter()
     try:
-        try:
-            bot_responses: List[Dict[str, Any]] = await process_user_message(
-                data.message, data.sender_id, metadata=enriched_meta
-            )
-        except TypeError:
-            bot_responses = await process_user_message(data.message, data.sender_id)
+        bot_responses: List[Dict[str, Any]] = await process_user_message(
+            message=data.message,
+            sender_id=data.sender_id,
+            metadata=enriched_meta,
+            rasa_url=settings.rasa_url  # 👈 Centralizado
+        )
     except Exception as e:
-        log.error(f"Error al comunicar con Rasa: {e}", exc_info=True)
+        log.error(f"❌ Error al comunicar con Rasa ({settings.rasa_url}): {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"Error al comunicar con Rasa: {str(e)}")
     latency_ms = int((perf_counter() - t0) * 1000)
 
+    # Intent detectado
     intent = None
     try:
         if bot_responses and isinstance(bot_responses[0], dict):
@@ -138,8 +128,9 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
 
 
 # ==== Demo ====
-@chat_router.post("/demo", summary="Demo: chatbot de prueba sin Rasa")
+@chat_router.post("/demo", summary="Demo sin conexión Rasa")
 async def chat_demo(data: ChatRequest):
+    """Respuesta local de prueba."""
     user_message = data.message.lower().strip()
     if "hola" in user_message:
         bot_responses = [{"text": "👋 ¡Hola! Soy el bot tutor virtual de Zajuna. ¿En qué puedo ayudarte hoy?"}]

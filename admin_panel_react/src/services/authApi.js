@@ -1,10 +1,13 @@
+// src/services/authApi.js
 import axiosClient from "./axiosClient";
 import { setToken, clearToken, setRefreshToken } from "./tokenStorage";
 
 /**
  * Endpoints prioritarios (mantiene compat y agrega panel admin).
- * - Se prioriza /api/admin/* para el panel administrativo (fallback /admin/*).
- * - Para auth "general" se mantienen /auth/* y sus alternativas.
+ * ⚠️ IMPORTANTE:
+ *   axiosClient ya tiene baseURL = /api
+ *   Por eso aquí usamos rutas relativas (p.ej. "/admin/..."),
+ *   para evitar duplicar "/api" ("/api/api/...").
  */
 const PATHS = {
     login: ["/auth/login", "/login"],
@@ -16,11 +19,11 @@ const PATHS = {
     ],
     logout: ["/auth/logout", "/logout"],
 
-    // Admin panel
+    // Admin panel (rutas relativas: axiosClient -> /api/admin/...)
     admin: {
-        register: ["/api/admin/register", "/admin/register"],
-        login: ["/api/admin/login", "/admin/login"],
-        me: ["/api/admin/me", "/admin/me"],
+        register: ["/admin/register", "/api/admin/register"], // fallback por compat
+        login: ["/admin/login", "/api/admin/login"],
+        me: ["/admin/me", "/api/admin/me"],
     },
 
     // Forgot password
@@ -71,7 +74,9 @@ export async function me() {
         try {
             const { data } = await axiosClient.get(u);
             return data;
-        } catch { }
+        } catch {
+            /* siguiente candidato */
+        }
     }
     throw new Error("No se pudo obtener el perfil.");
 }
@@ -84,7 +89,9 @@ export async function refresh(refreshTokenMaybe) {
             setAuthToken(newTk);
             return { token: newTk, raw: data };
         }
-    } catch { }
+    } catch {
+        /* intentamos POSTs */
+    }
 
     const candidates = PATHS.refresh.slice(1);
     for (const cand of candidates) {
@@ -99,7 +106,9 @@ export async function refresh(refreshTokenMaybe) {
                 if (newRefresh) setRefreshToken(newRefresh);
                 return { token: newTk, raw: data };
             }
-        } catch { }
+        } catch {
+            /* siguiente candidato */
+        }
     }
 
     clearAuthToken();
@@ -110,7 +119,9 @@ export async function logout() {
     try {
         const url = pickFirst(PATHS.logout);
         await axiosClient.post(url);
-    } catch { }
+    } catch {
+        /* noop */
+    }
     clearAuthToken();
     return { ok: true };
 }
@@ -125,7 +136,7 @@ export async function forgotPassword({ email }) {
 }
 
 // ──────────────────────────────────────────────
-/** Admin panel (prioriza /api/admin/*) */
+/** Admin panel (prioriza /admin/* → /api/admin/* via baseURL) */
 // ──────────────────────────────────────────────
 export async function registerAdmin({
     name,

@@ -1,5 +1,5 @@
 // src/components/SettingsPanel.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     X,
     Moon,
@@ -11,19 +11,28 @@ import {
     Info,
 } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
-import i18n from "@/i18n"; // ✅ Importa i18n directamente
+import i18n from "@/i18n";
 
 const LS_KEY = "app:settings";
 
-const readLS = () => {
+const safeReadLS = () => {
     try {
-        return JSON.parse(localStorage.getItem(LS_KEY)) || {};
+        if (typeof window === "undefined") return {};
+        const raw = window.localStorage.getItem(LS_KEY);
+        return raw ? JSON.parse(raw) : {};
     } catch {
         return {};
     }
 };
 
-const writeLS = (obj) => localStorage.setItem(LS_KEY, JSON.stringify(obj));
+const writeLS = (obj) => {
+    try {
+        if (typeof window === "undefined") return;
+        window.localStorage.setItem(LS_KEY, JSON.stringify(obj));
+    } catch {
+        /* ignore */
+    }
+};
 
 export default function SettingsPanel({
     open,
@@ -33,49 +42,56 @@ export default function SettingsPanel({
     onCloseChat,
     onLanguageChange,
 }) {
-    const initial = {
-        language: "es",
-        darkMode: false,
-        fontScale: 1,
-        highContrast: false,
-        ...readLS(),
-    };
+    // Estado inicial consolidado (memoizado para evitar reprocesos)
+    const initial = useMemo(
+        () => ({
+            language: "es",
+            darkMode: false,
+            fontScale: 1,
+            highContrast: false,
+            ...safeReadLS(),
+        }),
+        []
+    );
 
     const [state, setState] = useState(initial);
 
-    // ✅ Aplica y guarda configuración visual / idioma
+    // Aplicar tema, tamaño de fuente y contraste + persistir + cambiar idioma
     useEffect(() => {
-        document.documentElement.classList.toggle("dark", !!state.darkMode);
-        document.documentElement.style.fontSize = `${16 * (state.fontScale || 1)}px`;
-        document.documentElement.classList.toggle("high-contrast", !!state.highContrast);
+        const html = document.documentElement;
 
+        // Tema oscuro
+        html.classList.toggle("dark", !!state.darkMode);
+
+        // Tamaño base de fuente
+        const scale = Number(state.fontScale || 1);
+        html.style.fontSize = `${16 * scale}px`;
+
+        // Alto contraste
+        html.classList.toggle("high-contrast", !!state.highContrast);
+
+        // Guardar
         writeLS(state);
 
-        if (onLanguageChange) onLanguageChange(state.language);
-        i18n.changeLanguage(state.language);
+        // Idioma
+        if (state.language) {
+            i18n.changeLanguage(state.language);
+            if (onLanguageChange) onLanguageChange(state.language);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
 
-    // ✅ Mantener “Modo oscuro” y “Alto contraste” activos al recargar
+    // Reaplicar clases en primer montaje (por si recarga)
     useEffect(() => {
-        const saved = readLS();
-
-        if (saved?.darkMode) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-
-        if (saved?.highContrast) {
-            document.documentElement.classList.add("high-contrast");
-        } else {
-            document.documentElement.classList.remove("high-contrast");
-        }
+        const saved = safeReadLS();
+        const html = document.documentElement;
+        if (saved?.darkMode) html.classList.add("dark");
+        if (saved?.highContrast) html.classList.add("high-contrast");
     }, []);
 
     if (!open) return null;
 
-    const fontPct = Math.round((state.fontScale || 1) * 100);
+    const fontPct = Math.round((Number(state.fontScale) || 1) * 100);
 
     return (
         <div className="fixed inset-0 z-[9999]">
@@ -115,23 +131,28 @@ export default function SettingsPanel({
                             <h3 className="text-sm font-medium flex items-center gap-2">
                                 <Moon size={16} /> Apariencia
                             </h3>
-                            <IconTooltip label="Activa modo oscuro, ajusta el tamaño de fuente.">
+                            <IconTooltip label="Activa modo oscuro y ajusta el tamaño de fuente.">
                                 <Info className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
                             </IconTooltip>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <IconTooltip
-                                label={state.darkMode ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+                                label={
+                                    state.darkMode ? "Cambiar a tema claro" : "Cambiar a tema oscuro"
+                                }
                                 side="top"
                             >
                                 <button
                                     type="button"
-                                    onClick={() => setState((s) => ({ ...s, darkMode: !s.darkMode }))}
+                                    onClick={() =>
+                                        setState((s) => ({ ...s, darkMode: !s.darkMode }))
+                                    }
                                     className={`px-3 py-1.5 text-sm rounded border inline-flex items-center gap-1.5 transition 
-                                    ${state.darkMode
+                    ${state.darkMode
                                             ? "bg-zinc-800 text-white hover:bg-zinc-700"
-                                            : "bg-white text-zinc-900 hover:bg-zinc-50"}`}
+                                            : "bg-white text-zinc-900 hover:bg-zinc-50"
+                                        }`}
                                     aria-pressed={state.darkMode}
                                     aria-label={state.darkMode ? "Tema claro" : "Tema oscuro"}
                                 >
@@ -152,14 +173,19 @@ export default function SettingsPanel({
                                     step="0.05"
                                     value={state.fontScale}
                                     onChange={(e) =>
-                                        setState((s) => ({ ...s, fontScale: Number(e.target.value) }))
+                                        setState((s) => ({
+                                            ...s,
+                                            fontScale: Number(e.target.value),
+                                        }))
                                     }
                                     aria-valuemin={0.85}
                                     aria-valuemax={1.3}
-                                    aria-valuenow={state.fontScale}
+                                    aria-valuenow={Number(state.fontScale) || 1}
                                     aria-label="Tamaño de fuente"
                                 />
-                                <span className="text-xs tabular-nums text-gray-600">{fontPct}%</span>
+                                <span className="text-xs tabular-nums text-gray-600">
+                                    {fontPct}%
+                                </span>
                             </label>
                         </div>
                     </section>
@@ -178,11 +204,11 @@ export default function SettingsPanel({
                         <label className="flex items-center gap-2 text-sm">
                             <input
                                 type="checkbox"
-                                checked={state.highContrast}
+                                checked={!!state.highContrast}
                                 onChange={(e) =>
                                     setState((s) => ({ ...s, highContrast: e.target.checked }))
                                 }
-                                aria-checked={state.highContrast}
+                                aria-checked={!!state.highContrast}
                                 aria-label="Alto contraste"
                             />
                             Alto contraste
@@ -210,7 +236,7 @@ export default function SettingsPanel({
                             onChange={(e) => {
                                 const newLang = e.target.value;
                                 setState((s) => ({ ...s, language: newLang }));
-                                i18n.changeLanguage(newLang); // ✅ cambio inmediato
+                                i18n.changeLanguage(newLang); // cambio inmediato
                                 if (onLanguageChange) onLanguageChange(newLang);
                             }}
                             aria-label="Seleccionar idioma"
@@ -247,6 +273,16 @@ export default function SettingsPanel({
                                     </button>
                                 </IconTooltip>
                             )}
+                            {/* Indicador de tema actual */}
+                            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
+                                {state.highContrast ? (
+                                    <span title="Modo alto contraste">⚡ Alto contraste</span>
+                                ) : state.darkMode ? (
+                                    <span title="Modo oscuro">🌙 Oscuro</span>
+                                ) : (
+                                    <span title="Modo claro">☀️ Claro</span>
+                                )}
+                            </div>
                         </div>
                     </section>
                 </div>

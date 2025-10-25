@@ -21,10 +21,7 @@ export const DEFAULT_CHAT_URL =
  */
 export async function connectRasaRest(opts = {}) {
     const base = String(opts.baseUrl || DEFAULT_CHAT_URL).replace(/\/$/, "");
-    const healthUrl =
-        opts.healthUrl ||
-        // si base termina en /chat → /chat/health
-        `${base}${base.endsWith("/chat") ? "" : ""}/health`;
+    const healthUrl = opts.healthUrl || `${base}/health`;
 
     const headers = {};
     const token =
@@ -57,8 +54,7 @@ export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, to
 
     const host = String(baseUrl || DEFAULT_CHAT_URL).replace(/\/$/, "");
     const authToken =
-        token ||
-        (typeof localStorage !== "undefined" ? localStorage.getItem("zajuna_token") : null);
+        token || (typeof localStorage !== "undefined" ? localStorage.getItem("zajuna_token") : null);
 
     const headers = { "Content-Type": "application/json" };
     if (authToken) headers.Authorization = `Bearer ${authToken}`;

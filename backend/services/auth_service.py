@@ -6,7 +6,8 @@ from __future__ import annotations
 from typing import Optional, Dict, Any
 
 from backend.utils.logging import get_logger
-from backend.services.log_service import log_access
+# ⬇️ Usar el logger real que enviaste (audit_logger)
+from backend.services.audit_logger import log_access
 from backend.services.user_service import (
     verify_user_credentials,
     get_user_by_email,  # (conservamos por compat si lo usas en otro lado)
@@ -59,14 +60,14 @@ def registrar_login_exitoso(request, user: Dict[str, Any]) -> None:
             user_id=user.get("_id") or user.get("id"),
             email=user.get("email", ""),
             rol=user.get("rol", "usuario"),
-            endpoint=str(request.url.path),
-            method=request.method,
+            endpoint=str(getattr(request, "url", getattr(request, "url", ""))).split("?")[0] if getattr(request, "url", None) else str(getattr(request, "scope", {}).get("path", "")),
+            method=getattr(request, "method", "GET"),
             status=200,
-            ip=getattr(request.state, "ip", None),
-            user_agent=getattr(request.state, "user_agent", None),
+            ip=getattr(getattr(request, "state", None), "ip", None),
+            user_agent=getattr(getattr(request, "state", None), "user_agent", None),
         )
         logger.info(
-            f"🔐 Login exitoso para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+            f"🔐 Login exitoso para {user.get('email')} desde IP {getattr(getattr(request, 'state', None), 'ip', '-')}"
         )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar login exitoso: {e}")
@@ -79,14 +80,14 @@ def registrar_acceso_perfil(request, user: Dict[str, Any]) -> None:
             user_id=user.get("_id") or user.get("id"),
             email=user.get("email", ""),
             rol=user.get("rol", "usuario"),
-            endpoint=str(request.url.path),
-            method=request.method,
+            endpoint=str(getattr(request, "url", getattr(request, "url", ""))).split("?")[0] if getattr(request, "url", None) else str(getattr(request, "scope", {}).get("path", "")),
+            method=getattr(request, "method", "GET"),
             status=200,
-            ip=getattr(request.state, "ip", None),
-            user_agent=getattr(request.state, "user_agent", None),
+            ip=getattr(getattr(request, "state", None), "ip", None),
+            user_agent=getattr(getattr(request, "state", None), "user_agent", None),
         )
         logger.info(
-            f"👤 Perfil accedido por {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+            f"👤 Perfil accedido por {user.get('email')} desde IP {getattr(getattr(request, 'state', None), 'ip', '-')}"
         )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar acceso a perfil: {e}")
@@ -99,14 +100,14 @@ def registrar_logout(request, user: Dict[str, Any]) -> None:
             user_id=user.get("_id") or user.get("id"),
             email=user.get("email", ""),
             rol=user.get("rol", "usuario"),
-            endpoint=str(request.url.path),
-            method=request.method,
+            endpoint=str(getattr(request, "url", getattr(request, "url", ""))).split("?")[0] if getattr(request, "url", None) else str(getattr(request, "scope", {}).get("path", "")),
+            method=getattr(request, "method", "GET"),
             status=200,
-            ip=getattr(request.state, "ip", None),
-            user_agent=getattr(request.state, "user_agent", None),
+            ip=getattr(getattr(request, "state", None), "ip", None),
+            user_agent=getattr(getattr(request, "state", None), "user_agent", None),
         )
         logger.info(
-            f"🚪 Logout de {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+            f"🚪 Logout de {user.get('email')} desde IP {getattr(getattr(request, 'state', None), 'ip', '-')}"
         )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar logout: {e}")
@@ -119,14 +120,14 @@ def registrar_refresh_token(request, user: Dict[str, Any]) -> None:
             user_id=user.get("_id") or user.get("id"),
             email=user.get("email", ""),
             rol=user.get("rol", "usuario"),
-            endpoint=str(request.url.path),
-            method=request.method,
+            endpoint=str(getattr(request, "url", getattr(request, "url", ""))).split("?")[0] if getattr(request, "url", None) else str(getattr(request, "scope", {}).get("path", "")),
+            method=getattr(request, "method", "GET"),
             status=200,
-            ip=getattr(request.state, "ip", None),
-            user_agent=getattr(request.state, "user_agent", None),
+            ip=getattr(getattr(request, "state", None), "ip", None),
+            user_agent=getattr(getattr(request, "state", None), "user_agent", None),
         )
         logger.info(
-            f"🔄 Refresh token generado para {user.get('email')} desde IP {getattr(request.state, 'ip', '-')}"
+            f"🔄 Refresh token generado para {user.get('email')} desde IP {getattr(getattr(request, 'state', None), 'ip', '-')}"
         )
     except Exception as e:
         logger.warning(f"[auth_service] No se pudo registrar refresh token: {e}")

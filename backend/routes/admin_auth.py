@@ -623,3 +623,9 @@ _register_routes(router_legacy)
 # para main.py / routes.__init__.py
 router = router_v2           # Router canónico (v2)
 router_compat = router_legacy  # Compatibilidad /api/admin (legacy)
+
+try:
+    import anyio
+    anyio.from_thread.run(ensure_admin_indexes)  # no rompe si falla
+except Exception:
+    pass

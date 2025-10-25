@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 
 def log_access(
-    user_id: str,
+    user_id: Optional[str],
     email: str,
     rol: str,
     endpoint: str,
@@ -25,8 +25,10 @@ def log_access(
 ) -> None:
     """
     Inserta un log de acceso en MongoDB (colección 'logs').
+
     - Mantiene compatibilidad con firmas más amplias (kwargs ignorados).
     - Registra info de red si está disponible.
+    - No interrumpe el flujo si el insert falla.
     """
     try:
         doc: Dict[str, Any] = {

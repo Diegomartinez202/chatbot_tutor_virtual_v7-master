@@ -7,25 +7,47 @@ import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useTranslation } from "react-i18next"; // ✅ NUEVO
+import { useTranslation } from "react-i18next";
+import { useAuthStore } from "@/store/authStore";            // 🆕 lee token centralizado
+import { STORAGE_KEYS } from "@/lib/constants";             // 🆕 fallback a localStorage
 import "./ChatUI.css";
 
 // Helpers
-function getParentOrigin() { try { return new URL(document.referrer || "").origin; } catch { return window.location.origin; } }
+function getParentOrigin() {
+    try { return new URL(document.referrer || "").origin; }
+    catch { return window.location.origin; }
+}
 function normalize(o) { return String(o || "").trim().replace(/\/+$/, ""); }
-const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "").split(",").map(s => normalize(s)).filter(Boolean);
+
+const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
+    .split(",")
+    .map(s => normalize(s))
+    .filter(Boolean);
+
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-// Avatares
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
-        <div className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center" style={{ width: size, height: size }}>
-            {err ? <UserIcon className="w-4 h-4 text-indigo-600" /> : <img src={BOT_AVATAR} alt="Bot" className="w-full h-full object-cover" onError={() => setErr(true)} />}
+        <div
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
+            style={{ width: size, height: size }}
+        >
+            {err ? (
+                <UserIcon className="w-4 h-4 text-indigo-600" />
+            ) : (
+                <img
+                    src={BOT_AVATAR}
+                    alt="Bot"
+                    className="w-full h-full object-cover"
+                    onError={() => setErr(true)}
+                />
+            )}
         </div>
     );
 }
+
 function getInitials(source) {
     const s = String(source || "").trim();
     if (!s) return "U";
@@ -35,38 +57,123 @@ function getInitials(source) {
     const b = (parts[1] || "").charAt(0);
     return (a + b).toUpperCase() || a.toUpperCase() || "U";
 }
+
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
-    const src = user?.avatarUrl || user?.photoUrl || user?.image || user?.photo || USER_AVATAR_FALLBACK || "";
+    const src =
+        user?.avatarUrl ||
+        user?.photoUrl ||
+        user?.image ||
+        user?.photo ||
+        USER_AVATAR_FALLBACK ||
+        "";
     if (!src || err) {
         const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
-            <div className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold" style={{ width: size, height: size }}>
+            <div
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
+                style={{ width: size, height: size }}
+            >
                 {initials?.slice(0, 2) || <UserIcon className="w-4 h-4" />}
             </div>
         );
     }
-    return <img src={src} alt={user?.nombre || user?.name || user?.email} className="w-full h-full object-cover rounded-full" onError={() => setErr(true)} />;
+    return (
+        <img
+            src={src}
+            alt={user?.nombre || user?.name || user?.email}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setErr(true)}
+        />
+    );
 }
 
-// ChatUI completo
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
-    const { t } = useTranslation(); // ✅ NUEVO
+    const { t, i18n } = useTranslation();
 
-    const [messages, setMessages] = useState([{ id: "welcome", role: "bot", text: t("chat.welcome") }]); // ✅ traducido
+    // 🆕 Token centralizado (Zustand) + fallback a localStorage + soporte embed via postMessage
+    const storeToken = useAuthStore((s) => s.accessToken);
+    const [authToken, setAuthToken] = useState(null);
+
+    // Inicializa token desde store/localStorage
+    useEffect(() => {
+        // 1) store
+        if (storeToken) {
+            setAuthToken(storeToken);
+            return;
+        }
+        // 2) localStorage (compatibilidad)
+        try {
+            const ls = localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
+            if (ls) setAuthToken(ls);
+        } catch { /* no-op */ }
+    }, [storeToken]);
+
+    // Si estamos embebidos, escucha tokens enviados por el contenedor
+    useEffect(() => {
+        if (!embed) return;
+        const onMsg = (ev) => {
+            try {
+                // Seguridad básica: valida orígenes permitidos si los configuraste
+                const origin = normalize(ev.origin || "");
+                if (envAllowed.length && !envAllowed.includes(origin)) return;
+
+                const data = ev.data || {};
+                if (data?.type === "auth:token" && data?.token) {
+                    setAuthToken(String(data.token));
+                }
+            } catch { /* no-op */ }
+        };
+        window.addEventListener("message", onMsg);
+        return () => window.removeEventListener("message", onMsg);
+    }, [embed]);
+
+    /* ✂️ Quitar botón "settings" espurio, preservando tu ChatConfigMenu */
+    useEffect(() => {
+        const isRogue = (btn) => {
+            const label = (btn.getAttribute("aria-label") || btn.textContent || "")
+                .trim()
+                .toLowerCase();
+            const isOurMenu = label === (t("config.title") || "").trim().toLowerCase();
+            const looksSettings = label === "settings";
+            return looksSettings && !isOurMenu;
+        };
+
+        const sweep = () => {
+            document.querySelectorAll("button").forEach((btn) => {
+                try { if (isRogue(btn)) btn.remove(); } catch { /* no-op */ }
+            });
+        };
+
+        sweep(); // primera pasada
+
+        const obs = new MutationObserver((muts) => {
+            for (const m of muts) {
+                if (m.type === "childList") sweep();
+            }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+
+        return () => obs.disconnect();
+    }, [t]);
+
+    // Mensaje de bienvenida traducido
+    const [messages, setMessages] = useState([]);
+    useEffect(() => {
+        setMessages([{ id: "welcome", role: "bot", text: t("chat.welcome") }]);
+    }, [i18n.resolvedLanguage, t]);
+
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
-    const [authToken, setAuthToken] = useState(null);
     const [typing, setTyping] = useState(false);
+
     const listRef = useRef(null);
     const userId = useMemo(() => user?.email || user?._id || null, [user]);
     const parentOrigin = useMemo(() => normalize(getParentOrigin()), []);
-    const allowed = useMemo(() => envAllowed, []);
     const needAuth = embed || !user;
 
-    // Virtualización con v4+
     const rowVirtualizer = useVirtualizer({
         count: messages.length + (typing ? 1 : 0),
         getScrollElement: () => listRef.current,
@@ -74,7 +181,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         overscan: 5,
     });
 
-    // Scroll inteligente
     const isScrolledToBottom = useRef(true);
     const scrollToBottom = () => {
         const el = listRef.current;
@@ -95,7 +201,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
 
     function rspToArray(rsp) { return Array.isArray(rsp) ? rsp : rsp ? [rsp] : []; }
 
-    // Append secuencial + indicador typing
     const appendBotMessages = useCallback(async (rsp) => {
         const items = [];
         rspToArray(rsp).forEach((item, idx) => {
@@ -107,7 +212,11 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                     id: `${baseId}-btnGroup`,
                     role: "bot",
                     render: () => item.buttons.map((btn, i) => (
-                        <div key={i} className="bot-interactive" onClick={() => handleActionClick(baseId, btn)}>
+                        <div
+                            key={i}
+                            className="bot-interactive"
+                            onClick={() => handleActionClick(baseId, btn)}
+                        >
                             {btn.title}
                         </div>
                     ))
@@ -118,7 +227,11 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                     id: `${baseId}-qrGroup`,
                     role: "bot",
                     render: () => item.quick_replies.map((qr, i) => (
-                        <div key={i} className="bot-interactive" onClick={() => handleActionClick(baseId, qr)}>
+                        <div
+                            key={i}
+                            className="bot-interactive"
+                            onClick={() => handleActionClick(baseId, qr)}
+                        >
                             {qr.title}
                         </div>
                     ))
@@ -130,7 +243,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                         id: `${baseId}-card-${ci}`,
                         role: "bot",
                         render: () => (
-                            <div className="bot-interactive p-3 border rounded-md mb-2 cursor-pointer" onClick={() => handleActionClick(baseId, c)}>
+                            <div
+                                className="bot-interactive p-3 border rounded-md mb-2 cursor-pointer"
+                                onClick={() => handleActionClick(baseId, c)}
+                            >
                                 {c.title || c.text || "Card"}
                             </div>
                         )
@@ -138,7 +254,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                 });
             }
         });
-        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: t("chat.noResponse") }); // ✅ traducido
+        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: t("chat.noResponse") });
 
         setTyping(true);
         for (let i = 0; i < items.length; i++) {
@@ -150,23 +266,54 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
-        if (needAuth && !authToken) { window.parent?.postMessage({ type: "auth:needed" }, parentOrigin); setError(t("chat.authRequired")); return; } // ✅ traducido
+        if (needAuth && !authToken) {
+            // En embed, solicita autenticación al contenedor
+            window.parent?.postMessage({ type: "auth:needed" }, parentOrigin);
+            setError(t("chat.authRequired"));
+            return;
+        }
         setSending(true);
         setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
         try {
-            const rsp = await sendRasaMessage({ text, sender: userId || undefined, token: authToken || undefined });
+            // 🆕 pasa el token si existe (store/localStorage o embed)
+            const rsp = await sendRasaMessage({
+                text,
+                sender: userId || undefined,
+                token: authToken || undefined
+            });
             await appendBotMessages(rsp);
-        } catch (e) { setError(e?.message || t("chat.errorSending")); } finally { setSending(false); }
+        } catch (e) {
+            setError(e?.message || t("chat.errorSending"));
+        } finally {
+            setSending(false);
+        }
     };
 
-    const handleSend = async () => { if (!input.trim() || sending) return; await sendToRasa({ text: input }); };
-    const onKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-    const handleActionClick = async (groupId, { title, payload, url }) => { if (url) window.open(url, "_blank", "noopener,noreferrer"); if (!payload) return; await sendToRasa({ text: payload, displayAs: title }); };
+    const handleSend = async () => {
+        if (!input.trim() || sending) return;
+        await sendToRasa({ text: input });
+    };
+    const onKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+    const handleActionClick = async (groupId, { title, payload, url }) => {
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+        if (!payload) return;
+        await sendToRasa({ text: payload, displayAs: title });
+    };
 
-    const BotRow = ({ children }) => <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>;
-    const UserRow = ({ children }) => <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>;
+    const BotRow = ({ children }) => (
+        <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>
+    );
+    const UserRow = ({ children }) => (
+        <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>
+    );
 
+    // Estilos contenedor
     return (
         <div className="h-full flex flex-col">
             <div ref={listRef} className="flex-1 overflow-auto px-3 py-4">
@@ -177,14 +324,22 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                         const isTypingRow = typing && index === messages.length;
                         if (!m && !isTypingRow) return null;
 
-                        const style = { position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${virtualRow.start}px)` };
+                        const style = {
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            transform: `translateY(${virtualRow.start}px)`
+                        };
+
                         if (isTypingRow) {
                             return (
                                 <div key="typing" style={style}>
                                     <BotRow>
                                         <BotAvatar size={28} />
                                         <div className="rounded-2xl px-3 py-2 max-w-[50%] text-sm break-words bg-gray-100 text-gray-800 animate-fade-slide">
-                                            {t("chat.typing")}<span className="typing-dots">...</span> {/* ✅ traducido */}
+                                            {t("chat.typing")}
+                                            <span className="typing-dots">...</span>
                                         </div>
                                     </BotRow>
                                 </div>
@@ -204,21 +359,52 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                         ) : null;
 
                         return isUser ? (
-                            <div key={m.id} style={style}><UserRow><div className={`${commonCls} ${bubbleCls}`}>{content}</div><UserAvatar user={user} size={28} /></UserRow></div>
+                            <div key={m.id} style={style}>
+                                <UserRow>
+                                    <div className={`${commonCls} ${bubbleCls}`}>{content}</div>
+                                    <UserAvatar user={user} size={28} />
+                                </UserRow>
+                            </div>
                         ) : (
-                            <div key={m.id} style={style}><BotRow><BotAvatar size={28} /><div className={`${commonCls} ${bubbleCls}`}>{content}</div></BotRow></div>
+                            <div key={m.id} style={style}>
+                                <BotRow>
+                                    <BotAvatar size={28} />
+                                    <div className={`${commonCls} ${bubbleCls}`}>{content}</div>
+                                </BotRow>
+                            </div>
                         );
                     })}
                 </div>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2 p-2 border-t bg-gray-50">
+            <form
+                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                className="flex items-center gap-2 p-2 border-t bg-gray-50"
+            >
                 <MicButton onVoice={(p) => sendToRasa({ text: p })} disabled={sending} />
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKeyDown} placeholder={placeholder} className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-300" disabled={sending} />
-                <button type="submit" disabled={sending || !input.trim()} className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder={placeholder}
+                    className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-300"
+                    disabled={sending}
+                />
+                <button
+                    type="submit"
+                    disabled={sending || !input.trim()}
+                    className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center"
+                >
                     <Send className="w-4 h-4" />
                 </button>
             </form>
+
+            {error && (
+                <div className="px-3 py-2 text-sm text-red-600" role="alert" aria-live="polite">
+                    {error}
+                </div>
+            )}
         </div>
     );
 }

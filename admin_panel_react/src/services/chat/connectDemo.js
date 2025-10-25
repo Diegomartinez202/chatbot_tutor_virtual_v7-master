@@ -1,5 +1,6 @@
+// src/services/chat/connectDemo.js
 export async function connectDemo() {
-    // Simula una conexión "ok"
+    // Simula una conexiÃ³n "ok"
     await new Promise((r) => setTimeout(r, 600));
     return true;
 }

@@ -21,7 +21,7 @@ def _messages_collection():
     if get_database is None:
         raise RuntimeError("MongoDB aún no está inicializado (get_database no disponible).")
     db = get_database()
-    return _get_db()["messages"]
+    return db["messages"]
 
 
 def log_message(user_id: str, text: str, sender: str, extra: Optional[Dict[str, Any]] = None) -> None:
@@ -36,7 +36,10 @@ def log_message(user_id: str, text: str, sender: str, extra: Optional[Dict[str, 
         "timestamp": datetime.now(timezone.utc),
     }
     if isinstance(extra, dict):
-        doc.update(extra)
+        # No sobreescribir claves críticas
+        for k, v in extra.items():
+            if k not in doc:
+                doc[k] = v
 
     try:
         _messages_collection().insert_one(doc)

@@ -1,11 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 /* =========================================================
    🎨 ESTILOS CORPORATIVOS UNIFICADOS - PANEL + CHATBOT
    ========================================================= */
 
-/* --- Paleta y tipografía base --- */
+/* --- Paleta y tipografía base (modo claro por defecto) --- */
 :root {
     --color-primary: #004a77;
     --color-primary-light: #0d6efd;
@@ -19,9 +20,42 @@
     --font: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
+/* --- Variables para modo oscuro (se aplican con la clase html.dark) --- */
+html.dark {
+    --color-bg: #111827; /* bg-gray-900 */
+    --color-surface: #1f2937; /* bg-gray-800 */
+    --color-text: #f5f5f5; /* text-gray-100 */
+    --color-muted: #94a3b8; /* textos secundarios */
+    --color-border: #374151; /* borders sutiles */
+    --color-primary: #4f46e5; /* indigo-600 */
+    --color-primary-light: #6366f1; /* indigo-500 */
+}
+
 /* --- Base general --- */
+html {
+    background-color: #f9fafb; /* fondo claro */
+    color: #111827; /* texto oscuro */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+    html.dark {
+        background-color: #0f172a; /* fondo oscuro */
+        color: #f1f5f9; /* texto claro */
+    }
+
+    /* Alto contraste opcional (con clase html.high-contrast) */
+    html.high-contrast {
+        filter: contrast(1.25);
+    }
+
+    html.dark.high-contrast {
+        filter: contrast(1.4);
+    }
+
 body {
     margin: 0;
+    padding: 0;
+    line-height: 1.5;
     font-family: var(--font);
     background-color: var(--color-bg);
     color: var(--color-text);
@@ -33,7 +67,7 @@ body {
 
 header {
     background-color: var(--color-primary);
-    color: white;
+    color: #fff;
     padding: 1rem;
     text-align: center;
     box-shadow: var(--shadow);
@@ -52,13 +86,13 @@ header {
 /* --- Botones --- */
 button {
     background-color: var(--color-primary);
-    color: white;
+    color: #fff;
     border: none;
     border-radius: 8px;
     padding: 0.6rem 1rem;
     cursor: pointer;
     font-weight: 500;
-    transition: background 0.3s, transform 0.2s;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s;
 }
 
     button:hover {
@@ -79,7 +113,7 @@ textarea {
     margin: 0.5rem 0 1rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    background-color: white;
+    background-color: #fff;
     font-size: 0.95rem;
     transition: border-color 0.3s;
 }
@@ -90,10 +124,10 @@ textarea {
         outline: none;
     }
 
-/* --- Tooltip (para componentes Radix UI, etc.) --- */
+/* --- Tooltip (Radix/otros) --- */
 .tooltip {
     background-color: #333;
-    color: white;
+    color: #fff;
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
@@ -102,7 +136,6 @@ textarea {
     animation: fadeIn 0.2s ease-in-out;
 }
 
-/* --- Animación --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -159,7 +192,7 @@ textarea {
 /* --- Header --- */
 .chatbot-header {
     background: linear-gradient(90deg, var(--color-primary) 0%, #0a5e97 100%);
-    color: white;
+    color: #fff;
     padding: 0.8rem 1rem;
     display: flex;
     justify-content: space-between;
@@ -178,7 +211,7 @@ textarea {
     .chatbot-header button {
         background: transparent;
         border: none;
-        color: white;
+        color: #fff;
         cursor: pointer;
         padding: 0.4rem;
         border-radius: 50%;
@@ -221,7 +254,7 @@ textarea {
     .message.user {
         align-self: flex-end;
         background-color: var(--color-primary);
-        color: white;
+        color: #fff;
         border-top-right-radius: 4px;
     }
 
@@ -231,7 +264,7 @@ textarea {
     align-items: center;
     padding: 0.75rem;
     border-top: 1px solid var(--color-border);
-    background: white;
+    background: #fff;
 }
 
     .chatbot-input input {
@@ -251,7 +284,7 @@ textarea {
     .chatbot-input button {
         margin-left: 0.6rem;
         background: var(--color-primary);
-        color: white;
+        color: #fff;
         border: none;
         border-radius: var(--radius);
         padding: 0.6rem 1rem;
@@ -281,112 +314,21 @@ textarea {
     border-radius: 6px;
 }
 
-/* --- Accesibilidad y modo alto contraste --- */
-html.high-contrast * {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-}
-
-.high-contrast .btn {
-    border-width: 2px;
-}
-
-:root.dark {
-    --color-bg: #0f172a;
-    --color-surface: #1e293b;
-    --color-text: #e2e8f0;
-    --color-border: #334155;
-}
 /* =========================================================
-   🌙 MODO OSCURO CORPORATIVO - PANEL + CHATBOT
+   🌙 MODO OSCURO - APLICA SOBRE LAS VARIABLES
    ========================================================= */
 
-/* --- Variables para modo oscuro --- */
-:root.dark {
-    --color-bg: #111827; /* bg-gray-900 */
-    --color-surface: #1f2937; /* bg-gray-800 */
-    --color-text: #f5f5f5; /* text-gray-100 */
-    --color-muted: #94a3b8; /* textos secundarios */
-    --color-border: #374151; /* borders sutiles */
-    --color-primary: #4f46e5; /* Indigo 600 */
-    --color-primary-light: #6366f1; /* Indigo 500 */
-}
+/* (No se necesitan reglas duplicadas: los componentes usan variables) */
 
-/* --- Base general modo oscuro --- */
-body.dark {
-    background-color: var(--color-bg);
-    color: var(--color-text);
-}
-
-    /* --- Superficies y contenedores --- */
-    body.dark .container,
-    body.dark .chatbot-body,
-    body.dark .chatbot-input {
-        background-color: var(--color-surface);
-        border-color: var(--color-border);
-        color: var(--color-text);
-    }
-
-    /* --- Botones --- */
-    body.dark button,
-    body.dark .chatbot-input button {
-         background-color: var(--color-primary);
-         color: white;
-    }
-
-    body.dark button:hover,
-    body.dark .chatbot-input button:hover {
-    background-color: var(--color-primary-light);
-    }
-
-    /* --- Cabecera chatbot degradado --- */
-    body.dark .chatbot-header {
-        background: linear-gradient(90deg, #4338ca 0%, #7c3aed 100%);
-        color: var(--color-text);
-        border-bottom: 1px solid #312e81;
-    }
-
-    /* --- Mensajes --- */
-    body.dark .message.bot {
-        background-color: #374151; /* gris oscuro */
-        color: var(--color-text);
-    }
-
-    body.dark .message.user {
-        background-color: var(--color-primary);
-        color: white;
-    }
-
-    /* --- Inputs --- */
-    body.dark .chatbot-input input,
-    body.dark input,
-    body.dark textarea {
-        background-color: #1f2937;
-        color: var(--color-text);
-        border-color: var(--color-border);
-    }
-
-        body.dark .chatbot-input input:focus,
-        body.dark input:focus,
-        body.dark textarea:focus {
-            border-color: var(--color-primary-light);
-        }
-
-    /* --- Scrollbar personalizada --- */
-    body.dark .chatbot-body::-webkit-scrollbar-thumb {
-        background-color: var(--color-border);
-    }
 /* =========================================================
-   🎨 MODO ALTO CONTRASTE
+   ♿ MODO ALTO CONTRASTE
    ========================================================= */
 
 html.high-contrast {
-    /* Fondo general */
     background-color: #000 !important;
     color: #fff !important;
 }
 
-    /* Textos y títulos */
     html.high-contrast h1,
     html.high-contrast h2,
     html.high-contrast h3,
@@ -396,7 +338,6 @@ html.high-contrast {
         color: #fff !important;
     }
 
-    /* Botones y enlaces */
     html.high-contrast button,
     html.high-contrast a {
         background-color: #fff !important;
@@ -404,7 +345,6 @@ html.high-contrast {
         border: 2px solid #fff !important;
     }
 
-    /* Inputs, select, sliders */
     html.high-contrast input,
     html.high-contrast select,
     html.high-contrast textarea {
@@ -413,7 +353,6 @@ html.high-contrast {
         border: 2px solid #fff !important;
     }
 
-    /* Tooltips y paneles */
     html.high-contrast .tooltip,
     html.high-contrast .card,
     html.high-contrast .panel {
@@ -421,22 +360,27 @@ html.high-contrast {
         color: #fff !important;
         border: 1px solid #fff !important;
     }
-/* 🌗 Estilos base para modo claro/oscuro */
-html {
-    background-color: #f9fafb; /* fondo claro */
-    color: #111827; /* texto oscuro */
+
+/* =========================================================
+   🔧 CLASES DE UTILIDAD PERSONALIZADAS
+   ========================================================= */
+
+.card,
+.panel {
+    background-color: #ffffff;
+    color: #111827;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-    html.dark {
-        background-color: #0f172a; /* fondo oscuro */
-        color: #f1f5f9; /* texto claro */
-    }
+html.dark .card,
+html.dark .panel {
+    background-color: #18181b;
+    color: #f4f4f5;
+}
 
-    /* 🌓 Alto contraste */
-    html.high-contrast {
-        filter: contrast(1.25);
-    }
-
-    html.dark.high-contrast {
-        filter: contrast(1.4);
-    }
+html.high-contrast .highlight {
+    background-color: #ffea00 !important;
+    color: #000 !important;
+    font-weight: bold;
+}

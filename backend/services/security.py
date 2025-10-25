@@ -33,7 +33,7 @@ except Exception:
         return _db["auth_attempts"]
 
 
-def register_failed_attempt(email: str, ip: str, lock_minutes: int, max_attempts: int):
+def register_failed_attempt(email: str, ip: str, lock_minutes: int, max_attempts: int) -> None:
     """
     Registra un intento fallido y bloquea temporalmente si supera el umbral.
     Conserva tu lógica, con tiempos en UTC conscientes de zona.
@@ -64,7 +64,7 @@ def register_failed_attempt(email: str, ip: str, lock_minutes: int, max_attempts
     )
 
 
-def reset_attempts(email: str):
+def reset_attempts(email: str) -> None:
     _col().update_one({"email": email}, {"$set": {"fail_count": 0, "lock_until": None}})
 
 
@@ -82,7 +82,7 @@ def is_locked(email: str) -> bool:
         return False
 
     # Normalizar a aware UTC si viniera naive
-    if until.tzinfo is None:
+    if getattr(until, "tzinfo", None) is None:
         until = until.replace(tzinfo=timezone.utc)
 
     return datetime.now(timezone.utc) < until

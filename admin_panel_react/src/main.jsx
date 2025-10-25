@@ -1,4 +1,4 @@
-
+// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -14,6 +14,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import App from "@/app.jsx";
 
 import { BrowserRouter } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import { setAccessTokenGetter } from "@/state/tokenProvider"; // 👈 agregado
 
 // Salvaguarda: si #root no existe, créalo (evita pantalla en blanco)
 let rootEl = document.getElementById("root");
@@ -22,6 +24,12 @@ if (!rootEl) {
     rootEl.id = "root";
     document.body.appendChild(rootEl);
 }
+
+// Inyecta el getter del token desde Zustand (no rompe nada si no hay token)
+setAccessTokenGetter(() => {
+    // ✅ usar el snapshot inmediato del estado (sin hooks)
+    return useAuthStore.getState().accessToken || null;
+});
 
 ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>

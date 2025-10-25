@@ -9,7 +9,7 @@ from io import StringIO
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
-from bson import ObjectId
+from bson import ObjectId  # noqa: F401 (compat / puede usarse en otros paths)
 
 from backend.db.mongodb import get_logs_collection
 from backend.config.settings import settings
@@ -30,7 +30,7 @@ LOG_DIR = _as_str(getattr(settings, "log_dir", "./logs"), "./logs")
 
 
 # 📂 Utilidades de archivos locales
-def listar_archivos_log():
+def listar_archivos_log() -> Dict[str, Any]:
     try:
         archivos = [f for f in os.listdir(LOG_DIR) if f.endswith(".log")]
         return {"archivos": archivos}
@@ -38,13 +38,13 @@ def listar_archivos_log():
         return {"error": str(e)}
 
 
-def obtener_contenido_log(filename: str):
+def obtener_contenido_log(filename: str) -> Optional[str]:
     ruta = os.path.join(LOG_DIR, filename)
     return ruta if os.path.exists(ruta) else None
 
 
 # 📤 Exportación CSV simple (stream en memoria)
-def exportar_logs_csv_stream():
+def exportar_logs_csv_stream() -> StringIO:
     logs = get_logs_collection().find()
     output = StringIO()
     writer = csv.writer(output)
@@ -62,11 +62,11 @@ def exportar_logs_csv_stream():
 
 
 # 🔄 No leídos
-def contar_mensajes_no_leidos(user_id: str):
+def contar_mensajes_no_leidos(user_id: str) -> int:
     return get_logs_collection().count_documents({"user_id": user_id, "leido": False})
 
 
-def marcar_mensajes_como_leidos(user_id: str):
+def marcar_mensajes_como_leidos(user_id: str) -> int:
     result = get_logs_collection().update_many(
         {"user_id": user_id, "leido": False},
         {"$set": {"leido": True}}
@@ -75,7 +75,7 @@ def marcar_mensajes_como_leidos(user_id: str):
 
 
 # 📚 Logs generales
-def get_logs(limit: int = 100):
+def get_logs(limit: int = 100) -> List[Dict[str, Any]]:
     logs = list(get_logs_collection().find({"tipo": "acceso"}).sort("timestamp", -1).limit(limit))
     for log in logs:
         log["_id"] = str(log["_id"])
@@ -94,7 +94,7 @@ def log_access(
     user_agent: Optional[str] = None,
     tipo: str = "acceso",
     extra: Optional[Dict[str, Any]] = None,
-):
+) -> None:
     doc: Dict[str, Any] = {
         "user_id": str(user_id),
         "email": email,
@@ -108,7 +108,10 @@ def log_access(
         "tipo": tipo,
     }
     if isinstance(extra, dict):
-        doc.update(extra)
+        # No sobreescribimos claves críticas
+        for k, v in extra.items():
+            if k not in doc:
+                doc[k] = v
     get_logs_collection().insert_one(doc)
 
 
@@ -120,7 +123,7 @@ def log_access_middleware(
     ip: str,
     user_agent: str,
     user: Optional[dict] = None,
-):
+) -> None:
     doc: Dict[str, Any] = {
         "endpoint": endpoint,
         "method": method,
@@ -132,15 +135,15 @@ def log_access_middleware(
     }
     if user:
         doc.update({
-            "user_id": str(user.get("id") or user.get("_id")),
-            "email": user.get("email"),
-            "rol": user.get("rol")
+            "user_id": str(user.get("id") or user.get("_id") or ""),
+            "email": user.get("email", ""),
+            "rol": user.get("rol", "usuario")
         })
     get_logs_collection().insert_one(doc)
 
 
 # 📊 Exportaciones estadísticas
-def get_export_stats():
+def get_export_stats() -> List[Dict[str, Any]]:
     pipeline = [
         {"$match": {"tipo": "descarga"}},
         {"$group": {
@@ -160,24 +163,26 @@ def get_export_stats():
     } for r in result]
 
 
-def get_export_logs(limit: int = 50):
+def get_export_logs(limit: int = 50) -> List[Dict[str, Any]]:
     logs = list(get_logs_collection().find({"tipo": "descarga"}).sort("timestamp", -1).limit(limit))
     for log in logs:
         log["_id"] = str(log["_id"])
-        log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
+        ts = log.get("timestamp")
+        log["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else ts
     return logs
 
 
 # 📉 Fallbacks
-def get_fallback_logs(limit: int = 100):
+def get_fallback_logs(limit: int = 100) -> List[Dict[str, Any]]:
     logs = list(get_logs_collection().find({"intent": "nlu_fallback"}).sort("timestamp", -1).limit(limit))
     for log in logs:
         log["_id"] = str(log["_id"])
-        log["timestamp"] = log.get("timestamp", datetime.utcnow()).isoformat()
+        ts = log.get("timestamp")
+        log["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else ts
     return logs
 
 
-def get_top_failed_intents():
+def get_top_failed_intents() -> List[Dict[str, Any]]:
     pipeline = [
         {"$match": {"intent": {"$ne": None}, "intent": {"$regex": ".*fallback.*", "$options": "i"}}},
         {"$group": {"_id": "$intent", "count": {"$sum": 1}}},
@@ -208,10 +213,11 @@ def exportar_logs_csv_filtrado(desde: datetime | None = None, hasta: datetime | 
     writer = csv.writer(csv_str)
     writer.writerow(["user_id", "email", "timestamp", "endpoint", "method", "status", "ip", "user_agent"])
     for log in logs:
+        ts = log.get("timestamp")
         writer.writerow([
             log.get("user_id", ""),
             log.get("email", ""),
-            log.get("timestamp", "").isoformat() if log.get("timestamp") else "",
+            ts.isoformat() if hasattr(ts, "isoformat") else ts or "",
             log.get("endpoint", ""),
             log.get("method", ""),
             log.get("status", ""),
@@ -231,12 +237,12 @@ def registrar_exportacion_csv(user: dict, desde: datetime | None = None, hasta: 
     Genera y sube CSV a S3 (con filtros) y registra la descarga.
     Retorna la URL del archivo.
     """
-    csv_bytes, url = exportar_logs_csv_filtrado(desde, hasta)
+    _, url = exportar_logs_csv_filtrado(desde, hasta)
 
     log_access(
-        user_id=user.get("_id") or user.get("id"),
-        email=user.get("email"),
-        rol=user.get("rol"),
+        user_id=user.get("_id") or user.get("id") or "",
+        email=user.get("email", ""),
+        rol=user.get("rol", "usuario"),
         endpoint="/admin/exportaciones",
         method="GET",
         status=200,

@@ -1,15 +1,10 @@
+// src/components/chat/MicButton.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-    Mic,
-    Square,
-    Upload,
-    Repeat2,
-    X,
-    Loader2,
-    Play,
-    Pause,
-} from "lucide-react";
+import { Mic, Square, Upload, Repeat2, X, Loader2, Play, Pause } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import axiosClient from "@/services/axiosClient";                  // 🆕 centraliza petición
+import { useAuthStore } from "@/store/authStore";                 // 🆕 lee token centralizado
+import { STORAGE_KEYS } from "@/lib/constants";                   // 🆕 fallback a localStorage
 
 export default function MicButton({
     onPushUser,
@@ -18,11 +13,12 @@ export default function MicButton({
     persona = null,
     lang = "es",
     sessionId = null,
-    token = null,
+    token = null,          // si lo pasas, tiene prioridad
     disabled = false,
 }) {
-    const t = useTranslation(); // función de traducción
+    const t = useTranslation();
 
+    // Endpoint REST del chat (proxy backend → Rasa)
     const CHAT_REST = import.meta.env.VITE_CHAT_REST_URL || "/api/chat";
     const AUDIO_URL = useMemo(
         () => `${String(CHAT_REST).replace(/\/$/, "")}/audio`,
@@ -43,6 +39,22 @@ export default function MicButton({
     const recRef = useRef(null);
     const timerRef = useRef(null);
     const audioElRef = useRef(null);
+
+    // 🆕 Token auto: Zustand → localStorage (solo si no se provee por prop)
+    const storeToken = useAuthStore((s) => s.accessToken);
+    const effectiveToken = useMemo(() => {
+        if (token) return token;
+        if (storeToken) return storeToken;
+        try {
+            return (
+                localStorage.getItem(STORAGE_KEYS.accessToken) ||
+                localStorage.getItem("zajuna_token") ||
+                null
+            );
+        } catch {
+            return null;
+        }
+    }, [token, storeToken]);
 
     useEffect(() => {
         if (!window.MediaRecorder) {
@@ -176,22 +188,18 @@ export default function MicButton({
             if (lang) fd.append("lang", lang);
             if (sessionId) fd.append("session_id", sessionId);
 
-            const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+            // 🆕 axiosClient con FormData (no fuerza JSON) y Authorization:
+            // - Si pasas token por prop/effectiveToken → lo añadimos explícito (tiene prioridad).
+            // - Si no, el interceptor de axiosClient inyectará desde store/localStorage.
+            const headers =
+                effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined;
 
-            const rsp = await fetch(AUDIO_URL, {
-                method: "POST",
-                body: fd,
-                headers,
+            const { data } = await axiosClient.post(AUDIO_URL, fd, {
+                headers, // axios pondrá Content-Type multipart boundary automáticamente
             });
 
-            if (!rsp.ok) {
-                const txt = await rsp.text().catch(() => "");
-                throw new Error(txt || `Error ${rsp.status}`);
-            }
-
-            const data = await rsp.json();
-            const transcript = (data && data.transcript) || "";
-            const botMsgs = (data && data.bot && data.bot.messages) || [];
+            const transcript = data?.transcript || "";
+            const botMsgs = data?.bot?.messages || [];
 
             if (transcript) onPushUser?.(transcript);
             if (Array.isArray(botMsgs)) onPushBot?.(botMsgs);
@@ -201,7 +209,12 @@ export default function MicButton({
             setPlaying(false);
         } catch (e) {
             console.error(e);
-            setErr(e?.message || t("mic.upload_error"));
+            const msg =
+                e?.response?.data?.message ||
+                e?.response?.data?.detail ||
+                e?.message ||
+                t("mic.upload_error");
+            setErr(msg);
             setUploading(false);
         }
     };
@@ -318,9 +331,7 @@ export default function MicButton({
 }
 
 function formatSeconds(s) {
-    const m = Math.floor(s / 60)
-        .toString()
-        .padStart(2, "0");
+    const m = Math.floor(s / 60).toString().padStart(2, "0");
     const ss = (s % 60).toString().padStart(2, "0");
     return `${m}:${ss}`;
 }

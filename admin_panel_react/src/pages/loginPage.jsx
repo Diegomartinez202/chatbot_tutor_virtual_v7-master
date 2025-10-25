@@ -34,14 +34,16 @@ function LoginPage() {
         setError("");
 
         try {
+            // 👉 Centralizado: apiLogin usa axiosClient (baseURL=/api) internamente
             const { token } = await apiLogin({ email, password });
             await login(token);
 
             let role = "usuario";
             try {
+                // 👉 Centralizado: apiMe usa axiosClient (Authorization auto)
                 const profile = await apiMe();
                 role = profile?.rol || profile?.role || "usuario";
-            } catch { }
+            } catch { /* perfil opcional */ }
 
             if (role === "admin" || role === "soporte") navigate("/dashboard", { replace: true });
             else navigate("/chat", { replace: true });
