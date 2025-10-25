@@ -249,7 +249,7 @@ export default function SettingsPanel({
                     {/* Sesión / Chat */}
                     <section className="space-y-2">
                         <h3 className="text-sm font-medium">Sesión / Chat</h3>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
                             {isAuthenticated ? (
                                 <IconTooltip label="Cerrar sesión en la aplicación">
                                     <button

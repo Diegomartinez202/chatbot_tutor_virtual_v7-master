@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -33,7 +32,7 @@ import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
 import "@/styles/index.css";
-import "./i18n";
+import "@/i18n";
 
 // Flag opcional para habilitar la página de pruebas del chat
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
@@ -97,37 +96,10 @@ function lazyWithFallback(loader, name) {
 
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
-const SettingsPanel = lazyWithFallback(() => import("@/components/SettingsPanel"), "SettingsPanel");
 
 export default function App() {
-    const { i18n, t } = useTranslation();
-    const [settingsOpen, setSettingsOpen] = useState(false);
-
-    const handleLanguageChange = (lang) => {
-        i18n.changeLanguage(lang);
-    };
-
     return (
         <TooltipProvider>
-            {/* Botón flotante de configuración e i18n */}
-            <button
-                onClick={() => setSettingsOpen(true)}
-                className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded z-50"
-            >
-                ⚙️ {t("settings")}
-            </button>
-
-            {/* Panel de ajustes (lazy) */}
-            <React.Suspense fallback={null}>
-                {settingsOpen && (
-                    <SettingsPanel
-                        open={settingsOpen}
-                        onClose={() => setSettingsOpen(false)}
-                        onLanguageChange={handleLanguageChange}
-                    />
-                )}
-            </React.Suspense>
-
             <Routes>
                 {/* 🌐 Públicas */}
                 <Route path="/" element={<HomePage />} />
@@ -176,7 +148,7 @@ export default function App() {
                 <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
                 {SHOW_HARNESS && <Route path="/chat-harness" element={<Harness />} />}
 
-                {/* 🔒 Protegidas (sin rol específico) */}
+                {/* 🔒 Protegidas */}
                 <Route
                     path="/dashboard"
                     element={

@@ -26,7 +26,11 @@ class ChatRequest(BaseModel):
     message: str
     metadata: Optional[Dict[str, Any]] = None
     mode: Optional[str] = "anonymous"
-    model_config = ConfigDict(validate_by_name=True, extra="allow")
+
+    model_config = ConfigDict(
+        validate_by_name=True,
+        extra="allow",
+    )
 
 
 # ==== Endpoints auxiliares ====
@@ -60,12 +64,17 @@ async def chat_debug(request: Request):
 
 
 # ==== Endpoint principal ====
-@chat_router.post("", summary="Enviar mensaje al chatbot y registrar en MongoDB",
-                  dependencies=limiter(times=60, seconds=60))
+@chat_router.post(
+    "",
+    summary="Enviar mensaje al chatbot y registrar en MongoDB",
+    dependencies=limiter(times=60, seconds=60),
+)
 @limit("60/minute")
 async def send_message_to_bot(data: ChatRequest, request: Request):
-    ip = getattr(request.state, "ip", None) or request.headers.get("x-forwarded-for") or (
-        request.client.host if request.client else "unknown"
+    ip = (
+        getattr(request.state, "ip", None)
+        or request.headers.get("x-forwarded-for")
+        or (request.client.host if request.client else "unknown")
     )
     user_agent = getattr(request.state, "user_agent", None) or request.headers.get("user-agent", "")
     rid = get_request_id()
@@ -83,11 +92,11 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
     # Comunicación con Rasa
     t0 = perf_counter()
     try:
+        # ✅ Endurecido: no pasamos kwargs extras a process_user_message
         bot_responses: List[Dict[str, Any]] = await process_user_message(
             message=data.message,
             sender_id=data.sender_id,
             metadata=enriched_meta,
-            rasa_url=settings.rasa_url  # 👈 Centralizado
         )
     except Exception as e:
         log.error(f"❌ Error al comunicar con Rasa ({settings.rasa_url}): {e}", exc_info=True)

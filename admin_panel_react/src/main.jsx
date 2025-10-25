@@ -1,7 +1,6 @@
 // src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-
 import "@/styles/index.css";
 import "@/styles/animations.css";
 
@@ -16,7 +15,7 @@ import App from "@/app.jsx";
 import { BrowserRouter } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { setAccessTokenGetter } from "@/state/tokenProvider"; // 👈 agregado
-
+import "@/i18n";
 // Salvaguarda: si #root no existe, créalo (evita pantalla en blanco)
 let rootEl = document.getElementById("root");
 if (!rootEl) {
