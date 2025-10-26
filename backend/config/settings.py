@@ -71,10 +71,6 @@ class Settings(BaseSettings):
 
     # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
-    """
-    Si demo_mode=True:
-      - El backend puede aceptar el token simulado FAKE_TOKEN_ZAJUNA (vía rutas demo).
-    """
 
     # 📦 MongoDB
     mongo_uri: str = Field(..., alias="MONGO_URI")

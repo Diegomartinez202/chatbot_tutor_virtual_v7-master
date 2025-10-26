@@ -76,7 +76,7 @@ export const INTENT_STYLES = {
     saludo: "bg-sky-100 text-sky-800",
     fallback: "bg-zinc-100 text-zinc-800",
     soporte_contacto: "bg-teal-100 text-teal-800",
-    exito: "bg-green-100 text-green-800",  // añadido (no rompe)
-    error: "bg-red-100 text-red-800",      // añadido (no rompe)
+    exito: "bg-green-100 text-green-800",  // aÃ±adido (no rompe)
+    error: "bg-red-100 text-red-800",      // aÃ±adido (no rompe)
     default: "bg-gray-100 text-gray-800",
 };

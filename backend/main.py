@@ -18,26 +18,33 @@ log = get_logger(__name__)
 
 from backend.config.settings import settings
 
-# 🧩 Middlewares propios actualizados
+# 🧩 Middlewares propios
 from backend.middleware.request_id import RequestIdMiddleware
 from backend.middleware.request_meta_middleware import request_meta_middleware
-from backend.middleware.log_middleware import LoggingMiddleware  # 👈 AÑADE ESTA LÍNEA
+from backend.middleware.log_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.auth_middleware import AuthMiddleware
+
 # 🧭 Routers agregadores y controladores
 from backend.routes import router as api_router
 from backend.controllers import admin_controller as admin_ctrl
 from backend.controllers import user_controller as users_ctrl
-from backend.app.routes.me_settings import router as me_settings_router
+
+# Routers específicos
+from backend.routes.chat_proxy import router as chat_router
+from backend.routes.me_settings import router as me_router
+from backend.routes.user_settings import router as user_settings_router  # /api/me/settings
+
 # ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
-from backend.routes.chat_proxy import router as chat_router
-from backend.routes.me_settings import router as me_router         
-from backend.db.mongo import connect_to_mongo, close_mongo    
-from backend.routes.me_settings import router as me_settings_router
+
+# 🗄️ Mongo (tu módulo actual)
+from backend.db.mongo import connect_to_mongo, close_mongo
+
+# 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
-from backend.routes.user_settings import router as user_settings_router  # ✅ NUEVO
+
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -72,7 +79,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # 🌐 CORS
+    # 🌐 CORS (tu bloque original se mantiene)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
@@ -80,6 +87,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ✅ CORS + CSP dinámico adicional (no quito tu bloque; esto suma seguridad y CSP)
+    add_cors_and_csp(app)
 
     # 🔎 Request-ID
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
@@ -95,33 +105,31 @@ def create_app() -> FastAPI:
 
     # 🔐 Auth: agrega request.state.user (JWT o demo)
     app.add_middleware(AuthMiddleware)
-    app.include_router(me_settings_router)  
-    app = FastAPI(...)
-    add_cors_and_csp(app)
 
     # 📁 Archivos estáticos
-    Path(STATIC_DIR).mkdir(parents=True, exist_ok=True) 
+    Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # 🔀 Rutas API principales
+    # 🔀 Rutas API principales (se mantienen todas)
     app.include_router(api_router)
     app.include_router(admin_ctrl.router)
     app.include_router(users_ctrl.router)
     app.include_router(chat_router)
-    app.include_router(me_router)     
-    app.include_router(me_settings_router)
+    app.include_router(me_router)
+    # Router de settings de usuario en /api/me/settings
     app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])
-    app.include_router(user_settings_router)  
 
-    # 🔒 CSP (embebidos)
+    # 🔒 CSP adicional (tu bloque original se conserva, pero sin pisar cabeceras ya puestas)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)
-        raw_env = os.getenv("EMBED_ALLOWED_ORIGINS", "")
-        env_anc = _parse_csv_or_space(raw_env)
-        ancestors = env_anc if env_anc else (settings.frame_ancestors or ["'self'"])
-        resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(ancestors)};"
-        resp.headers["X-Frame-Options"] = "SAMEORIGIN"
+        # Si add_cors_and_csp ya puso CSP, no la pisamos
+        if "Content-Security-Policy" not in resp.headers:
+            raw_env = os.getenv("EMBED_ALLOWED_ORIGINS", "")
+            env_anc = _parse_csv_or_space(raw_env)
+            ancestors = env_anc if env_anc else (settings.frame_ancestors or ["'self'"])
+            resp.headers["Content-Security-Policy"] = f"frame-ancestors {' '.join(ancestors)};"
+            resp.headers["X-Frame-Options"] = "SAMEORIGIN"
         return resp
 
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
@@ -179,16 +187,22 @@ app = create_app()
 
 
 # ─────────────────────────────────────────────────────
-# FastAPI-Limiter opcional
+# Startup / Shutdown (Mongo + rate limit si procede)
 # ─────────────────────────────────────────────────────
 @app.on_event("startup")
 async def _startup():
+    # DB
+    await connect_to_mongo()
+    # Rate limit opcional
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await init_rate_limit(app)
 
 @app.on_event("shutdown")
 async def _shutdown():
+    # DB
+    await close_mongo()
+    # Rate limit opcional
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()
@@ -198,19 +212,3 @@ async def _shutdown():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
-# ─────────────────────────────────────────────────────
-# Startup / Shutdown (Mongo + rate limit si procede)
-# ─────────────────────────────────────────────────────
-@app.on_event("startup")
-async def _startup():
-    await connect_to_mongo()   # ⬅️ abre conexión Mongo
-    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
-    if provider == "fastapi-limiter":
-        await init_rate_limit(app)
-
-@app.on_event("shutdown")
-async def _shutdown():
-    await close_mongo()        # ⬅️ cierra conexión Mongo
-    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
-    if provider == "fastapi-limiter":
-        await close_redis()
