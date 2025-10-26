@@ -1,4 +1,3 @@
-// admin_panel_react/src/components/SettingsPanel.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     X,
@@ -172,6 +171,24 @@ export default function SettingsPanel({
                 reloadPrefs?.();
             }
         })();
+
+        // ▶️ Notificar al host (widget) cambios de preferencias
+        try {
+            const parentOrigin = new URL(document.referrer || window.origin).origin;
+            window.parent?.postMessage(
+                {
+                    type: "prefs:update",
+                    prefs: {
+                        theme: state.darkMode ? "dark" : "light",
+                        language: state.language || "es",
+                    },
+                },
+                parentOrigin
+            );
+        } catch {
+            /* ignore postMessage errors */
+        }
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
 
@@ -382,3 +399,4 @@ export default function SettingsPanel({
         </div>
     );
 }
+

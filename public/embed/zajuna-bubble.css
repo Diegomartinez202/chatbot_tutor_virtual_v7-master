@@ -1,0 +1,109 @@
+/* public/embed/zajuna-bubble.css */
+.zajuna-bubble-root {
+    font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    color: #111827;
+}
+
+.zajuna-bubble-button {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    padding: 6px 8px;
+    box-shadow: 0 4px 18px rgba(2,8,23,.15);
+}
+
+.zb-pill {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.zb-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 0 2px #dcfce7 inset;
+}
+
+.zb-labels {
+    display: flex;
+    flex-direction: column;
+}
+
+.zb-title {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.zb-subtitle {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 14px;
+}
+
+.zajuna-bubble-panel {
+    position: fixed;
+    right: 18px;
+    bottom: 70px;
+    width: 380px;
+    height: 520px;
+    max-height: calc(100vh - 120px);
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 15px 50px rgba(2,8,23,.25);
+    overflow: hidden;
+    transform: translateY(10px) scale(.98);
+    opacity: 0;
+    pointer-events: none;
+    transition: .22s ease;
+}
+
+    .zajuna-bubble-panel.open {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+.zb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #0b1220;
+    color: #e5e7eb;
+}
+
+.zb-header-title {
+    font-weight: 600;
+}
+
+.zb-close {
+    all: unset;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    padding: 0 6px;
+    border-radius: 6px;
+}
+
+    .zb-close:hover {
+        background: rgba(255,255,255,.08);
+    }
+
+.zb-body {
+    height: calc(100% - 40px);
+    background: #0f172a;
+}
+
+.zb-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}

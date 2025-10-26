@@ -1,4 +1,3 @@
-// src/components/chat/ChatUI.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -8,8 +7,8 @@ import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "@/store/authStore";            // 🆕 token centralizado
-import { STORAGE_KEYS } from "@/lib/constants";             // 🆕 fallback a localStorage
+import { useAuthStore } from "@/store/authStore";           
+import { STORAGE_KEYS } from "@/lib/constants";           
 import "./ChatUI.css";
 
 // Helpers
@@ -258,7 +257,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             setMessages(m => [...m, items[i]]);
         }
         setTyping(false);
-    }, [tChat]);
+
+        // ▶️ Telemetría: mensaje recibido (post-respuesta)
+        try {
+            window.parent?.postMessage({ type: "telemetry", event: "message_received" }, parentOrigin);
+        } catch { /* no-op */ }
+    }, [tChat, parentOrigin]);
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
@@ -271,6 +275,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         setSending(true);
         setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
+
+        // ▶️ Telemetría: mensaje enviado (apenas el usuario envía)
+        try {
+            window.parent?.postMessage({ type: "telemetry", event: "message_sent" }, parentOrigin);
+        } catch { /* no-op */ }
+
         try {
             const rsp = await sendRasaMessage({
                 text,

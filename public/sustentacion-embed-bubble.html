@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Sustentación • Chatbot Tutor Virtual (Bubble)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            margin: 0;
+            padding: 24px;
+            background: #f8fafc;
+        }
+
+        h1 {
+            margin-top: 0
+        }
+
+        .desc {
+            color: #475569;
+            margin-bottom: 16px
+        }
+
+        .hint {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Demo de Sustentación — Chatbot (Bubble)</h1>
+    <p class="desc">Click en la burbuja para abrir/cerrar el panel.</p>
+
+    <div class="hint">
+        <b>Notas</b>
+        <ul>
+            <li>El frontend debe servir <code>/chat?embed=1</code> (Vite: <code>http://localhost:5173/chat?embed=1</code>).</li>
+            <li>El backend debe permitir este origen en CORS/CSP (ya lo cubrimos con <code>add_cors_and_csp</code>).</li>
+        </ul>
+    </div>
+
+    <script src="http://localhost:5173/zajuna-widget.bubble.sustentacion.js"
+            data-src="http://localhost:5173/chat?embed=1"
+            data-auth-mode="none"
+            data-title="Tutor Virtual"
+            data-width="min(420px, 92vw)"
+            data-height="min(640px, 85vh)"
+            data-icon="bot"
+            data-color="#4f46e5">
+    </script>
+</body>
+</html>
