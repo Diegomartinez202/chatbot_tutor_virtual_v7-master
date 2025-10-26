@@ -1,4 +1,4 @@
-// vite.config.js
+// admin_panel_react/vite.config.js
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
@@ -33,4 +33,11 @@ export default defineConfig({
     },
     preview: { host: "localhost", port: 5173, strictPort: false },
     define: { "process.env": {} },
+
+    // 🧪 ✅ Añadido: configuración mínima de Vitest
+    test: {
+        environment: "jsdom",
+        setupFiles: "./src/test/setupTests.ts", // opcional (lo creamos abajo)
+        globals: true,
+    },
 });

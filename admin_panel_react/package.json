@@ -10,6 +10,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
     "lint": "eslint src --ext .js,.jsx",
     "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
     "test:e2e": "playwright test",
