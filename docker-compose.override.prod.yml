@@ -1,7 +1,7 @@
-# docker-compose.override.dev.yml
-# Override adicional SOLO para desarrollo (con Nginx proxy en dev).
-# Se activa con:
-#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up --build
+# docker-compose.override.prod.yml
+# Override adicional para producción local con Nginx proxy.
+# Actívalo con:
+#   docker compose -f docker-compose.yml -f docker-compose.override.prod.yml up --build
 
 services:
   nginx-dev:
@@ -13,6 +13,7 @@ services:
     ports:
       - "8080:80"
     depends_on:
+      # Ajusta a los nombres reales en tu docker-compose.yml
       - backend-dev
       - admin-dev
       - rasa

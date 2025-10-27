@@ -1,3 +1,4 @@
+#\rasa\Dockerfile
 FROM rasa/rasa:3.6.20-full
 
 USER root
@@ -12,11 +13,11 @@ WORKDIR /app
 # 🧩 Dependencias para tracker_store (Mongo) y event_broker (Redis)
 RUN pip install --no-cache-dir "redis>=4.5" "pymongo[srv]==3.13.0"
 RUN pip install --no-cache-dir pika
+
 # 📁 Copia el proyecto Rasa completo
 COPY . /app
 
 # 🧾 Copia entrypoint y plantillas de endpoints
-# (Se mantienen aunque el compose monta el template correcto; esto no interfiere)
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml
@@ -27,6 +28,15 @@ RUN sed -i 's/\r$//' /entrypoint.sh \
  && find /app -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; || true \
  && chown -R 1000:1000 /app /entrypoint.sh \
  && chmod +x /entrypoint.sh
+
+# ✅ Silencia warnings SQLAlchemy 2.0 + pin <2.0
+ENV SQLALCHEMY_SILENCE_UBER_WARNING=1 \
+    SQLALCHEMY_WARN_20=0
+
+# Instalación del pin (mantengo tu secuencia)
+USER root
+RUN pip install --no-cache-dir "sqlalchemy<2.0"
+USER 1001
 
 # 👤 Usuario sin privilegios (coherente con la imagen base)
 USER 1000

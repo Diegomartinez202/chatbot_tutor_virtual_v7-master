@@ -1,5 +1,4 @@
-// src/app.jsx
-import React from "react";
+import React, { useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
 import { useAuth } from "@/context/AuthContext";
@@ -32,11 +31,15 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
+// Bubble embebido (forwardRef)
+import HostChatBubbleRef from "@/embed/HostChatBubbleRef";
+
 // Asegura i18n cargado
 import "@/i18n";
 
-// Flag opcional para habilitar la página de pruebas del chat
+// Flags opcionales
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
+const SHOW_BUBBLE_DEBUG = import.meta.env.VITE_SHOW_BUBBLE_DEBUG === "true";
 
 /** Ruta por defecto según rol */
 function roleDefaultPath(role) {
@@ -99,6 +102,16 @@ const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Reg
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
 
 export default function App() {
+    // 🔗 Bubble ref para control externo (open/close/sendToken/setTheme/setLanguage)
+    const bubbleRef = useRef(null);
+
+    const handleLoginDemo = async () => {
+        // Ejemplo: tras tu flujo de login real, envía el token al iframe
+        const token = "FAKE_TOKEN_ZAJUNA"; // sustituye por tu JWT real si aplica
+        bubbleRef.current?.sendToken(token);
+        bubbleRef.current?.open?.();
+    };
+
     return (
         <TooltipProvider>
             <Routes>
@@ -290,6 +303,45 @@ export default function App() {
                 {/* Catch-all → Home/Panel según sesión */}
                 <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
+
+            {/* 🫧 Bubble embebido siempre montado (no interfiere con tus rutas) */}
+            <HostChatBubbleRef
+                ref={bubbleRef}
+                iframeUrl={`${window.location.origin}/?embed=1`}
+                allowedOrigin={window.location.origin}
+                title="Tutor Virtual"
+                subtitle="Sustentación"
+                startOpen={false}
+                theme="auto"
+                onTelemetry={(evt) => console.log("[telemetry]", evt)}
+                onAuthNeeded={() => console.log("iframe pidió autenticación")}
+            />
+
+            {/* 🔧 Panel de control DEMO (opcional) */}
+            {SHOW_BUBBLE_DEBUG && (
+                <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 2147483000 }}>
+                    <div
+                        style={{
+                            background: "rgba(2,6,23,.75)",
+                            color: "#E5E7EB",
+                            border: "1px solid #334155",
+                            borderRadius: 12,
+                            padding: 10,
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
+                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
+                        <button onClick={handleLoginDemo} className="btn">Login & Enviar Token</button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">Idioma: ES</button>
+                    </div>
+                </div>
+            )}
         </TooltipProvider>
     );
 }

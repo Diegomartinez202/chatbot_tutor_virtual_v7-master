@@ -106,6 +106,12 @@ services:
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
+      
+      # ✅ Silenciar warnings SQLAlchemy 2.0 (apoya al pin del Dockerfile)
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+
+
     depends_on:
       - action-server
       - mongo
@@ -141,6 +147,10 @@ services:
       --cors "*"
       --port ${RASA_PORT:-5005}
     working_dir: /app/rasa
+    environment:
+    # ✅ también aquí, si usas la imagen sin Dockerfile propio
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
     volumes:
       - ./rasa:/app/rasa
     ports:
