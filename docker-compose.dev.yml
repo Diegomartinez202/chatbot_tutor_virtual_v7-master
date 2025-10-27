@@ -1,23 +1,67 @@
-﻿version: "3.9"
+version: "3.9"
+
+name: tutorbot-dev-lite
 
 services:
-  backend:
+  backend-dev:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: dev          # â† usa el stage DEV del Dockerfile (si existe)
+      target: dev
+    container_name: backend-dev
     environment:
       APP_ENV: dev
       DEBUG: "true"
-    command: sh -c "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+      # CORS/CSP útiles en dev
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+      EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
+    command: >
+      sh -lc "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
     volumes:
       - ./backend:/app/backend
       - ./backend/requirements.txt:/app/requirements.txt
+    restart: unless-stopped
+    networks:
+      - app-net
 
   rasa:
+    container_name: rasa
+    build:
+      context: ./rasa
+      dockerfile: Dockerfile
+    environment:
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+    depends_on:
+      - action-server
+    ports:
+      - "5005:5005"
     volumes:
       - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+    restart: unless-stopped
+    networks:
+      - app-net
 
   action-server:
+    container_name: action-server
+    build:
+      context: ./rasa
+      dockerfile: actions/Dockerfile
+    ports:
+      - "5055:5055"
     volumes:
       - ./rasa:/app/rasa
+      - ./rasa/actions:/app/actions
+    restart: unless-stopped
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+

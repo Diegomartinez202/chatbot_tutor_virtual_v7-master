@@ -1,13 +1,16 @@
 # docker-compose.override.dev.yml
 # Override adicional SOLO para desarrollo avanzado.
 # Actívalo con:
-#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up --build
+#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up -d --build
+# o con perfiles (recomendado):
+#   docker compose --profile build up -d --build
 
 services:
   backend:
     profiles: ["build"]
     command: >
       sh -lc "exec uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
     environment:
       # ✅ CORS/CSP para embed en desarrollo (ajusta según necesidad)
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
@@ -21,10 +24,11 @@ services:
     profiles: ["build"]
     command: >
       sh -lc "npm install && npm run dev -- --host --port 5173"
+    restart: unless-stopped
     environment:
-      # Frontend → permite recibir postMessage solo de estos orígenes (si aplica)
+      # Frontend → límites de postMessage (si aplica)
       VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
-      # Hook useUserSettings → endpoint que ya expone el backend
+      # Hook useUserSettings → endpoint ya expuesto por backend
       VITE_USER_SETTINGS_URL: "/api/me/settings"
 
   rasa:
@@ -42,5 +46,5 @@ services:
   nginx:
     profiles: ["build"]
     volumes:
-      # ✅ corrige el mapeo; elimina el punto extra al final
+      # ✅ corrige el mapeo (sin punto final)
       - ./ops/nginx/conf.d:/etc/nginx/conf.d

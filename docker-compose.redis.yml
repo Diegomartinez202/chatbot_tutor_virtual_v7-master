@@ -1,4 +1,4 @@
-﻿version: "3.9"
+version: "3.9"
 
 services:
   redis:
@@ -13,8 +13,18 @@ services:
     networks:
       - app-net
 
-  # Parchea el backend del compose principal (activa Redis)
+  # ---- Override para PROD (servicio: backend) ----
   backend:
+    environment:
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - app-net
+
+  # ---- Override para DEV (servicio: backend-dev) ----
+  backend-dev:
     environment:
       RATE_LIMIT_BACKEND: redis
       REDIS_URL: redis://redis:6379/0
@@ -28,5 +38,4 @@ volumes:
 
 networks:
   app-net:
-    external: false
-
+    external: true
