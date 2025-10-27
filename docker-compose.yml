@@ -468,4 +468,3 @@ services:
       APP_ENV: development
     networks:
       - app-net
-
