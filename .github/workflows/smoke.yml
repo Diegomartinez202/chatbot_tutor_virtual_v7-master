@@ -1,0 +1,64 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports: [ "27017:27017" ]
+      redis:
+        image: redis:7-alpine
+        ports: [ "6379:6379" ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start stack (dev)
+        run: |
+          docker compose up -d mongo redis action-server rasa backend-dev admin-dev nginx-dev
+          docker compose ps
+
+      - name: Wait for services
+        run: |
+          python - <<'PY'
+          import time,requests,sys
+          urls=[
+            "http://localhost:8000/health",
+            "http://localhost:5005/status",
+            "http://localhost:8080/api/health"
+          ]
+          for i in range(60):
+              ok=0
+              for u in urls:
+                  try:
+                      r=requests.get(u,timeout=3)
+                      if r.status_code==200: ok+=1
+                  except Exception:
+                      pass
+              if ok==len(urls):
+                  print("All services ready"); sys.exit(0)
+              time.sleep(2)
+          print("Timeout waiting services"); sys.exit(1)
+          PY
+        shell: bash
+
+      - name: Run tester (pytest with HTML)
+        run: |
+          docker compose -f docker-compose.tester.yml run --rm tester || exit 1
+
+      - name: Upload smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: reports/smoke.html

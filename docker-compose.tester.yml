@@ -5,20 +5,23 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
-    # 👇 Usamos la red del stack que ya tienes corriendo
     networks:
       - app-net
     environment:
-      # Estos endpoints usan los NOMBRES reales de tus contenedores en la red
       PROXY_BASE: "http://nginx-dev:80"
       BACKEND: "http://backend-dev:8000"
       RASA: "http://rasa:5005"
+
+      # Opcional: si tu conftest usa .env
+      DOTENV_PATH: ".env.local"
     command:
       - /bin/sh
       - -lc
       - |
         python -m pip install -U pip &&
-        python -m pip install pytest pytest-timeout requests pytest-html &&
+        python -m pip install \
+          pytest pytest-timeout requests pytest-html \
+          python-dotenv &&
         mkdir -p reports &&
         python - <<'PY'
         import time, requests
@@ -42,11 +45,15 @@ services:
             print(f"⏳ Esperando servicios... intento {attempt+1}/30")
             time.sleep(2)
         PY
-        pytest -q tests/test_api.py --disable-warnings --maxfail=1 --html=reports/smoke.html --self-contained-html
+        # Ejecuta exactamente tus tests
+        pytest -q tests/test_api.py \
+          --disable-warnings --maxfail=1 \
+          --html=reports/smoke.html --self-contained-html
 
 networks:
   app-net:
     external: true
     name: tutorbot-local_app-net
+
 
 
