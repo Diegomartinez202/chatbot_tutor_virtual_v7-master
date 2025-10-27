@@ -1,0 +1,1 @@
+git commit --allow-empty -m "refresh: sincronización de actividad GitHub"
