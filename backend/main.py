@@ -32,15 +32,16 @@ from backend.controllers import user_controller as users_ctrl
 
 # Routers específicos
 from backend.routes.chat_proxy import router as chat_router
-from backend.routes.me_settings import router as me_router
-from backend.routes.user_settings import router as user_settings_router  # /api/me/settings
+from backend.routes.me_settings import router as me_router                  # /api/me (shim/compat)
+from backend.routes.user_settings import router as user_settings_router    # /api/me/settings
 
 # ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
 
-# 🗄️ Mongo (tu módulo actual)
-from backend.db.mongo import connect_to_mongo, close_mongo
+# 🗄️ Mongo (tu módulo actual con PyMongo síncrono; abre conexión al import)
+#     No expone connect_to_mongo/close_mongo, así que NO se esperan en startup/shutdown.
+from backend.db.mongodb import get_database  # noqa: F401  (asegura init y disponible)
 
 # 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
@@ -79,7 +80,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
-    # 🌐 CORS (tu bloque original se mantiene)
+    # 🌐 CORS (bloque original)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
@@ -88,7 +89,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ✅ CORS + CSP dinámico adicional (no quito tu bloque; esto suma seguridad y CSP)
+    # ✅ CORS + CSP dinámico adicional
     add_cors_and_csp(app)
 
     # 🔎 Request-ID
@@ -110,20 +111,18 @@ def create_app() -> FastAPI:
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # 🔀 Rutas API principales (se mantienen todas)
+    # 🔀 Rutas API principales
     app.include_router(api_router)
     app.include_router(admin_ctrl.router)
     app.include_router(users_ctrl.router)
     app.include_router(chat_router)
-    app.include_router(me_router)
-    # Router de settings de usuario en /api/me/settings
-    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])
+    app.include_router(me_router)  # shim compat /api/me/*
+    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  # /api/me/settings
 
-    # 🔒 CSP adicional (tu bloque original se conserva, pero sin pisar cabeceras ya puestas)
+    # 🔒 CSP adicional (solo si nadie la puso antes)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)
-        # Si add_cors_and_csp ya puso CSP, no la pisamos
         if "Content-Security-Policy" not in resp.headers:
             raw_env = os.getenv("EMBED_ALLOWED_ORIGINS", "")
             env_anc = _parse_csv_or_space(raw_env)
@@ -187,22 +186,16 @@ app = create_app()
 
 
 # ─────────────────────────────────────────────────────
-# Startup / Shutdown (Mongo + rate limit si procede)
+# Startup / Shutdown (Rate limit si procede; DB ya se inicializa en el import)
 # ─────────────────────────────────────────────────────
 @app.on_event("startup")
 async def _startup():
-    # DB
-    await connect_to_mongo()
-    # Rate limit opcional
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await init_rate_limit(app)
 
 @app.on_event("shutdown")
 async def _shutdown():
-    # DB
-    await close_mongo()
-    # Rate limit opcional
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()

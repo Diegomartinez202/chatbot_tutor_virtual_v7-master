@@ -1,3 +1,4 @@
+//src\components\LanguageSelector.jsx
 import React, { useEffect, useState } from "react";
 import { Languages } from "lucide-react";
 import i18n from "@/i18n";
