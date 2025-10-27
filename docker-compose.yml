@@ -50,7 +50,6 @@ services:
       - _docker_data_mongo:/data/db
     networks:
       - app-net
-
   # ------------------------------------------------------------
   # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
@@ -103,14 +102,16 @@ services:
       RASA_AUTOTRAIN: "true"
       ENDPOINTS_TEMPLATE: "mongo"
 
+      # Forzar carga del último modelo disponible en /app/models
+      RASA_MODEL: /app/models
+
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
       TRACKER_MONGO_COLLECTION: "conversations"
-      
+
       # ✅ Silenciar warnings SQLAlchemy 2.0 (apoya al pin del Dockerfile)
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
-
 
     depends_on:
       - action-server
@@ -127,10 +128,11 @@ services:
       - ./rasa/config.yml:/app/config.yml:ro
       - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
     healthcheck:
-      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q version"]
+      # ✅ Comprueba que /status trae 'model_file' (modelo cargado)
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
       interval: 30s
       timeout: 5s
-      start_period: 300s
+      start_period: 600s
       retries: 5
 
   # ------------------------------------------------------------
@@ -148,17 +150,28 @@ services:
       --port ${RASA_PORT:-5005}
     working_dir: /app/rasa
     environment:
-    # ✅ también aquí, si usas la imagen sin Dockerfile propio
+      # ✅ Silenciar warnings en imagen oficial
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
+
+      # Forzar carga del último modelo
+      RASA_MODEL: /app/models
     volumes:
       - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
     ports:
       - "${RASA_PORT:-5005}:5005"
     depends_on:
       - ctv_mongo
     networks:
       - app-net
+    healthcheck:
+      # La imagen oficial puede no traer curl; usa wget
+      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q 'model_file'"]
+      interval: 30s
+      timeout: 5s
+      start_period: 600s
+      retries: 5
 
   # ------------------------------------------------------------
   # Rasa Action Server (perfil: vanilla)
@@ -186,14 +199,13 @@ services:
       HELPDESK_TOKEN: ""
       ACTIONS_HTTP_TIMEOUT: "10"
       ACTIONS_HTTP_RETRIES: "2"
-
       SMTP_SERVER: "smtp.office365.com"
       SMTP_PORT: "587"
       SMTP_USER: "bot@ejemplo.com"
       SMTP_PASS: "contraseña_real"
       EMAIL_FROM: "bot@ejemplo.com"
-
       RESET_URL_BASE: "https://zajuna.edu"
+
 
   # ============================================================
   # Backend DEV (hot reload)

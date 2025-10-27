@@ -24,6 +24,7 @@ services:
     profiles: ["build"]
     command: >
       sh -lc "npm install && npm run dev -- --host --port 5173"
+      
     restart: unless-stopped
     environment:
       # Frontend → límites de postMessage (si aplica)
@@ -48,3 +49,24 @@ services:
     volumes:
       # ✅ corrige el mapeo (sin punto final)
       - ./ops/nginx/conf.d:/etc/nginx/conf.d
+
+  tester:
+    image: python:3.10
+    container_name: tester
+    profiles: ["build"]
+    working_dir: /app
+    volumes:
+      - ./:/app
+    depends_on:
+      - backend-dev
+      - rasa
+      - nginx-dev
+    command: >
+      bash -lc "
+        pip install -U pip &&
+        pip install -r tests/requirements-test.txt &&
+        pytest -q tests/test_api.py
+      "
+    networks:
+      - app-net
+

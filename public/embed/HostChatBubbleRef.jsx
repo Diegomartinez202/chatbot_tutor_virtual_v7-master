@@ -25,9 +25,9 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         startOpen = false,
         theme = "auto", // auto | light | dark
         zIndex = 999999,
-        initialToken,          // token opcional al montar
-        onTelemetry,           // (evt) => {}
-        onAuthNeeded,          // () => {}
+        initialToken, // token opcional al montar
+        onTelemetry, // (evt) => {}
+        onAuthNeeded, // () => {}
     },
     ref
 ) {
@@ -71,14 +71,13 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             bubble.onEvent((evt) => {
                 setLastEvent(evt);
                 if (evt?.type === "telemetry") {
-                    onTelemetry?.(evt); // { type:"telemetry", event:"message_sent" | "message_received" }
+                    onTelemetry?.(evt);
                 } else if (evt?.type === "prefs:update") {
                     const next = {
                         theme: evt?.prefs?.theme || "light",
                         language: evt?.prefs?.language || "es",
                     };
                     setLastPrefs(next);
-                    // Si theme=auto, reflejamos tema del iframe en el host
                     if (theme === "auto") {
                         document.documentElement.classList.toggle("dark", next.theme === "dark");
                     }
@@ -121,7 +120,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         onAuthNeeded,
     ]);
 
-    // Métodos públicos (expuestos vía ref)
+    // Métodos públicos expuestos
     useImperativeHandle(
         ref,
         () => ({
@@ -134,7 +133,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             },
             sendToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
             setTheme: (next) => {
-                // Notifica al iframe y, si theme=auto, también al host
                 bubbleRef.current?.setTheme?.(next);
                 if (theme === "auto") {
                     document.documentElement.classList.toggle("dark", next === "dark");
@@ -151,7 +149,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         [lastEvent, lastPrefs, theme]
     );
 
-    // Caja de estado opcional (debug). Puedes eliminar el return si no quieres UI.
+    // Caja debug
     return (
         <div style={{ position: "fixed", left: 8, bottom: 8, padding: 8, zIndex: zIndex + 1 }}>
             <div
@@ -175,32 +173,10 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                     <button onClick={() => bubbleRef.current?.open?.()} style={btn}>Abrir</button>
                     <button onClick={() => bubbleRef.current?.close?.()} style={btnSecondary}>Cerrar</button>
-                    <button onClick={() => bubbleRef.current?.isOpen?.() ? bubbleRef.current?.close?.() : bubbleRef.current?.open?.()} style={btn}>
-                        Toggle
-                    </button>
-                    <button onClick={() => bubbleRef.current?.sendAuthToken?.("FAKE_TOKEN_ZAJUNA")} style={btn}>
-                        Enviar token FAKE
-                    </button>
-                    <button
-                        onClick={() =>
-                        (lastPrefs.theme === "dark"
-                            ? bubbleRef.current?.setTheme?.("light")
-                            : bubbleRef.current?.setTheme?.("dark"))
-                        }
-                        style={btn}
-                    >
-                        Toggle theme
-                    </button>
-                    <button
-                        onClick={() =>
-                        (lastPrefs.language === "es"
-                            ? bubbleRef.current?.setLanguage?.("en")
-                            : bubbleRef.current?.setLanguage?.("es"))
-                        }
-                        style={btnSecondary}
-                    >
-                        Toggle lang
-                    </button>
+                    <button onClick={() => bubbleRef.current?.toggle?.()} style={btn}>Toggle</button>
+                    <button onClick={() => bubbleRef.current?.sendAuthToken?.("FAKE_TOKEN_ZAJUNA")} style={btn}>Token FAKE</button>
+                    <button onClick={() => bubbleRef.current?.setTheme?.(lastPrefs.theme === "dark" ? "light" : "dark")} style={btn}>Toggle theme</button>
+                    <button onClick={() => bubbleRef.current?.setLanguage?.(lastPrefs.language === "es" ? "en" : "es")} style={btnSecondary}>Toggle lang</button>
                 </div>
             </div>
         </div>
