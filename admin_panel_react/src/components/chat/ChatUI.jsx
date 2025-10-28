@@ -7,9 +7,11 @@ import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "@/store/authStore";           
-import { STORAGE_KEYS } from "@/lib/constants";           
+import { useAuthStore } from "@/store/authStore";
+import { STORAGE_KEYS } from "@/lib/constants";
 import "./ChatUI.css";
+
+const SEND_CLIENT_HELLO = false; // ← evita doble saludo (deja que salude Rasa)
 
 // Helpers
 function getParentOrigin() {
@@ -153,10 +155,14 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         return () => obs.disconnect();
     }, [tConfig]);
 
-    // Mensaje de bienvenida traducido
+    // Mensaje de bienvenida (evita duplicado si el backend ya saluda)
     const [messages, setMessages] = useState([]);
     useEffect(() => {
-        setMessages([{ id: "welcome", role: "bot", text: tChat("welcome") }]);
+        if (SEND_CLIENT_HELLO) {
+            setMessages([{ id: "welcome", role: "bot", text: tChat("welcome") }]);
+        } else {
+            setMessages([]); // dejar que Rasa haga el saludo inicial
+        }
     }, [i18n.resolvedLanguage, tChat]);
 
     const [input, setInput] = useState("");
@@ -258,27 +264,69 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         }
         setTyping(false);
 
-        // ▶️ Telemetría: mensaje recibido (post-respuesta)
+        // ▶️ Telemetría: mensaje recibido (usa "*" para asegurar entrega en embed)
         try {
-            window.parent?.postMessage({ type: "telemetry", event: "message_received" }, parentOrigin);
+            window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*");
         } catch { /* no-op */ }
-    }, [tChat, parentOrigin]);
+    }, [tChat]);
 
     const sendToRasa = async ({ text, displayAs }) => {
         setError("");
+
+        // intercepta palabra clave "inicio" → Quick Replies
+        if (String(text).trim().toLowerCase() === "inicio") {
+            setMessages(m => [
+                ...m,
+                {    id: `b-${Date.now()}`,
+                role: "bot",
+                text: tChat("inicio.title"),
+                },
+        {
+            id: `b-${Date.now()}-opts`,
+                role: "bot",
+                    render: () => {
+                        const opts = [
+                            { label: tChat("inicio.options.explorar"), payload: "/explorar_temas" },
+                            { label: tChat("inicio.options.ingreso"), payload: "/faq_ingreso" },
+                            { label: tChat("inicio.options.cursos"), payload: "/mis_cursos" },
+                            { label: tChat("inicio.options.academico"), payload: "/academico_admin" },
+                            { label: tChat("inicio.options.soporte"), payload: "/soporte_tecnico" },
+                        ];
+                        return (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {opts.map((btn, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label })}
+                                        className="bot-interactive"
+                                        type="button"
+                                    >
+                                        {btn.label}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    },
+},
+            ]);
+
+            return;
+        }
+
         if (needAuth && !authToken) {
             // En embed, solicita autenticación al contenedor
-            window.parent?.postMessage({ type: "auth:needed" }, parentOrigin);
+            window.parent?.postMessage({ type: "auth:needed" }, "*");
             setError(tChat("authRequired"));
             return;
         }
+
         setSending(true);
         setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
 
-        // ▶️ Telemetría: mensaje enviado (apenas el usuario envía)
+        // ▶️ Telemetría: mensaje enviado
         try {
-            window.parent?.postMessage({ type: "telemetry", event: "message_sent" }, parentOrigin);
+            window.parent?.postMessage({ type: "telemetry", event: "message_sent" }, "*");
         } catch { /* no-op */ }
 
         try {

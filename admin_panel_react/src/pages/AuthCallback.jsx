@@ -1,5 +1,5 @@
 // src/pages/AuthCallback.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { loginWithToken, me as apiMe } from "@/services/authApi";
@@ -22,14 +22,22 @@ export default function AuthCallback() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Evita ejecutar la rutina 2 veces en StrictMode (solo en dev)
+    const didRun = useRef(false);
+
     useEffect(() => {
+        if (didRun.current) return;
+        didRun.current = true;
+
         const token = getTokenFromLocation(location);
 
         (async () => {
             if (!token) {
+                // Si no hay token, redirigimos al login
                 navigate("/login", { replace: true });
                 return;
             }
+
             try {
                 // 1) Establece token en axios y storage
                 await loginWithToken(token);
@@ -40,14 +48,27 @@ export default function AuthCallback() {
                 // 3) Limpia el token del URL (seguridad/UX)
                 try {
                     window.history.replaceState({}, "", "/auth/callback");
-                } catch { }
+                } catch {
+                    /* no-op */
+                }
+
+                // 3.1 (opcional) Notifica a un posible opener/host que la auth fue OK
+                try {
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ type: "auth:success" }, "*");
+                    }
+                } catch {
+                    /* no-op */
+                }
 
                 // 4) Decide ruta por rol
                 let role = "usuario";
                 try {
                     const profile = await apiMe();
                     role = profile?.rol || profile?.role || "usuario";
-                } catch { }
+                } catch {
+                    /* no-op */
+                }
 
                 if (role === "admin" || role === "soporte") {
                     navigate("/dashboard", { replace: true });
@@ -61,8 +82,16 @@ export default function AuthCallback() {
     }, [location, login, navigate]);
 
     return (
-        <div className="min-h-screen grid place-items-center">
-            <p className="text-gray-600">Procesando autenticaciÛnÖ</p>
+        <div className="min-h-screen grid place-items-center relative">
+            <button
+                onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
+                className="absolute top-4 left-4 text-sm text-blue-600 underline"
+                type="button"
+                aria-label="Volver"
+            >
+                ‚Üê Volver
+            </button>
+            <p className="text-gray-600">Procesando autenticaci√≥n‚Ä¶</p>
         </div>
     );
 }

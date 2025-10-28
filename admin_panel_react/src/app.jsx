@@ -360,10 +360,7 @@ export default function App() {
                         <button onClick={() => bubbleRef.current?.close?.()} className="btn">
                             Cerrar Chat
                         </button>
-                        <button
-                            onClick={handleLoginDemo}
-                            className="btn"
-                        >
+                        <button onClick={handleLoginDemo} className="btn">
                             Login & Enviar Token
                         </button>
                         <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">

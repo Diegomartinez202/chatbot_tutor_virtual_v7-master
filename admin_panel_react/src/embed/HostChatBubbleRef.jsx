@@ -25,7 +25,10 @@ function loadBubbleScript(src = "/embed/zajuna-bubble.js", timeoutMs = 15000) {
             existing.addEventListener("load", done, { once: true });
             existing.addEventListener("error", reject, { once: true });
             setTimeout(
-                () => (window.ZajunaBubble?.create ? resolve(true) : reject(new Error("[zajuna-bubble] load timeout (existing)"))),
+                () =>
+                    window.ZajunaBubble?.create
+                        ? resolve(true)
+                        : reject(new Error("[zajuna-bubble] load timeout (existing)")),
                 timeoutMs
             );
             return;
@@ -38,7 +41,10 @@ function loadBubbleScript(src = "/embed/zajuna-bubble.js", timeoutMs = 15000) {
         s.onerror = (e) => reject(e);
         document.head.appendChild(s);
         setTimeout(
-            () => (window.ZajunaBubble?.create ? resolve(true) : reject(new Error("[zajuna-bubble] load timeout"))),
+            () =>
+                window.ZajunaBubble?.create
+                    ? resolve(true)
+                    : reject(new Error("[zajuna-bubble] load timeout")),
             timeoutMs
         );
     });
@@ -65,15 +71,24 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         title = "Tutor Virtual",
         subtitle = "Sustentación",
         position = "bottom-right",
-        // ⬇️ para que “aparezca” de inmediato
         startOpen = true,
         theme = "auto",
         zIndex = 2147483000,
         initialToken,
         onTelemetry,
-        onAuthNeeded,
+        onAuthNeeded = () => {
+            console.warn("[bubble] auth:needed ignorado (modo invitado activo)");
+        }, 
+      
+        //onAuthNeeded = {() => {
+           // const url = import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
+             //`/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(`${window.location.origin}/auth/callback`)}`;
+           //window.top.location.href = url;
+        // }}
         injectCss = true,
         showDebug = false,
+        // avatar visible en el FAB del widget (pasado al bubble js)
+        avatar = "/embed/mi-avatar.png",
     },
     ref
 ) {
@@ -139,7 +154,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 theme,
                 zIndex,
                 showLabel: false, // evita el “globo” superpuesto
-                padding: 20,      // respiro respecto al layout
+                padding: 20, // respiro respecto al layout
+                avatar, // ✅ avatar en el FAB (compacto o con label)
             });
 
             bubble.onEvent((evt) => {
@@ -155,6 +171,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                         document.documentElement.classList.toggle("dark", next.theme === "dark");
                     }
                 } else if (evt?.type === "auth:needed") {
+                    // 🔸 NO forzamos login: dejamos que el host decida (por defecto, ignoramos).
                     onAuthNeeded?.();
                 }
             });
@@ -162,7 +179,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             bubble.mount();
             setMounted(true);
 
-            // Token inicial
+            // Token inicial si viene
             if (initialToken) bubble.sendAuthToken(initialToken);
 
             // si no lo ves, asegúrate de que el launcher quedó en pantalla
@@ -193,6 +210,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         initialToken,
         onTelemetry,
         onAuthNeeded,
+        avatar,
     ]);
 
     useImperativeHandle(
@@ -205,6 +223,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 if (!b) return;
                 b.isOpen?.() ? b.close?.() : b.open?.();
             },
+            // compat con tu código existente
             sendToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
             setTheme: (next) => {
                 bubbleRef.current?.setTheme?.(next);
@@ -260,10 +279,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                             lastPrefs: theme=<b>{lastPrefs.theme}</b> lang=<b>{lastPrefs.language}</b>
                         </div>
                         <div>
-                            lastEvent:{" "}
-                            <code style={{ fontSize: 11 }}>
-                                {lastEvent ? JSON.stringify(lastEvent) : "—"}
-                            </code>
+                            lastEvent: <code style={{ fontSize: 11 }}>{lastEvent ? JSON.stringify(lastEvent) : "—"}</code>
                         </div>
                     </div>
                 )}
@@ -293,9 +309,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                     </button>
                     <button
                         onClick={() =>
-                            bubbleRef.current?.setTheme?.(
-                                lastPrefs.theme === "dark" ? "light" : "dark"
-                            )
+                            bubbleRef.current?.setTheme?.(lastPrefs.theme === "dark" ? "light" : "dark")
                         }
                         style={btn}
                     >
@@ -303,9 +317,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                     </button>
                     <button
                         onClick={() =>
-                            bubbleRef.current?.setLanguage?.(
-                                lastPrefs.language === "es" ? "en" : "es"
-                            )
+                            bubbleRef.current?.setLanguage?.(lastPrefs.language === "es" ? "en" : "es")
                         }
                         style={btnSecondary}
                     >

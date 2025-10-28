@@ -13,7 +13,7 @@
         padding: 20,
         avatar: "/bot-avatar.png",
         // permisos afinados: evita warnings por clipboard-* pero mantiene mic/cam/autoplay
-        permissions: "microphone; camera; autoplay"
+        permissions: "microphone; camera; autoplay",
     };
 
     function css(el, styles) { Object.assign(el.style, styles); }
@@ -28,14 +28,14 @@
 
         function emit(evt) {
             for (const cb of listeners) {
-                try { cb(evt); } catch { /* no-op */ }
+                try { cb(evt); } catch { }
             }
         }
 
         function post(msg) {
             try {
                 iframeEl?.contentWindow?.postMessage(msg, opts.allowedOrigin);
-            } catch { /* no-op */ }
+            } catch { }
         }
 
         function handleMessage(e) {
@@ -43,7 +43,7 @@
             if (opts.allowedOrigin !== "*" && e.origin !== opts.allowedOrigin) return;
             const data = e?.data || {};
             // Reexpone eventos del iframe al host
-            // Ejemplos esperados: { type:'telemetry', ... } | { type:'prefs:update', prefs:{theme,language} } | { type:'auth:needed' }
+            // Ejemplos: { type:'telemetry' } | { type:'prefs:update', prefs:{theme,language} } | { type:'auth:needed' }
             emit(data);
         }
 
@@ -96,13 +96,13 @@
 
             // raíz contenedora
             root = document.createElement("div");
-            // Aislar estilos del host (tu CSS puede apuntar a [data-zj-bubble] ...)
+            // Aislar estilos del host (tu CSS puede apuntar a [data-zj-bubble] …)
             root.setAttribute("data-zj-bubble", "");
             css(root, {
                 position: "fixed",
                 zIndex: String(opts.zIndex),
                 inset: "auto",
-                pointerEvents: "none"
+                pointerEvents: "none",
             });
 
             const pad = (opts.padding ?? 16) + "px";
@@ -110,7 +110,7 @@
                 "bottom-right": { right: pad, bottom: pad },
                 "bottom-left": { left: pad, bottom: pad },
                 "top-right": { right: pad, top: pad },
-                "top-left": { left: pad, top: pad }
+                "top-left": { left: pad, top: pad },
             };
             css(root, positions[opts.position] || positions["bottom-right"]);
 
@@ -141,7 +141,6 @@
             subEl.className = "zj-bubble-sub";
             subEl.textContent = String(opts.subtitle || "");
 
-            // Compacto (redondo) o con texto
             if (opts.showLabel === false) {
                 btn.classList.add("zj-compact"); // CSS oculta title/sub en compacto
             } else {
@@ -193,23 +192,27 @@
             try {
                 window.removeEventListener("message", handleMessage);
                 root?.remove();
-            } catch { /* no-op */ }
+            } catch { }
             isMounted = false;
             opened = false;
         }
 
         return {
-            // ciclo de vida
-            mount, unmount,
-            // visibilidad
-            open, close, toggle, isOpen,
-            // interacciones
-            sendAuthToken, setTheme, setLanguage,
-            // eventos
-            onEvent
+            mount,
+            unmount,
+            open,
+            close,
+            toggle,
+            isOpen,
+            onEvent,
+            setTheme,
+            setLanguage,
+            sendAuthToken,
         };
     }
 
     window.ZajunaBubble = { create };
+    window.addEventListener("load", () => {
+        document.querySelectorAll("[data-zj-bubble]").forEach((el) => (el.style.opacity = "1"));
+    });
 })();
-
