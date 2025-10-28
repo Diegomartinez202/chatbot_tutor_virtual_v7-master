@@ -467,14 +467,18 @@ services:
     ports:
       - "8080:80"
     volumes:
-      # nginx.conf raíz (DEV)
+      # Sirve estáticos directamente desde "public" en dev
+      - ./admin_panel_react/public:/usr/share/nginx/html:ro
+
+      # nginx.conf raíz (DEV) — usa include /etc/nginx/conf.d/*.conf
       - ./ops/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      # vhosts de dev (server{})
-      - ./ops/nginx/conf.d/dev:/etc/nginx/conf.d/dev:ro
-      # includes comunes (locations.inc, etc.)
-      - ./ops/nginx/conf.d/common:/etc/nginx/conf.d/common:ro
-      # mime.types (evita warning)
+
+      # 🔴 Sobrescribe el "default.conf" de la imagen con TU vhost de dev
+      - ./ops/nginx/conf.d/dev/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # mime.types (evita warning de types)
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+
     environment:
       APP_ENV: development
     healthcheck:
@@ -501,15 +505,23 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # nginx.conf raíz (PROD)
+
+      # En prod, sirve el build
+      - ./admin_panel_react/dist:/usr/share/nginx/html:ro
+
+      # nginx.conf raíz (PROD) — usa include /etc/nginx/conf.d/*.conf
       - ./ops/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      # vhosts de prod (server{})
-      - ./ops/nginx/conf.d/prod:/etc/nginx/conf.d/prod:ro
-      # includes comunes (locations.inc, tls_params, etc.)
+
+      # 🔵 Sobrescribe el "default.conf" de la imagen con TU vhost de prod
+      - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # includes comunes (si los usas en prod)
       - ./ops/nginx/conf.d/common:/etc/nginx/conf.d/common:ro
-      # certificados
+
+      # certificados (si usas TLS)
       - ./ops/nginx/certs:/etc/nginx/certs:ro
-      # mime.types (evita warning)
+
+      # mime.types
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
     networks:
       - app-net

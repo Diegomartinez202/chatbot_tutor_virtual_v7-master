@@ -1,23 +1,35 @@
 /* =========================================================
-   🎨 ESTILOS CHAT UI - PLUG & PLAY
-   Soporte completo para: Markdown, Cards, Buttons, QuickReplies, Hover, Opacidad y Animaciones
-   Compatible con Tailwind + clases personalizadas
+   🎨 ESTILOS CHAT UI
    ========================================================= */
 
-/* ————————————————————————————————
-   Contenedor principal
-———————————————————————————————— */
+/* Contenedor principal */
 .chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
     background-color: #f9fafb;
-    font-family: 'Inter', sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-/* ————————————————————————————————
-   Lista de mensajes
-———————————————————————————————— */
+/* Header dentro del chat (título + config) */
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.chat-title {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Lista de mensajes */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -25,14 +37,11 @@
     scroll-behavior: smooth;
 }
 
-    /* Espaciado entre mensajes */
     .chat-messages > div {
         margin-bottom: 0.75rem;
     }
 
-/* ————————————————————————————————
-   Burbujas de mensajes
-———————————————————————————————— */
+/* Burbujas */
 .bubble {
     max-width: 75%;
     padding: 0.5rem 0.75rem;
@@ -41,179 +50,137 @@
     transition: all 0.2s ease-in-out;
 }
 
-    /* Mensajes del usuario */
     .bubble.user {
-        background-color: #4f46e5; /* Indigo 600 */
-        color: white;
+        background-color: #4f46e5;
+        color: #fff;
         align-self: flex-end;
     }
 
-    /* Mensajes del bot */
     .bubble.bot {
-        background-color: #f3f4f6; /* Gray 100 */
-        color: #1f2937; /* Gray 800 */
+        background-color: #f3f4f6;
+        color: #1f2937;
         align-self: flex-start;
     }
 
-    /* Hover / Opacidad */
     .bubble:hover {
-        opacity: 0.95;
+        opacity: 0.96;
         transform: translateY(-1px);
     }
 
-    /* ————————————————————————————————
-   Markdown y enlaces
-———————————————————————————————— */
+    /* Markdown & links */
     .bubble a {
-        color: #4f46e5; /* Indigo 600 */
+        color: #4f46e5;
         text-decoration: underline;
-        transition: color 0.2s;
+        transition: color .2s;
     }
 
         .bubble a:hover {
-            color: #4338ca; /* Indigo 700 */
+            color: #4338ca;
         }
 
-    /* Tablas Markdown */
     .bubble table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
+        margin: .5rem 0;
+        font-size: .875rem;
     }
 
     .bubble th, .bubble td {
-        border: 1px solid #d1d5db; /* Gray 300 */
-        padding: 0.25rem 0.5rem;
+        border: 1px solid #d1d5db;
+        padding: .25rem .5rem;
         text-align: left;
     }
 
     .bubble th {
-        background-color: #e5e7eb; /* Gray 200 */
+        background: #e5e7eb;
     }
 
-    /* Listas Markdown */
     .bubble ul, .bubble ol {
-        margin-left: 1rem;
-        margin-top: 0.25rem;
-        margin-bottom: 0.25rem;
+        margin: .25rem 0 .25rem 1rem;
     }
 
-    /* Imágenes inline */
     .bubble img {
         max-height: 160px;
         object-fit: cover;
-        border-radius: 0.5rem;
-        margin-top: 0.25rem;
+        border-radius: .5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08);
     }
 
-/* ————————————————————————————————
-   Cards
-———————————————————————————————— */
-.chat-card {
-    background-color: white;
-    border: 1px solid #e5e7eb; /* Gray 200 */
-    border-radius: 1rem;
-    overflow: hidden;
-    max-width: 75%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-    .chat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .chat-card img {
-        width: 100%;
-        height: 160px;
-        object-fit: cover;
-    }
-
-    .chat-card .card-body {
-        padding: 0.5rem 0.75rem;
-    }
-
-    .chat-card .card-title {
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-
-    .chat-card .card-subtitle {
-        font-size: 0.75rem;
-        color: #6b7280; /* Gray 500 */
-    }
-
-    /* Card buttons */
-    .chat-card .card-buttons button {
-        margin: 0.25rem 0.25rem 0 0;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        border-radius: 0.5rem;
-        border: 1px solid #d1d5db;
-        background-color: #f9fafb;
-        color: #1f2937;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-        .chat-card .card-buttons button:hover {
-            background-color: #e5e7eb;
-            border-color: #9ca3af;
-        }
-
-/* ————————————————————————————————
-   Quick Replies / Buttons
-———————————————————————————————— */
-.quick-reply {
-    padding: 0.25rem 0.75rem;
+/* Botón/Link interactivo uniforme (para botones de opciones/links FAQ) */
+.bot-interactive {
+    display: inline-block;
+    padding: .35rem .75rem;
     border-radius: 9999px;
     border: 1px solid #d1d5db;
     background-color: #f3f4f6;
     color: #1f2937;
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.875rem;
-    margin-right: 0.25rem;
-    margin-bottom: 0.25rem;
+    transition: all .2s;
+    font-size: .875rem;
+    text-decoration: none; /* para <a> */
+}
+
+    .bot-interactive:hover {
+        background-color: #e5e7eb;
+        opacity: .95;
+    }
+
+    .bot-interactive:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(79,70,229,.35);
+    }
+
+/* Alias visual para “quick replies” (sin composes) */
+.quick-reply {
+    display: inline-block;
+    padding: .35rem .75rem;
+    border-radius: 9999px;
+    border: 1px solid #d1d5db;
+    background-color: #f3f4f6;
+    color: #1f2937;
+    cursor: pointer;
+    transition: all .2s;
+    font-size: .875rem;
+    margin-right: .25rem;
+    margin-bottom: .25rem;
 }
 
     .quick-reply:hover {
         background-color: #e5e7eb;
-        opacity: 0.9;
+        opacity: .9;
     }
 
     .quick-reply:disabled {
-        opacity: 0.5;
+        opacity: .5;
         cursor: not-allowed;
     }
 
-/* ————————————————————————————————
-   Input y botón enviar
-———————————————————————————————— */
+/* Input + enviar */
 .chat-input-container {
     display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: .5rem;
+    padding: .5rem;
     border-top: 1px solid #e5e7eb;
-    background-color: #f9fafb;
+    background: #f9fafb;
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(.5rem + env(safe-area-inset-bottom, 0));
+    backdrop-filter: saturate(1.1) blur(6px);
 }
 
 .chat-input {
     flex: 1;
     border-radius: 9999px;
     border: 1px solid #d1d5db;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    padding: .5rem .75rem;
+    font-size: .875rem;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color .2s, box-shadow .2s;
 }
 
     .chat-input:focus {
         border-color: #4f46e5;
-        box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+        box-shadow: 0 0 0 2px rgba(79,70,229,.2);
     }
 
 .send-button {
@@ -223,9 +190,9 @@
     background-color: #4f46e5;
     color: white;
     border-radius: 9999px;
-    padding: 0.5rem;
+    padding: .5rem;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color .2s, transform .1s;
 }
 
     .send-button:hover {
@@ -234,34 +201,11 @@
     }
 
     .send-button:disabled {
-        opacity: 0.5;
+        opacity: .5;
         cursor: not-allowed;
     }
 
-/* ————————————————————————————————
-   Loader / escribiendo…
-———————————————————————————————— */
-.loader {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.875rem;
-    color: #6b7280;
-    animation: pulse 1.2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-}
-/* ————————————————————————————————
-   Puntos animados “Escribiendo…”
-———————————————————————————————— */
+/* Escribiendo... */
 .typing-dots {
     display: inline-block;
     width: 1rem;
@@ -291,43 +235,33 @@
         content: '...';
     }
 }
-/* =========================================================
-   ✨ MEJORAS PROGRESIVAS (NO rompen lo anterior)
-   - Dark mode con .dark en <html>
-   - Composer "sticky" y safe-area móvil
-   - Scrollbar sutil
-   - Accesibilidad (reduced-motion, focus)
-   - Ajustes responsive
-   ========================================================= */
 
-/* Vars suaves (puedes sobre-escribirlas en Tailwind si quieres) */
+/* Dark mode + Alto contraste */
 :root {
-    --chat-radius: 1.25rem;
-    --chat-shadow: 0 1px 3px rgba(0,0,0,.08);
-    --chat-shadow-lg: 0 6px 20px rgba(0,0,0,.12);
     --chat-indigo: #4f46e5;
     --chat-indigo-700: #4338ca;
-    --chat-gray-50: #f9fafb;
-    --chat-gray-100: #f3f4f6;
-    --chat-gray-200: #e5e7eb;
-    --chat-gray-300: #d1d5db;
-    --chat-gray-500: #6b7280;
-    --chat-gray-700: #374151;
-    --chat-gray-800: #1f2937;
 }
 
-/* Dark mode */
 .dark .chat-container {
-    background-color: #0b0f19;
+    background: #0b0f19;
+}
+
+.dark .chat-header {
+    background: #0f172a;
+    border-bottom-color: #111827;
+}
+
+.dark .chat-title {
+    color: #e5e7eb;
 }
 
 .dark .bubble.bot {
-    background-color: #0f172a;
+    background: #0f172a;
     color: #e5e7eb;
 }
 
 .dark .bubble.user {
-    background-color: var(--chat-indigo);
+    background: var(--chat-indigo);
     color: #fff;
 }
 
@@ -338,27 +272,6 @@
     .dark .bubble a:hover {
         color: #818cf8;
     }
-
-.dark .chat-card {
-    background: #0f172a;
-    border-color: #1f2233;
-    box-shadow: var(--chat-shadow);
-}
-
-    .dark .chat-card .card-subtitle {
-        color: #9ca3af;
-    }
-
-    .dark .chat-card .card-buttons button {
-        background: #111827;
-        color: #e5e7eb;
-        border-color: #252b3a;
-    }
-
-        .dark .chat-card .card-buttons button:hover {
-            background: #1f2937;
-            border-color: #344055;
-        }
 
 .dark .chat-input-container {
     background: #0b0f19;
@@ -384,79 +297,25 @@
         background: var(--chat-indigo-700);
     }
 
-/* Composer sticky + safe-area (móvil) */
-.chat-input-container {
-    position: sticky;
-    bottom: 0;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
-    backdrop-filter: saturate(1.1) blur(6px);
-}
-
-/* Altura completa del contenedor en iframes/embeds */
-html, body, #root {
-    height: 100%;
-}
-
-.chat-container {
-    min-height: 100%;
-}
-
-/* Refinos tipográficos para markdown en burbujas */
-.bubble code, .bubble pre {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-}
-
-.bubble pre {
-    background: #0b1020;
-    color: #e5e7eb;
-    padding: .5rem .75rem;
-    border-radius: .75rem;
-    overflow: auto;
-}
-
-.dark .bubble pre {
-    background: #0b1020;
-}
-
-/* Tablas más legibles en burbuja */
-.bubble table {
-    border-radius: .5rem;
-    overflow: hidden;
-}
-
-.bubble th, .bubble td {
-    vertical-align: top;
-}
-
-.dark .bubble th {
+.dark .bot-interactive {
     background: #111827;
+    color: #e5e7eb;
+    border-color: #252b3a;
 }
 
-.dark .bubble th, .dark .bubble td {
-    border-color: #1f2937;
-}
-
-/* Imágenes con sombra suave */
-.bubble img {
-    box-shadow: var(--chat-shadow);
-}
-
-/* Quick replies wrap limpio en móvil */
-.quick-reply {
-    white-space: nowrap;
-}
-
-@media (max-width: 480px) {
-    .bubble {
-        max-width: 85%;
+    .dark .bot-interactive:hover {
+        background: #1f2937;
+        border-color: #344055;
     }
 
-    .chat-card {
-        max-width: 90%;
-    }
+/* Alto contraste (html.high-contrast) */
+.high-contrast .chat-container,
+.high-contrast .chat-header,
+.high-contrast .chat-input-container {
+    filter: contrast(1.2) saturate(1.1);
 }
 
-/* Scrollbar sutil (no invasivo) */
+/* Scrollbar sutil */
 .chat-messages::-webkit-scrollbar {
     width: 10px;
 }
@@ -470,28 +329,20 @@ html, body, #root {
     background: rgba(255,255,255,.15);
 }
 
-/* Focus visible accesible */
-.send-button:focus-visible, .chat-input:focus-visible, .quick-reply:focus-visible,
-.chat-card .card-buttons button:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(79,70,229,.35);
-}
-
-.dark .send-button:focus-visible, .dark .chat-input:focus-visible,
-.dark .quick-reply:focus-visible, .dark .chat-card .card-buttons button:focus-visible {
-    box-shadow: 0 0 0 3px rgba(165,180,252,.35);
-}
-
-/* Reduced motion: desactiva animaciones suaves si el usuario lo pide */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-    .bubble, .chat-card, .send-button, .loader {
+    .bubble, .send-button {
         transition: none !important;
         animation: none !important;
     }
 }
 
-/* Botón enviar “compacto” en pantallas estrechas */
-@media (max-width: 420px) {
+/* Responsive pequeños ajustes */
+@media (max-width: 480px) {
+    .bubble {
+        max-width: 85%;
+    }
+
     .send-button {
         padding: .5rem .6rem;
     }
@@ -499,9 +350,4 @@ html, body, #root {
     .chat-input {
         font-size: .9rem;
     }
-}
-
-/* (opcional) burbujas con leve profundidad */
-.bubble.bot {
-    box-shadow: 0 1px 0 rgba(0,0,0,.02);
 }

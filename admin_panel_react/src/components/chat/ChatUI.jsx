@@ -1,3 +1,4 @@
+// src/components/chat/ChatUI.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -5,29 +6,189 @@ import remarkGfm from "remark-gfm";
 import { useAuth } from "@/context/AuthContext";
 import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
 import { STORAGE_KEYS } from "@/lib/constants";
+import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
 
-const SEND_CLIENT_HELLO = false; // ← evita doble saludo (deja que salude Rasa)
+// Evita doble saludo: aquí controlamos saludo inicial del cliente
+const SEND_CLIENT_HELLO = true;
 
 // Helpers
 function getParentOrigin() {
-    try { return new URL(document.referrer || "").origin; }
-    catch { return window.location.origin; }
+    try {
+        return new URL(document.referrer || "").origin;
+    } catch {
+        return window.location.origin;
+    }
 }
-function normalize(o) { return String(o || "").trim().replace(/\/+$/, ""); }
+function normalize(o) {
+    return String(o || "").trim().replace(/\/+$/, "");
+}
 
 const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
     .split(",")
-    .map(s => normalize(s))
+    .map((s) => normalize(s))
     .filter(Boolean);
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
+/* --- Router local para payloads opcionales (UX instantánea) --- */
+function localNodesToItems(nodes, tChat, sendToRasa) {
+    return nodes
+        .map((n, i) => {
+            const id = `local-${Date.now()}-${i}`;
+            if (n.type === "text") {
+                return { id, role: "bot", text: typeof n.text === "function" ? n.text(tChat) : n.text };
+            }
+            if (n.type === "buttons") {
+                return {
+                    id,
+                    role: "bot",
+                    render: () => (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {n.items.map((btn, j) => (
+                                <button
+                                    key={j}
+                                    type="button"
+                                    className="bot-interactive"
+                                    onClick={() =>
+                                        sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })
+                                    }
+                                >
+                                    {btn.label}
+                                </button>
+                            ))}
+                        </div>
+                    ),
+                };
+            }
+            if (n.type === "links") {
+                return {
+                    id,
+                    role: "bot",
+                    render: () => (
+                        <div className="flex flex-col gap-2 mt-2">
+                            {n.items.map((lnk, j) => (
+                                <a
+                                    key={j}
+                                    href={lnk.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bot-interactive"
+                                >
+                                    {lnk.label}
+                                </a>
+                            ))}
+                        </div>
+                    ),
+                };
+            }
+            return null;
+        })
+        .filter(Boolean);
+}
+
+const LOCAL_ROUTES = {
+    "/faq_ingreso": (tChat) => [
+        { type: "text", text: () => tChat("inicio.title", "Elige una opción para continuar:") },
+        {
+            type: "links",
+            items: [
+                {
+                    label: tChat("links.zajunaRegister", "Registro en Zajuna"),
+                    href: "https://zajuna.example/faq/registro",
+                },
+                {
+                    label: tChat("links.zajunaLogin", "Inicio de sesión"),
+                    href: "https://zajuna.example/faq/login",
+                },
+                {
+                    label: tChat("links.changePassword", "Cambiar contraseña"),
+                    href: "https://zajuna.example/faq/password",
+                },
+                {
+                    label: tChat("links.userBlocked", "Usuario bloqueado"),
+                    href: "https://zajuna.example/faq/bloqueo",
+                },
+            ],
+        },
+        {
+            type: "buttons",
+            items: [
+                { label: tChat("inicio.options.explorar", "Explorar temas"), payload: "/explorar_temas" },
+                { label: tChat("inicio.options.cursos", "Mis cursos y contenidos"), payload: "/mis_cursos" },
+                {
+                    label: tChat("inicio.options.academico", "Proceso académico / administrativo"),
+                    payload: "/academico_admin",
+                },
+                { label: tChat("inicio.options.soporte", "Soporte técnico"), payload: "/soporte_tecnico" },
+            ],
+        },
+    ],
+
+    "/explorar_temas": (tChat) => [
+        { type: "text", text: tChat("sections.topicsFeatured", "Temas destacados:") },
+        {
+            type: "buttons",
+            items: [
+                { label: tChat("topics.pythonBasic", "Python Básico"), payload: "/tema_python_basico" },
+                { label: tChat("topics.aiEducation", "IA Educativa"), payload: "/tema_ia_educativa" },
+                { label: tChat("topics.excelBasic", "Excel Básico"), payload: "/tema_excel_basico" },
+                { label: tChat("topics.webProgramming", "Programación Web"), payload: "/tema_programacion_web" },
+            ],
+        },
+    ],
+
+    "/mis_cursos": (tChat) => [
+        { type: "text", text: tChat("sections.yourActiveCourses", "Tus cursos activos:") },
+        {
+            type: "links",
+            items: [{ label: tChat("links.coursesPanel", "Mi panel de cursos"), href: "https://zajuna.example/cursos" }],
+        },
+    ],
+
+    "/academico_admin": (tChat) => [
+        { type: "text", text: tChat("sections.whichPart", "¿Qué parte del proceso?") },
+        {
+            type: "buttons",
+            items: [
+                { label: tChat("faq.matricula", "Matrícula"), payload: "/faq_matricula" },
+                { label: tChat("faq.pagosBecas", "Pagos y becas"), payload: "/faq_pagos_becas" },
+                { label: tChat("faq.certificados", "Certificados"), payload: "/faq_certificados" },
+            ],
+        },
+    ],
+
+    "/soporte_tecnico": (tChat) => [
+        { type: "text", text: tChat("sections.supportOptions", "Opciones de soporte:") },
+        {
+            type: "links",
+            items: [
+                { label: tChat("links.usageGuide", "Guía de uso"), href: "https://zajuna.example/soporte/guia" },
+                { label: tChat("links.openTicket", "Abrir ticket"), href: "https://zajuna.example/soporte/ticket" },
+            ],
+        },
+    ],
+};
+
+async function handleLocalPayload({ text, tChat, setMessages, sendToRasa }) {
+    const make = LOCAL_ROUTES[text];
+    if (!make) return false;
+    const nodes = make(tChat);
+    const items = localNodesToItems(nodes, tChat, sendToRasa);
+    if (items.length) {
+        for (let i = 0; i < items.length; i++) {
+            await new Promise((r) => setTimeout(r, 120));
+            setMessages((m) => [...m, items[i]]);
+        }
+    }
+    return true;
+}
+
+/* --- Avatares --- */
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
@@ -38,12 +199,7 @@ function BotAvatar({ size = 28 }) {
             {err ? (
                 <UserIcon className="w-4 h-4 text-indigo-600" />
             ) : (
-                <img
-                    src={BOT_AVATAR}
-                    alt="Bot"
-                    className="w-full h-full object-cover"
-                    onError={() => setErr(true)}
-                />
+                <img src={BOT_AVATAR} alt="Bot" className="w-full h-full object-cover" onError={() => setErr(true)} />
             )}
         </div>
     );
@@ -61,13 +217,7 @@ function getInitials(source) {
 
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
-    const src =
-        user?.avatarUrl ||
-        user?.photoUrl ||
-        user?.image ||
-        user?.photo ||
-        USER_AVATAR_FALLBACK ||
-        "";
+    const src = user?.avatarUrl || user?.photoUrl || user?.image || user?.photo || USER_AVATAR_FALLBACK || "";
     if (!src || err) {
         const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
@@ -91,249 +241,229 @@ function UserAvatar({ user, size = 28 }) {
 
 export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
     const { user } = useAuth();
-    const { t: tChat, i18n } = useTranslation("chat");
+    const { t: tChat } = useTranslation("chat");
     const { t: tConfig } = useTranslation("config");
 
-    // 🆕 Token centralizado (Zustand) + fallback a localStorage + soporte embed via postMessage
     const storeToken = useAuthStore((s) => s.accessToken);
     const [authToken, setAuthToken] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState("");
+    const [sending, setSending] = useState(false);
+    const [error, setError] = useState("");
+    const [typing, setTyping] = useState(false);
 
-    // Inicializa token desde store/localStorage
+    // Sugerencias: switches
+    const [hasShownSuggestions, setHasShownSuggestions] = useState(false);
+    const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
+
+    // Saludo inicial inmediato
     useEffect(() => {
-        if (storeToken) {
-            setAuthToken(storeToken);
-            return;
+        if (SEND_CLIENT_HELLO) {
+            setMessages([
+                {
+                    id: "welcome",
+                    role: "bot",
+                    text: tChat("welcome", "¡Hola! Soy tu tutor virtual 🤖. ¿En qué puedo ayudarte hoy?"),
+                },
+            ]);
         }
-        try {
-            const ls = localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
-            if (ls) setAuthToken(ls);
-        } catch { /* no-op */ }
+    }, [tChat]);
+
+    // Token centralizado / localStorage
+    useEffect(() => {
+        if (storeToken) setAuthToken(storeToken);
+        else {
+            try {
+                const ls =
+                    localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
+                if (ls) setAuthToken(ls);
+            } catch { }
+        }
     }, [storeToken]);
 
-    // Si estamos embebidos, escucha tokens enviados por el contenedor
+    const userId = useMemo(() => user?.email || user?._id || null, [user]);
+    const parentOrigin = useMemo(() => normalize(getParentOrigin()), []);
+
+    // Detecta modo invitado en embed: /?embed=1&guest=1
+    const urlParams = new URLSearchParams(window.location.search);
+    const isGuestEmbed = urlParams.get("guest") === "1";
+
+    // ANTES: const needAuth = embed || !user;
+    // AHORA: en modo invitado NO pedimos login
+    const needAuth = !isGuestEmbed && (embed || !user);
+
+    // Embed: recibe token del host
     useEffect(() => {
         if (!embed) return;
         const onMsg = (ev) => {
             try {
                 const origin = normalize(ev.origin || "");
                 if (envAllowed.length && !envAllowed.includes(origin)) return;
-
                 const data = ev.data || {};
-                if (data?.type === "auth:token" && data?.token) {
-                    setAuthToken(String(data.token));
-                }
-            } catch { /* no-op */ }
+                if (data?.type === "auth:token" && data?.token) setAuthToken(String(data.token));
+            } catch { }
         };
         window.addEventListener("message", onMsg);
         return () => window.removeEventListener("message", onMsg);
     }, [embed]);
 
-    /* ✂️ Quitar botón "settings" espurio, preservando tu ChatConfigMenu */
-    useEffect(() => {
-        const isRogue = (btn) => {
-            const label = (btn.getAttribute("aria-label") || btn.textContent || "")
-                .trim()
-                .toLowerCase();
-            const isOurMenu = label === (tConfig("title") || "").trim().toLowerCase();
-            const looksSettings = label === "settings";
-            return looksSettings && !isOurMenu;
-        };
+    const rspToArray = (rsp) => (Array.isArray(rsp) ? rsp : rsp ? [rsp] : []);
 
-        const sweep = () => {
-            document.querySelectorAll("button").forEach((btn) => {
-                try { if (isRogue(btn)) btn.remove(); } catch { /* no-op */ }
-            });
-        };
-
-        sweep(); // primera pasada
-        const obs = new MutationObserver((muts) => {
-            for (const m of muts) {
-                if (m.type === "childList") sweep();
-            }
-        });
-        obs.observe(document.body, { childList: true, subtree: true });
-        return () => obs.disconnect();
-    }, [tConfig]);
-
-    // Mensaje de bienvenida (evita duplicado si el backend ya saluda)
-    const [messages, setMessages] = useState([]);
-    useEffect(() => {
-        if (SEND_CLIENT_HELLO) {
-            setMessages([{ id: "welcome", role: "bot", text: tChat("welcome") }]);
-        } else {
-            setMessages([]); // dejar que Rasa haga el saludo inicial
-        }
-    }, [i18n.resolvedLanguage, tChat]);
-
-    const [input, setInput] = useState("");
-    const [sending, setSending] = useState(false);
-    const [error, setError] = useState("");
-    const [typing, setTyping] = useState(false);
-
-    const listRef = useRef(null);
-    const userId = useMemo(() => user?.email || user?._id || null, [user]);
-    const parentOrigin = useMemo(() => normalize(getParentOrigin()), []);
-    const needAuth = embed || !user;
-
-    const rowVirtualizer = useVirtualizer({
-        count: messages.length + (typing ? 1 : 0),
-        getScrollElement: () => listRef.current,
-        estimateSize: () => 80,
-        overscan: 5,
-    });
-
-    const isScrolledToBottom = useRef(true);
-    const scrollToBottom = () => {
-        const el = listRef.current;
-        if (!el) return;
-        el.scrollTop = el.scrollHeight;
-    };
-    useEffect(() => {
-        const el = listRef.current;
-        const onScroll = () => {
-            if (!el) return;
-            const threshold = 50;
-            isScrolledToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
-        };
-        el?.addEventListener("scroll", onScroll);
-        return () => el?.removeEventListener("scroll", onScroll);
-    }, []);
-    useEffect(() => { if (isScrolledToBottom.current) scrollToBottom(); }, [messages, sending, typing]);
-
-    function rspToArray(rsp) { return Array.isArray(rsp) ? rsp : rsp ? [rsp] : []; }
-
-    const appendBotMessages = useCallback(async (rsp) => {
-        const items = [];
-        rspToArray(rsp).forEach((item, idx) => {
-            const baseId = `b-${Date.now()}-${idx}`;
-            if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
-            if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
-            if (item.buttons) {
-                items.push({
-                    id: `${baseId}-btnGroup`,
-                    role: "bot",
-                    render: () => item.buttons.map((btn, i) => (
-                        <div
-                            key={i}
-                            className="bot-interactive"
-                            onClick={() => handleActionClick(baseId, btn)}
-                        >
-                            {btn.title}
-                        </div>
-                    ))
-                });
-            }
-            if (item.quick_replies) {
-                items.push({
-                    id: `${baseId}-qrGroup`,
-                    role: "bot",
-                    render: () => item.quick_replies.map((qr, i) => (
-                        <div
-                            key={i}
-                            className="bot-interactive"
-                            onClick={() => handleActionClick(baseId, qr)}
-                        >
-                            {qr.title}
-                        </div>
-                    ))
-                });
-            }
-            if (item.custom?.cards) {
-                item.custom.cards.forEach((c, ci) => {
+    const appendBotMessages = useCallback(
+        async (rsp) => {
+            const items = [];
+            rspToArray(rsp).forEach((item, idx) => {
+                const baseId = `b-${Date.now()}-${idx}`;
+                if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
+                if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
+                if (item.buttons) {
                     items.push({
-                        id: `${baseId}-card-${ci}`,
+                        id: `${baseId}-btns`,
                         role: "bot",
                         render: () => (
-                            <div
-                                className="bot-interactive p-3 border rounded-md mb-2 cursor-pointer"
-                                onClick={() => handleActionClick(baseId, c)}
-                            >
-                                {c.title || c.text || "Card"}
-                            </div>
-                        )
-                    });
-                });
-            }
-        });
-        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
-
-        setTyping(true);
-        for (let i = 0; i < items.length; i++) {
-            await new Promise(res => setTimeout(res, 150));
-            setMessages(m => [...m, items[i]]);
-        }
-        setTyping(false);
-
-        // ▶️ Telemetría: mensaje recibido (usa "*" para asegurar entrega en embed)
-        try {
-            window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*");
-        } catch { /* no-op */ }
-    }, [tChat]);
-
-    const sendToRasa = async ({ text, displayAs }) => {
-        setError("");
-
-        // intercepta palabra clave "inicio" → Quick Replies
-        if (String(text).trim().toLowerCase() === "inicio") {
-            setMessages(m => [
-                ...m,
-                {    id: `b-${Date.now()}`,
-                role: "bot",
-                text: tChat("inicio.title"),
-                },
-        {
-            id: `b-${Date.now()}-opts`,
-                role: "bot",
-                    render: () => {
-                        const opts = [
-                            { label: tChat("inicio.options.explorar"), payload: "/explorar_temas" },
-                            { label: tChat("inicio.options.ingreso"), payload: "/faq_ingreso" },
-                            { label: tChat("inicio.options.cursos"), payload: "/mis_cursos" },
-                            { label: tChat("inicio.options.academico"), payload: "/academico_admin" },
-                            { label: tChat("inicio.options.soporte"), payload: "/soporte_tecnico" },
-                        ];
-                        return (
                             <div className="flex flex-wrap gap-2 mt-2">
-                                {opts.map((btn, i) => (
+                                {item.buttons.map((btn, i) => (
                                     <button
                                         key={i}
-                                        onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label })}
-                                        className="bot-interactive"
                                         type="button"
+                                        className="bot-interactive"
+                                        onClick={() => handleActionClick(baseId, btn)}
                                     >
-                                        {btn.label}
+                                        {btn.title}
                                     </button>
                                 ))}
                             </div>
-                        );
-                    },
-},
-            ]);
+                        ),
+                    });
+                }
+                if (item.quick_replies) {
+                    items.push({
+                        id: `${baseId}-qr`,
+                        role: "bot",
+                        render: () => (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {item.quick_replies.map((qr, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        className="bot-interactive"
+                                        onClick={() => handleActionClick(baseId, qr)}
+                                    >
+                                        {qr.title}
+                                    </button>
+                                ))}
+                            </div>
+                        ),
+                    });
+                }
+            });
+            if (!items.length)
+                items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
 
-            return;
-        }
+            setTyping(true);
+            for (let i = 0; i < items.length; i++) {
+                await new Promise((r) => setTimeout(r, 140));
+                setMessages((m) => [...m, items[i]]);
+            }
+            setTyping(false);
 
+            try {
+                window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*");
+            } catch { }
+        },
+        [tChat]
+    );
+
+    // Sugerencias iniciales (si decides usarlas además del primer payload local)
+    const appendFirstSuggestions = useCallback(() => {
+        if (hasShownSuggestions) return;
+        const opts = [
+            { label: tChat("inicio.options.explorar", "Explorar temas"), payload: "/explorar_temas" },
+            { label: tChat("inicio.options.ingreso", "Ingreso a Zajuna"), payload: "/faq_ingreso" },
+            { label: tChat("inicio.options.cursos", "Mis cursos y contenidos"), payload: "/mis_cursos" },
+            {
+                label: tChat("inicio.options.academico", "Proceso académico / administrativo"),
+                payload: "/academico_admin",
+            },
+            { label: tChat("inicio.options.soporte", "Soporte técnico"), payload: "/soporte_tecnico" },
+        ];
+        setMessages((m) => [
+            ...m,
+            {
+                id: `b-${Date.now()}-intro`,
+                role: "bot",
+                text: tChat("inicio.title", "Puedo ayudarte en estos temas:"),
+            },
+            {
+                id: `b-${Date.now()}-opts`,
+                role: "bot",
+                render: () => (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {opts.map((btn, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                className="bot-interactive"
+                                onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                ),
+            },
+        ]);
+        setHasShownSuggestions(true);
+    }, [hasShownSuggestions, tChat]);
+
+    /* --- sendToRasa con handler local --- */
+    const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
+        setError("");
+
+        // Si el embed está en modo invitado, NUNCA pedimos login
         if (needAuth && !authToken) {
-            // En embed, solicita autenticación al contenedor
-            window.parent?.postMessage({ type: "auth:needed" }, "*");
+            window.parent?.postMessage?.({ type: "auth:needed" }, "*");
             setError(tChat("authRequired"));
             return;
         }
 
+        // pinta el mensaje del usuario
         setSending(true);
-        setMessages(m => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
+        setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
 
-        // ▶️ Telemetría: mensaje enviado
-        try {
-            window.parent?.postMessage({ type: "telemetry", event: "message_sent" }, "*");
-        } catch { /* no-op */ }
+        // Al primer mensaje del usuario, empuja menú local de forma inmediata
+        if (!hasSentFirstMessage) {
+            setHasSentFirstMessage(true);
+            await handleLocalPayload({
+                text: "/explorar_temas",
+                tChat,
+                setMessages,
+                sendToRasa,
+            });
+            // Evita que luego se dupliquen con appendFirstSuggestions
+            setHasShownSuggestions(true);
+        }
+
+        // (Opcional) si mantienes las sugerencias clásicas también:
+        if (!isPayload && !hasShownSuggestions && hasSentFirstMessage) {
+            appendFirstSuggestions();
+        }
 
         try {
+            window.parent?.postMessage?.({ type: "telemetry", event: "message_sent" }, "*");
+        } catch { }
+
+        try {
+            // si es payload, además de la respuesta local, consulta a Rasa
+            if (isPayload) {
+                await handleLocalPayload({ text, tChat, setMessages, sendToRasa });
+            }
+
             const rsp = await sendRasaMessage({
                 text,
                 sender: userId || undefined,
-                token: authToken || undefined
+                token: authToken || undefined,
             });
             await appendBotMessages(rsp);
         } catch (e) {
@@ -356,7 +486,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     const handleActionClick = async (_groupId, { title, payload, url }) => {
         if (url) window.open(url, "_blank", "noopener,noreferrer");
         if (!payload) return;
-        await sendToRasa({ text: payload, displayAs: title });
+        await sendToRasa({ text: payload, displayAs: title, isPayload: true });
     };
 
     const BotRow = ({ children }) => (
@@ -366,74 +496,48 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>
     );
 
-    // Estilos contenedor
     return (
-        <div className="h-full flex flex-col">
-            <div ref={listRef} className="flex-1 overflow-auto px-3 py-4">
-                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-                    {rowVirtualizer.getVirtualItems().map(virtualRow => {
-                        const index = virtualRow.index;
-                        const m = index < messages.length ? messages[index] : null;
-                        const isTypingRow = typing && index === messages.length;
-                        if (!m && !isTypingRow) return null;
-
-                        const style = {
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            transform: `translateY(${virtualRow.start}px)`
-                        };
-
-                        if (isTypingRow) {
-                            return (
-                                <div key="typing" style={style}>
-                                    <BotRow>
-                                        <BotAvatar size={28} />
-                                        <div className="rounded-2xl px-3 py-2 max-w-[50%] text-sm break-words bg-gray-100 text-gray-800 animate-fade-slide">
-                                            {tChat("typing")}
-                                            <span className="typing-dots">...</span>
-                                        </div>
-                                    </BotRow>
-                                </div>
-                            );
-                        }
-
-                        const isUser = m.role === "user";
-                        const bubbleCls = isUser ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-800";
-                        const commonCls = "rounded-2xl px-3 py-2 max-w-[75%] text-sm break-words";
-
-                        const content = m.text ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
-                        ) : m.image ? (
-                            <img src={m.image} alt="img" className="max-h-40 object-cover rounded-md" />
-                        ) : m.render ? (
-                            m.render()
-                        ) : null;
-
-                        return isUser ? (
-                            <div key={m.id} style={style}>
-                                <UserRow>
-                                    <div className={`${commonCls} ${bubbleCls}`}>{content}</div>
-                                    <UserAvatar user={user} size={28} />
-                                </UserRow>
-                            </div>
-                        ) : (
-                            <div key={m.id} style={style}>
-                                <BotRow>
-                                    <BotAvatar size={28} />
-                                    <div className={`${commonCls} ${bubbleCls}`}>{content}</div>
-                                </BotRow>
-                            </div>
-                        );
-                    })}
+        <div className="h-full flex flex-col chat-container">
+            {/* Header simple con Config a la derecha */}
+            <div className="chat-header">
+                <div className="chat-title">Asistente</div>
+                <div className="ml-auto">
+                    <ChatConfigMenu />
                 </div>
             </div>
 
-            <form
-                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="flex items-center gap-2 p-2 border-t bg-gray-50"
-            >
+            <div className="chat-messages px-3 py-4">
+                {messages.map((m) =>
+                    m.role === "user" ? (
+                        <UserRow key={m.id}>
+                            <div className="bubble user">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                            </div>
+                            <UserAvatar user={user} />
+                        </UserRow>
+                    ) : (
+                        <BotRow key={m.id}>
+                            <BotAvatar />
+                            <div className="bubble bot">
+                                {m.text && <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>}
+                                {m.render && m.render()}
+                            </div>
+                        </BotRow>
+                    )
+                )}
+
+                {typing && (
+                    <BotRow>
+                        <BotAvatar />
+                        <div className="bubble bot">
+                            {tChat("typing")}
+                            <span className="typing-dots" />
+                        </div>
+                    </BotRow>
+                )}
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="chat-input-container">
                 <MicButton onVoice={(p) => sendToRasa({ text: p })} disabled={sending} />
                 <input
                     type="text"
@@ -441,23 +545,20 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={onKeyDown}
                     placeholder={placeholder}
-                    className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-300"
+                    className="chat-input"
                     disabled={sending}
                 />
-                <button
-                    type="submit"
-                    disabled={sending || !input.trim()}
-                    className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center"
-                >
+                <button type="submit" disabled={sending || !input.trim()} className="send-button" aria-label="Enviar">
                     <Send className="w-4 h-4" />
                 </button>
             </form>
 
             {error && (
-                <div className="px-3 py-2 text-sm text-red-600" role="alert" aria-live="polite">
+                <div className="px-3 py-2 text-sm text-red-600" role="alert">
                     {error}
                 </div>
             )}
         </div>
     );
 }
+

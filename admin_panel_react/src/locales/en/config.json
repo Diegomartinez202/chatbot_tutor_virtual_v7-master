@@ -1,15 +1,31 @@
 {
-  "title": "Settings",
-  "accessibility": "Accessibility",
-  "language": "Language",
-  "theme": "Theme",
-  "dark": "Dark",
-  "light": "Light",
-  "adminPanel": "Admin panel",
-  "registerPanel": "Register (panel)",
-  "loginPanel": "Login (panel)",
-  "zajuna": "Zajuna",
-  "loginZajuna": "Login with Zajuna",
-  "registerZajuna": "Sign up with Zajuna",
-  "prefs_synced": "Preferences synced"
+  
+    "title": "Settings",
+    "accessibility": "Accessibility",
+    "language": "Language",
+    "language_help": "Choose the interface language.",
+    "theme": "Appearance",
+    "theme_help": "Enable dark mode and adjust the base font size.",
+    "dark": "Dark",
+    "light": "Light",
+    "font_size": "Font size",
+    "font_size_help": "Adjust the app-wide typography size.",
+    "high_contrast": "High contrast",
+    "high_contrast_help": "Improve contrast for low vision.",
+    "high_contrast_hint": "You can add extra styles in your global CSS with the html.high-contrast class.",
+
+    "adminPanel": "Admin panel",
+    "registerPanel": "Register (panel)",
+    "loginPanel": "Login (panel)",
+
+    "zajuna": "Zajuna",
+    "loginZajuna": "Login with Zajuna",
+    "registerZajuna": "Sign up with Zajuna",
+
+    "session_chat": "Session / Chat",
+    "logout_app": "Log out from the app",
+    "close_chat": "Close chat panel/float",
+
+    "logout": "Log out",
+    "prefs_synced": "Preferences synced"
 }

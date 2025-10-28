@@ -7,8 +7,9 @@ import React, {
     useRef,
     useState,
 } from "react";
+avatar = { import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png" }
 
-/** Tipados de eventos (comentarios JSDoc) omitidos por brevedad; intacto el contrato */
+/** Tipados de eventos (comentarios JSDoc) omitidos por brevedad; se mantiene el contrato. */
 
 // IDs únicos para evitar cargas duplicadas
 const JS_ID = "zajuna-bubble-js";
@@ -64,6 +65,14 @@ function ensureBubbleCss(href = "/embed/zajuna-bubble.css") {
     document.head.appendChild(link);
 }
 
+/**
+ * NOTA IMPORTANTE (para /public/embed/zajuna-bubble.js):
+ * Asegúrate de configurar el iframe con:
+ *   iframe.allow = "microphone; camera; autoplay; clipboard-write; fullscreen";
+ *   iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");
+ * para evitar los warnings de Feature Policy y permitir micro/cámara si los usas.
+ */
+
 const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
     {
         iframeUrl = `${window.location.origin}/?embed=1`,
@@ -71,20 +80,15 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         title = "Tutor Virtual",
         subtitle = "Sustentación",
         position = "bottom-right",
-        startOpen = true,
+        startOpen = false, // ⬅️ por defecto cerrado; el host decide abrirlo
         theme = "auto",
         zIndex = 2147483000,
         initialToken,
         onTelemetry,
         onAuthNeeded = () => {
-            console.warn("[bubble] auth:needed ignorado (modo invitado activo)");
-        }, 
-      
-        //onAuthNeeded = {() => {
-           // const url = import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
-             //`/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(`${window.location.origin}/auth/callback`)}`;
-           //window.top.location.href = url;
-        // }}
+            // no forzamos login automáticamente: el host decide
+            console.warn("[bubble] auth:needed (ignorado por defecto; modo invitado posible)");
+        },
         injectCss = true,
         showDebug = false,
         // avatar visible en el FAB del widget (pasado al bubble js)
@@ -106,17 +110,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         }
     }, [injectCss]);
 
-    // truco para asegurar visibilidad: abre y cierra una vez si hace falta
-    const ensureVisible = useCallback((bubble) => {
-        try {
-            // si ya está abierto, nada; si no, forzamos un ciclo open->close rápido
-            if (!bubble.isOpen?.()) {
-                bubble.open?.();
-                setTimeout(() => bubble.close?.(), 250);
-            }
-        } catch { }
-    }, []);
-
     useEffect(() => {
         let destroyed = false;
 
@@ -126,6 +119,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             } catch (e) {
                 console.warn(e);
                 if (!destroyed) setError(String(e?.message || e));
+                // reintento corto único
                 try {
                     await new Promise((r) => setTimeout(r, 400));
                     await ensureBubble();
@@ -136,7 +130,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             }
             if (destroyed) return;
 
-            // Pista de allowedOrigin
+            // Pista de allowedOrigin (omite warning si allowedOrigin="*")
             const expectedOrigin = new URL(iframeUrl, window.location.href).origin;
             if (allowedOrigin !== "*" && allowedOrigin !== expectedOrigin) {
                 console.warn(
@@ -155,13 +149,15 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 zIndex,
                 showLabel: false, // evita el “globo” superpuesto
                 padding: 20, // respiro respecto al layout
-                avatar, // ✅ avatar en el FAB (compacto o con label)
+                avatar, // avatar en el FAB (compacto o con label)
             });
 
+            // 🔔 Canal de eventos del bubble
             bubble.onEvent((evt) => {
                 setLastEvent(evt);
-                if (evt?.type === "telemetry") onTelemetry?.(evt);
-                else if (evt?.type === "prefs:update") {
+                if (evt?.type === "telemetry") {
+                    onTelemetry?.(evt);
+                } else if (evt?.type === "prefs:update") {
                     const next = {
                         theme: evt?.prefs?.theme || "light",
                         language: evt?.prefs?.language || "es",
@@ -182,8 +178,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             // Token inicial si viene
             if (initialToken) bubble.sendAuthToken(initialToken);
 
-            // si no lo ves, asegúrate de que el launcher quedó en pantalla
-            ensureVisible(bubble);
+            // ⛔️ Importante: NO abrir/cerrar automáticamente aquí.
+            // (Se elimina cualquier ensureVisible que hacía open()->close()).
 
             bubbleRef.current = bubble;
         })();
@@ -198,7 +194,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         };
     }, [
         ensureBubble,
-        ensureVisible,
         iframeUrl,
         allowedOrigin,
         title,
@@ -225,6 +220,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             },
             // compat con tu código existente
             sendToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
+            // alias más explícito
+            sendAuthToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
             setTheme: (next) => {
                 bubbleRef.current?.setTheme?.(next);
                 if (theme === "auto") {
@@ -279,7 +276,10 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                             lastPrefs: theme=<b>{lastPrefs.theme}</b> lang=<b>{lastPrefs.language}</b>
                         </div>
                         <div>
-                            lastEvent: <code style={{ fontSize: 11 }}>{lastEvent ? JSON.stringify(lastEvent) : "—"}</code>
+                            lastEvent:{" "}
+                            <code style={{ fontSize: 11 }}>
+                                {lastEvent ? JSON.stringify(lastEvent) : "—"}
+                            </code>
                         </div>
                     </div>
                 )}

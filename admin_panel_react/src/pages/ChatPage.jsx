@@ -86,7 +86,7 @@ async function fetchUserSettingsIfPossible(token) {
 export default function ChatPage({
     forceEmbed = false,
     avatarSrc = DEFAULT_BOT_AVATAR,
-    title = "Asistente",
+    title = "Asistente Tutor Virtual",
     connectFn,
     embedHeight = "560px",
     children,

@@ -32,12 +32,11 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
-// Bubble embebido (forwardRef)
+// Bubble embebido
 import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
-// Asegura i18n cargado
 import "@/i18n";
+avatar = { import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png" }
 
-// Flags opcionales
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const SHOW_BUBBLE_DEBUG = import.meta.env.VITE_SHOW_BUBBLE_DEBUG === "true";
 
@@ -73,14 +72,13 @@ function PublicOnlyOrToken({ children }) {
     const tokenFromHash = hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
 
     const hasToken = Boolean(tokenFromQuery || tokenFromHash);
-
     if (isAuthenticated && !hasToken) {
         return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
     }
     return children;
 }
 
-/** Carga perezosa segura para páginas públicas opcionales */
+/** Carga perezosa segura */
 function lazyWithFallback(loader, name) {
     return React.lazy(async () => {
         try {
@@ -102,17 +100,21 @@ const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Reg
 const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
 
 export default function App() {
-    // 🔗 Bubble ref para control externo (open/close/sendToken/setTheme/setLanguage)
     const bubbleRef = useRef(null);
+    const { isAuthenticated, accessToken } = useAuth();
 
-    // ✅ detectar si estamos dentro de un iframe (?embed=1 o frame embebido)
+    // Detecta si estamos embebidos
     const params = new URLSearchParams(window.location.search);
     const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
 
-    const handleLoginDemo = async () => {
-        // Ejemplo: tras tu flujo de login real, envía el token al iframe
-        const token = "FAKE_TOKEN_ZAJUNA"; // sustituye por tu JWT real si aplica
-        bubbleRef.current?.sendAuthToken?.(token);
+    const handleSendToken = () => {
+        if (isAuthenticated && accessToken) {
+            bubbleRef.current?.sendAuthToken?.(accessToken);
+        }
+    };
+
+    const handleLoginDemo = () => {
+        bubbleRef.current?.sendAuthToken?.("FAKE_TOKEN_ZAJUNA");
         bubbleRef.current?.open?.();
     };
 
@@ -192,7 +194,7 @@ export default function App() {
                     }
                 />
 
-                {/* 🔐 admin/soporte */}
+                {/* 🔐 admin */}
                 <Route
                     path="/logs"
                     element={
@@ -203,8 +205,6 @@ export default function App() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* 🔐 admin-only */}
                 <Route
                     path="/intents"
                     element={
@@ -285,8 +285,6 @@ export default function App() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* Admin: registro/login del panel */}
                 <Route
                     path="/admin/register"
                     element={
@@ -303,43 +301,29 @@ export default function App() {
                         </PublicOnlyRoute>
                     }
                 />
-
-                {/* Catch-all → Home/Panel según sesión */}
                 <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
 
-            {/* 🫧 Bubble embebido siempre montado (no interfiere con tus rutas)
-          👉 ahora SOLO cuando NO estamos embebidos */}
+            {/* 🫧 Widget embebido — igual que el web, en modo invitado si no hay token */}
             {!isEmbedded && (
                 <HostChatBubbleRef
                     ref={bubbleRef}
-                    iframeUrl={`${window.location.origin}/?embed=1`}
+                    // 👇 habilita modo invitado en el iframe
+                    iframeUrl={`${window.location.origin}/?embed=1&guest=1`}
                     allowedOrigin={window.location.origin}
                     title="Tutor Virtual"
                     subtitle="Sustentación"
-                    startOpen={false}
+                    startOpen={true}     // abre y saluda
                     theme="auto"
                     showDebug={false}
                     avatar={import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png"}
-                    // Notifica al host cuando el iframe requiera autenticación federada:
-                    onAuthNeeded={() => {
-                        const url =
-                            import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
-                            `/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(
-                                `${window.location.origin}/auth/callback`
-                            )}`;
-                        window.top.location.href = url;
-                    }}
-                    onTelemetry={(evt) => {
-                        if (import.meta.env.DEV) {
-                            // eslint-disable-next-line no-console
-                            console.log("[telemetry]", evt);
-                        }
-                    }}
+                    // Si hay sesión, enviamos token; si no, se queda invitado (NO redirigimos)
+                    onAuthNeeded={handleSendToken}
+                    onTelemetry={(evt) => import.meta.env.DEV && console.log("[telemetry]", evt)}
                 />
             )}
 
-            {/* 🔧 Panel de control DEMO (opcional) — evitar que aparezca dentro del iframe */}
+            {/* 🔧 Debug opcional */}
             {!isEmbedded && SHOW_BUBBLE_DEBUG && (
                 <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 2147483000 }}>
                     <div

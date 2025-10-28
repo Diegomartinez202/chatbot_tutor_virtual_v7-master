@@ -4,5 +4,107 @@
   "noResponse": "Hmm… I don’t have an answer for that.",
   "authRequired": "You need to log in to continue.",
   "errorSending": "Error sending the message.",
-  "chat_connection_error": "We couldn’t connect to the chat service."
+  "chat_connection_error": "We couldn’t connect to the chat service.",
+
+  "inicio": {
+    "title": "I can help you with these topics:",
+    "options": {
+      "explorar": "Explore topics",
+      "ingreso": "Zajuna access",
+      "cursos": "My courses and content",
+      "academico": "Academic / administrative process",
+      "soporte": "Technical support"
+    }
+  },
+
+  "sections": {
+    "topicsFeatured": "Featured topics:",
+    "yourActiveCourses": "Your active courses:",
+    "supportOptions": "Support options:",
+    "whichPart": "Which part of the process?"
+  },
+
+  "links": {
+    "zajunaRegister": "Register on Zajuna",
+    "zajunaLogin": "Log in",
+    "changePassword": "Change password",
+    "userBlocked": "User blocked",
+    "coursesPanel": "My courses panel",
+    "usageGuide": "Usage guide",
+    "openTicket": "Open ticket"
+  },
+
+  "topics": {
+    "pythonBasic": "Basic Python",
+    "aiEducation": "AI in Education",
+    "excelBasic": "Basic Excel",
+    "webProgramming": "Web Programming"
+  },
+
+  "faq": {
+    "matricula": "Enrollment",
+    "pagosBecas": "Payments & scholarships",
+    "certificados": "Certificates"
+  },
+
+  "quick_actions": {
+    "title": "Quick actions",
+    "recommended_courses": "Recommended courses 🎓",
+    "image_placeholder": "Image",
+    "what_is_chatbot": "What is this chatbot?",
+    "view_active_courses": "View active courses",
+    "progress": "Progress",
+    "schedules": "Schedules",
+    "assigned_tutor": "Assigned tutor",
+    "general_info": "General information",
+    "how_to_use": "How to use the chatbot",
+    "welding_mig": "MIG Welding"
+  },
+
+  "support": {
+    "form_title": "Support form",
+    "name_placeholder": "Your full name",
+    "email_placeholder": "Contact email",
+    "message_placeholder": "How can we help you?",
+    "send": "Send",
+    "send_request": "Send support request"
+  },
+  "config": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Appearance",
+    "dark": "Dark",
+    "light": "Light",
+    "high_contrast": "High contrast",
+    "accessibility": "Accessibility",
+    "adminPanel": "Admin panel",
+    "registerPanel": "Register (panel)",
+    "loginPanel": "Log in (panel)",
+    "zajuna": "Zajuna",
+    "loginZajuna": "Sign in with Zajuna",
+    "registerZajuna": "Register with Zajuna",
+    "logout": "Log out",
+    "saved": "Settings saved",
+    "notSaved": "Could not save settings",
+    "languageChanged": "Language changed to {{lang}}",
+    "themeChanged": "Theme changed to {{theme}}",
+    "contrastChanged": "High contrast mode {{state}}",
+    "shortcuts": "Keyboard shortcuts",
+    "dark_mode_auto": "Auto (system)",
+    "notifications": "Notifications",
+    "notifications_enabled": "Enabled",
+    "notifications_disabled": "Disabled",
+    "reset": "Reset to defaults"
+  },
+  "common": {
+    "on": "On",
+    "off": "Off",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "close": "Close"
+  }
 }
+
