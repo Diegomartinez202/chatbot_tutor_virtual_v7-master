@@ -2,9 +2,30 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Mic, Square, Upload, Repeat2, X, Loader2, Play, Pause } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import axiosClient from "@/services/axiosClient";                  // 🆕 centraliza petición
-import { useAuthStore } from "@/store/authStore";                 // 🆕 lee token centralizado
-import { STORAGE_KEYS } from "@/lib/constants";                   // 🆕 fallback a localStorage
+import axiosClient from "@/services/axiosClient";
+import { useAuthStore } from "@/store/authStore";
+import { STORAGE_KEYS } from "@/lib/constants";
+
+function isSecureContextLike() {
+    // HTTPS o localhost
+    const isLocalhost = /^localhost$|^127\.0\.0\.1$|^::1$/.test(location.hostname);
+    return window.isSecureContext || isLocalhost;
+}
+
+function pickBestMime() {
+    // Firefox prefiere ogg/opus; Chromium prefiere webm/opus
+    const ua = navigator.userAgent.toLowerCase();
+    const prefers = ua.includes("firefox")
+        ? ["audio/ogg;codecs=opus", "audio/ogg", "audio/webm;codecs=opus", "audio/webm"]
+        : ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/ogg"];
+
+    for (const t of prefers) {
+        try {
+            if (window.MediaRecorder?.isTypeSupported?.(t)) return t;
+        } catch { }
+    }
+    return "audio/webm";
+}
 
 export default function MicButton({
     onPushUser,
@@ -13,17 +34,13 @@ export default function MicButton({
     persona = null,
     lang = "es",
     sessionId = null,
-    token = null,          // si lo pasas, tiene prioridad
+    token = null,
     disabled = false,
 }) {
     const t = useTranslation();
 
-    // Endpoint REST del chat (proxy backend → Rasa)
     const CHAT_REST = import.meta.env.VITE_CHAT_REST_URL || "/api/chat";
-    const AUDIO_URL = useMemo(
-        () => `${String(CHAT_REST).replace(/\/$/, "")}/audio`,
-        [CHAT_REST]
-    );
+    const AUDIO_URL = useMemo(() => `${String(CHAT_REST).replace(/\/$/, "")}/audio`, [CHAT_REST]);
 
     const [supported, setSupported] = useState(true);
     const [recording, setRecording] = useState(false);
@@ -34,13 +51,13 @@ export default function MicButton({
     const [err, setErr] = useState("");
     const [elapsed, setElapsed] = useState(0);
     const [playing, setPlaying] = useState(false);
+    const [permState, setPermState] = useState("prompt"); // prompt | granted | denied | unknown
 
     const chunksRef = useRef([]);
     const recRef = useRef(null);
     const timerRef = useRef(null);
     const audioElRef = useRef(null);
 
-    // 🆕 Token auto: Zustand → localStorage (solo si no se provee por prop)
     const storeToken = useAuthStore((s) => s.accessToken);
     const effectiveToken = useMemo(() => {
         if (token) return token;
@@ -56,27 +73,42 @@ export default function MicButton({
         }
     }, [token, storeToken]);
 
+    // Soporte + contexto seguro + MIME óptimo
     useEffect(() => {
-        if (!window.MediaRecorder) {
+        if (!isSecureContextLike()) {
             setSupported(false);
+            setErr(
+                t("mic.secure_required") ||
+                "El micrófono requiere HTTPS o localhost. Abre https://app-dev.local:8443 o http://localhost:5173."
+            );
             return;
         }
-        const prefers = [
-            "audio/webm;codecs=opus",
-            "audio/webm",
-            "audio/ogg;codecs=opus",
-            "audio/ogg",
-        ];
-        let chosen = "";
-        for (const t of prefers) {
-            try {
-                if (window.MediaRecorder.isTypeSupported(t)) {
-                    chosen = t;
-                    break;
-                }
-            } catch { }
+        if (!window.MediaRecorder || !navigator.mediaDevices) {
+            setSupported(false);
+            setErr(t("mic.not_supported") || "Grabación no soportada en este navegador.");
+            return;
         }
-        setMime(chosen || "audio/webm");
+        setMime(pickBestMime());
+    }, [t]);
+
+    // Estado de permisos (si el navegador lo soporta)
+    useEffect(() => {
+        let mounted = true;
+        if (navigator.permissions?.query) {
+            navigator.permissions
+                .query({ name: "microphone" })
+                .then((p) => {
+                    if (!mounted) return;
+                    setPermState(p.state);
+                    p.onchange = () => mounted && setPermState(p.state);
+                })
+                .catch(() => setPermState("unknown"));
+        } else {
+            setPermState("unknown");
+        }
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -105,6 +137,12 @@ export default function MicButton({
         setBlob(null);
         setPlaying(false);
 
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setErr(t("mic.not_supported") || "Grabación no soportada en este navegador.");
+            setSupported(false);
+            return;
+        }
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const rec = new MediaRecorder(stream, { mimeType: mime });
@@ -128,8 +166,16 @@ export default function MicButton({
             startTimer();
             setRecording(true);
         } catch (e) {
-            console.error(e);
-            setErr(t("mic.no_access"));
+            console.error("Error al iniciar la grabación:", e);
+            const denied =
+                (e && /denied|notallowed|permission/i.test(String(e.name || e.message))) ||
+                permState === "denied";
+            setErr(
+                denied
+                    ? t("mic.permission_denied") ||
+                    "Permiso de micrófono denegado. Habilítalo en el candado de la barra del navegador."
+                    : t("mic.no_access") || "No se pudo acceder al micrófono."
+            );
             setRecording(false);
         }
     };
@@ -175,12 +221,13 @@ export default function MicButton({
 
         try {
             if (blob.size > 15 * 1024 * 1024) {
-                setErr(t("mic.too_large"));
+                setErr(t("mic.too_large") || "El audio es demasiado grande.");
                 setUploading(false);
                 return;
             }
 
-            const file = new File([blob], "voice.webm", { type: mime || "audio/webm" });
+            const ext = mime.startsWith("audio/ogg") ? "ogg" : "webm";
+            const file = new File([blob], `voice.${ext}`, { type: mime || "audio/webm" });
             const fd = new FormData();
             fd.append("file", file);
             if (userId) fd.append("user_id", userId);
@@ -188,15 +235,9 @@ export default function MicButton({
             if (lang) fd.append("lang", lang);
             if (sessionId) fd.append("session_id", sessionId);
 
-            // 🆕 axiosClient con FormData (no fuerza JSON) y Authorization:
-            // - Si pasas token por prop/effectiveToken → lo añadimos explícito (tiene prioridad).
-            // - Si no, el interceptor de axiosClient inyectará desde store/localStorage.
-            const headers =
-                effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined;
+            const headers = effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined;
 
-            const { data } = await axiosClient.post(AUDIO_URL, fd, {
-                headers, // axios pondrá Content-Type multipart boundary automáticamente
-            });
+            const { data } = await axiosClient.post(AUDIO_URL, fd, { headers });
 
             const transcript = data?.transcript || "";
             const botMsgs = data?.bot?.messages || [];
@@ -208,12 +249,12 @@ export default function MicButton({
             setUploading(false);
             setPlaying(false);
         } catch (e) {
-            console.error(e);
+            console.error("Error al subir audio:", e);
             const msg =
                 e?.response?.data?.message ||
                 e?.response?.data?.detail ||
                 e?.message ||
-                t("mic.upload_error");
+                (t("mic.upload_error") || "No se pudo subir el audio.");
             setErr(msg);
             setUploading(false);
         }
@@ -223,7 +264,7 @@ export default function MicButton({
         return (
             <button
                 type="button"
-                title={t("mic.not_supported")}
+                title={err || t("mic.not_supported")}
                 className="inline-flex items-center justify-center rounded-md bg-gray-200 text-gray-500 px-3 py-2 cursor-not-allowed"
                 disabled
                 data-testid="mic-unsupported"

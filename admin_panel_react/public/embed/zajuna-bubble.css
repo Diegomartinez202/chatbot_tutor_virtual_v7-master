@@ -1,109 +1,137 @@
-/* \public\embed\zajuna-bubble.css */
-.zajuna-bubble-root {
-    font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-    color: #111827;
-}
-
-.zajuna-bubble-button {
+/* ====== RESET SUAVE para aislar del sitio ====== */
+[data-zj-bubble] .zj-reset {
     all: unset;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    padding: 6px 8px;
-    box-shadow: 0 4px 18px rgba(2,8,23,.15);
+    box-sizing: border-box;
+    font-family: inherit;
 }
 
-.zb-pill {
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.zb-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #22c55e;
-    box-shadow: 0 0 0 2px #dcfce7 inset;
-}
-
-.zb-labels {
-    display: flex;
-    flex-direction: column;
-}
-
-.zb-title {
-    font-weight: 600;
-    color: #0f172a;
-}
-
-.zb-subtitle {
-    color: #64748b;
-    font-size: 12px;
-    line-height: 14px;
-}
-
-.zajuna-bubble-panel {
+/* ====== IFRAME ====== */
+[data-zj-bubble] .zj-bubble-iframe-wrap {
     position: fixed;
-    right: 18px;
-    bottom: 70px;
-    width: 380px;
-    height: 520px;
-    max-height: calc(100vh - 120px);
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    box-shadow: 0 15px 50px rgba(2,8,23,.25);
+    right: 88px; /* espacio para el FAB */
+    bottom: 16px;
+    width: min(420px, calc(100vw - 120px));
+    height: min(70vh, 560px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
+    border-radius: 14px;
     overflow: hidden;
-    transform: translateY(10px) scale(.98);
-    opacity: 0;
-    pointer-events: none;
-    transition: .22s ease;
-}
-
-    .zajuna-bubble-panel.open {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-.zb-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 10px;
     background: #0b1220;
-    color: #e5e7eb;
+    display: block;
+    z-index: 1;
 }
 
-.zb-header-title {
-    font-weight: 600;
-}
-
-.zb-close {
-    all: unset;
-    cursor: pointer;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0 6px;
-    border-radius: 6px;
-}
-
-    .zb-close:hover {
-        background: rgba(255,255,255,.08);
-    }
-
-.zb-body {
-    height: calc(100% - 40px);
-    background: #0f172a;
-}
-
-.zb-iframe {
+[data-zj-bubble] .zj-bubble-iframe {
     width: 100%;
     height: 100%;
     border: 0;
     display: block;
+}
+
+[data-zj-bubble] .zj-bubble-iframe-wrap[hidden] {
+    display: none !important;
+}
+
+/* ====== FAB (botón) ====== */
+[data-zj-bubble] .zj-bubble-button {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    background: #0a4e6c;
+    border: none;
+    border-radius: 9999px;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0,0,0,.25);
+    pointer-events: auto;
+    z-index: 2;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+    [data-zj-bubble] .zj-bubble-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 26px rgba(0,0,0,.3);
+    }
+
+    /* compacto = redondo */
+    [data-zj-bubble] .zj-bubble-button.zj-compact {
+        width: 56px;
+        height: 56px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+/* avatar */
+[data-zj-bubble] .zj-avatar-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: #0b1220;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-zj-bubble] .zj-compact .zj-avatar-wrap {
+    width: 36px;
+    height: 36px;
+}
+
+[data-zj-bubble] .zj-avatar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* icono */
+[data-zj-bubble] .zj-icon {
+    display: inline-flex;
+    color: #e7eaf0;
+}
+
+[data-zj-bubble] .zj-compact .zj-bubble-title,
+[data-zj-bubble] .zj-compact .zj-bubble-sub {
+    display: none;
+}
+.zj-bubble-button {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0ea5e9;
+    color: #fff;
+    border-radius: 9999px;
+    padding: 10px 14px;
+    border: 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+.zj-bubble-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: #fff;
+    opacity: .9;
+}
+
+.zj-bubble-iframe-wrap { /* ya lo tendrás; aquí solo de ejemplo */
+    width: min(420px, 95vw);
+    height: min(70vh, 720px);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.zj-bubble-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 12px;
 }

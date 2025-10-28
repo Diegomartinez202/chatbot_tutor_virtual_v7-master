@@ -3,27 +3,32 @@
 #   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml --profile build up -d --build
 
 services:
-  backend:
+  # --- Backend DEV (uvicorn --reload) ---
+  backend-dev:
     profiles: ["build"]
     command: >
       sh -lc "exec uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
     restart: unless-stopped
     environment:
-      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
-      EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
-      FRAME_ANCESTORS: "'self' http://localhost:8080 http://localhost:5173"
+      # CORS/CSP para embed en desarrollo
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080,http://app-dev.local:8080"
+      EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173,http://app-dev.local:8080"
+      FRAME_ANCESTORS: "'self' http://localhost:8080 http://localhost:5173 http://app-dev.local:8080"
+      # Chat sin login en dev
       DEMO_MODE: "true"
       CHAT_REQUIRE_AUTH: "false"
 
-  admin:
+  # --- Frontend DEV (Vite) ---
+  admin-dev:
     profiles: ["build"]
     command: >
       sh -lc "npm install && npm run dev -- --host --port 5173"
     restart: unless-stopped
     environment:
-      VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
+      VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173,http://app-dev.local:8080"
       VITE_USER_SETTINGS_URL: "/api/me/settings"
 
+  # --- Rasa DEV (solo avisos silenciados) ---
   rasa:
     profiles: ["build"]
     environment:
@@ -33,7 +38,7 @@ services:
   action-server:
     profiles: ["build"]
 
-  # ⬇️ Nginx de DEV ve TODA la conf: dev/, common/, etc.
+  # --- Nginx DEV (reverse proxy) ---
   nginx-dev:
     profiles: ["build"]
     image: nginx:alpine
@@ -46,6 +51,9 @@ services:
     ports:
       - "8080:80"
     volumes:
+      # Monta TODA la conf; nginx.dev.conf ya incluye solo dev/*.conf
+      - ./ops/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
       - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
     environment:
       APP_ENV: development

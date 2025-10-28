@@ -17,9 +17,10 @@
     <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- CSS base servido por el backend (Nginx lo enruta en dev/prod) -->
+    <!-- CSS base servido por el backend -->
     <link rel="stylesheet" href="/static/css/index.css" />
     <link rel="stylesheet" href="/embed/zajuna-bubble.css" />
+
     <!-- Favicons / Manifest -->
     <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" data-base-href="favicon-32x32.png" />
@@ -42,7 +43,7 @@
     <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
     <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
 
-    <!-- Ajustes dinámicos: og:url + reescritura BASE_URL + preloads condicionales -->
+    <!-- Ajustes dinámicos -->
     <script type="module">
         // og:url
         const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || (location.origin + "/");

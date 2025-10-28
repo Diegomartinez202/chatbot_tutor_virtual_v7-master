@@ -1,5 +1,5 @@
 // src/pages/LoginPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Input from "@/components/Input";
 import IconTooltip from "@/components/ui/IconTooltip";
@@ -10,20 +10,25 @@ import { login as apiLogin, me as apiMe } from "@/services/authApi";
 
 // Flags de entorno
 const ENABLE_LOCAL = String(import.meta.env.VITE_ENABLE_LOCAL_LOGIN) === "true";
-const ZAJUNA_SSO = import.meta.env.VITE_ZAJUNA_SSO_URL || "";
+const ZAJUNA_SSO = import.meta.env.VITE_ZAJUNA_SSO_URL || import.meta.env.VITE_ZAJUNA_LOGIN_URL || "";
 const SHOW_GUEST = String(import.meta.env.VITE_SHOW_GUEST ?? "true") !== "false";
 
-function LoginPage() {
+export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login, redirectToZajunaSSO } = useAuth(); // ✅ Integrado correctamente
+    const { login, redirectToZajunaSSO } = useAuth();
 
-    useEffect(() => {
-        document.title = "Iniciar sesión – Chatbot";
+    useEffect(() => { document.title = "Iniciar sesión – Chatbot"; }, []);
+
+    // URL de retorno estándar para SSO (por si no usas redirect helper del AuthContext)
+    const zajunaLoginUrl = useMemo(() => {
+        if (ZAJUNA_SSO) return ZAJUNA_SSO;
+        const back = `${window.location.origin}/auth/callback`;
+        return `/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(back)}`;
     }, []);
 
     // —— LOGIN LOCAL (si está habilitado) ——
@@ -58,16 +63,16 @@ function LoginPage() {
         }
     };
 
-    // —— SSO Zajuna (ya integrado) ——
+    // —— SSO Zajuna (intacto + robusto para iframes) ——
     const handleZajuna = () => {
         try {
             if (typeof redirectToZajunaSSO === "function") {
-                redirectToZajunaSSO(); // ✅ inicia flujo federado
-            } else if (ZAJUNA_SSO) {
-                window.location.href = ZAJUNA_SSO; // fallback directo
-            } else {
-                setError("No se configuró la URL del proveedor SSO.");
+                redirectToZajunaSSO(); // flujo federado gestionado por AuthContext
+                return;
             }
+            const url = zajunaLoginUrl;
+            if (window.self !== window.top) window.top.location.href = url;
+            else window.location.href = url;
         } catch (err) {
             console.error("Error al redirigir al SSO:", err);
             setError("Error al conectar con el servicio de autenticación.");
@@ -76,128 +81,142 @@ function LoginPage() {
 
     const handleGuest = () => navigate("/chat");
 
-    return (
-        <div className="p-6 max-w-md mx-auto">
-            <div className="flex items-center gap-2 mb-4">
-                <IconTooltip label="Iniciar sesión" side="top">
-                    <Lock className="w-6 h-6 text-gray-700" aria-hidden="true" />
-                </IconTooltip>
-                <h2 className="text-xl font-semibold" id="login-title">
-                    Iniciar sesión
-                </h2>
-            </div>
+    const goBack = () => {
+        if (window.history.length > 1) navigate(-1);
+        else navigate("/", { replace: true });
+    };
 
-            {/* —— SSO de Zajuna (principal) —— */}
-            {ZAJUNA_SSO ? (
-                <div className="flex flex-col gap-3" aria-labelledby="login-title">
+    return (
+        <div className="min-h-[80vh] grid place-items-center px-4 py-8">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 p-6 sm:p-7">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-2">
+                        <IconTooltip label="Iniciar sesión" side="top">
+                            <Lock className="w-6 h-6 text-gray-700" aria-hidden="true" />
+                        </IconTooltip>
+                        <h2 className="text-xl font-semibold" id="login-title">
+                            Iniciar sesión
+                        </h2>
+                    </div>
+
                     <button
                         type="button"
-                        onClick={handleZajuna}
-                        disabled={loading}
-                        data-testid="login-zajuna"
-                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 text-white px-5 py-2.5 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
+                        onClick={goBack}
+                        className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50"
                     >
-                        Ingresar con Zajuna
+                        ← Volver
                     </button>
+                </div>
 
-                    {SHOW_GUEST && (
+                {/* —— SSO de Zajuna (principal) —— */}
+                {zajunaLoginUrl ? (
+                    <div className="flex flex-col gap-3" aria-labelledby="login-title">
                         <button
                             type="button"
-                            onClick={handleGuest}
+                            onClick={handleZajuna}
                             disabled={loading}
-                            data-testid="login-guest"
-                            className="inline-flex items-center justify-center rounded-lg bg-transparent text-gray-900 px-5 py-2.5 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                            data-testid="login-zajuna"
+                            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 text-white px-5 py-2.5 text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60"
                         >
-                            Entrar como invitado (sin registro)
+                            Ingresar con Zajuna
                         </button>
-                    )}
-                </div>
-            ) : (
-                <p className="text-sm text-gray-600">
-                    Configura <code>VITE_ZAJUNA_SSO_URL</code> en tu <code>.env</code> para habilitar el acceso
-                    SSO de Zajuna.
-                </p>
-            )}
 
-            {/* —— Formulario local (opcional) —— */}
-            {ENABLE_LOCAL && (
-                <>
-                    <div className="my-4 h-px bg-gray-200" role="separator" />
-                    <form onSubmit={handleLogin} aria-describedby="login-error" noValidate>
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="username"
-                            name="email"
-                            placeholder="Correo"
-                            data-testid="login-email"
-                            aria-required="true"
-                        />
-                        <Input
-                            label="Contraseña"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            autoComplete="current-password"
-                            name="password"
-                            placeholder="Contraseña"
-                            data-testid="login-password"
-                            aria-required="true"
-                        />
+                        {SHOW_GUEST && (
+                            <button
+                                type="button"
+                                onClick={handleGuest}
+                                disabled={loading}
+                                data-testid="login-guest"
+                                className="inline-flex items-center justify-center rounded-lg bg-gray-50 text-gray-900 px-5 py-2.5 text-sm font-medium border hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                            >
+                                Entrar como invitado (sin registro)
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-600">
+                        Configura <code>VITE_ZAJUNA_SSO_URL</code> o <code>VITE_ZAJUNA_LOGIN_URL</code> en tu
+                        <code> .env</code> para habilitar el acceso SSO de Zajuna.
+                    </p>
+                )}
 
-                        <div className="flex flex-col gap-3 mt-2">
+                {/* —— Formulario local (opcional) —— */}
+                {ENABLE_LOCAL && (
+                    <>
+                        <div className="my-5 h-px bg-gray-200" role="separator" />
+                        <form onSubmit={handleLogin} aria-describedby="login-error" noValidate>
+                            <Input
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                autoComplete="username"
+                                name="email"
+                                placeholder="correo@ejemplo.com"
+                                data-testid="login-email"
+                                aria-required="true"
+                            />
+                            <Input
+                                label="Contraseña"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                autoComplete="current-password"
+                                name="password"
+                                placeholder="••••••••"
+                                data-testid="login-password"
+                                aria-required="true"
+                            />
+
                             <button
                                 type="submit"
                                 disabled={loading}
                                 aria-busy={loading}
                                 data-testid="login-submit"
-                                className="inline-flex items-center justify-center rounded-lg bg-white text-gray-900 px-5 py-2.5 text-sm font-medium border hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
+                                className="mt-3 w-full inline-flex items-center justify-center rounded-lg bg-white text-gray-900 px-5 py-2.5 text-sm font-medium border hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:opacity-60"
                             >
                                 {loading ? "Ingresando..." : "Ingresar (login local)"}
                             </button>
-                        </div>
-                    </form>
-                </>
-            )}
+                        </form>
+                    </>
+                )}
 
-            {error && (
-                <p
-                    id="login-error"
-                    className="text-red-600 mt-2"
-                    role="alert"
-                    aria-live="polite"
-                    data-testid="login-error"
-                >
-                    {error}
-                </p>
-            )}
+                {error && (
+                    <p
+                        id="login-error"
+                        className="text-red-600 mt-3"
+                        role="alert"
+                        aria-live="polite"
+                        data-testid="login-error"
+                    >
+                        {error}
+                    </p>
+                )}
 
-            <div className="mt-4 text-sm text-gray-600 flex items-center justify-between">
-                <Link to="/" className="hover:underline">
-                    ← Volver al inicio
-                </Link>
-                <div className="flex items-center gap-3">
-                    <Link to="/auth/callback" className="hover:underline">
-                        ¿Tienes token? Procesar callback
+                <div className="mt-5 text-sm text-gray-600 flex flex-wrap items-center justify-between gap-3">
+                    <Link to="/" className="hover:underline">
+                        ← Volver al inicio
                     </Link>
-                    <Link to="/admin/login" className="hover:underline">
-                        Panel admin
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <Link to="/auth/callback" className="hover:underline">
+                            ¿Tienes token? Procesar callback
+                        </Link>
+                        <Link to="/admin/login" className="hover:underline">
+                            Panel admin
+                        </Link>
+                    </div>
                 </div>
-            </div>
 
-            {!ENABLE_LOCAL && (
-                <p className="mt-3 text-xs text-gray-500">
-                    Para habilitar el formulario local, ajusta{" "}
-                    <code>VITE_ENABLE_LOCAL_LOGIN=true</code> en tu <code>.env</code>.
-                </p>
-            )}
+                {!ENABLE_LOCAL && (
+                    <p className="mt-3 text-xs text-gray-500">
+                        Para habilitar el formulario local, ajusta{" "}
+                        <code>VITE_ENABLE_LOCAL_LOGIN=true</code> en tu <code>.env</code>.
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
-
-export default LoginPage;

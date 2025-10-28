@@ -1,3 +1,4 @@
+// admin_panel_react/src/app.jsx
 import React, { useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
@@ -32,7 +33,7 @@ import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
 // Bubble embebido (forwardRef)
-import HostChatBubbleRef from '@/embed/HostChatBubbleRef.jsx';
+import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
 // Asegura i18n cargado
 import "@/i18n";
 
@@ -103,6 +104,10 @@ const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPassword
 export default function App() {
     // 🔗 Bubble ref para control externo (open/close/sendToken/setTheme/setLanguage)
     const bubbleRef = useRef(null);
+
+    // ⛔️ NUEVO: detectar si estamos dentro de un iframe (?embed=1 o frame embebido)
+    const params = new URLSearchParams(window.location.search);
+    const isEmbedded = params.get("embed") === "1" || (window.self !== window.top);
 
     const handleLoginDemo = async () => {
         // Ejemplo: tras tu flujo de login real, envía el token al iframe
@@ -303,21 +308,33 @@ export default function App() {
                 <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
 
-            {/* 🫧 Bubble embebido siempre montado (no interfiere con tus rutas) */}
-            <HostChatBubbleRef
-                ref={bubbleRef}
-                iframeUrl={`${window.location.origin}/?embed=1`}
-                allowedOrigin={window.location.origin}
-                title="Tutor Virtual"
-                subtitle="Sustentación"
-                startOpen={false}
-                theme="auto"
-                onTelemetry={(evt) => console.log("[telemetry]", evt)}
-                onAuthNeeded={() => console.log("iframe pidió autenticación")}
-            />
+            {/* 🫧 Bubble embebido siempre montado (no interfiere con tus rutas)
+          👉 ahora SOLO cuando NO estamos embebidos */}
+            {!isEmbedded && (
+                <HostChatBubbleRef
+                    ref={bubbleRef}
+                    iframeUrl={`${window.location.origin}/?embed=1`}
+                    allowedOrigin={window.location.origin}
+                    title="Tutor Virtual"
+                    subtitle="Sustentación"
+                    startOpen={false}
+                    theme="auto"
+                    showDebug={false}}
+                    avatar="/embed/mi-avatar.png"
 
-            {/* 🔧 Panel de control DEMO (opcional) */}
-            {SHOW_BUBBLE_DEBUG && (
+                    onAuthNeeded={() => {
+                        const url =
+                            import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
+                            `/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(
+                                `${window.location.origin}/auth/callback`
+                            )}`;
+                        window.top.location.href = url;
+                    }}
+                />
+            )}
+
+            {/* 🔧 Panel de control DEMO (opcional) — evitar que aparezca dentro del iframe */}
+            {!isEmbedded && SHOW_BUBBLE_DEBUG && (
                 <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 2147483000 }}>
                     <div
                         style={{
@@ -333,7 +350,16 @@ export default function App() {
                     >
                         <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
                         <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
-                        <button onClick={handleLoginDemo} className="btn">Login & Enviar Token</button>
+                        <button
+                            onClick={async () => {
+                                const token = "FAKE_TOKEN_ZAJUNA";
+                                bubbleRef.current?.sendToken?.(token);
+                                bubbleRef.current?.open?.();
+                            }}
+                            className="btn"
+                        >
+                            Login & Enviar Token
+                        </button>
                         <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
                         <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
                         <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
