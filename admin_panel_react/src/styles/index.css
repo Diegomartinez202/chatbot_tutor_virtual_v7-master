@@ -461,3 +461,13 @@ html.high-contrast .header-actions button {
     border: 0;
     border-radius: 12px;
 }
+html.high-contrast {
+    --ring: #000;
+    --bg: #fff;
+    --fg: #000;
+    filter: contrast(1.1) saturate(1.05);
+}
+
+    html.high-contrast .focus-visible\:ring-2:focus-visible {
+        box-shadow: 0 0 0 3px var(--ring);
+    }

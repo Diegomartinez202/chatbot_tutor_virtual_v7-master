@@ -66,6 +66,27 @@ function applyPrefsToDocument(prefs, i18n) {
         localStorage.setItem("app:settings", JSON.stringify(merged));
     } catch { /* no-op */ }
 }
+function applyPrefsToDocument(prefs, i18n) {
+    try {
+        const html = document.documentElement;
+        const dark = prefs?.theme === "dark";
+        const hc = !!prefs?.highContrast;
+        const scale = Number(prefs?.fontScale || 1);
+
+        html.classList.toggle("dark", dark);
+        html.classList.toggle("high-contrast", hc);
+        html.style.fontSize = `${16 * scale}px`;
+
+        const lang = (prefs?.language === "en" ? "en" : "es");
+        i18n?.changeLanguage?.(lang);
+        // 👇 adicional
+        html.setAttribute("lang", lang);
+
+        const current = JSON.parse(localStorage.getItem("app:settings") || "{}");
+        const merged = { ...current, language: lang, darkMode: dark, fontScale: scale, highContrast: hc };
+        localStorage.setItem("app:settings", JSON.stringify(merged));
+    } catch { /* no-op */ }
+}
 
 async function fetchUserSettingsIfPossible(token) {
     try {
@@ -175,6 +196,24 @@ export default function ChatPage({
     if (SHOW_HARNESS && !isEmbed) {
         return <Harness />;
     }
+    // Mantener <html lang="..."> sincronizado con i18n
+    useEffect(() => {
+        try {
+            const html = document.documentElement;
+            const current = i18n.language?.startsWith("en") ? "en" : "es";
+            if (html.getAttribute("lang") !== current) {
+                html.setAttribute("lang", current);
+            }
+        } catch { }
+    }, [i18n.language]);
+    // Evita reflows agresivos al abrir el teclado virtual (móvil)
+    useEffect(() => {
+        const el = document.querySelector(".chat-messages");
+        if (!el) return;
+        const onFocus = () => { try { el.scrollTop = el.scrollHeight; } catch { } };
+        window.addEventListener("focusin", onFocus);
+        return () => window.removeEventListener("focusin", onFocus);
+    }, []);
 
     const wrapperClass = isEmbed ? "p-0" : "p-6 min-h-[70vh] flex flex-col";
     const bodyClass = isEmbed ? "h-full" : "flex-1 bg-white rounded border shadow overflow-hidden";

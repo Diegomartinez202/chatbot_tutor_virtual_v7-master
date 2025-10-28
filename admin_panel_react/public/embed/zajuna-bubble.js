@@ -1,100 +1,179 @@
-;; (() => {
+/* /public/embed/zajuna-bubble.js */
+; (() => {
     const DEFAULTS = {
         iframeUrl: `${window.location.origin}/?embed=1`,
         allowedOrigin: window.location.origin,
-        title: 'Tutor Virtual',
-        subtitle: 'Sustentación',
-        position: 'bottom-right',
+        title: "Tutor Virtual",
+        subtitle: "Sustentación",
+        position: "bottom-right", // bottom-right | bottom-left | top-right | top-left
         startOpen: false,
-        theme: 'auto',
+        theme: "auto",            // auto | light | dark
         zIndex: 999999,
-        showLabel: false,  // para que no tape inputs
+        showLabel: false,         // false => FAB redondo, no tapa inputs
         padding: 20,
-        avatar: null       // 👈 NUEVO
+        avatar: "/bot-avatar.png",
+        // permisos afinados: evita warnings por clipboard-* pero mantiene mic/cam/autoplay
+        permissions: "microphone; camera; autoplay"
     };
 
     function css(el, styles) { Object.assign(el.style, styles); }
 
     function create(options = {}) {
         const opts = { ...DEFAULTS, ...options };
-        let root, btn, iframeWrap, iframeEl, isMounted = false, opened = false;
+
+        let root, btn, iframeWrap, iframeEl;
+        let isMounted = false;
+        let opened = false;
         const listeners = new Set();
 
-        function emit(evt) { for (const cb of listeners) try { cb(evt) } catch { } }
-        function post(msg) { try { iframeEl?.contentWindow?.postMessage(msg, opts.allowedOrigin); } catch { } }
+        function emit(evt) {
+            for (const cb of listeners) {
+                try { cb(evt); } catch { /* no-op */ }
+            }
+        }
 
-        function open() { if (!isMounted) return; iframeWrap.hidden = false; opened = true; btn.setAttribute('aria-expanded', 'true'); post({ type: 'host:open' }); emit({ type: 'telemetry', event: 'open' }); }
-        function close() { if (!isMounted) return; iframeWrap.hidden = true; opened = false; btn.setAttribute('aria-expanded', 'false'); post({ type: 'host:close' }); emit({ type: 'telemetry', event: 'close' }); }
+        function post(msg) {
+            try {
+                iframeEl?.contentWindow?.postMessage(msg, opts.allowedOrigin);
+            } catch { /* no-op */ }
+        }
+
+        function handleMessage(e) {
+            // Seguridad: sólo aceptamos eventos del allowedOrigin (a menos que '*')
+            if (opts.allowedOrigin !== "*" && e.origin !== opts.allowedOrigin) return;
+            const data = e?.data || {};
+            // Reexpone eventos del iframe al host
+            // Ejemplos esperados: { type:'telemetry', ... } | { type:'prefs:update', prefs:{theme,language} } | { type:'auth:needed' }
+            emit(data);
+        }
+
+        function open() {
+            if (!isMounted) return;
+            iframeWrap.hidden = false;
+            opened = true;
+            btn.setAttribute("aria-expanded", "true");
+            post({ type: "host:open" });
+            emit({ type: "telemetry", event: "open" });
+        }
+
+        function close() {
+            if (!isMounted) return;
+            iframeWrap.hidden = true;
+            opened = false;
+            btn.setAttribute("aria-expanded", "false");
+            post({ type: "host:close" });
+            emit({ type: "telemetry", event: "close" });
+        }
+
         const toggle = () => (opened ? close() : open());
         const isOpen = () => opened;
-        const onEvent = (cb) => (typeof cb === 'function' && listeners.add(cb), () => listeners.delete(cb));
-        const setTheme = (theme) => (post({ type: 'host:setTheme', theme }), emit({ type: 'prefs:update', source: 'host', prefs: { theme } }));
-        const setLanguage = (language) => (post({ type: 'host:setLanguage', language }), emit({ type: 'prefs:update', source: 'host', prefs: { language } }));
-        const sendAuthToken = (token) => (post({ type: 'host:auth', token }), emit({ type: 'telemetry', event: 'auth_sent' }));
+
+        const onEvent = (cb) => {
+            if (typeof cb === "function") {
+                listeners.add(cb);
+                return () => listeners.delete(cb);
+            }
+            return () => { };
+        };
+
+        const setTheme = (theme) => {
+            post({ type: "host:setTheme", theme });
+            emit({ type: "prefs:update", source: "host", prefs: { theme } });
+        };
+
+        const setLanguage = (language) => {
+            post({ type: "host:setLanguage", language });
+            emit({ type: "prefs:update", source: "host", prefs: { language } });
+        };
+
+        const sendAuthToken = (token) => {
+            post({ type: "host:auth", token });
+            emit({ type: "telemetry", event: "auth_sent" });
+        };
 
         function mount() {
             if (isMounted) return;
-            root = document.createElement('div');
-            css(root, { position: 'fixed', zIndex: String(opts.zIndex), inset: 'auto', pointerEvents: 'none' });
 
-            const pad = (opts.padding ?? 16) + 'px';
+            // raíz contenedora
+            root = document.createElement("div");
+            // Aislar estilos del host (tu CSS puede apuntar a [data-zj-bubble] ...)
+            root.setAttribute("data-zj-bubble", "");
+            css(root, {
+                position: "fixed",
+                zIndex: String(opts.zIndex),
+                inset: "auto",
+                pointerEvents: "none"
+            });
+
+            const pad = (opts.padding ?? 16) + "px";
             const positions = {
-                'bottom-right': { right: pad, bottom: pad },
-                'bottom-left': { left: pad, bottom: pad },
-                'top-right': { right: pad, top: pad },
-                'top-left': { left: pad, top: pad },
+                "bottom-right": { right: pad, bottom: pad },
+                "bottom-left": { left: pad, bottom: pad },
+                "top-right": { right: pad, top: pad },
+                "top-left": { left: pad, top: pad }
             };
-            css(root, positions[opts.position] || positions['bottom-right']);
+            css(root, positions[opts.position] || positions["bottom-right"]);
 
-            // botón launcher
-            btn = document.createElement('button');
-            btn.type = 'button';
-            btn.setAttribute('aria-expanded', 'false');
-            btn.setAttribute('aria-label', opts.title || 'Abrir chat');
-            btn.className = 'zj-bubble-button';
-            css(btn, { pointerEvents: 'auto' });
+            // ===== FAB / botón launcher =====
+            btn = document.createElement("button");
+            btn.type = "button";
+            btn.setAttribute("aria-expanded", "false");
+            btn.setAttribute("aria-label", opts.title || "Abrir chat");
+            btn.className = "zj-bubble-button";
+            css(btn, { pointerEvents: "auto" });
 
-            // avatar redondo si viene configurado
-            if (opts.avatar) {
-                btn.innerHTML = ''; // sin texto
-                css(btn, {
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    backgroundImage: `url("${opts.avatar}")`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center center',
-                    backgroundRepeat: 'no-repeat',
-                    border: '0',
-                    boxShadow: '0 6px 18px rgba(0,0,0,.25)',
-                });
-            } else if (!opts.showLabel) {
-                // ícono mínimo si no hay avatar ni label
-                btn.innerHTML = '<span class="zj-bubble-dot"></span>';
+            // Contenido del botón:
+            // — Si showLabel === false => estilo compacto con avatar redondo.
+            // — Si showLabel === true => avatar + título/subtítulo visibles.
+            const avatarWrap = document.createElement("span");
+            avatarWrap.className = "zj-avatar-wrap";
+            const avatarImg = document.createElement("img");
+            avatarImg.className = "zj-avatar";
+            avatarImg.alt = "bot avatar";
+            avatarImg.src = opts.avatar || DEFAULTS.avatar;
+            avatarWrap.appendChild(avatarImg);
+
+            const titleEl = document.createElement("span");
+            titleEl.className = "zj-bubble-title";
+            titleEl.textContent = String(opts.title || "Chat");
+
+            const subEl = document.createElement("span");
+            subEl.className = "zj-bubble-sub";
+            subEl.textContent = String(opts.subtitle || "");
+
+            // Compacto (redondo) o con texto
+            if (opts.showLabel === false) {
+                btn.classList.add("zj-compact"); // CSS oculta title/sub en compacto
             } else {
-                // label clásico
-                btn.innerHTML = `
-          <span class="zj-bubble-title">${opts.title || 'Chat'}</span>
-          <span class="zj-bubble-sub">${opts.subtitle || ''}</span>
-        `;
+                btn.appendChild(titleEl);
+                btn.appendChild(subEl);
             }
-            btn.addEventListener('click', toggle);
+            // En ambos casos mostramos avatar
+            btn.prepend(avatarWrap);
 
-            // contenedor del iframe
-            iframeWrap = document.createElement('div');
-            iframeWrap.className = 'zj-bubble-iframe-wrap';
-            css(iframeWrap, { pointerEvents: 'auto' });
+            btn.addEventListener("click", toggle);
 
-            iframeEl = document.createElement('iframe');
-            iframeEl.className = 'zj-bubble-iframe';
+            // ===== Contenedor del iframe =====
+            iframeWrap = document.createElement("div");
+            iframeWrap.className = "zj-bubble-iframe-wrap";
+            css(iframeWrap, { pointerEvents: "auto" });
+
+            iframeEl = document.createElement("iframe");
+            iframeEl.className = "zj-bubble-iframe";
             iframeEl.src = opts.iframeUrl;
-            iframeEl.setAttribute('title', opts.title || 'Chat');
-            iframeEl.setAttribute('allow', 'microphone; camera; clipboard-write; clipboard-read; autoplay');
-            // si usas micrófono en embed, evita restricciones raras de sandbox:
-            iframeEl.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation');
+            iframeEl.setAttribute("title", opts.title || "Chat");
 
-            iframeEl.addEventListener('load', () => {
-                post({ type: 'host:hello', theme: opts.theme, language: 'es' });
+            // Permisos: sin clipboard-* para evitar warnings, manteniendo mic/cam/autoplay
+            iframeEl.setAttribute("allow", opts.permissions || DEFAULTS.permissions);
+
+            // Sandbox: suficiente para scripts/SPA, formularios, popups y modales
+            iframeEl.setAttribute(
+                "sandbox",
+                "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
+            );
+
+            iframeEl.addEventListener("load", () => {
+                post({ type: "host:hello", theme: opts.theme, language: "es" });
             });
 
             iframeWrap.appendChild(iframeEl);
@@ -102,15 +181,35 @@
             root.appendChild(btn);
             document.body.appendChild(root);
 
+            window.addEventListener("message", handleMessage);
             isMounted = true;
-            if (opts.theme && opts.theme !== 'auto') setTheme(opts.theme);
+
+            if (opts.theme && opts.theme !== "auto") setTheme(opts.theme);
             if (opts.startOpen) open(); else close();
         }
 
-        function unmount() { if (!isMounted) return; try { root?.remove(); } catch { } isMounted = false; opened = false; }
+        function unmount() {
+            if (!isMounted) return;
+            try {
+                window.removeEventListener("message", handleMessage);
+                root?.remove();
+            } catch { /* no-op */ }
+            isMounted = false;
+            opened = false;
+        }
 
-        return { mount, unmount, open, close, toggle, isOpen, onEvent, setTheme, setLanguage, sendAuthToken };
+        return {
+            // ciclo de vida
+            mount, unmount,
+            // visibilidad
+            open, close, toggle, isOpen,
+            // interacciones
+            sendAuthToken, setTheme, setLanguage,
+            // eventos
+            onEvent
+        };
     }
 
     window.ZajunaBubble = { create };
 })();
+

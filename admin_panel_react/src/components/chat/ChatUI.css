@@ -291,3 +291,217 @@
         content: '...';
     }
 }
+/* =========================================================
+   ✨ MEJORAS PROGRESIVAS (NO rompen lo anterior)
+   - Dark mode con .dark en <html>
+   - Composer "sticky" y safe-area móvil
+   - Scrollbar sutil
+   - Accesibilidad (reduced-motion, focus)
+   - Ajustes responsive
+   ========================================================= */
+
+/* Vars suaves (puedes sobre-escribirlas en Tailwind si quieres) */
+:root {
+    --chat-radius: 1.25rem;
+    --chat-shadow: 0 1px 3px rgba(0,0,0,.08);
+    --chat-shadow-lg: 0 6px 20px rgba(0,0,0,.12);
+    --chat-indigo: #4f46e5;
+    --chat-indigo-700: #4338ca;
+    --chat-gray-50: #f9fafb;
+    --chat-gray-100: #f3f4f6;
+    --chat-gray-200: #e5e7eb;
+    --chat-gray-300: #d1d5db;
+    --chat-gray-500: #6b7280;
+    --chat-gray-700: #374151;
+    --chat-gray-800: #1f2937;
+}
+
+/* Dark mode */
+.dark .chat-container {
+    background-color: #0b0f19;
+}
+
+.dark .bubble.bot {
+    background-color: #0f172a;
+    color: #e5e7eb;
+}
+
+.dark .bubble.user {
+    background-color: var(--chat-indigo);
+    color: #fff;
+}
+
+.dark .bubble a {
+    color: #a5b4fc;
+}
+
+    .dark .bubble a:hover {
+        color: #818cf8;
+    }
+
+.dark .chat-card {
+    background: #0f172a;
+    border-color: #1f2233;
+    box-shadow: var(--chat-shadow);
+}
+
+    .dark .chat-card .card-subtitle {
+        color: #9ca3af;
+    }
+
+    .dark .chat-card .card-buttons button {
+        background: #111827;
+        color: #e5e7eb;
+        border-color: #252b3a;
+    }
+
+        .dark .chat-card .card-buttons button:hover {
+            background: #1f2937;
+            border-color: #344055;
+        }
+
+.dark .chat-input-container {
+    background: #0b0f19;
+    border-top-color: #111827;
+}
+
+.dark .chat-input {
+    background: #0f172a;
+    color: #e5e7eb;
+    border-color: #1f2233;
+}
+
+    .dark .chat-input:focus {
+        box-shadow: 0 0 0 2px rgba(165,180,252,.25);
+        border-color: #6366f1;
+    }
+
+.dark .send-button {
+    background: var(--chat-indigo);
+}
+
+    .dark .send-button:hover {
+        background: var(--chat-indigo-700);
+    }
+
+/* Composer sticky + safe-area (móvil) */
+.chat-input-container {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
+    backdrop-filter: saturate(1.1) blur(6px);
+}
+
+/* Altura completa del contenedor en iframes/embeds */
+html, body, #root {
+    height: 100%;
+}
+
+.chat-container {
+    min-height: 100%;
+}
+
+/* Refinos tipográficos para markdown en burbujas */
+.bubble code, .bubble pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.bubble pre {
+    background: #0b1020;
+    color: #e5e7eb;
+    padding: .5rem .75rem;
+    border-radius: .75rem;
+    overflow: auto;
+}
+
+.dark .bubble pre {
+    background: #0b1020;
+}
+
+/* Tablas más legibles en burbuja */
+.bubble table {
+    border-radius: .5rem;
+    overflow: hidden;
+}
+
+.bubble th, .bubble td {
+    vertical-align: top;
+}
+
+.dark .bubble th {
+    background: #111827;
+}
+
+.dark .bubble th, .dark .bubble td {
+    border-color: #1f2937;
+}
+
+/* Imágenes con sombra suave */
+.bubble img {
+    box-shadow: var(--chat-shadow);
+}
+
+/* Quick replies wrap limpio en móvil */
+.quick-reply {
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .bubble {
+        max-width: 85%;
+    }
+
+    .chat-card {
+        max-width: 90%;
+    }
+}
+
+/* Scrollbar sutil (no invasivo) */
+.chat-messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,.12);
+    border-radius: 8px;
+}
+
+.dark .chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.15);
+}
+
+/* Focus visible accesible */
+.send-button:focus-visible, .chat-input:focus-visible, .quick-reply:focus-visible,
+.chat-card .card-buttons button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79,70,229,.35);
+}
+
+.dark .send-button:focus-visible, .dark .chat-input:focus-visible,
+.dark .quick-reply:focus-visible, .dark .chat-card .card-buttons button:focus-visible {
+    box-shadow: 0 0 0 3px rgba(165,180,252,.35);
+}
+
+/* Reduced motion: desactiva animaciones suaves si el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
+    .bubble, .chat-card, .send-button, .loader {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Botón enviar “compacto” en pantallas estrechas */
+@media (max-width: 420px) {
+    .send-button {
+        padding: .5rem .6rem;
+    }
+
+    .chat-input {
+        font-size: .9rem;
+    }
+}
+
+/* (opcional) burbujas con leve profundidad */
+.bubble.bot {
+    box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}

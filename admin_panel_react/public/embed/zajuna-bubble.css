@@ -5,7 +5,16 @@
     font-family: inherit;
 }
 
-/* ====== IFRAME ====== */
+/* === Prioridades / solapes (por delante de la app) === */
+[data-zj-bubble] .zj-bubble-iframe-wrap {
+    z-index: 2147483000;
+}
+
+[data-zj-bubble] .zj-bubble-button {
+    z-index: 2147483001;
+}
+
+/* ====== IFRAME (ventana del chat) ====== */
 [data-zj-bubble] .zj-bubble-iframe-wrap {
     position: fixed;
     right: 88px; /* espacio para el FAB */
@@ -15,9 +24,8 @@
     box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
     border-radius: 14px;
     overflow: hidden;
-    background: #0b1220;
+    background: #0b1220; /* fondo de seguridad mientras carga */
     display: block;
-    z-index: 1;
 }
 
 [data-zj-bubble] .zj-bubble-iframe {
@@ -31,7 +39,7 @@
     display: none !important;
 }
 
-/* ====== FAB (botón) ====== */
+/* ====== FAB (botón lanzador) ====== */
 [data-zj-bubble] .zj-bubble-button {
     position: fixed;
     right: 16px;
@@ -49,7 +57,6 @@
     cursor: pointer;
     box-shadow: 0 8px 22px rgba(0,0,0,.25);
     pointer-events: auto;
-    z-index: 2;
     transition: transform .15s ease, box-shadow .15s ease;
 }
 
@@ -58,7 +65,7 @@
         box-shadow: 0 10px 26px rgba(0,0,0,.3);
     }
 
-    /* compacto = redondo */
+    /* Modo compacto = FAB redondo (cuando showLabel=false) */
     [data-zj-bubble] .zj-bubble-button.zj-compact {
         width: 56px;
         height: 56px;
@@ -67,21 +74,16 @@
         border-radius: 50%;
     }
 
-/* avatar */
+/* Avatar dentro del FAB */
 [data-zj-bubble] .zj-avatar-wrap {
     width: 28px;
     height: 28px;
     border-radius: 9999px;
     overflow: hidden;
-    background: #0b1220;
+    background: #0b1220; /* fallback si no carga la imagen */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-}
-
-[data-zj-bubble] .zj-compact .zj-avatar-wrap {
-    width: 36px;
-    height: 36px;
 }
 
 [data-zj-bubble] .zj-avatar {
@@ -91,30 +93,34 @@
     object-fit: cover;
 }
 
-/* icono */
+/* Cuando es compacto, agranda el avatar y oculta texto */
+[data-zj-bubble] .zj-bubble-button.zj-compact .zj-avatar-wrap {
+    width: 36px;
+    height: 36px;
+}
+
+[data-zj-bubble] .zj-bubble-button.zj-compact .zj-bubble-title,
+[data-zj-bubble] .zj-bubble-button.zj-compact .zj-bubble-sub {
+    display: none;
+}
+
+/* Etiquetas (sólo cuando showLabel=true) */
+[data-zj-bubble] .zj-bubble-title {
+    font-weight: 600;
+}
+
+[data-zj-bubble] .zj-bubble-sub {
+    opacity: .9;
+}
+
+/* Icono genérico opcional */
 [data-zj-bubble] .zj-icon {
     display: inline-flex;
     color: #e7eaf0;
 }
 
-[data-zj-bubble] .zj-compact .zj-bubble-title,
-[data-zj-bubble] .zj-compact .zj-bubble-sub {
-    display: none;
-}
-.zj-bubble-button {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #0ea5e9;
-    color: #fff;
-    border-radius: 9999px;
-    padding: 10px 14px;
-    border: 0;
-    box-shadow: 0 6px 18px rgba(0,0,0,.18);
-}
-
-.zj-bubble-dot {
+/* Puntito fallback cuando no hay avatar ni label (opcional) */
+[data-zj-bubble] .zj-bubble-dot {
     width: 18px;
     height: 18px;
     border-radius: 9999px;
@@ -122,16 +128,43 @@
     opacity: .9;
 }
 
-.zj-bubble-iframe-wrap { /* ya lo tendrás; aquí solo de ejemplo */
-    width: min(420px, 95vw);
-    height: min(70vh, 720px);
-    margin-bottom: 10px;
-    display: block;
+/* === Móvil: el iframe se hace "casi fullscreen" === */
+@media (max-width: 600px) {
+    [data-zj-bubble] .zj-bubble-iframe-wrap {
+        right: 16px;
+        left: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        top: 16px;
+        width: auto;
+        height: auto;
+        border-radius: 12px;
+    }
+
+    [data-zj-bubble] .zj-bubble-button.zj-compact {
+        width: 56px;
+        height: 56px;
+    }
+
+    [data-zj-bubble] .zj-avatar-wrap {
+        width: 36px;
+        height: 36px;
+    }
 }
 
-.zj-bubble-iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    border-radius: 12px;
+/* === Alto contraste si el host pone .high-contrast en <html> === */
+.high-contrast [data-zj-bubble] .zj-bubble-iframe-wrap {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+}
+
+/* === Foco accesible en FAB === */
+[data-zj-bubble] .zj-bubble-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14,165,233,.45), 0 6px 18px rgba(0,0,0,.18);
+}
+
+/* === Reduced motion: quita animaciones si el usuario lo pide === */
+@media (prefers-reduced-motion: reduce) {
+    [data-zj-bubble] .zj-bubble-button {
+        transition: none !important;
+    }
 }

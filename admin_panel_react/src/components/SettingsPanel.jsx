@@ -1,65 +1,38 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    X,
-    Moon,
-    Sun,
-    Languages,
-    Accessibility as AccessibilityIcon,
-    LogOut,
-    DoorClosed,
-    Info,
+    X, Moon, Sun, Languages, Accessibility as AccessibilityIcon, LogOut,
+    DoorClosed, Info,
 } from "lucide-react";
 import IconTooltip from "@/components/ui/IconTooltip";
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { toast } from "react-hot-toast"; // 🆕 toaster
+import { toast } from "react-hot-toast";
 import { STORAGE_KEYS } from "@/lib/constants";
-import { useUserSettings } from "@/hooks/useUserSettings"; // 🆕 hook de carga/guardado
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 const LS_KEY = "app:settings";
 
-/** Lee settings locales sin romper SSR/tests */
 const safeReadLS = () => {
     try {
         if (typeof window === "undefined") return {};
         const raw = window.localStorage.getItem(LS_KEY);
         return raw ? JSON.parse(raw) : {};
-    } catch {
-        return {};
-    }
+    } catch { return {}; }
 };
-
 const writeLS = (obj) => {
-    try {
-        if (typeof window === "undefined") return;
-        window.localStorage.setItem(LS_KEY, JSON.stringify(obj));
-    } catch {
-        /* ignore */
-    }
+    try { if (typeof window !== "undefined") window.localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch { }
 };
 
-/** Token (store/localStorage) para Authorization */
 function getAuthToken() {
-    try {
-        return localStorage.getItem(STORAGE_KEYS.accessToken) || null;
-    } catch {
-        return null;
-    }
+    try { return localStorage.getItem(STORAGE_KEYS.accessToken) || null; } catch { return null; }
 }
-
-/** (Opcional) sincronizar preferencia con backend
- *  - No se ejecuta si no defines VITE_USER_SETTINGS_URL
- *  - Retorna { ok: boolean, status?: number, skipped?: boolean }
- */
 async function maybeSyncToBackend(prefs) {
-    const url = import.meta.env.VITE_USER_SETTINGS_URL || "/api/me/settings"; // ej: /api/me/settings
-    if (!url) return { ok: false, skipped: true }; // ❌ sin endpoint → no hace nada
-
+    const url = import.meta.env.VITE_USER_SETTINGS_URL || "/api/me/settings";
+    if (!url) return { ok: false, skipped: true };
     try {
         const headers = { "Content-Type": "application/json" };
         const token = getAuthToken();
         if (token) headers.Authorization = `Bearer ${token}`;
-
         const res = await fetch(url, {
             method: "PUT",
             headers,
@@ -71,14 +44,10 @@ async function maybeSyncToBackend(prefs) {
                 highContrast: !!prefs.highContrast,
             }),
         });
-
         const data = await res.json().catch(() => null);
         const ok = res.ok && (data?.ok ?? true);
         return { ok, status: res.status };
-    } catch {
-        // Silencioso: no rompemos UX si el backend no está listo
-        return { ok: false };
-    }
+    } catch { return { ok: false }; }
 }
 
 export default function SettingsPanel({
@@ -89,27 +58,20 @@ export default function SettingsPanel({
     onCloseChat,
     onLanguageChange,
 }) {
-    // i18n namespaces: textos del panel en 'config', textos comunes en defaultNS ('common')
     const { t: tConfig } = useTranslation("config");
-    const { t } = useTranslation(); // defaultNS=common (logout, etc.)
+    const { t } = useTranslation();
 
-    // 🆕 Carga inicial desde backend (GET) + estado local
-    const { prefs: serverPrefs, loading: loadingServerPrefs, load: reloadPrefs } = useUserSettings({ autoLoad: true });
+    const { prefs: serverPrefs, loading: loadingServerPrefs, load: reloadPrefs } =
+        useUserSettings({ autoLoad: true });
 
     const initial = useMemo(
-        () => ({
-            language: "es",
-            darkMode: false,
-            fontScale: 1,
-            highContrast: false,
-            ...safeReadLS(),
-        }),
+        () => ({ language: "es", darkMode: false, fontScale: 1, highContrast: false, ...safeReadLS() }),
         []
     );
 
     const [state, setState] = useState(initial);
+    const panelRef = useRef(null);
 
-    // 🆕 Cuando lleguen las prefs del backend, mezclamos con las locales (sin romper overrides del usuario)
     useEffect(() => {
         if (!loadingServerPrefs && serverPrefs) {
             setState((prev) => {
@@ -120,7 +82,6 @@ export default function SettingsPanel({
                     fontScale: Number(serverPrefs.fontScale ?? prev.fontScale),
                     highContrast: !!(serverPrefs.highContrast ?? prev.highContrast),
                 };
-                // Persistimos el merged (para no perder en reload)
                 writeLS(merged);
                 return merged;
             });
@@ -128,7 +89,6 @@ export default function SettingsPanel({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadingServerPrefs, serverPrefs?.language, serverPrefs?.theme, serverPrefs?.fontScale, serverPrefs?.highContrast]);
 
-    // 🆕 debounce para no mostrar múltiples toasts si el usuario mueve el slider
     const toastTimerRef = useRef(null);
     const scheduleToast = () => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -138,14 +98,13 @@ export default function SettingsPanel({
         }, 450);
     };
 
-    // Aplicar tema/escala/contraste + persistir + cambiar idioma + sync backend (opcional)
     useEffect(() => {
         const html = document.documentElement;
 
         // Tema
         html.classList.toggle("dark", !!state.darkMode);
 
-        // Tamaño base de fuente
+        // Tamaño base
         const scale = Number(state.fontScale || 1);
         html.style.fontSize = `${16 * scale}px`;
 
@@ -161,44 +120,40 @@ export default function SettingsPanel({
             onLanguageChange?.(state.language);
         }
 
-        // (Opcional) sincronizar con backend si configuraste la URL
+        // Sync opcional con backend
         (async () => {
             const result = await maybeSyncToBackend(state);
-            // Mostrar toaster sólo si hubo backend y respondió OK
             if (result.ok && !result.skipped) {
                 scheduleToast();
-                // Releer para asegurar consistencia visual si otra pestaña cambió algo
                 reloadPrefs?.();
             }
         })();
 
-        // ▶️ Notificar al host (widget) cambios de preferencias
+        // Notificar al host (widget)
         try {
             const parentOrigin = new URL(document.referrer || window.origin).origin;
             window.parent?.postMessage(
-                {
-                    type: "prefs:update",
-                    prefs: {
-                        theme: state.darkMode ? "dark" : "light",
-                        language: state.language || "es",
-                    },
-                },
+                { type: "prefs:update", prefs: { theme: state.darkMode ? "dark" : "light", language: state.language || "es" } },
                 parentOrigin
             );
-        } catch {
-            /* ignore postMessage errors */
-        }
+        } catch { }
+    }, [state.darkMode, state.fontScale, state.highContrast, state.language]); // eslint-disable-line
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [state.darkMode, state.fontScale, state.highContrast, state.language]);
-
-    // Reaplicar clases en primer montaje (por si recarga)
+    // Reaplicar al montar
     useEffect(() => {
         const saved = safeReadLS();
         const html = document.documentElement;
         if (saved?.darkMode) html.classList.add("dark");
         if (saved?.highContrast) html.classList.add("high-contrast");
     }, []);
+
+    // Escape para cerrar
+    useEffect(() => {
+        if (!open) return;
+        const onEsc = (e) => { if (e.key === "Escape") onClose?.(); };
+        document.addEventListener("keydown", onEsc);
+        return () => document.removeEventListener("keydown", onEsc);
+    }, [open, onClose]);
 
     if (!open) return null;
 
@@ -214,6 +169,7 @@ export default function SettingsPanel({
             />
             {/* panel */}
             <div
+                ref={panelRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="settings-title"
@@ -247,19 +203,13 @@ export default function SettingsPanel({
                             </IconTooltip>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <IconTooltip
-                                label={state.darkMode ? tConfig("light") : tConfig("dark")}
-                                side="top"
-                            >
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <IconTooltip label={state.darkMode ? tConfig("light") : tConfig("dark")} side="top">
                                 <button
                                     type="button"
                                     onClick={() => setState((s) => ({ ...s, darkMode: !s.darkMode }))}
-                                    className={`px-3 py-1.5 text-sm rounded border inline-flex items-center gap-1.5 transition 
-                    ${state.darkMode
-                                            ? "bg-zinc-800 text-white hover:bg-zinc-700"
-                                            : "bg-white text-zinc-900 hover:bg-zinc-50"
-                                        }`}
+                                    className={`px-3 py-1.5 text-sm rounded border inline-flex items-center gap-1.5 transition
+                    ${state.darkMode ? "bg-zinc-800 text-white hover:bg-zinc-700" : "bg-white text-zinc-900 hover:bg-zinc-50"}`}
                                     aria-pressed={state.darkMode}
                                     aria-label={state.darkMode ? tConfig("light") : tConfig("dark")}
                                 >
@@ -279,20 +229,13 @@ export default function SettingsPanel({
                                     max="1.3"
                                     step="0.05"
                                     value={state.fontScale}
-                                    onChange={(e) =>
-                                        setState((s) => ({
-                                            ...s,
-                                            fontScale: Number(e.target.value),
-                                        }))
-                                    }
+                                    onChange={(e) => setState((s) => ({ ...s, fontScale: Number(e.target.value) }))}
                                     aria-valuemin={0.85}
                                     aria-valuemax={1.3}
                                     aria-valuenow={Number(state.fontScale) || 1}
                                     aria-label={tConfig("font_size", "Tamaño de fuente")}
                                 />
-                                <span className="text-xs tabular-nums text-gray-600">
-                                    {fontPct}%
-                                </span>
+                                <span className="text-xs tabular-nums text-gray-600">{fontPct}%</span>
                             </label>
                         </div>
                     </section>
@@ -312,19 +255,14 @@ export default function SettingsPanel({
                             <input
                                 type="checkbox"
                                 checked={!!state.highContrast}
-                                onChange={(e) =>
-                                    setState((s) => ({ ...s, highContrast: e.target.checked }))
-                                }
+                                onChange={(e) => setState((s) => ({ ...s, highContrast: e.target.checked }))}
                                 aria-checked={!!state.highContrast}
                                 aria-label={tConfig("high_contrast", "Alto contraste")}
                             />
                             {tConfig("high_contrast", "Alto contraste")}
                         </label>
                         <p className="text-xs text-zinc-500">
-                            {tConfig(
-                                "high_contrast_hint",
-                                "Puedes ajustar estilos adicionales en tu CSS global con la clase html.high-contrast."
-                            )}
+                            {tConfig("high_contrast_hint", "Puedes ajustar estilos adicionales en tu CSS global con la clase html.high-contrast.")}
                         </p>
                     </section>
 
@@ -345,7 +283,7 @@ export default function SettingsPanel({
                             onChange={(e) => {
                                 const newLang = e.target.value;
                                 setState((s) => ({ ...s, language: newLang }));
-                                i18n.changeLanguage(newLang); // cambio inmediato
+                                i18n.changeLanguage(newLang);
                                 onLanguageChange?.(newLang);
                             }}
                             aria-label={tConfig("language")}
@@ -382,7 +320,6 @@ export default function SettingsPanel({
                                     </button>
                                 </IconTooltip>
                             )}
-                            {/* Indicador de tema actual */}
                             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
                                 {state.highContrast ? (
                                     <span title={tConfig("high_contrast")}>⚡ {tConfig("high_contrast")}</span>
@@ -399,4 +336,3 @@ export default function SettingsPanel({
         </div>
     );
 }
-

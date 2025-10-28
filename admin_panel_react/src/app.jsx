@@ -105,14 +105,14 @@ export default function App() {
     // 🔗 Bubble ref para control externo (open/close/sendToken/setTheme/setLanguage)
     const bubbleRef = useRef(null);
 
-    // ⛔️ NUEVO: detectar si estamos dentro de un iframe (?embed=1 o frame embebido)
+    // ✅ detectar si estamos dentro de un iframe (?embed=1 o frame embebido)
     const params = new URLSearchParams(window.location.search);
-    const isEmbedded = params.get("embed") === "1" || (window.self !== window.top);
+    const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
 
     const handleLoginDemo = async () => {
         // Ejemplo: tras tu flujo de login real, envía el token al iframe
         const token = "FAKE_TOKEN_ZAJUNA"; // sustituye por tu JWT real si aplica
-        bubbleRef.current?.sendToken(token);
+        bubbleRef.current?.sendAuthToken?.(token);
         bubbleRef.current?.open?.();
     };
 
@@ -319,9 +319,9 @@ export default function App() {
                     subtitle="Sustentación"
                     startOpen={false}
                     theme="auto"
-                    showDebug={false}}
-                    avatar="/embed/mi-avatar.png"
-
+                    showDebug={false}
+                    avatar={import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png"}
+                    // Notifica al host cuando el iframe requiera autenticación federada:
                     onAuthNeeded={() => {
                         const url =
                             import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
@@ -329,6 +329,12 @@ export default function App() {
                                 `${window.location.origin}/auth/callback`
                             )}`;
                         window.top.location.href = url;
+                    }}
+                    onTelemetry={(evt) => {
+                        if (import.meta.env.DEV) {
+                            // eslint-disable-next-line no-console
+                            console.log("[telemetry]", evt);
+                        }
                     }}
                 />
             )}
@@ -348,22 +354,30 @@ export default function App() {
                             flexWrap: "wrap",
                         }}
                     >
-                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
-                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
+                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">
+                            Abrir Chat
+                        </button>
+                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">
+                            Cerrar Chat
+                        </button>
                         <button
-                            onClick={async () => {
-                                const token = "FAKE_TOKEN_ZAJUNA";
-                                bubbleRef.current?.sendToken?.(token);
-                                bubbleRef.current?.open?.();
-                            }}
+                            onClick={handleLoginDemo}
                             className="btn"
                         >
                             Login & Enviar Token
                         </button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">Idioma: ES</button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">
+                            Tema: Dark
+                        </button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">
+                            Tema: Light
+                        </button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">
+                            Idioma: EN
+                        </button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">
+                            Idioma: ES
+                        </button>
                     </div>
                 </div>
             )}
