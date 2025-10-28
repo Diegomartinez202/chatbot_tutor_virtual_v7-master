@@ -34,12 +34,11 @@ const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
 const TRANSPORT = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
 
-// 🔗 Endpoint de preferencias de usuario (lectura inicial)
+// Helpers (ÚNICOS - no duplicar)// 🔗 Endpoint de preferencias de usuario (lectura inicial)
 const USER_SETTINGS_URL =
     (import.meta.env.VITE_USER_SETTINGS_URL && String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
     "/api/me/settings";
 
-// Helpers
 function applyPrefsToDocument(prefs, i18n) {
     try {
         const html = document.documentElement;
@@ -64,43 +63,22 @@ function applyPrefsToDocument(prefs, i18n) {
             highContrast: hc,
         };
         localStorage.setItem("app:settings", JSON.stringify(merged));
-    } catch { /* no-op */ }
-}
-function applyPrefsToDocument(prefs, i18n) {
-    try {
-        const html = document.documentElement;
-        const dark = prefs?.theme === "dark";
-        const hc = !!prefs?.highContrast;
-        const scale = Number(prefs?.fontScale || 1);
-
-        html.classList.toggle("dark", dark);
-        html.classList.toggle("high-contrast", hc);
-        html.style.fontSize = `${16 * scale}px`;
-
-        const lang = (prefs?.language === "en" ? "en" : "es");
-        i18n?.changeLanguage?.(lang);
-        // 👇 adicional
-        html.setAttribute("lang", lang);
-
-        const current = JSON.parse(localStorage.getItem("app:settings") || "{}");
-        const merged = { ...current, language: lang, darkMode: dark, fontScale: scale, highContrast: hc };
-        localStorage.setItem("app:settings", JSON.stringify(merged));
-    } catch { /* no-op */ }
+    } catch {
+        /* no-op */
+    }
 }
 
 async function fetchUserSettingsIfPossible(token) {
     try {
-        const headers = { "Accept": "application/json" };
+        const headers = { Accept: "application/json" };
         const init = {
             method: "GET",
             headers,
-            credentials: "include", // cookie HttpOnly si aplica
+            credentials: "include",
         };
-        // Adjuntar Authorization si tenemos token en LS
         if (token) {
             init.headers = { ...headers, Authorization: `Bearer ${token}` };
         }
-
         const rsp = await fetch(USER_SETTINGS_URL, init);
         if (!rsp.ok) return null;
         return await rsp.json();
@@ -108,6 +86,7 @@ async function fetchUserSettingsIfPossible(token) {
         return null;
     }
 }
+
 
 export default function ChatPage({
     forceEmbed = false,
