@@ -10,11 +10,21 @@ export default defineConfig({
         alias: { "@": resolve(__dirname, "src") },
     },
     server: {
-        host: true,
+        host: true,                                // o '0.0.0.0'
         port: Number(process.env.PORT) || 5173,
-        strictPort: false,
+        strictPort: true,                          // ← antes estaba en false
         open: false,
         hmr: { overlay: false },
+
+        // ✅ Permite el host que usas con Nginx
+        allowedHosts: ["app-dev.local", "localhost"],
+
+        // ✅ Cabecera útil si embebes o usas proxy/iframe
+        headers: {
+            "Access-Control-Allow-Origin": "*",
+        },
+
+        // Tu proxy original (se mantiene igual)
         proxy: {
             "/static": { target: "http://backend-dev:8000", changeOrigin: true },
             "/api": { target: "http://backend-dev:8000", changeOrigin: true },
@@ -31,13 +41,14 @@ export default defineConfig({
             },
         },
     },
+
     preview: { host: "localhost", port: 5173, strictPort: false },
     define: { "process.env": {} },
 
-    // 🧪 ✅ Añadido: configuración mínima de Vitest
+    // 🧪 ✅ Vitest (se conserva)
     test: {
         environment: "jsdom",
-        setupFiles: "./src/test/setupTests.ts", // opcional (lo creamos abajo)
+        setupFiles: "./src/test/setupTests.ts", // opcional
         globals: true,
     },
 });

@@ -1,6 +1,5 @@
 # docker-compose.override.nginx-dev.yml
-# Levanta un Nginx de desarrollo que proxya admin, backend y rasa.
-# Actívalo junto al override dev:
+# Usar junto con el override dev:
 #   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml -f docker-compose.override.nginx-dev.yml up -d --build
 
 services:
@@ -11,10 +10,11 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - backend
-      - admin
+      - backend-dev
+      - admin-dev
       - rasa
+    # ⬇️ Importante: carpeta completa, no un default.conf suelto
     volumes:
-      - ./ops/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
       - app-net

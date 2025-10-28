@@ -17,6 +17,16 @@ jobs:
         image: redis:7-alpine
         ports: [ "6379:6379" ]
 
+    env:
+      PROXY_BASE: "http://nginx-dev"
+      BACKEND: "http://backend-dev:8000"
+      RASA: "http://rasa:5005"
+      PYTEST_PATH: "test"
+      PYTEST_HTML: "reports/smoke.html"
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      COMPOSE_PROJECT_NAME: "tutorbot-local"     # <- clave para que la red sea tutorbot-local_app-net
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,10 +34,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create external-like network (if absent)
+        run: |
+          docker network ls --format '{{.Name}}' | grep -q '^tutorbot-local_app-net$' || \
+          docker network create tutorbot-local_app-net
+
       - name: Start stack (dev)
         run: |
-          docker compose up -d mongo redis action-server rasa backend-dev admin-dev nginx-dev
-          docker compose ps
+          docker compose -p tutorbot-local up -d mongo redis action-server rasa backend-dev admin-dev nginx-dev
+          docker compose -p tutorbot-local ps
 
       - name: Wait for services
         run: |
@@ -38,7 +53,7 @@ jobs:
             "http://localhost:5005/status",
             "http://localhost:8080/api/health"
           ]
-          for i in range(60):
+          for i in range(90):
               ok=0
               for u in urls:
                   try:
@@ -55,7 +70,7 @@ jobs:
 
       - name: Run tester (pytest with HTML)
         run: |
-          docker compose -f docker-compose.tester.yml run --rm tester || exit 1
+          docker compose -p tutorbot-local -f docker-compose.tester.yml run --rm tester
 
       - name: Upload smoke report
         uses: actions/upload-artifact@v4

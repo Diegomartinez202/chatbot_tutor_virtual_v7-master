@@ -1,0 +1,12 @@
+pytest
+pytest-timeout
+pytest-html
+pytest-metadata
+pytest-asyncio
+requests
+python-dotenv
+pyjwt
+httpx
+respx
+fastapi
+backend

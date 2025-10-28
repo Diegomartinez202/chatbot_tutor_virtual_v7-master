@@ -1,9 +1,6 @@
 # docker-compose.override.dev.yml
-# Override adicional SOLO para desarrollo avanzado.
 # Actívalo con:
-#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml up -d --build
-# o con perfiles (recomendado):
-#   docker compose --profile build up -d --build
+#   docker compose -f docker-compose.yml -f docker-compose.override.dev.yml --profile build up -d --build
 
 services:
   backend:
@@ -12,11 +9,9 @@ services:
       sh -lc "exec uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
     restart: unless-stopped
     environment:
-      # ✅ CORS/CSP para embed en desarrollo (ajusta según necesidad)
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
       EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
       FRAME_ANCESTORS: "'self' http://localhost:8080 http://localhost:5173"
-      # ✅ Demo y auth de chat
       DEMO_MODE: "true"
       CHAT_REQUIRE_AUTH: "false"
 
@@ -24,19 +19,13 @@ services:
     profiles: ["build"]
     command: >
       sh -lc "npm install && npm run dev -- --host --port 5173"
-      
     restart: unless-stopped
     environment:
-      # Frontend → límites de postMessage (si aplica)
       VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
-      # Hook useUserSettings → endpoint ya expuesto por backend
       VITE_USER_SETTINGS_URL: "/api/me/settings"
 
   rasa:
     profiles: ["build"]
-    # Si prefieres ejecutar la imagen oficial sin rebuild:
-    # command: >
-    #   sh -lc "pip install --no-cache-dir 'sqlalchemy<2.0' && rasa run --enable-api --cors '*' --port 5005"
     environment:
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
@@ -44,29 +33,25 @@ services:
   action-server:
     profiles: ["build"]
 
-  nginx:
+  # ⬇️ Nginx de DEV ve TODA la conf: dev/, common/, etc.
+  nginx-dev:
     profiles: ["build"]
-    volumes:
-      # ✅ corrige el mapeo (sin punto final)
-      - ./ops/nginx/conf.d:/etc/nginx/conf.d
-
-  tester:
-    image: python:3.10
-    container_name: tester
-    profiles: ["build"]
-    working_dir: /app
-    volumes:
-      - ./:/app
+    image: nginx:alpine
+    container_name: nginx-dev
+    restart: unless-stopped
     depends_on:
       - backend-dev
+      - admin-dev
       - rasa
-      - nginx-dev
-    command: >
-      bash -lc "
-        pip install -U pip &&
-        pip install -r tests/requirements-test.txt &&
-        pytest -q tests/test_api.py
-      "
-    networks:
-      - app-net
-
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
+    environment:
+      APP_ENV: development
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/rasa/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

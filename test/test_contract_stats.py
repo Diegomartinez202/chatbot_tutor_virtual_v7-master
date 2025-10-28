@@ -5,7 +5,7 @@ from datetime import datetime, timezone, date as date_cls
 STATS_ENDPOINT = "/api/stats"
 
 def _today_iso():
-    # Fecha UTC "YYYY-MM-DD" (común para agregaciones diarias)
+    # Fecha UTC "YYYY-MM-DD" (comÃºn para agregaciones diarias)
     return datetime.now(timezone.utc).date().isoformat()
 
 def _is_yyyy_mm_dd(s: str) -> bool:
@@ -21,13 +21,13 @@ def _is_yyyy_mm_dd(s: str) -> bool:
 @pytest.fixture()
 def seed_stats():
     """
-    Inserta una métrica diaria mínima para garantizar al menos 1 item en /api/stats
+    Inserta una metrica diaria mÃ­nima para garantizar al menos 1 item en /api/stats
     y la limpia al finalizar.
     """
     try:
         from backend.db.mongodb import get_statistics_collection
     except Exception:
-        pytest.skip("No se pudo importar get_statistics_collection; revisa tu módulo Mongo.")
+        pytest.skip("No se pudo importar get_statistics_collection; revisa tu modulo Mongo.")
     coll = get_statistics_collection()
 
     today = _today_iso()
@@ -37,7 +37,7 @@ def seed_stats():
         "users_active": 3,
         "intents_top": [{"intent": "saludo", "count": 5}, {"intent": "ayuda", "count": 2}],
         "avg_response_time_ms": 123.4,
-        # Campos opcionales que podrías almacenar por día:
+        # Campos opcionales que podrÃ­as almacenar por dÃ­a:
         "channels": {"widget": 7, "api": 0},
         "created_by": "pytest",
         "created_at": datetime.now(timezone.utc),
@@ -69,7 +69,7 @@ def test_stats_contract_shape(client_admin, seed_stats):
 
     data = r.json()
     for k in ("items", "from", "to", "total_days"):
-        assert k in data, f"Falta clave '{k}' en respuesta raíz"
+        assert k in data, f"Falta clave '{k}' en respuesta raÃ­z"
 
     assert isinstance(data["items"], list), "items debe ser lista"
     assert isinstance(data["total_days"], int), "total_days debe ser int"
@@ -81,7 +81,7 @@ def test_stats_contract_shape(client_admin, seed_stats):
         for key in ("date", "messages_count", "users_active", "intents_top", "avg_response_time_ms"):
             assert key in item, f"Falta '{key}' en items[{i}]"
 
-        assert _is_yyyy_mm_dd(item["date"]), f"date inválido en items[{i}]: {item['date']}"
+        assert _is_yyyy_mm_dd(item["date"]), f"date invÃ¡lido en items[{i}]: {item['date']}"
         assert isinstance(item["messages_count"], int), "messages_count debe ser int"
         assert isinstance(item["users_active"], int), "users_active debe ser int"
 
@@ -95,7 +95,7 @@ def test_stats_contract_shape(client_admin, seed_stats):
             assert isinstance(it["count"], int)
 
         # avg_response_time_ms: int o float
-        assert isinstance(item["avg_response_time_ms"], (int, float)), "avg_response_time_ms debe ser numérico"
+        assert isinstance(item["avg_response_time_ms"], (int, float)), "avg_response_time_ms debe ser numerico"
 
 def test_stats_date_filtering(client_admin, seed_stats):
     """
@@ -111,7 +111,7 @@ def test_stats_date_filtering(client_admin, seed_stats):
 
     data = r.json()
     assert "items" in data and isinstance(data["items"], list)
-    # Si hay ítems, al menos uno debe corresponder al día pedido
+    # Si hay Ã­tems, al menos uno debe corresponder al dÃ­a pedido
     if data["items"]:
         assert any((_is_yyyy_mm_dd(it.get("date", "")) and it["date"] == day) for it in data["items"]), \
-            f"No se encontró item con date == {day}"
+            f"No se encontro item con date == {day}"

@@ -42,7 +42,7 @@ def test_without_token(endpoint, rasa_mock):
     mock_call = rasa_mock.post(settings.rasa_url).mock(
         return_value=httpx.Response(
             status_code=200,
-            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesión."}],
+            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesion."}],
         )
     )
 

@@ -1,6 +1,4 @@
-﻿# docker-compose.override.yml
-# Se aplica automáticamente en local con `docker compose up` (no afecta prod).
-
+# docker-compose.ov
 services:
   backend:
     volumes:
@@ -31,6 +29,7 @@ services:
       DEBUG: "true"
     command: >
       bash -c "rasa train --quiet && rasa run --enable-api --port 5005 --cors '*'"
+
 
  
 

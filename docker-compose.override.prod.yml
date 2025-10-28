@@ -1,21 +1,20 @@
 # docker-compose.override.prod.yml
-# Override adicional para producción local con Nginx proxy.
 # Actívalo con:
 #   docker compose -f docker-compose.yml -f docker-compose.override.prod.yml up --build
 
 services:
+  # Solo si necesitas un nginx-dev en un entorno “prod-like” local.
   nginx-dev:
     image: nginx:alpine
     container_name: nginx-dev
     restart: unless-stopped
-    volumes:
-      - ./ops/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "8080:80"
     depends_on:
-      # Ajusta a los nombres reales en tu docker-compose.yml
-      - backend-dev
-      - admin-dev
+      - backend
+      - admin
       - rasa
+    volumes:
+      - ./ops/nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
       - app-net

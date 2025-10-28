@@ -41,7 +41,7 @@ def test_without_token(endpoint, rasa_mock):
     mock_call = rasa_mock.post(settings.rasa_url).mock(
         return_value=httpx.Response(
             status_code=200,
-            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesión."}],
+            json=[{"recipient_id": "anonimo", "text": "Necesitas iniciar sesion."}],
         )
     )
 
@@ -59,7 +59,7 @@ def test_without_token(endpoint, rasa_mock):
 
 @pytest.mark.parametrize("endpoint", ["/chat", "/api/chat"])
 def test_with_token(endpoint, rasa_mock):
-    """Prueba ambos endpoints con token válido."""
+    """Prueba ambos endpoints con token vÃ¡lido."""
     token = _build_token({"sub": "user123", "role": "student"})
     mock_call = rasa_mock.post(settings.rasa_url).mock(
         return_value=httpx.Response(

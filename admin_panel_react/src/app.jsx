@@ -32,7 +32,7 @@ import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
 // Bubble embebido (forwardRef)
-import HostChatBubbleRef from "/embed/HostChatBubbleRef.jsx" 
+import HostChatBubbleRef from '@/embed/HostChatBubbleRef.jsx';
 // Asegura i18n cargado
 import "@/i18n";
 
