@@ -1,0 +1,70 @@
+# Perfiles docker compose
+DEV_PROFILE=build
+PROD_PROFILE=prod
+VANILLA_PROFILE=vanilla
+
+.PHONY: dev dev-up dev-down dev-logs dev-logs-% dev-rebuild \
+        prod prod-up prod-down prod-logs prod-logs-% prod-rebuild \
+        vanilla vanilla-up vanilla-down vanilla-logs vanilla-logs-% \
+        ps status net
+
+# Helpers
+ps:
+	docker ps
+
+status:
+	docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+net:
+	-@docker network inspect tutorbot-local_app-net >/dev/null 2>&1 || docker network create tutorbot-local_app-net
+
+# ===== DEV =====
+dev: dev-up
+dev-up: net
+	docker compose --profile $(DEV_PROFILE) up -d --build
+
+dev-down:
+	docker compose --profile $(DEV_PROFILE) down
+
+dev-logs:
+	docker compose --profile $(DEV_PROFILE) logs -f
+
+# make dev-logs-nginx-dev  (o cualquier servicio)
+dev-logs-%:
+	docker compose logs -f $*
+
+dev-rebuild:
+	docker compose --profile $(DEV_PROFILE) build --no-cache
+	docker compose --profile $(DEV_PROFILE) up -d
+
+# ===== PROD =====
+prod: prod-up
+prod-up: net
+	docker compose --profile $(PROD_PROFILE) up -d --build
+
+prod-down:
+	docker compose --profile $(PROD_PROFILE) down
+
+prod-logs:
+	docker compose --profile $(PROD_PROFILE) logs -f
+
+prod-logs-%:
+	docker compose logs -f $*
+
+prod-rebuild:
+	docker compose --profile $(PROD_PROFILE) build --no-cache
+	docker compose --profile $(PROD_PROFILE) up -d
+
+# ===== VANILLA =====
+vanilla: vanilla-up
+vanilla-up: net
+	docker compose --profile $(VANILLA_PROFILE) up -d --build
+
+vanilla-down:
+	docker compose --profile $(VANILLA_PROFILE) down
+
+vanilla-logs:
+	docker compose --profile $(VANILLA_PROFILE) logs -f
+
+vanilla-logs-%:
+	docker compose logs -f $*
