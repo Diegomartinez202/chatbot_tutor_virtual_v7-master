@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 5173 --strictPort",
+    "preview:4173": "vite preview --port 4173 --strictPort",
+    "build:prod": "vite build && cd .. && docker compose exec nginx-prod nginx -t && docker compose restart nginx-prod",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run",

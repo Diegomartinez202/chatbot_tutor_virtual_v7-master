@@ -124,6 +124,11 @@ class Settings(BaseSettings):
     favicon_path: str = Field(default="backend/static/favicon.ico", alias="FAVICON_PATH")
     frontend_site_url: str = Field(default="http://localhost:5173", alias="FRONTEND_SITE_URL")
 
+    allow_registration: bool = Field(default=True, env="ALLOW_REGISTRATION")
+    chat_require_auth: bool = Field(default=False, env="CHAT_REQUIRE_AUTH")
+    allowed_origins: str = Field(default="*", env="ALLOWED_ORIGINS")
+    frame_ancestors: str = Field(default="*", env="FRAME_ANCESTORS")
+    cors_allow_credentials: bool = Field(default=True, env="CORS_ALLOW_CREDENTIALS")
     # ☁️ S3
     aws_access_key_id: Optional[str] = Field(None, alias="AWS_ACCESS_KEY_ID")
     aws_secret_access_key: Optional[str] = Field(None, alias="AWS_SECRET_ACCESS_KEY")
@@ -163,7 +168,7 @@ class Settings(BaseSettings):
     helpdesk_token: Optional[str] = Field(None, alias="HELPDESK_TOKEN")
 
     # ─────────────────────────────────────────────────────────────
-    # ✅ Campos "compat" para NO romper por variables extra en .env/CI
+    # ✅ Campos de compatibilidad completos (reinsertados)
     # ─────────────────────────────────────────────────────────────
 
     # Mongo compat
@@ -197,10 +202,41 @@ class Settings(BaseSettings):
     node_env: Optional[str] = Field(default=None, alias="NODE_ENV")
     environment_compat: Optional[str] = Field(default=None, alias="ENVIRONMENT")
 
-    # ─────────────────────────────────────────────────────────────
-    # Normalizadores CSV/JSON → lista
-    # ─────────────────────────────────────────────────────────────
-    @field_validator("allowed_origins", "frame_ancestors", mode="before")
+    # ───────────────────────────────
+    # 🧩 NUEVO: Validador robusto FRAME_ANCESTORS
+    # ───────────────────────────────
+    @field_validator("frame_ancestors", mode="before")
+    @classmethod
+    def _coerce_frame_ancestors(cls, v):
+        if v is None:
+            return ["'self'"]
+        if isinstance(v, list):
+            return [cls._normalize_item(x) for x in v if str(x).strip()]
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return ["'self'"]
+            if s.startswith("["):
+                try:
+                    arr = json.loads(s)
+                    return [cls._normalize_item(x) for x in arr if str(x).strip()]
+                except Exception:
+                    pass
+            arr = [x.strip() for x in s.split(",")]
+            return [cls._normalize_item(x) for x in arr if x]
+        return v
+
+    @staticmethod
+    def _normalize_item(x: str) -> str:
+        s = str(x).strip()
+        if s.lower() == "self":
+            return "'self'"
+        return s
+
+    # ───────────────────────────────
+    # Validadores auxiliares originales
+    # ───────────────────────────────
+    @field_validator("allowed_origins", "embed_allowed_origins", mode="before")
     @classmethod
     def _csv_or_json(cls, v):
         if v is None:
@@ -221,28 +257,6 @@ class Settings(BaseSettings):
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
 
-    @field_validator("embed_allowed_origins", mode="before")
-    @classmethod
-    def _csv_or_json_embed(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            s = v.strip()
-            if not s:
-                return []
-            if s.startswith("["):
-                try:
-                    parsed = json.loads(s)
-                    if isinstance(parsed, list):
-                        return [str(x).strip() for x in parsed if x and str(x).strip()]
-                except Exception:
-                    pass
-            return [x.strip() for x in s.split(",") if x.strip()]
-        return v
-
-    # Normalizador de APP_ENV
     @field_validator("app_env", mode="before")
     @classmethod
     def _coerce_app_env(cls, v: Any) -> str:
@@ -261,12 +275,8 @@ class Settings(BaseSettings):
         }
         return mapping.get(s, s)
 
-    # ─────────────────────────────────────────────────────────────
-    # Validaciones condicionales
-    # ─────────────────────────────────────────────────────────────
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
-        # Redis requerido si backend de rate limit es redis
         if (
             self.rate_limit_enabled
             and self.rate_limit_backend == "redis"
@@ -277,25 +287,21 @@ class Settings(BaseSettings):
                 "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
             )
 
-        # JWT requisitos según algoritmo
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
             if not (
                 (self.jwt_public_key and self.jwt_public_key.strip())
                 or (self.jwt_jwks_url and self.jwt_jwks_url.strip())
             ):
-                raise ValueError("Para RS*, define JWT_PUBLIC_KEY (PEM) o JWT_JWKS_URL (JWKS remoto).")
+                raise ValueError("Para RS*, define JWT_PUBLIC_KEY o JWT_JWKS_URL.")
         elif alg.startswith("HS"):
             if not (self.secret_key and self.secret_key.strip()):
-                raise ValueError("Se requiere SECRET_KEY cuando JWT_ALGORITHM es HS* (p.ej., HS256)")
+                raise ValueError("Se requiere SECRET_KEY cuando JWT_ALGORITHM es HS*")
         else:
-            raise ValueError(f"JWT_ALGORITHM no soportado: {self.jwt_algorithm!r}. Usa HS* o RS*.")
-
+            raise ValueError(f"JWT_ALGORITHM no soportado: {self.jwt_algorithm!r}")
         return self
 
-    # ─────────────────────────────────────────────────────────────
-    # Helpers / Compat
-    # ─────────────────────────────────────────────────────────────
+    # Helpers originales
     @property
     def s3_enabled(self) -> bool:
         return bool(
@@ -304,14 +310,10 @@ class Settings(BaseSettings):
 
     @property
     def rasa_rest_base(self) -> str:
-        # Alias práctico; muchos servicios leen settings.rasa_url
         return self.rasa_url
 
     @property
     def allowed_origins_list(self) -> List[str]:
-        """
-        Unión de ALLOWED_ORIGINS + EMBED_ALLOWED_ORIGINS para CORS.
-        """
         merged, seen = [], set()
         for lst in (self.allowed_origins or []), (self.embed_allowed_origins or []):
             for o in lst:
@@ -322,9 +324,6 @@ class Settings(BaseSettings):
         return merged
 
     def build_csp(self) -> str:
-        """
-        CSP con frame-ancestors unificado: FRAME_ANCESTORS + EMBED_ALLOWED_ORIGINS.
-        """
         merged_fa, seen = [], set()
         for lst in (self.frame_ancestors or []), (self.embed_allowed_origins or []):
             for o in lst:
@@ -354,20 +353,16 @@ class Settings(BaseSettings):
             return str(self.redis_url).strip()
         return "memory://"
 
-    # Compat con código legacy
     @property
     def jwt_secret(self) -> Optional[str]:
-        # Código legacy usa settings.jwt_secret → ahora es secret_key
         return self.secret_key
 
     @property
     def jwt_expiration_minutes(self) -> int:
-        # Código legacy usa settings.jwt_expiration_minutes → ahora es access_token_expire_minutes
         return self.access_token_expire_minutes
 
     @property
     def jwt_refresh_cookie_name(self) -> str:
-        # Por si en algún módulo antiguo se usa este nombre
         return self.refresh_cookie_name
 
 

@@ -17,9 +17,10 @@
     <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- CSS base servido por el backend -->
-    <link rel="stylesheet" href="/static/css/index.css" />
-
+    <!-- ✅ Quita /static/css/index.css (no se usa con Vite) -->
+    <!-- ✅ Deja solo CSS del widget si lo necesitas -->
+    <link rel="stylesheet" href="/embed/widget.css" />
+    <link rel="stylesheet" href="/embed/zajuna-bubble.css" />
 
     <!-- Favicons / Manifest -->
     <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
@@ -39,7 +40,7 @@
     <meta property="og:image:height" content="512" />
     <meta property="og:url" content="/" id="og-url" />
 
-    <!-- Prefetch (evita warning de preload no usado) -->
+    <!-- Prefetch -->
     <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
     <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
 
@@ -53,7 +54,7 @@
         // Transporte de chat (debug)
         window.__CHAT_TRANSPORT__ = import.meta.env.VITE_CHAT_TRANSPORT || "rest";
 
-        // Reescribe href/content de assets usando la base de Vite
+        // Reescribe href/content de assets según base de Vite
         const BASE = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "/");
         const setBaseAttr = (selector, attr) => {
             document.querySelectorAll(selector).forEach((el) => {
@@ -67,7 +68,7 @@
         setBaseAttr("link[data-base-href]", "href");
         setBaseAttr("meta[data-base-content]", "content");
 
-        // Preloads condicionales (solo /chat o ?preloadBot=1)
+        // Preloads condicionales
         const shouldPreloadBot =
             location.pathname.startsWith("/chat") ||
             new URLSearchParams(location.search).get("preloadBot") === "1";
@@ -95,11 +96,10 @@
             ensurePreload(loading);
         }
     </script>
-    <link rel="stylesheet" href="/embed/zajuna-bubble.css" />
 </head>
 <body>
     <div id="root"></div>
-    <!-- Vite reemplaza esto en build; en dev sirve /src/main.jsx -->
+    <!-- Vite reemplaza esto en build -->
     <script type="module" src="/src/main.jsx"></script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
 </body>

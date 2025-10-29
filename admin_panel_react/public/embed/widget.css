@@ -1,12 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 /* =========================================================
    🎨 ESTILOS CORPORATIVOS UNIFICADOS - PANEL + CHATBOT
    ========================================================= */
 
-/* --- Paleta y tipografía base (modo claro por defecto) --- */
+/* --- Paleta y tipografía base --- */
 :root {
     --color-primary: #004a77;
     --color-primary-light: #0d6efd;
@@ -20,58 +19,21 @@
     --font: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-/* --- Variables para modo oscuro (se aplican con la clase html.dark) --- */
-html.dark {
-    --color-bg: #111827; /* bg-gray-900 */
-    --color-surface: #1f2937; /* bg-gray-800 */
-    --color-text: #f5f5f5; /* text-gray-100 */
-    --color-muted: #94a3b8; /* textos secundarios */
-    --color-border: #374151; /* borders sutiles */
-    --color-primary: #4f46e5; /* indigo-600 */
-    --color-primary-light: #6366f1; /* indigo-500 */
-}
-
 /* --- Base general --- */
-html {
-    background-color: #f9fafb; /* fondo claro */
-    color: #111827; /* texto oscuro */
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-    html.dark {
-        background-color: #0f172a; /* fondo oscuro */
-        color: #f1f5f9; /* texto claro */
-    }
-
-    /* Alto contraste opcional (con clase html.high-contrast) */
-    html.high-contrast {
-        filter: contrast(1.25);
-    }
-
-    html.dark.high-contrast {
-        filter: contrast(1.4);
-    }
-
 body {
     margin: 0;
-    padding: 0;
-    line-height: 1.5;
     font-family: var(--font);
     background-color: var(--color-bg);
     color: var(--color-text);
 }
 
-/* 🌗 Transición suave entre temas */
-html, body {
-    transition: background-color 0.4s ease, color 0.4s ease, filter 0.3s ease;
-}
 /* =========================================================
    🧭 COMPONENTES GENERALES DEL PANEL
    ========================================================= */
 
 header {
     background-color: var(--color-primary);
-    color: #fff;
+    color: white;
     padding: 1rem;
     text-align: center;
     box-shadow: var(--shadow);
@@ -90,13 +52,13 @@ header {
 /* --- Botones --- */
 button {
     background-color: var(--color-primary);
-    color: #fff;
+    color: white;
     border: none;
     border-radius: 8px;
     padding: 0.6rem 1rem;
     cursor: pointer;
     font-weight: 500;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s;
+    transition: background 0.3s, transform 0.2s;
 }
 
     button:hover {
@@ -117,7 +79,7 @@ textarea {
     margin: 0.5rem 0 1rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    background-color: #fff;
+    background-color: white;
     font-size: 0.95rem;
     transition: border-color 0.3s;
 }
@@ -128,10 +90,10 @@ textarea {
         outline: none;
     }
 
-/* --- Tooltip (Radix/otros) --- */
+/* --- Tooltip (para componentes Radix UI, etc.) --- */
 .tooltip {
     background-color: #333;
-    color: #fff;
+    color: white;
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
@@ -140,6 +102,7 @@ textarea {
     animation: fadeIn 0.2s ease-in-out;
 }
 
+/* --- Animación --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -196,7 +159,7 @@ textarea {
 /* --- Header --- */
 .chatbot-header {
     background: linear-gradient(90deg, var(--color-primary) 0%, #0a5e97 100%);
-    color: #fff;
+    color: white;
     padding: 0.8rem 1rem;
     display: flex;
     justify-content: space-between;
@@ -215,7 +178,7 @@ textarea {
     .chatbot-header button {
         background: transparent;
         border: none;
-        color: #fff;
+        color: white;
         cursor: pointer;
         padding: 0.4rem;
         border-radius: 50%;
@@ -258,7 +221,7 @@ textarea {
     .message.user {
         align-self: flex-end;
         background-color: var(--color-primary);
-        color: #fff;
+        color: white;
         border-top-right-radius: 4px;
     }
 
@@ -268,7 +231,7 @@ textarea {
     align-items: center;
     padding: 0.75rem;
     border-top: 1px solid var(--color-border);
-    background: #fff;
+    background: white;
 }
 
     .chatbot-input input {
@@ -288,7 +251,7 @@ textarea {
     .chatbot-input button {
         margin-left: 0.6rem;
         background: var(--color-primary);
-        color: #fff;
+        color: white;
         border: none;
         border-radius: var(--radius);
         padding: 0.6rem 1rem;
@@ -318,156 +281,98 @@ textarea {
     border-radius: 6px;
 }
 
+/* --- Accesibilidad y modo alto contraste --- */
+html.high-contrast * {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.high-contrast .btn {
+    border-width: 2px;
+}
+
+:root.dark {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-text: #e2e8f0;
+    --color-border: #334155;
+}
 /* =========================================================
-   🌙 MODO OSCURO - APLICA SOBRE LAS VARIABLES
+   🌙 MODO OSCURO CORPORATIVO - PANEL + CHATBOT
    ========================================================= */
 
-/* (No se necesitan reglas duplicadas: los componentes usan variables) */
-
-/* =========================================================
-   ♿ MODO ALTO CONTRASTE
-   ========================================================= */
-
-html.high-contrast {
-    background-color: #000 !important;
-    color: #fff !important;
+/* --- Variables para modo oscuro --- */
+:root.dark {
+    --color-bg: #111827; /* bg-gray-900 */
+    --color-surface: #1f2937; /* bg-gray-800 */
+    --color-text: #f5f5f5; /* text-gray-100 */
+    --color-muted: #94a3b8; /* textos secundarios */
+    --color-border: #374151; /* borders sutiles */
+    --color-primary: #4f46e5; /* Indigo 600 */
+    --color-primary-light: #6366f1; /* Indigo 500 */
 }
 
-    html.high-contrast h1,
-    html.high-contrast h2,
-    html.high-contrast h3,
-    html.high-contrast p,
-    html.high-contrast span,
-    html.high-contrast label {
-        color: #fff !important;
+/* --- Base general modo oscuro --- */
+body.dark {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+    /* --- Superficies y contenedores --- */
+    body.dark .container,
+    body.dark .chatbot-body,
+    body.dark .chatbot-input {
+        background-color: var(--color-surface);
+        border-color: var(--color-border);
+        color: var(--color-text);
     }
 
-    html.high-contrast button,
-    html.high-contrast a {
-        background-color: #fff !important;
-        color: #000 !important;
-        border: 2px solid #fff !important;
+        /* --- Botones --- */
+        body.dark button,
+        body.dark .chatbot-input button {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+            body.dark button:hover,
+            body.dark .chatbot-input button:hover {
+                background-color: var(--color-primary-light);
+            }
+
+    /* --- Cabecera chatbot degradado --- */
+    body.dark .chatbot-header {
+        background: linear-gradient(90deg, #4338ca 0%, #7c3aed 100%);
+        color: var(--color-text);
+        border-bottom: 1px solid #312e81;
     }
 
-    html.high-contrast input,
-    html.high-contrast select,
-    html.high-contrast textarea {
-        background-color: #000 !important;
-        color: #fff !important;
-        border: 2px solid #fff !important;
+    /* --- Mensajes --- */
+    body.dark .message.bot {
+        background-color: #374151; /* gris oscuro */
+        color: var(--color-text);
     }
 
-    html.high-contrast .tooltip,
-    html.high-contrast .card,
-    html.high-contrast .panel {
-        background-color: #111 !important;
-        color: #fff !important;
-        border: 1px solid #fff !important;
+    body.dark .message.user {
+        background-color: var(--color-primary);
+        color: white;
     }
 
-/* =========================================================
-   🔧 CLASES DE UTILIDAD PERSONALIZADAS
-   ========================================================= */
+    /* --- Inputs --- */
+    body.dark .chatbot-input input,
+    body.dark input,
+    body.dark textarea {
+        background-color: #1f2937;
+        color: var(--color-text);
+        border-color: var(--color-border);
+    }
 
-.card,
-.panel {
-    background-color: #ffffff;
-    color: #111827;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
+        body.dark .chatbot-input input:focus,
+        body.dark input:focus,
+        body.dark textarea:focus {
+            border-color: var(--color-primary-light);
+        }
 
-html.dark .card,
-html.dark .panel {
-    background-color: #18181b;
-    color: #f4f4f5;
-}
-
-/* Colores de alto contraste para botones de header */
-html.high-contrast .header-actions button {
-    background-color: #fff !important;
-    color: #000 !important;
-    border: 2px solid #fff !important;
-}
-
-/* Header actions */
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* separación entre botones */
-    justify-content: flex-end;
-}
-
-/* Alto contraste (opcional) */
-html.high-contrast .header-actions button {
-    background-color: #fff !important;
-    color: #000 !important;
-    border: 2px solid #fff !important;
-}
-
-/* Si existe el id puesto en la versión de arriba */
-#host-bubble-debug {
-    display: none !important;
-}
-
-/* Alternativa sin id: oculta por texto (menos limpio) */
-/* div:has(> div > div:contains("HostChatBubbleRef (Debug)")) { display:none !important; } */
-/* (esta alternativa depende del soporte del navegador y NO la recomiendo) */
-/* admin_panel_react/public/embed/zajuna-bubble.css */
-
-/* botón base (ya lo tenías) … */
-
-/* 👇 Oculta la etiqueta cuando showLabel = false */
-.zj-bubble-button[data-showlabel="0"] .zj-bubble-title,
-.zj-bubble-button[data-showlabel="0"] .zj-bubble-sub {
-    display: none !important;
-}
-
-/* (opcional) separa un poco el widget del borde inferior para no tapar inputs */
-.zj-bubble-iframe-wrap {
-    margin-bottom: 4px;
-}
-.zj-bubble-button {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #0ea5e9;
-    color: #fff;
-    border-radius: 9999px;
-    padding: 10px 14px;
-    border: 0;
-    box-shadow: 0 6px 18px rgba(0,0,0,.18);
-}
-
-.zj-bubble-dot {
-    width: 18px;
-    height: 18px;
-    border-radius: 9999px;
-    background: #fff;
-    opacity: .9;
-}
-
-.zj-bubble-iframe-wrap { /* ya lo tendrás; aquí solo de ejemplo */
-    width: min(420px, 95vw);
-    height: min(70vh, 720px);
-    margin-bottom: 10px;
-    display: block;
-}
-
-.zj-bubble-iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    border-radius: 12px;
-}
-html.high-contrast {
-    --ring: #000;
-    --bg: #fff;
-    --fg: #000;
-    filter: contrast(1.1) saturate(1.05);
-}
-
-    html.high-contrast .focus-visible\:ring-2:focus-visible {
-        box-shadow: 0 0 0 3px var(--ring);
+    /* --- Scrollbar personalizada --- */
+    body.dark .chatbot-body::-webkit-scrollbar-thumb {
+        background-color: var(--color-border);
     }

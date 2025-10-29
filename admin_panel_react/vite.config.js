@@ -5,26 +5,27 @@ import { resolve } from "node:path";
 
 export default defineConfig({
     plugins: [react()],
-    base: "./",
+    base: "./", // ✅ rutas relativas correctas en build (sirve bien desde Nginx)
     resolve: {
         alias: { "@": resolve(__dirname, "src") },
+        dedupe: ["react", "react-dom"], // ✅ evita el doble bundle o "Invalid hook call"
+    },
+    optimizeDeps: {
+        include: ["react", "react-dom"], // ✅ fuerza prebundle único de React
     },
     server: {
-        host: true,                                // o '0.0.0.0'
+        host: true, // ✅ accesible desde red local
         port: Number(process.env.PORT) || 5173,
-        strictPort: true,                          // ← antes estaba en false
+        strictPort: true,
         open: false,
         hmr: { overlay: false },
 
-        // ✅ Permite el host que usas con Nginx
-        allowedHosts: ["app-dev.local", "localhost"],
+        allowedHosts: ["localhost", "app-dev.local"],
 
-        // ✅ Cabecera útil si embebes o usas proxy/iframe
         headers: {
             "Access-Control-Allow-Origin": "*",
         },
 
-        // Tu proxy original (se mantiene igual)
         proxy: {
             "/static": { target: "http://backend-dev:8000", changeOrigin: true },
             "/api": { target: "http://backend-dev:8000", changeOrigin: true },
@@ -42,13 +43,20 @@ export default defineConfig({
         },
     },
 
-    preview: { host: "localhost", port: 5173, strictPort: false },
-    define: { "process.env": {} },
+    preview: {
+        host: "localhost",
+        port: 5173,
+        strictPort: false,
+    },
 
-    // 🧪 ✅ Vitest (se conserva)
+    define: {
+        "process.env": {}, // ✅ evita errores al usar process.env en React
+    },
+
     test: {
         environment: "jsdom",
         setupFiles: "./src/test/setupTests.ts", // opcional
         globals: true,
     },
 });
+

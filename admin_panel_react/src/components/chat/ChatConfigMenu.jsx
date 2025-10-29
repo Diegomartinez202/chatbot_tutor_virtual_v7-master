@@ -1,4 +1,3 @@
-// src/components/chat/ChatConfigMenu.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,7 +11,7 @@ const THEME_KEY = "chat.theme";
 const LANG_KEY = "chat.lang";
 const CONTRAST_KEY = "chat.high_contrast";
 const APP_SETTINGS_KEY = "app:settings";
-const { t } = useTranslation("config");
+
 function applyTheme(theme) {
     const html = document.documentElement;
     html.classList.toggle("dark", theme === "dark");
@@ -40,7 +39,7 @@ export default function ChatConfigMenu({ className = "" }) {
     const menuRef = useRef(null);
 
     const { logout } = useAuth();
-    const { t, i18n } = useTranslation();
+    const { t, i18n } = useTranslation("config");   // <-- el hook va DENTRO del componente
     const navigate = useNavigate();
 
     const zajunaSSO = useMemo(
@@ -109,9 +108,7 @@ export default function ChatConfigMenu({ className = "" }) {
         setHighContrast(next);
         safeSetLS(CONTRAST_KEY, next ? "1" : "0");
         applyHighContrast(next);
-        // opcional: guarda en app settings
         mergeAppSettings({ highContrast: next });
-        // no hace falta enviar al host, pero si quieres sincronizar:
         window.parent?.postMessage({ type: "prefs:update", prefs: { highContrast: next } }, "*");
     };
 
@@ -135,10 +132,10 @@ export default function ChatConfigMenu({ className = "" }) {
                 className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50"
                 aria-haspopup="menu"
                 aria-expanded={open ? "true" : "false"}
-                aria-label={t("config.title", "Configuración")}
+                aria-label={t("title", "Configuración")}
             >
                 <Settings className="w-4 h-4" />
-                {t("config.title", "Configuración")}
+                {t("title", "Configuración")}
             </button>
 
             {open && (
@@ -149,14 +146,14 @@ export default function ChatConfigMenu({ className = "" }) {
                 >
                     <div className="mb-3">
                         <p className="text-xs font-semibold text-gray-500 mb-2">
-                            {t("config.accessibility", "Accesibilidad")}
+                            {t("accessibility", "Accesibilidad")}
                         </p>
 
                         {/* idioma */}
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                                 <Languages className="w-4 h-4 text-gray-600" />
-                                <span className="text-sm">{t("config.language", "Idioma")}</span>
+                                <span className="text-sm">{t("language", "Idioma")}</span>
                             </div>
                             <select
                                 value={lang}
@@ -172,14 +169,14 @@ export default function ChatConfigMenu({ className = "" }) {
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                                 {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                                <span className="text-sm">{t("config.theme", "Apariencia")}</span>
+                                <span className="text-sm">{t("theme", "Apariencia")}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={toggleTheme}
                                 className="text-sm border rounded px-2 py-1 bg-white hover:bg-gray-50"
                             >
-                                {theme === "dark" ? t("config.dark", "Oscuro") : t("config.light", "Claro")}
+                                {theme === "dark" ? t("dark", "Oscuro") : t("light", "Claro")}
                             </button>
                         </div>
 
@@ -187,13 +184,12 @@ export default function ChatConfigMenu({ className = "" }) {
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Contrast className="w-4 h-4" />
-                                <span className="text-sm">{t("config.high_contrast", "Alto contraste")}</span>
+                                <span className="text-sm">{t("high_contrast", "Alto contraste")}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={toggleContrast}
-                                className={`text-sm border rounded px-2 py-1 ${highContrast ? "bg-gray-900 text-white" : "bg-white"
-                                    } hover:bg-gray-50`}
+                                className={`text-sm border rounded px-2 py-1 ${highContrast ? "bg-gray-900 text-white" : "bg-white"} hover:bg-gray-50`}
                             >
                                 {highContrast ? t("common.on", "Activado") : t("common.off", "Desactivado")}
                             </button>
@@ -205,20 +201,20 @@ export default function ChatConfigMenu({ className = "" }) {
                     {/* panel admin */}
                     <div className="mb-3">
                         <p className="text-xs font-semibold text-gray-500 mb-2">
-                            {t("config.adminPanel", "Panel administrativo")}
+                            {t("adminPanel", "Panel administrativo")}
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <button
                                 onClick={() => { navigate("/admin/register"); setOpen(false); }}
                                 className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm"
                             >
-                                <UserPlus className="w-4 h-4" /> {t("config.registerPanel", "Registrarme (panel)")}
+                                <UserPlus className="w-4 h-4" /> {t("registerPanel", "Registrarme (panel)")}
                             </button>
                             <button
                                 onClick={() => { navigate("/admin/login"); setOpen(false); }}
                                 className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm"
                             >
-                                <Shield className="w-4 h-4" /> {t("config.loginPanel", "Iniciar sesión (panel)")}
+                                <Shield className="w-4 h-4" /> {t("loginPanel", "Iniciar sesión (panel)")}
                             </button>
                         </div>
                     </div>
@@ -227,13 +223,13 @@ export default function ChatConfigMenu({ className = "" }) {
                     {zajunaSSO && (
                         <>
                             <hr className="my-2" />
-                            <p className="text-xs font-semibold text-gray-500 mb-2">{t("config.zajuna", "Zajuna")}</p>
+                            <p className="text-xs font-semibold text-gray-500 mb-2">{t("zajuna", "Zajuna")}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <button onClick={goZajuna} className="flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm">
-                                    <LogIn className="w-4 h-4" /> {t("config.loginZajuna", "Ingresar con Zajuna")}
+                                    <LogIn className="w-4 h-4" /> {t("loginZajuna", "Ingresar con Zajuna")}
                                 </button>
                                 <button onClick={goZajuna} className="flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm">
-                                    <UserPlus className="w-4 h-4" /> {t("config.registerZajuna", "Registrarse con Zajuna")}
+                                    <UserPlus className="w-4 h-4" /> {t("registerZajuna", "Registrarse con Zajuna")}
                                 </button>
                             </div>
                         </>
@@ -245,7 +241,7 @@ export default function ChatConfigMenu({ className = "" }) {
                             onClick={handleLogout}
                             className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-50 text-sm"
                         >
-                            <LogOut className="w-4 h-4" /> {t("config.logout", "Cerrar sesión")}
+                            <LogOut className="w-4 h-4" /> {t("logout", "Cerrar sesión")}
                         </button>
                     </div>
                 </div>
