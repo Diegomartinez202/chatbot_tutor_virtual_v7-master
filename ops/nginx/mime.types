@@ -1,0 +1,42 @@
+# ops/nginx/mime.types
+types {
+  text/html                             html htm shtml;
+  text/css                              css;
+  text/xml                              xml;
+  image/gif                             gif;
+  image/jpeg                            jpeg jpg;
+  application/javascript                js;
+  application/atom+xml                  atom;
+  application/rss+xml                   rss;
+
+  text/mathml                           mml;
+  text/plain                            txt;
+  text/vnd.sun.j2me.app-descriptor      jad;
+  text/vnd.wap.wml                      wml;
+  text/x-component                      htc;
+
+  image/png                             png;
+  image/svg+xml                         svg svgz;
+  image/tiff                            tif tiff;
+  image/vnd.wap.wbmp                    wbmp;
+  image/webp                            webp;
+  image/x-icon                          ico;
+  image/x-jng                           jng;
+  image/bmp                             bmp;
+
+  font/ttf                              ttf;
+  font/otf                              otf;
+  font/woff                             woff;
+  font/woff2                            woff2;
+
+  application/json                      json map;
+  application/xml                       xml;
+  application/xhtml+xml                 xhtml;
+  application/x-font-ttf                ttf;
+  application/vnd.ms-fontobject         eot;
+  application/pdf                       pdf;
+  application/x-shockwave-flash         swf;
+  application/java-archive              jar war ear;
+  application/zip                       zip;
+  application/x-gzip                    gz;
+}

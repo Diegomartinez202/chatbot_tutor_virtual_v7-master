@@ -11,10 +11,12 @@
         zIndex: 2147483000,
         showLabel: false,         // false => FAB redondo
         padding: 20,
+        // 🖼️ avatar por defecto (puedes pasarlo desde React con options.avatar)
         avatar: "/bot-avatar.png",
-        // 🔧 Permisos modernizados (evita warnings y permite mic/cámara si las usas)
-        permissions: "microphone; camera; autoplay; clipboard-write; fullscreen"
+        // Permisos modernos para el iframe
+        permissions: "microphone; camera; autoplay; clipboard-write; fullscreen",
     };
+
     function css(el, styles) { Object.assign(el.style, styles); }
 
     function create(options = {}) {
@@ -25,9 +27,7 @@
         let opened = false;
         const listeners = new Set();
 
-        function emit(evt) {
-            for (const cb of listeners) { try { cb(evt); } catch { } }
-        }
+        function emit(evt) { for (const cb of listeners) { try { cb(evt); } catch { } } }
         function onEvent(cb) {
             if (typeof cb === "function") { listeners.add(cb); return () => listeners.delete(cb); }
             return () => { };
@@ -44,6 +44,7 @@
             if (opts.allowedOrigin !== "*" && e.origin !== opts.allowedOrigin) return;
             emit(e?.data || {});
         }
+
         function open() {
             if (!isMounted) return;
             iframeWrap.hidden = false;
@@ -88,9 +89,9 @@
                 "bottom-right": { right: pad, bottom: pad },
                 "bottom-left": { left: pad, bottom: pad },
                 "top-right": { right: pad, top: pad },
-                "top-left": { left: pad, top: pad }
+                "top-left": { left: pad, top: pad },
             };
-            css(root, positions[opts.position] || positions["bottom-right"]]);
+            css(root, positions[opts.position] || positions["bottom-right"]);
 
             // Botón launcher
             btn = document.createElement("button");
@@ -135,16 +136,10 @@
             iframeEl.className = "zj-bubble-iframe";
             iframeEl.src = opts.iframeUrl;
             iframeEl.setAttribute("title", opts.title || "Chat");
-
-            // ⬇️ Permisos/sandbox compatibles (evita warnings y permite mic/cam si aplican)
             iframeEl.setAttribute("allow", opts.permissions || DEFAULTS.permissions);
-            iframeEl.setAttribute(
-                "sandbox",
-                "allow-same-origin allow-scripts allow-forms allow-popups"
-            );
+            iframeEl.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");
 
             iframeEl.addEventListener("load", () => {
-                // saludo de host → iframe (el React embebido ya lo maneja)
                 post({ type: "host:hello", theme: opts.theme, language: "es" });
             });
 
@@ -157,7 +152,7 @@
             isMounted = true;
 
             if (opts.theme && opts.theme !== "auto") setTheme(opts.theme);
-            if (opts.startOpen) open(); else close(); // NO “open->close” automático
+            if (opts.startOpen) open(); else close();
         }
 
         function unmount() {

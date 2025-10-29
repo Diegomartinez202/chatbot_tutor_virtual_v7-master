@@ -1,24 +1,18 @@
-/** src/embed/HostChatBubble.jsx */
+/** admin_panel_react/src/embed/HostChatBubble.jsx */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
 
-/**
- * Requiere que el host sirva los assets:
- *   /embed/zajuna-bubble.js
- *   /embed/zajuna-bubble.css   (opcional si lo incluyes con <link> en index.html)
- */
 export default function HostChatBubble({
     iframeUrl = `${window.location.origin}/?embed=1`,
     allowedOrigin = window.location.origin,
     title = "Tutor Virtual",
     subtitle = "Sustentación",
     position = "bottom-right", // bottom-right | bottom-left | top-right | top-left
-    startOpen = false,         // ⬅️ NO forzamos abrir; mismo contrato que web
+    startOpen = false,         // NO forzamos abrir
     theme = "auto",            // auto | light | dark
     zIndex = 2147483000,
     initialToken,
     onTelemetry,
-    onAuthNeeded
+    onAuthNeeded,
 }) {
     const bubbleRef = useRef(null);
     const [mounted, setMounted] = useState(false);
@@ -67,7 +61,7 @@ export default function HostChatBubble({
                     position,
                     startOpen,
                     theme,
-                    zIndex
+                    zIndex,
                 });
 
                 // escucha eventos del iframe
@@ -119,19 +113,22 @@ export default function HostChatBubble({
         zIndex,
         initialToken,
         onTelemetry,
-        onAuthNeeded
+        onAuthNeeded,
     ]);
 
     // API de conveniencia
     const sendToken = useCallback((token) => {
         bubbleRef.current?.sendAuthToken?.(token);
     }, []);
-    const setTheme = useCallback((next) => {
-        bubbleRef.current?.setTheme?.(next);
-        if (theme === "auto") {
-            document.documentElement.classList.toggle("dark", next === "dark");
-        }
-    }, [theme]);
+    const setTheme = useCallback(
+        (next) => {
+            bubbleRef.current?.setTheme?.(next);
+            if (theme === "auto") {
+                document.documentElement.classList.toggle("dark", next === "dark");
+            }
+        },
+        [theme]
+    );
     const setLanguage = useCallback((lang) => {
         bubbleRef.current?.setLanguage?.(lang);
     }, []);
@@ -147,7 +144,7 @@ export default function HostChatBubble({
                     border: "1px solid #334155",
                     borderRadius: 12,
                     padding: 10,
-                    minWidth: 260
+                    minWidth: 260,
                 }}
             >
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>HostChatBubble (Debug)</div>
@@ -155,12 +152,12 @@ export default function HostChatBubble({
                 {error ? (
                     <div style={{ fontSize: 12, color: "#fecaca" }}>
                         <b>Error:</b> {error}
-                        <div style={{ opacity: .8, marginTop: 6 }}>
+                        <div style={{ opacity: 0.8, marginTop: 6 }}>
                             Verifica que <code>/embed/zajuna-bubble.js</code> esté accesible.
                         </div>
                     </div>
                 ) : (
-                    <div style={{ fontSize: 12, opacity: .9 }}>
+                    <div style={{ fontSize: 12, opacity: 0.9 }}>
                         <div>mounted: <b>{String(mounted)}</b></div>
                         <div>lastPrefs: theme=<b>{lastPrefs.theme}</b> lang=<b>{lastPrefs.language}</b></div>
                         <div>lastEvent: <code style={{ fontSize: 11 }}>{lastEvent ? JSON.stringify(lastEvent) : "—"}</code></div>
@@ -171,8 +168,18 @@ export default function HostChatBubble({
                     <button onClick={() => bubbleRef.current?.open?.()} style={btn}>Abrir</button>
                     <button onClick={() => bubbleRef.current?.close?.()} style={btnSecondary}>Cerrar</button>
                     <button onClick={() => sendToken("FAKE_TOKEN_ZAJUNA")} style={btn}>Token FAKE</button>
-                    <button onClick={() => setTheme(lastPrefs.theme === "dark" ? "light" : "dark")} style={btn}>Toggle theme</button>
-                    <button onClick={() => setLanguage(lastPrefs.language === "es" ? "en" : "es")} style={btnSecondary}>Toggle lang</button>
+                    <button
+                        onClick={() => setTheme(lastPrefs.theme === "dark" ? "light" : "dark")}
+                        style={btn}
+                    >
+                        Toggle theme
+                    </button>
+                    <button
+                        onClick={() => setLanguage(lastPrefs.language === "es" ? "en" : "es")}
+                        style={btnSecondary}
+                    >
+                        Toggle lang
+                    </button>
                 </div>
             </div>
         </div>
@@ -186,6 +193,6 @@ const btn = {
     border: 0,
     borderRadius: 10,
     padding: "6px 10px",
-    fontSize: 12
+    fontSize: 12,
 };
 const btnSecondary = { ...btn, background: "#1f2937", border: "1px solid #374151" };

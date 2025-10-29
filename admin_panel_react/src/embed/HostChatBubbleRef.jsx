@@ -7,9 +7,9 @@ import React, {
     useRef,
     useState,
 } from "react";
-avatar = { import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png" }
 
-/** Tipados de eventos (comentarios JSDoc) omitidos por brevedad; se mantiene el contrato. */
+// ❌ NUNCA JSX suelto aquí (esto rompía el build)
+// <ChatApp avatar={import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png"} />
 
 // IDs únicos para evitar cargas duplicadas
 const JS_ID = "zajuna-bubble-js";
@@ -66,11 +66,10 @@ function ensureBubbleCss(href = "/embed/zajuna-bubble.css") {
 }
 
 /**
- * NOTA IMPORTANTE (para /public/embed/zajuna-bubble.js):
- * Asegúrate de configurar el iframe con:
- *   iframe.allow = "microphone; camera; autoplay; clipboard-write; fullscreen";
- *   iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");
- * para evitar los warnings de Feature Policy y permitir micro/cámara si los usas.
+ * NOTA para /public/embed/zajuna-bubble.js:
+ * el iframe usa:
+ *   allow="microphone; camera; autoplay; clipboard-write; fullscreen"
+ *   sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
  */
 
 const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
@@ -80,19 +79,18 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         title = "Tutor Virtual",
         subtitle = "Sustentación",
         position = "bottom-right",
-        startOpen = false, // ⬅️ por defecto cerrado; el host decide abrirlo
+        startOpen = false, // por defecto cerrado
         theme = "auto",
         zIndex = 2147483000,
         initialToken,
         onTelemetry,
         onAuthNeeded = () => {
-            // no forzamos login automáticamente: el host decide
-            console.warn("[bubble] auth:needed (ignorado por defecto; modo invitado posible)");
+            console.warn("[bubble] auth:needed (modo invitado por defecto)");
         },
         injectCss = true,
         showDebug = false,
-        // avatar visible en el FAB del widget (pasado al bubble js)
-        avatar = "/embed/mi-avatar.png",
+        // 🖼️ avatar visible en el FAB del widget (servido desde /public)
+        avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/mi-avatar.png",
     },
     ref
 ) {
@@ -119,7 +117,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             } catch (e) {
                 console.warn(e);
                 if (!destroyed) setError(String(e?.message || e));
-                // reintento corto único
+                // reintento único corto
                 try {
                     await new Promise((r) => setTimeout(r, 400));
                     await ensureBubble();
@@ -130,7 +128,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             }
             if (destroyed) return;
 
-            // Pista de allowedOrigin (omite warning si allowedOrigin="*")
             const expectedOrigin = new URL(iframeUrl, window.location.href).origin;
             if (allowedOrigin !== "*" && allowedOrigin !== expectedOrigin) {
                 console.warn(
@@ -147,12 +144,11 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 startOpen,
                 theme,
                 zIndex,
-                showLabel: false, // evita el “globo” superpuesto
-                padding: 20, // respiro respecto al layout
-                avatar, // avatar en el FAB (compacto o con label)
+                showLabel: false,
+                padding: 20,
+                avatar, // ✅ avatar final
             });
 
-            // 🔔 Canal de eventos del bubble
             bubble.onEvent((evt) => {
                 setLastEvent(evt);
                 if (evt?.type === "telemetry") {
@@ -167,7 +163,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                         document.documentElement.classList.toggle("dark", next.theme === "dark");
                     }
                 } else if (evt?.type === "auth:needed") {
-                    // 🔸 NO forzamos login: dejamos que el host decida (por defecto, ignoramos).
                     onAuthNeeded?.();
                 }
             });
@@ -175,20 +170,14 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             bubble.mount();
             setMounted(true);
 
-            // Token inicial si viene
             if (initialToken) bubble.sendAuthToken(initialToken);
-
-            // ⛔️ Importante: NO abrir/cerrar automáticamente aquí.
-            // (Se elimina cualquier ensureVisible que hacía open()->close()).
 
             bubbleRef.current = bubble;
         })();
 
         return () => {
             destroyed = true;
-            try {
-                bubbleRef.current?.unmount?.();
-            } catch { }
+            try { bubbleRef.current?.unmount?.(); } catch { }
             bubbleRef.current = null;
             setMounted(false);
         };
@@ -220,7 +209,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             },
             // compat con tu código existente
             sendToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
-            // alias más explícito
+            // alias explícito
             sendAuthToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
             setTheme: (next) => {
                 bubbleRef.current?.setTheme?.(next);
@@ -239,7 +228,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         [lastEvent, lastPrefs, theme]
     );
 
-    // Oculta panel de debug si no se pide
     if (!showDebug) return null;
 
     return (
@@ -269,12 +257,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                     </div>
                 ) : (
                     <div style={{ fontSize: 12, opacity: 0.9 }}>
-                        <div>
-                            mounted: <b>{String(mounted)}</b>
-                        </div>
-                        <div>
-                            lastPrefs: theme=<b>{lastPrefs.theme}</b> lang=<b>{lastPrefs.language}</b>
-                        </div>
+                        <div>mounted: <b>{String(mounted)}</b></div>
+                        <div>lastPrefs: theme=<b>{lastPrefs.theme}</b> lang=<b>{lastPrefs.language}</b></div>
                         <div>
                             lastEvent:{" "}
                             <code style={{ fontSize: 11 }}>
@@ -285,12 +269,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 )}
 
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => bubbleRef.current?.open?.()} style={btn}>
-                        Abrir
-                    </button>
-                    <button onClick={() => bubbleRef.current?.close?.()} style={btnSecondary}>
-                        Cerrar
-                    </button>
+                    <button onClick={() => bubbleRef.current?.open?.()} style={btn}>Abrir</button>
+                    <button onClick={() => bubbleRef.current?.close?.()} style={btnSecondary}>Cerrar</button>
                     <button
                         onClick={() => {
                             const b = bubbleRef.current;

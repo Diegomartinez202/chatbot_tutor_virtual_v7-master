@@ -1,4 +1,3 @@
-// admin_panel_react/src/app.jsx
 import React, { useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/IconTooltip";
@@ -35,10 +34,17 @@ import Harness from "@/pages/Harness";
 // Bubble embebido
 import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
 import "@/i18n";
-avatar = { import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png" }
 
+// =========================
+// ✅ Variables de entorno
+// =========================
+const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const SHOW_BUBBLE_DEBUG = import.meta.env.VITE_SHOW_BUBBLE_DEBUG === "true";
+
+// =========================
+// Helpers
+// =========================
 
 /** Ruta por defecto según rol */
 function roleDefaultPath(role) {
@@ -68,8 +74,10 @@ function PublicOnlyOrToken({ children }) {
     const search = new URLSearchParams(location.search || "");
     const hashParams = new URLSearchParams(String(location.hash || "").replace(/^#/, ""));
 
-    const tokenFromQuery = search.get("access_token") || search.get("token") || search.get("t");
-    const tokenFromHash = hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
+    const tokenFromQuery =
+        search.get("access_token") || search.get("token") || search.get("t");
+    const tokenFromHash =
+        hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
 
     const hasToken = Boolean(tokenFromQuery || tokenFromHash);
     if (isAuthenticated && !hasToken) {
@@ -97,13 +105,24 @@ function lazyWithFallback(loader, name) {
 }
 
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
-const ForgotPasswordPage = lazyWithFallback(() => import("@/pages/ForgotPasswordPage"), "Recuperar contraseña");
+const ForgotPasswordPage = lazyWithFallback(
+    () => import("@/pages/ForgotPasswordPage"),
+    "Recuperar contraseña"
+);
 
+// Config UI
+const ui = {
+    avatar: BOT_AVATAR,
+};
+
+// =========================
+// App principal
+// =========================
 export default function App() {
     const bubbleRef = useRef(null);
     const { isAuthenticated, accessToken } = useAuth();
 
-    // Detecta si estamos embebidos
+    // Detecta si está embebido
     const params = new URLSearchParams(window.location.search);
     const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
 
@@ -304,28 +323,35 @@ export default function App() {
                 <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
 
-            {/* 🫧 Widget embebido — igual que el web, en modo invitado si no hay token */}
+            {/* 🫧 Widget embebido */}
             {!isEmbedded && (
                 <HostChatBubbleRef
                     ref={bubbleRef}
-                    // 👇 habilita modo invitado en el iframe
                     iframeUrl={`${window.location.origin}/?embed=1&guest=1`}
                     allowedOrigin={window.location.origin}
                     title="Tutor Virtual"
                     subtitle="Sustentación"
-                    startOpen={true}     // abre y saluda
+                    startOpen={true}
                     theme="auto"
                     showDebug={false}
-                    avatar={import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png"}
-                    // Si hay sesión, enviamos token; si no, se queda invitado (NO redirigimos)
+                    avatar={BOT_AVATAR}
                     onAuthNeeded={handleSendToken}
-                    onTelemetry={(evt) => import.meta.env.DEV && console.log("[telemetry]", evt)}
+                    onTelemetry={(evt) =>
+                        import.meta.env.DEV && console.log("[telemetry]", evt)
+                    }
                 />
             )}
 
             {/* 🔧 Debug opcional */}
             {!isEmbedded && SHOW_BUBBLE_DEBUG && (
-                <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 2147483000 }}>
+                <div
+                    style={{
+                        position: "fixed",
+                        right: 10,
+                        bottom: 10,
+                        zIndex: 2147483000,
+                    }}
+                >
                     <div
                         style={{
                             background: "rgba(2,6,23,.75)",
@@ -347,16 +373,28 @@ export default function App() {
                         <button onClick={handleLoginDemo} className="btn">
                             Login & Enviar Token
                         </button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">
+                        <button
+                            onClick={() => bubbleRef.current?.setTheme?.("dark")}
+                            className="btn"
+                        >
                             Tema: Dark
                         </button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">
+                        <button
+                            onClick={() => bubbleRef.current?.setTheme?.("light")}
+                            className="btn"
+                        >
                             Tema: Light
                         </button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">
+                        <button
+                            onClick={() => bubbleRef.current?.setLanguage?.("en")}
+                            className="btn"
+                        >
                             Idioma: EN
                         </button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">
+                        <button
+                            onClick={() => bubbleRef.current?.setLanguage?.("es")}
+                            className="btn"
+                        >
                             Idioma: ES
                         </button>
                     </div>
