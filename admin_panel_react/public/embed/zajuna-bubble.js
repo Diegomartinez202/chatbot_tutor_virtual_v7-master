@@ -88,6 +88,9 @@
             if (data?.type === "widget:open") open();
             else if (data?.type === "widget:close") close();
             else if (data?.type === "widget:toggle") toggle();
+            if (data.type === "widget:open") { open(); return; }
+            if (data.type === "widget:close") { close(); return; }
+            if (data.type === "widget:toggle") { toggle(); return; }
             emit(data);
         }
 
@@ -297,8 +300,22 @@
 
             // Mostrar con fade-in
             document.querySelectorAll("[data-zj-bubble]").forEach(el => (el.style.opacity = "1"));
-        }
+           }
+           // Cerrar con ESC
+           if (opts.closeOnEsc) {
+              window.addEventListener("keydown", (ev) => {
+                  if (ev.key === "Escape" && opened) close();
+           });
+           }
 
+          // Cerrar con click fuera del iframe
+          if (opts.closeOnOutsideClick) {
+              document.addEventListener("mousedown", (ev) => {
+                  if (!opened) return;
+                  const t = ev.target;
+                  if (root && !root.contains(t)) close();
+              }, true);
+         }
         function unmount() {
             if (!isMounted) return;
             try {
