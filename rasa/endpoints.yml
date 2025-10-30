@@ -1,4 +1,4 @@
-﻿action_endpoint:
+action_endpoint:
   url: "http://action-server:5055/webhook"
 
 tracker_store:

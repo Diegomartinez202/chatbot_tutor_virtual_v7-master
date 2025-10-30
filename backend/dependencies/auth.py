@@ -1,17 +1,24 @@
 # backend/dependencies/auth.py
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+
+# Usamos python-jose, manteniendo compat con tu import original
+# (seguiremos usando 'jwt.encode' y 'jwt.decode' vía jose)
+from jose import JWTError, jwt as jose_jwt
+from jose.exceptions import ExpiredSignatureError, JWTClaimsError, JWTError as JoseCoreJWTError
 
 # (Se mantiene la importación aunque hoy no se use directamente;
 #  varios módulos previos esperan que esté disponible aquí)
 from backend.db.mongodb import get_users_collection  # noqa: F401
 from backend.config.settings import settings  # ✅ Config centralizada
+
 
 # ============================
 # 🔐 CONFIGURACIÓN JWT
@@ -32,6 +39,10 @@ JWT_AUDIENCE: Optional[str] = getattr(settings, "jwt_audience", None)
 JWT_LEEWAY_SECONDS: int = int(getattr(settings, "jwt_leeway_seconds", 0))
 JWT_ACCEPT_TYPELESS: bool = bool(getattr(settings, "jwt_accept_typeless", True))  # compat con otros módulos
 
+# Extras para RS* (si los defines en .env/settings, se usan; si no, no molestan)
+JWT_JWKS_URL: Optional[str] = getattr(settings, "jwt_jwks_url", os.getenv("JWT_JWKS_URL", None))
+JWT_PUBLIC_KEY: Optional[str] = getattr(settings, "jwt_public_key", os.getenv("JWT_PUBLIC_KEY", None))
+
 
 # ============================
 # 🎟️ CREAR TOKEN
@@ -48,7 +59,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     now = datetime.utcnow()
     expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
-    claims: Dict = {
+    claims: Dict[str, Any] = {
         **to_encode,
         "exp": expire,
         "iat": now,
@@ -58,7 +69,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if JWT_AUDIENCE:
         claims["aud"] = JWT_AUDIENCE
 
-    return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    # Mantiene tu interfaz (jwt.encode)
+    return jose_jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
 
 
 # ============================
@@ -77,32 +89,75 @@ def credentials_exception() -> HTTPException:
 # ✅ VERIFICAR TOKEN
 # ============================
 
-def _decode(token: str) -> Dict:
+def _resolve_key_for_decode(token: str, algorithm: str) -> Any:
+    """
+    Devuelve la clave apropiada según el algoritmo:
+    - HS*: SECRET_KEY
+    - RS*: JWKS (si JWT_JWKS_URL) o PEM público (si JWT_PUBLIC_KEY)
+    """
+    alg = (algorithm or "HS256").upper()
+
+    if alg.startswith("HS"):
+        if not SECRET_KEY:
+            raise JoseCoreJWTError("SECRET_KEY ausente para algoritmos HS*.")
+        return SECRET_KEY
+
+    if alg.startswith("RS"):
+        # 1) Preferimos JWKS si está definido
+        if JWT_JWKS_URL:
+            unverified_header = jose_jwt.get_unverified_header(token)
+            kid = unverified_header.get("kid")
+            with httpx.Client(timeout=5.0) as client:
+                jwks = client.get(JWT_JWKS_URL).json()
+            key_to_use = None
+            for key in jwks.get("keys", []):
+                # Si no viene kid en el token, tomamos la primera clave válida
+                if kid is None or key.get("kid") == kid:
+                    key_to_use = key
+                    break
+            if not key_to_use:
+                raise JoseCoreJWTError("No se encontró una JWK compatible (kid) en JWKS.")
+            return key_to_use
+
+        # 2) Si no hay JWKS, esperamos una clave pública PEM
+        if JWT_PUBLIC_KEY:
+            return JWT_PUBLIC_KEY
+
+        raise JoseCoreJWTError("Falta JWT_JWKS_URL o JWT_PUBLIC_KEY para algoritmos RS*.")
+
+    # Otros algoritmos no contemplados
+    raise JoseCoreJWTError(f"Algoritmo no soportado: {alg}")
+
+
+def _decode(token: str) -> Dict[str, Any]:
     """
     Decodifica el JWT aplicando la configuración disponible.
     - Verifica algoritmo/clave
-    - Aplica leeway si se configuró
+    - Aplica 'leeway' vía options (python-jose), NO como kwarg suelto
     - Si se definieron issuer/audience, también los verifica
     - Permite tokens sin 'typ' si JWT_ACCEPT_TYPELESS=True (compat)
     """
-    decode_opts = {
+    # Opciones de verificación: sólo exigimos aud/iss si están configuradas
+    options = {
         "verify_signature": True,
         "verify_aud": bool(JWT_AUDIENCE),
         "verify_iss": bool(JWT_ISSUER),
-        # Aceptamos tokens sin 'typ' por compat si así se configuró
         "require_exp": True,
+        # 🔧 Aquí va el leeway correcto para python-jose:
+        "leeway": int(JWT_LEEWAY_SECONDS or 0),
     }
 
     try:
-        claims = jwt.decode(
+        key = _resolve_key_for_decode(token, ALGORITHM)
+        claims = jose_jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
+            key,
+            algorithms=[(ALGORITHM or "HS256")],
             audience=JWT_AUDIENCE if JWT_AUDIENCE else None,
             issuer=JWT_ISSUER if JWT_ISSUER else None,
-            options=decode_opts,
-            leeway=JWT_LEEWAY_SECONDS or 0,
+            options=options,
         )
+
         # Compat: si se exige 'typ' en otros servicios y aquí no viene,
         # lo toleramos si JWT_ACCEPT_TYPELESS=True.
         if not JWT_ACCEPT_TYPELESS:
@@ -110,8 +165,11 @@ def _decode(token: str) -> Dict:
             if typ not in (None, "access", "bearer", "JWT"):
                 # Si tuvieras una política estricta de tipos, ajusta aquí.
                 pass
+
         return claims
-    except JWTError:
+
+    except (ExpiredSignatureError, JWTClaimsError, JoseCoreJWTError, JWTError):
+        # Mantenemos tu manejo estándar de credenciales inválidas
         raise credentials_exception()
 
 

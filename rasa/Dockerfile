@@ -49,3 +49,20 @@ EXPOSE 5005
 # ❤️ Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
   CMD curl -fsS http://127.0.0.1:5005/status || exit 1
+
+# Instala pymongo para registrar entrenamientos
+
+COPY scripts/log_model_train.py /app/scripts/log_model_train.py
+RUN pip install pymongo
+RUN echo '#!/usr/bin/env bash' > /entrypoint_with_log.sh && \
+    echo 'set -e' >> /entrypoint_with_log.sh && \
+    echo 'LATEST_MODEL=$(ls -t /app/models/*.tar.gz 2>/dev/null | head -n 1)' >> /entrypoint_with_log.sh && \
+    echo 'if [ -n "$LATEST_MODEL" ]; then' >> /entrypoint_with_log.sh && \
+    echo '  echo "[💾] Registrando modelo al iniciar: $LATEST_MODEL";' >> /entrypoint_with_log.sh && \
+    echo '  python3 /app/scripts/log_model_train.py "$LATEST_MODEL" || true;' >> /entrypoint_with_log.sh && \
+    echo 'fi' >> /entrypoint_with_log.sh && \
+    echo 'exec rasa run --enable-api --cors \"*\" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
+    chmod +x /entrypoint_with_log.sh
+
+ENTRYPOINT ["/entrypoint_with_log.sh"]
+

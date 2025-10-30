@@ -24,16 +24,30 @@ services:
   # MongoDB (común a build/prod)
   # ------------------------------------------------------------
   mongo:
-    profiles: ["build","prod"]
-    image: mongo:6
-    container_name: mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - app-net
+   profiles: ["build","prod"]
+   image: mongo:6
+   container_name: mongo
+   restart: unless-stopped
+   ports:
+     - "27017:27017"  # útil si quieres conectar desde Compass/host
+   volumes:
+     - mongo-data:/data/db
+    # Si quieres inicializar índices/seed la primera vez:
+    # - ./mongo/initdb.d:/docker-entrypoint-initdb.d:ro
+   networks:
+     - app-net
+   # ✅ Healthcheck para coordinar arranque del backend
+   healthcheck:
+     test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+     interval: 10s
+     timeout: 5s
+     retries: 10
+     start_period: 10s
+  # 🔐 (OPCIONAL) Habilitar autenticación de Mongo cuando lo necesites:
+  # environment:
+  #   MONGO_INITDB_ROOT_USERNAME: root
+  #   MONGO_INITDB_ROOT_PASSWORD: supersegura
+  #   MONGO_INITDB_DATABASE: tutor_virtual
 
   # ------------------------------------------------------------
   # MongoDB (perfil: vanilla) — con autenticación
@@ -52,7 +66,12 @@ services:
       - _docker_data_mongo:/data/db
     networks:
       - app-net
-
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
   # ------------------------------------------------------------
   # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
@@ -81,10 +100,15 @@ services:
       - "5055:5055"
     networks:
       - app-net
-
-  # ------------------------------------------------------------
-  # Rasa (build/prod) — sin RabbitMQ
-  # ------------------------------------------------------------
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5055/health | grep -q 'ok'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+# ------------------------------------------------------------
+# Rasa (build/prod) — Tracker en Mongo y arranque robusto
+# ------------------------------------------------------------
   rasa:
     profiles: ["build","prod"]
     build:
@@ -102,12 +126,15 @@ services:
       RASA_MODEL: /app/models
       TRACKER_MONGO_URL: "mongodb://mongo:27017"
       TRACKER_MONGO_DB: "rasa"
+      RASA_MODELS_COLLECTION: "trained_models"
       TRACKER_MONGO_COLLECTION: "conversations"
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
     depends_on:
-      - action-server
-      - mongo
+       action-server:
+           condition: service_healthy
+       mongo:
+           condition: service_healthy
     ports:
       - "5005:5005"
     networks:
@@ -118,7 +145,29 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-      - ./rasa/endpoints.mongo.tpl.yml:/app/endpoints.mongo.tpl.yml:ro
+
+  # ✅ Creamos endpoints.yml en caliente con los envs y arrancamos con --endpoints
+    command: >
+      bash -lc "
+       cat > /app/endpoints.yml << 'YML'
+       action_endpoint:
+         url: ${ACTION_SERVER_URL}
+
+      tracker_store:
+        type: mongod
+        url: ${TRACKER_MONGO_URL}
+        db: ${TRACKER_MONGO_DB}
+        collection: ${TRACKER_MONGO_COLLECTION}
+      YML
+      
+      echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+
+      rasa run
+        --enable-api
+        --endpoints /app/endpoints.yml
+        --port ${RASA_PORT:-5005}
+        --cors '*'
+      "
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
       interval: 30s
@@ -176,6 +225,7 @@ services:
       - "5055:5055"
     depends_on:
       - ctv_rasa
+      - service_healthy
     networks:
       - app-net
     env_file:
@@ -248,7 +298,7 @@ services:
       # ✅ Uvicorn DEV
       UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
       UVICORN_PORT: ${UVICORN_PORT:-8000}
-      UVICORN_WORKERS: "2"
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
 
 
       # ✅ Polling para entornos con FS montado
@@ -257,9 +307,12 @@ services:
     volumes:
       - ./backend:/app/backend
     depends_on:
-      - mongo
-      - rasa
-      - redis
+     rasa:
+      condition: service_healthy
+     mongo:
+      condition: service_started
+     redis:
+      condition: service_started
     ports:
       - "8000:8000"
     networks:
@@ -303,7 +356,7 @@ services:
     environment:
       UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
       UVICORN_PORT: ${UVICORN_PORT:-8000}
-      UVICORN_WORKERS: "2"
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
       APP_ENV: prod
       DEBUG: "false"
 
@@ -315,7 +368,6 @@ services:
       MONGODB_DB: chatbot_tutor_virtual_v7_3
       MONGO_URL: mongodb://mongo:27017
       MONGO_DB: chatbot_admin
-
       # ✅ Rasa (URL base, NO al webhook)
       RASA_URL: http://rasa:5005
       RASA_REST_URL: http://rasa:5005/webhooks/rest/webhook
@@ -333,9 +385,12 @@ services:
       FRONTEND_SITE_URL: http://localhost:5173
 
     depends_on:
-      - mongo
-      - rasa
-      - redis
+      rasa:
+       condition: service_healthy
+      mongo:
+       condition: service_started
+      redis:
+       condition: service_started
     ports:
       - "8000:8000"
     networks:
