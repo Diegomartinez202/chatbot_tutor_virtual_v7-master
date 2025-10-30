@@ -141,6 +141,7 @@ class Settings(BaseSettings):
 
     # 🧩 Embebido (CSP + redirects)
     frame_ancestors: List[str] = Field(default_factory=lambda: ["'self'"], alias="FRAME_ANCESTORS")
+    allowed_origins: List[str] = Field(default_factory=list)
     embed_enabled: bool = Field(default=True, alias="EMBED_ENABLED")
 
     # 🌱 Entorno
@@ -256,6 +257,34 @@ class Settings(BaseSettings):
                     pass
             return [x.strip() for x in s.split(",") if x.strip()]
         return v
+
+    
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, v):
+        """
+        Admite:
+        - JSON: '["http://localhost:5173","http://localhost:8080"]'
+        - CSV:  'http://localhost:5173,http://localhost:8080'
+        - valor único: 'http://localhost:5173'
+        - vacío / None -> []
+        """
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    data = json.loads(s)
+                    return data if isinstance(data, list) else []
+                except Exception:
+                    pass
+            return [p.strip() for p in s.split(",") if p.strip()]
+        return []
 
     @field_validator("app_env", mode="before")
     @classmethod
