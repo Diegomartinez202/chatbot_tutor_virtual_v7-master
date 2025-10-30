@@ -98,7 +98,7 @@ services:
       TRACKER_MONGO_COLLECTION: "conversations"
       RASA_PORT: "5005"
       RASA_MODELS_COLLECTION: "trained_models"
-
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
     ports:
       - "5055:5055"
     volumes:
@@ -147,6 +147,7 @@ services:
       TRACKER_MONGO_COLLECTION: "conversations"
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
     depends_on:
       mongo:
         condition: service_healthy
@@ -213,7 +214,7 @@ services:
       TRACKER_MONGO_COLLECTION: "conversations"
       RASA_PORT: "5005"
       RASA_MODELS_COLLECTION: "trained_models"
-        
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"  
     env_file:
       - ./.env.local
     volumes:
@@ -272,7 +273,7 @@ services:
       RASA_PORT: "5005"
       RASA_MODELS_COLLECTION: "trained_models"
       ACTIONS_CORS: "*"
- 
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
   # ============================================================
   # Backend DEV (hot reload)
   # ============================================================
