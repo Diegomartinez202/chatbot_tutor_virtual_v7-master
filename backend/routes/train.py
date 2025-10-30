@@ -87,6 +87,9 @@ async def entrenar_bot(
             "message": msg,
             "log_file": log_path,
             "request_id": rid,
+            "model_name": resultado.get("model_name"),
+            "model_path": resultado.get("model_path"),
+            "timestamp": resultado.get("timestamp"),
         }
     except HTTPException:
         raise

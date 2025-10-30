@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Variables Ãºtiles (puedes pasarlas desde docker-compose)

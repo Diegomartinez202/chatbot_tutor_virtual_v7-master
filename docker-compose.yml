@@ -10,11 +10,6 @@ networks:
     external: true
     name: tutorbot-local_app-net
 
-volumes:
-  mongo-data: {}
-  _docker_data_mongo: {}
-  redis-data: {}
-
 # ============================================================
 # Servicios
 # ============================================================
@@ -96,12 +91,22 @@ services:
       SMTP_PASS: "contraseña_real"
       EMAIL_FROM: "bot@ejemplo.com"
       RESET_URL_BASE: "https://zajuna.edu"
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+
     ports:
       - "5055:5055"
+    volumes:
+      - ./rasa/actions:/app/actions
+      - action-logs:/app/logs
     networks:
       - app-net
     healthcheck:
-      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5055/health | grep -q 'ok'"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5055/health"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -131,10 +136,10 @@ services:
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
     depends_on:
-       action-server:
-           condition: service_healthy
-       mongo:
-           condition: service_healthy
+      mongo:
+        condition: service_healthy
+      action-server:
+        condition: service_healthy
     ports:
       - "5005:5005"
     networks:
@@ -158,15 +163,12 @@ services:
         url: ${TRACKER_MONGO_URL}
         db: ${TRACKER_MONGO_DB}
         collection: ${TRACKER_MONGO_COLLECTION}
-      YML
-      
-      echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+        YML
 
-      rasa run
-        --enable-api
-        --endpoints /app/endpoints.yml
-        --port ${RASA_PORT:-5005}
-        --cors '*'
+        echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+        echo '[🚀] Iniciando Rasa con registro automático de modelos...';
+
+        exec /entrypoint_with_log.sh
       "
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
@@ -193,9 +195,18 @@ services:
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
       RASA_MODEL: /app/models
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+        
+    env_file:
+      - ./.env.local
     volumes:
       - ./rasa:/app/rasa
-      - ./rasa/models:/app/models
+      - rasa-models:/app/models
     ports:
       - "${RASA_PORT:-5005}:5005"
     depends_on:
@@ -242,7 +253,12 @@ services:
       SMTP_PASS: "contraseña_real"
       EMAIL_FROM: "bot@ejemplo.com"
       RESET_URL_BASE: "https://zajuna.edu"
-
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
   # ============================================================
   # Backend DEV (hot reload)
   # ============================================================
@@ -508,3 +524,22 @@ services:
       - ctv_rasa
     networks:
       - app-net
+# ============================================================
+# 💾 Volúmenes persistentes del proyecto
+# ============================================================
+volumes:
+  # 🧠 Mongo principal (build/prod)
+  mongo-data:
+
+  # 🔐 Mongo autenticado (perfil vanilla)
+  _docker_data_mongo:
+
+  # ⚡ Redis cache/rate limit
+  redis-data:
+
+  # 🤖 Modelos y data de Rasa (NLU entrenado)
+  rasa-models:
+  rasa-data:
+
+  # 🛠️ Logs del Action Server (opcional)
+  action-logs:

@@ -6,8 +6,10 @@ import BotonesAdmin from "@/components/BotonesAdmin";
 import ResumenSistema from "@/components/ResumenSistema";
 import StatsChart from "@/components/StatsChart";
 import IconTooltip from "@/components/ui/IconTooltip";
-import { Button } from "@/components/ui/index.js"; 
-import '@/styles/index.css';
+import { Button } from "@/components/ui/index.js";
+import TrainBotButton from "@/components/TrainBotButton"; // ✅ Nuevo import
+import "@/styles/index.css";
+
 function Dashboard() {
     const [desde, setDesde] = useState("");
     const [hasta, setHasta] = useState("");
@@ -20,11 +22,20 @@ function Dashboard() {
     return (
         <div className="p-6 space-y-6">
             {/* Encabezado */}
-            <div className="flex items-center gap-2">
-                <IconTooltip label="Vista general del administrador" side="top">
-                    <LayoutDashboard className="w-6 h-6 text-gray-700" />
-                </IconTooltip>
-                <h1 className="text-2xl font-bold">Panel de Administración</h1>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <IconTooltip label="Vista general del administrador" side="top">
+                        <LayoutDashboard className="w-6 h-6 text-gray-700" />
+                    </IconTooltip>
+                    <h1 className="text-2xl font-bold">Panel de Administración</h1>
+                </div>
+
+                {/* ✅ Botón de entrenamiento arriba a la derecha */}
+                <TrainBotButton
+                    variant="primary"
+                    tooltipLabel="Reentrenar modelo del chatbot"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                />
             </div>
 
             {/* Acciones principales */}
@@ -41,7 +52,7 @@ function Dashboard() {
             {/* Resumen compacto */}
             <ResumenSistema />
 
-            {/* Filtros de fecha (opcional) */}
+            {/* Filtros de fecha */}
             <div className="mt-4 rounded-md border bg-white p-4">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">

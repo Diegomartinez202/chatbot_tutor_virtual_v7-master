@@ -1,4 +1,7 @@
-#\rasa\Dockerfile
+# ============================================================
+# 🧠 Rasa 3.6.20 + MongoDB Tracker + Registro de modelos
+# ============================================================
+
 FROM rasa/rasa:3.6.20-full
 
 USER root
@@ -33,36 +36,45 @@ RUN sed -i 's/\r$//' /entrypoint.sh \
 ENV SQLALCHEMY_SILENCE_UBER_WARNING=1 \
     SQLALCHEMY_WARN_20=0
 
-# Instalación del pin (mantengo tu secuencia)
-USER root
+# Instala SQLAlchemy compatible
 RUN pip install --no-cache-dir "sqlalchemy<2.0"
-USER 1001
 
-# 👤 Usuario sin privilegios (coherente con la imagen base)
-USER 1000
+# ============================================================
+# 📘 Registro automático de modelos en MongoDB
+# ============================================================
 
-# 🚀 Entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
-
-EXPOSE 5005
-
-# ❤️ Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
-  CMD curl -fsS http://127.0.0.1:5005/status || exit 1
-
-# Instala pymongo para registrar entrenamientos
-
+# Copiamos el script de registro
 COPY scripts/log_model_train.py /app/scripts/log_model_train.py
-RUN pip install pymongo
+
+# Aseguramos pymongo actualizado y ejecutable
+RUN pip install --no-cache-dir pymongo \
+ && chmod +x /app/scripts/log_model_train.py
+
+# Creamos un entrypoint extendido que:
+#  1️⃣ Registra el último modelo entrenado en MongoDB.
+#  2️⃣ Arranca Rasa normalmente.
 RUN echo '#!/usr/bin/env bash' > /entrypoint_with_log.sh && \
     echo 'set -e' >> /entrypoint_with_log.sh && \
     echo 'LATEST_MODEL=$(ls -t /app/models/*.tar.gz 2>/dev/null | head -n 1)' >> /entrypoint_with_log.sh && \
     echo 'if [ -n "$LATEST_MODEL" ]; then' >> /entrypoint_with_log.sh && \
     echo '  echo "[💾] Registrando modelo al iniciar: $LATEST_MODEL";' >> /entrypoint_with_log.sh && \
     echo '  python3 /app/scripts/log_model_train.py "$LATEST_MODEL" || true;' >> /entrypoint_with_log.sh && \
+    echo 'else' >> /entrypoint_with_log.sh && \
+    echo '  echo "[⚠️] No se encontró modelo en /app/models/"' >> /entrypoint_with_log.sh && \
     echo 'fi' >> /entrypoint_with_log.sh && \
-    echo 'exec rasa run --enable-api --cors \"*\" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
+    echo 'echo "[🚀] Iniciando Rasa..."' >> /entrypoint_with_log.sh && \
+    echo 'exec rasa run --enable-api --cors "*" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
     chmod +x /entrypoint_with_log.sh
 
+# 👤 Usuario sin privilegios
+USER 1000
+
+# 🚀 Entrypoint con registro automático
 ENTRYPOINT ["/entrypoint_with_log.sh"]
+
+EXPOSE 5005
+
+# ❤️ Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
+  CMD curl -fsS http://127.0.0.1:5005/status || exit 1
 

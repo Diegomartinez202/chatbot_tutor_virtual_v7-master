@@ -132,6 +132,36 @@ def dry_run_train(dry_run: bool = False, current_user=Depends(require_role(["adm
     return resultado
 
 
+
+# ✅ NUEVO ENDPOINT OPCIONAL: obtener modelo más reciente registrado
+@router.get("/admin/last-model")
+def obtener_ultimo_modelo(current_user=Depends(require_role(["admin"]))):
+    """
+    Devuelve el último modelo entrenado de Rasa registrado en MongoDB,
+    incluyendo su nombre, timestamp y estado.
+    """
+    try:
+        from pymongo import MongoClient
+        mongo_uri = os.getenv("MONGO_URI", "mongodb://mongo:27017/tutor_virtual")
+        client = MongoClient(mongo_uri)
+        db = client.get_default_database() or client["rasa"]
+        models_col = db["trained_models"]
+
+        last_model = models_col.find_one(sort=[("timestamp", -1)])
+        if not last_model:
+            return {"message": "Aún no hay modelos registrados."}
+        logger.info(
+            f"📦 Último modelo consultado: {last_model.get('model_name')} en {last_model.get('timestamp')}"
+        )
+        return {
+            "model_name": last_model.get("model_name"),
+            "timestamp": last_model.get("timestamp"),
+            "status": last_model.get("status", "ok"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando modelo: {e}")
+
+
 # ✅ Ejecutar pruebas automáticas
 @router.post("/admin/test-all")
 def ejecutar_tests(current_user=Depends(require_role(["admin"]))):
