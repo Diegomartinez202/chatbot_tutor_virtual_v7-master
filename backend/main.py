@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, Response, RedirectResponse
 # 🚀 Settings y logging unificado
 from backend.utils.logging import setup_logging, get_logger
 setup_logging()
-log = get_logger(__name__)
+log = get_logger(__name__)  # logger principal del backend
 
 from backend.config.settings import settings
 
@@ -45,7 +45,7 @@ from backend.db.mongodb import get_database  # noqa: F401  (asegura init y dispo
 
 # 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
-
+from pymongo import MongoClient
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -68,6 +68,9 @@ def _parse_csv_or_space(v: str):
     if "," in s:
         return [x.strip() for x in s.split(",") if x.strip()]
     return [x.strip() for x in s.split() if x.strip()]
+
+# 🔊 Logger secundario usado en hooks (apunta al principal)
+logger = log
 
 
 def create_app() -> FastAPI:
@@ -184,6 +187,20 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+# ─────────────────────────────────────────────────────────────
+# ✅ Startup check: conexión a MongoDB
+# ─────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def startup_check_mongo():
+    mongo_uri = settings.mongo_uri_effective
+    mongo_db = settings.mongo_db_name_effective
+
+    try:
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        client.admin.command("ping")
+        logger.info(f"✅ Conexión inicial a MongoDB exitosa → {mongo_uri} (DB: {mongo_db})")
+    except Exception as e:
+        logger.exception(f"❌ Fallo al verificar conexión MongoDB ({mongo_uri}): {e}")
 
 # ─────────────────────────────────────────────────────
 # Startup / Shutdown (Rate limit si procede; DB ya se inicializa en el import)

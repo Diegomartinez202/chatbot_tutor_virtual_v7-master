@@ -1,12 +1,17 @@
 # =====================================================
 # 🧩 backend/utils/logging.py
 # =====================================================
+
+from __future__ import annotations
+
 import logging
 import os
+import json
+import time
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from logging import Logger
-from typing import Any
+from typing import Any, Optional
 
 # =====================================================
 # ⚙️ Configuración dinámica y settings
@@ -18,7 +23,6 @@ except Exception:
     class DummySettings:
         debug = True
         log_dir = "./logs"
-
     settings = DummySettings()
 
     def configure_logging(level=None):
@@ -31,7 +35,7 @@ except Exception:
 try:
     from backend.middleware.request_id import get_request_id  # ContextVar
 except Exception:
-    def get_request_id() -> str | None:
+    def get_request_id() -> str | None:  # py310+
         """Retorna el request_id actual o '-' si no hay contexto"""
         return None
 
@@ -44,6 +48,29 @@ class RequestIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = get_request_id() or "-"
         return True
+
+
+# =====================================================
+# 🕒 Formateadores (UTC + JSON opcional)
+# =====================================================
+class UTCFormatter(logging.Formatter):
+    converter = time.gmtime  # timestamps en UTC
+
+
+class JSONFormatter(logging.Formatter):
+    converter = time.gmtime
+    def format(self, record: logging.LogRecord) -> str:
+        base = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", self.converter(record.created)),
+            "level": record.levelname,
+            "logger": record.name,
+            "rid": getattr(record, "request_id", "-"),
+            "msg": record.getMessage(),
+        }
+        # Campos útiles estándar
+        if record.exc_info:
+            base["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(base, ensure_ascii=False)
 
 
 # =====================================================
@@ -91,65 +118,107 @@ def _coerce_log_dir(value: Any, fallback: str = "./logs") -> str:
 
 
 # =====================================================
-# 🪵 Configuración del Logging
+# 🪵 Configuración del Logging (idempotente)
 # =====================================================
-def setup_logging(level: int | None = None) -> None:
+_CONFIGURED = False  # evita duplicar handlers
+
+def _resolve_level(default_debug: bool) -> int:
+    env = (os.getenv("LOG_LEVEL") or "").strip().upper()
+    mapping = {
+        "CRITICAL": logging.CRITICAL,
+        "ERROR": logging.ERROR,
+        "WARN": logging.WARNING,
+        "WARNING": logging.WARNING,
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+        "NOTSET": logging.NOTSET,
+    }
+    if env in mapping:
+        return mapping[env]
+    return logging.DEBUG if default_debug else logging.INFO
+
+
+def setup_logging(level: Optional[int] = None, force: bool = False) -> None:
     """
     Configura el logging global del sistema:
     - Consola + archivo rotativo
-    - Formato uniforme
+    - Formato uniforme (texto/JSON)
     - request_id opcional (si existe)
     - Integración con uvicorn/httpx
+    - Idempotente (no duplica handlers)
     """
+    global _CONFIGURED
+    if _CONFIGURED and not force:
+        # Ya configurado; no duplicar handlers
+        return
+
     # Invoca configuración base (si existe)
     try:
         configure_logging(level=level)
     except Exception:
         pass
 
-    fmt = "%(asctime)s | %(levelname)-8s | %(name)s | rid=%(request_id)s | %(message)s"
-    formatter = logging.Formatter(fmt)
+    # ── Formato/Parámetros desde ENV ─────────────────────────
+    log_format = (os.getenv("LOG_FORMAT") or "text").strip().lower()  # "text" | "json"
+    max_bytes = int(os.getenv("LOG_MAX_BYTES") or "10000000")         # 10MB
+    backups   = int(os.getenv("LOG_BACKUPS") or "5")
+
+    # ── Formatters ───────────────────────────────────────────
+    text_fmt = "%(asctime)s | %(levelname)-8s | %(name)s | rid=%(request_id)s | %(message)s"
+    formatter_text = UTCFormatter(text_fmt)
+    formatter_json = JSONFormatter()
     rid_filter = RequestIdFilter()
 
     # 🧩 Asegurar carpeta de logs con coerción robusta
     raw_dir = getattr(settings, "log_dir", "./logs")
     log_dir = _coerce_log_dir(raw_dir, "./logs")
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "system.log")
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except Exception:
+        # Si falla crear carpeta, seguimos sólo con consola
+        log_dir = None
 
-    # Limpiar handlers previos del root
+    log_path = os.path.join(log_dir, "system.log") if log_dir else None
+
+    # Root logger
     root = logging.getLogger()
     root.handlers.clear()
 
     # Handler consola
     stream_h = logging.StreamHandler()
-    stream_h.setFormatter(formatter)
+    stream_h.setFormatter(formatter_json if log_format == "json" else formatter_text)
     stream_h.addFilter(rid_filter)
     root.addHandler(stream_h)
 
-    # Handler archivo rotativo
-    file_h = RotatingFileHandler(
-        log_path,
-        maxBytes=10_000_000,
-        backupCount=5,
-        encoding="utf-8",
-    )
-    file_h.setFormatter(formatter)
-    file_h.addFilter(rid_filter)
-    root.addHandler(file_h)
+    # Handler archivo rotativo (si posible)
+    if log_path:
+        try:
+            file_h = RotatingFileHandler(
+                log_path,
+                maxBytes=max_bytes,
+                backupCount=backups,
+                encoding="utf-8",
+            )
+            file_h.setFormatter(formatter_json if log_format == "json" else formatter_text)
+            file_h.addFilter(rid_filter)
+            root.addHandler(file_h)
+        except Exception:
+            # No bloquear arranque por problemas de filesystem
+            pass
 
     # Nivel efectivo
-    level_eff = logging.DEBUG if getattr(settings, "debug", False) else logging.INFO
+    level_eff = _resolve_level(getattr(settings, "debug", False))
     root.setLevel(level if level is not None else level_eff)
 
-    # Alinear loggers comunes
+    # Alinear loggers comunes sin duplicar
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx"):
         lg = logging.getLogger(name)
         lg.handlers.clear()
-        lg.propagate = True
+        lg.propagate = True  # que usen el root
         lg.setLevel(root.level)
 
-    root.info("✅ Logging inicializado correctamente (directorio: %s)", log_dir)
+    root.info("✅ Logging inicializado correctamente (formato=%s, dir=%s)", log_format, (log_dir or "stdout-only"))
+    _CONFIGURED = True
 
 
 # =====================================================
@@ -158,3 +227,19 @@ def setup_logging(level: int | None = None) -> None:
 def get_logger(name: str) -> Logger:
     """Obtiene un logger de módulo (hereda formato del root)."""
     return logging.getLogger(name)
+
+
+# =====================================================
+# 🔧 Utilidades extra
+# =====================================================
+def set_global_log_level(level_name: str) -> None:
+    """
+    Cambia el nivel global en caliente.
+    level_name: DEBUG | INFO | WARNING | ERROR | CRITICAL
+    """
+    lvl = getattr(logging, level_name.upper(), None)
+    if not isinstance(lvl, int):
+        raise ValueError(f"Nivel inválido: {level_name}")
+    logging.getLogger().setLevel(lvl)
+    for n in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx"):
+        logging.getLogger(n).setLevel(lvl)

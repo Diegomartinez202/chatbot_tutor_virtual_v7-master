@@ -79,6 +79,7 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env.local
+      
     environment:
       ACTIONS_LOG_LEVEL: "INFO"
       HELPDESK_WEBHOOK: "http://backend:8000/api/helpdesk/tickets"
@@ -106,11 +107,22 @@ services:
     networks:
       - app-net
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5055/health"]
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+         import urllib.request,sys
+         try:
+             r = urllib.request.urlopen("http://127.0.0.1:5055/health", timeout=3)
+             sys.exit(0 if r.getcode()==200 else 1)
+         except Exception:
+             sys.exit(1)
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 5s
+
 # ------------------------------------------------------------
 # Rasa (build/prod) — Tracker en Mongo y arranque robusto
 # ------------------------------------------------------------
@@ -259,6 +271,8 @@ services:
       TRACKER_MONGO_COLLECTION: "conversations"
       RASA_PORT: "5005"
       RASA_MODELS_COLLECTION: "trained_models"
+      ACTIONS_CORS: "*"
+ 
   # ============================================================
   # Backend DEV (hot reload)
   # ============================================================
@@ -277,9 +291,8 @@ services:
     restart: unless-stopped
     user: "${UID-10001}:${GID-10001}"
     env_file:
-      - ./.env.local
-      - ./backend/.env
-      - ${BACKEND_ENV_FILE:-backend/.env.dev}
+    - ./.env
+    - ${BACKEND_ENV_FILE:-backend/.env.dev}
     environment:
 
       # ✅ CORS / EMBED / CSP (formato compatible con docker-compose)
@@ -307,7 +320,7 @@ services:
       REDIS_URL: redis://redis:6379/0
 
       # ✅ Entorno
-      APP_ENV: dev
+    
       DEBUG: "true"
       FRONTEND_SITE_URL: http://localhost:5173
 
@@ -316,17 +329,24 @@ services:
       UVICORN_PORT: ${UVICORN_PORT:-8000}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
 
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
 
       # ✅ Polling para entornos con FS montado
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
+      APP_ENV: ${APP_ENV:-dev}
     volumes:
       - ./backend:/app/backend
     depends_on:
      rasa:
       condition: service_healthy
      mongo:
-      condition: service_started
+      condition: service_healthy
      redis:
       condition: service_started
     ports:
@@ -340,15 +360,18 @@ services:
       retries: 5
     command: >
       bash -lc "
-        if command -v node >/dev/null 2>&1 && [ -f /app/build-tailwind.js ]; then
-          echo '[backend-dev] Node presente: ejecutando build Tailwind...';
-          node /app/build-tailwind.js || true;
-        else
-          echo '[backend-dev] Node NO presente: omitiendo build Tailwind';
-        fi;
-        exec uvicorn backend.main:app --reload --host ${UVICORN_HOST:-0.0.0.0} --port ${UVICORN_PORT:-8000}
-      "
-
+       echo '[backend-dev] ⚙️ Modo activo: '${MODE:-unknown};
+       echo '[backend-dev] 📄 BACKEND_ENV_FILE='${BACKEND_ENV_FILE:-unset};
+       echo '[backend-dev] 🧩 COMPOSE_PROFILES='${COMPOSE_PROFILES:-unset};
+       echo '[backend-dev] 🗄️ Mongo='${MONGO_URI:-unset};
+       echo '[backend-dev] 🤖 Rasa='${RASA_URL:-unset};
+       if command -v node >/dev/null 2>&1 && [ -f /app/build-tailwind.js ]; then
+         echo '[backend-dev] Node presente: ejecutando build Tailwind...';
+         node /app/build-tailwind.js || true;
+      else
+        echo '[backend-dev] Node NO presente: omitiendo build Tailwind';
+      fi;
+      exec uvicorn backend.main:app --reload --host ${UVICORN_HOST:-0.0.0.0} --port ${UVICORN_PORT:-8000}"
   # ============================================================ 
   # Backend PROD (Uvicorn)
   # ============================================================
@@ -366,14 +389,12 @@ services:
     container_name: backend
     restart: unless-stopped
     env_file:
-      - ./.env.local
-      - ./backend/.env.production
-      - ${BACKEND_ENV_FILE:-backend/.env.production}
+    - ./.env
+    - ${BACKEND_ENV_FILE:-backend/.env.production}
     environment:
       UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
       UVICORN_PORT: ${UVICORN_PORT:-8000}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
-      APP_ENV: prod
       DEBUG: "false"
 
 
@@ -400,11 +421,18 @@ services:
       ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://localhost"]'
       FRONTEND_SITE_URL: http://localhost:5173
 
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+      LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
+      APP_ENV: ${APP_ENV:-prod}
     depends_on:
       rasa:
        condition: service_healthy
       mongo:
-       condition: service_started
+       condition: service_healthy
       redis:
        condition: service_started
     ports:
@@ -450,15 +478,19 @@ services:
     working_dir: /app
     restart: "no"
     command: >
-      sh -lc "
-        echo '📦 Instalando dependencias...';
-        npm ci;
-        echo '🎨 Ejecutando build Tailwind (si aplica)...';
-        if [ -f /app/build-tailwind.js ]; then node /app/build-tailwind.js || true; fi;
-        echo '⚙️ Compilando aplicación React...';
-        npm run build;
-        echo '✅ Build completado correctamente en ./dist';
-      "
+      bash -lc "
+        echo '[backend] ⚙️ Modo activo: '${MODE:-unknown};
+        echo '[backend] 📄 BACKEND_ENV_FILE='${BACKEND_ENV_FILE:-unset};
+        echo '[backend] 🧩 COMPOSE_PROFILES='${COMPOSE_PROFILES:-unset};
+        echo '[backend] 🗄️ Mongo='${MONGO_URI:-unset};
+        echo '[backend] 🤖 Rasa='${RASA_URL:-unset};
+        exec uvicorn backend.main:app
+      --host ${UVICORN_HOST}
+      --port ${UVICORN_PORT}
+      --workers ${UVICORN_WORKERS}
+      --proxy-headers
+      --forwarded-allow-ips='*'"
+
     volumes:
       - ./admin_panel_react:/app
       - /app/node_modules
@@ -493,7 +525,11 @@ services:
       start_period: 10s
     networks:
       - app-net
-
+    command: >
+      /bin/sh -c "
+      echo '[nginx] ⚙️ Modo activo: '${MODE:-unknown};
+      echo '[nginx] 🌐 Proxying hacia backend: http://backend:8000 y Rasa: http://rasa:5005';
+      exec nginx -g 'daemon off;';"
   # ------------------------------------------------------------
   # Backend "vanilla"
   # ------------------------------------------------------------
