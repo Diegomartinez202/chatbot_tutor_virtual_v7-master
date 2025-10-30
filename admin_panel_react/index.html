@@ -101,6 +101,38 @@
     <div id="root"></div>
     <!-- Vite reemplaza esto en build -->
     <script type="module" src="/src/main.jsx"></script>
+    <!-- 🧩 Chatbot Widget Embebido -->
+    <script src="/embed/zajuna-bubble.js"></script>
+    <script>
+        // Inicialización del widget flotante
+        const bubble = ZajunaBubble.create({
+            // Si el chat corre en otro dominio/puerto, ajusta estos valores:
+            // iframeUrl: "http://localhost:8080/?embed=1",
+            // allowedOrigin: "http://localhost:8080",
+            startOpen: false,           // ⬅️ No se abre solo
+            draggable: true,            // ⬅️ Se puede arrastrar
+            closeOnEsc: true,
+            closeOnOutsideClick: false,
+            position: "bottom-right",
+            width: 380,
+            height: 560,
+            showLabel: false,
+            theme: "auto",
+        });
+
+        bubble.mount();
+
+        // Escucha mensajes desde el iframe (Rasa o frontend del chat) para controlar el widget
+        window.addEventListener("message", (event) => {
+            // Opcional: valida origen si lo conoces
+            // if (event.origin !== "http://localhost:8080") return;
+
+            const msg = event.data || {};
+            if (msg.type === "widget:toggle") bubble.toggle();
+            if (msg.type === "widget:open") bubble.open();
+            if (msg.type === "widget:close") bubble.close();
+        });
+    </script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
 </body>
 </html>

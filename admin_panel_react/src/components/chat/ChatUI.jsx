@@ -477,6 +477,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         if (!input.trim() || sending) return;
         await sendToRasa({ text: input });
     };
+    try {
+        window.parent?.postMessage({ type: "widget:open" }, "*");
+    } catch { /* no-op */ }
     const onKeyDown = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
