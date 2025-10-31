@@ -4,7 +4,6 @@ import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/context/AuthContext";
-import { sendRasaMessage } from "@/services/chat/connectRasaRest";
 import MicButton from "./MicButton";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
@@ -12,6 +11,9 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
+
+// ⛳️ nuevo helper REST con metadata.auth.hasToken
+import { sendToRasaREST } from "./rasa/restClient.js";
 
 // Evita doble saludo: aquí controlamos saludo inicial del cliente
 const SEND_CLIENT_HELLO = true;
@@ -28,114 +30,13 @@ const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-/* --- Router local para payloads opcionales (UX instantánea) --- */
-function localNodesToItems(nodes, tChat, sendToRasa) {
-    return nodes.map((n, i) => {
-        const id = `local-${Date.now()}-${i}`;
-        if (n.type === "text") {
-            return { id, role: "bot", text: typeof n.text === "function" ? n.text(tChat) : n.text };
-        }
-        if (n.type === "buttons") {
-            return {
-                id, role: "bot",
-                render: () => (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {n.items.map((btn, j) => (
-                            <button key={j} type="button" className="bot-interactive"
-                                onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })}>
-                                {btn.label}
-                            </button>
-                        ))}
-                    </div>
-                ),
-            };
-        }
-        if (n.type === "links") {
-            return {
-                id, role: "bot",
-                render: () => (
-                    <div className="flex flex-col gap-2 mt-2">
-                        {n.items.map((lnk, j) => (
-                            <a key={j} href={lnk.href} target="_blank" rel="noopener noreferrer" className="bot-interactive">
-                                {lnk.label}
-                            </a>
-                        ))}
-                    </div>
-                ),
-            };
-        }
-        return null;
-    })
-        .filter(Boolean);
-}
-
-const LOCAL_ROUTES = {
-    "/faq_ingreso": (tChat) => [
-        { type: "text", text: () => tChat("inicio.title", "Elige una opción para continuar:") },
-        {
-            type: "links", items: [
-                { label: tChat("links.zajunaRegister", "Registro en Zajuna"), href: "https://zajuna.example/faq/registro" },
-                { label: tChat("links.zajunaLogin", "Inicio de sesión"), href: "https://zajuna.example/faq/login" },
-                { label: tChat("links.changePassword", "Cambiar contraseña"), href: "https://zajuna.example/faq/password" },
-                { label: tChat("links.userBlocked", "Usuario bloqueado"), href: "https://zajuna.example/faq/bloqueo" },
-            ]
-        },
-        {
-            type: "buttons", items: [
-                { label: tChat("inicio.options.explorar", "Explorar temas"), payload: "/explorar_temas" },
-                { label: tChat("inicio.options.cursos", "Mis cursos y contenidos"), payload: "/mis_cursos" },
-                { label: tChat("inicio.options.academico", "Proceso académico / administrativo"), payload: "/academico_admin" },
-                { label: tChat("inicio.options.soporte", "Soporte técnico"), payload: "/soporte_tecnico" },
-            ]
-        },
-    ],
-    "/explorar_temas": (tChat) => [
-        { type: "text", text: tChat("sections.topicsFeatured", "Temas destacados:") },
-        {
-            type: "buttons", items: [
-                { label: tChat("topics.pythonBasic", "Python Básico"), payload: "/tema_python_basico" },
-                { label: tChat("topics.aiEducation", "IA Educativa"), payload: "/tema_ia_educativa" },
-                { label: tChat("topics.excelBasic", "Excel Básico"), payload: "/tema_excel_basico" },
-                { label: tChat("topics.webProgramming", "Programación Web"), payload: "/tema_programacion_web" },
-            ]
-        },
-    ],
-    "/mis_cursos": (tChat) => [
-        { type: "text", text: tChat("sections.yourActiveCourses", "Tus cursos activos:") },
-        { type: "links", items: [{ label: tChat("links.coursesPanel", "Mi panel de cursos"), href: "https://zajuna.example/cursos" }] },
-    ],
-    "/academico_admin": (tChat) => [
-        { type: "text", text: tChat("sections.whichPart", "¿Qué parte del proceso?") },
-        {
-            type: "buttons", items: [
-                { label: tChat("faq.matricula", "Matrícula"), payload: "/faq_matricula" },
-                { label: tChat("faq.pagosBecas", "Pagos y becas"), payload: "/faq_pagos_becas" },
-                { label: tChat("faq.certificados", "Certificados"), payload: "/faq_certificados" },
-            ]
-        },
-    ],
-    "/soporte_tecnico": (tChat) => [
-        { type: "text", text: tChat("sections.supportOptions", "Opciones de soporte:") },
-        {
-            type: "links", items: [
-                { label: tChat("links.usageGuide", "Guía de uso"), href: "https://zajuna.example/soporte/guia" },
-                { label: tChat("links.openTicket", "Abrir ticket"), href: "https://zajuna.example/soporte/ticket" },
-            ]
-        },
-    ],
-};
-
-async function handleLocalPayload({ text, tChat, setMessages, sendToRasa }) {
+/* 🔒 Local router desactivado (Rasa controla el flujo)
+   Mantenemos estructura vacía para no romper nada. */
+const LOCAL_ROUTES = {};
+async function handleLocalPayload({ text /*, tChat, setMessages, sendToRasa */ }) {
     const make = LOCAL_ROUTES[text];
     if (!make) return false;
-    const nodes = make(tChat);
-    const items = localNodesToItems(nodes, tChat, sendToRasa);
-    if (items.length) {
-        for (let i = 0; i < items.length; i++) {
-            await new Promise((r) => setTimeout(r, 120));
-            setMessages((m) => [...m, items[i]]);
-        }
-    }
+    // Si en el futuro reactivas algo local, aquí lo pintas.
     return true;
 }
 
@@ -178,6 +79,20 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const { t: tChat } = useTranslation("chat");
     const { t: tConfig } = useTranslation("config");
 
+    // ✅ senderId estable por sesión para Rasa
+    const [senderId] = useState(() => {
+        const k = "rasa:senderId";
+        try {
+            const existing = localStorage.getItem(k);
+            if (existing) return existing;
+            const id = "web-" + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem(k, id);
+            return id;
+        } catch {
+            return "web-" + Math.random().toString(36).slice(2, 10);
+        }
+    });
+
     const storeToken = useAuthStore((s) => s.accessToken);
     const [authToken, setAuthToken] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -186,14 +101,15 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const [error, setError] = useState("");
     const [typing, setTyping] = useState(false);
 
-    // Acciones rápidas visibles al inicio (como el viejo widget)
+    // Acciones rápidas visibles al inicio
     const [showQuick, setShowQuick] = useState(true);
 
-    // Sugerencias clásicas (se mantienen, pero ya no auto-inyectamos /explorar_temas)
-    const [hasShownSuggestions, setHasShownSuggestions] = useState(false);
+    // Placeholders para compatibilidad
+    const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
+    const appendFirstSuggestions = () => { }; // no-op (evita romper referencias antiguas)
 
-    // Saludo inicial inmediato
+    // Saludo inicial inmediato (solo cliente)
     useEffect(() => {
         if (SEND_CLIENT_HELLO) {
             setMessages([{
@@ -222,17 +138,16 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const urlParams = new URLSearchParams(window.location.search);
     const isGuestEmbed = urlParams.get("guest") === "1";
 
-    // 🔐 REGLA CLAVE: sólo obligar login para intents/acciones que lo requieran
+    // 🔐 Solo obliga login para intents que lo requieran
     function requiresAuthFor(text) {
         const t = String(text || "").trim();
-        // payloads/acciones de Zajuna que sí requieren estar logueado
         const NEED_AUTH = [
             "/mis_cursos",
             "/ver_progreso",
             "/estado_estudiante",
             "/tutor_asignado",
             "/ingreso_zajuna",
-            "/faq_ingreso_privado", // por si tienes uno
+            "/faq_ingreso_privado",
             "/user_panel",
         ];
         return NEED_AUTH.includes(t);
@@ -318,7 +233,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
 
-        // 🔐 Sólo exige auth si la acción lo requiere (Zajuna) y no hay token
+        // 🔐 Solo exige auth si la acción lo requiere (y no hay token)
         if (embed && requiresAuthFor(text) && !authToken) {
             try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
             setError(tChat("authRequired", "Para continuar, inicia sesión."));
@@ -333,7 +248,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         // oculta QuickActions al primer input/acción
         setShowQuick(false);
 
-        // (Opcional) sugerencias clásicas
+        // (Compat) sugerencias clásicas (no-op si no las usas)
         if (!isPayload && !hasShownSuggestions && hasSentFirstMessage) {
             appendFirstSuggestions();
         }
@@ -343,16 +258,13 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         } catch { }
 
         try {
-            // si es payload, además de la respuesta local, consulta a Rasa
+            // Si quisieras, aquí podrías renderizar algo local; por ahora todo lo maneja Rasa
             if (isPayload) {
-                await handleLocalPayload({ text, tChat, setMessages, sendToRasa });
+                await handleLocalPayload({ text /*, tChat, setMessages, sendToRasa */ });
             }
 
-            const rsp = await sendRasaMessage({
-                text,
-                sender: userId || undefined,
-                token: authToken || undefined,
-            });
+            // ⛳️ LLAMADA ÚNICA: siempre via REST helper con metadata
+            const rsp = await sendToRasaREST(senderId, text);
             await appendBotMessages(rsp);
         } catch (e) {
             setError(e?.message || tChat("errorSending"));
@@ -476,4 +388,3 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         </div>
     );
 }
-

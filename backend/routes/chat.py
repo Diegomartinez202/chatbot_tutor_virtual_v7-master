@@ -150,3 +150,13 @@ async def chat_demo(data: ChatRequest):
     else:
         bot_responses = [{"text": "🤖 Esta es una respuesta de prueba del bot Zajuna."}]
     return bot_responses
+
+@router.post("/rasa/rest/webhook")
+async def rasa_rest_proxy(payload: dict):
+    # payload llega con sender, message (del front)
+    # Añade metadata si falta (por si en algún flujo no pasó desde el front)
+    payload.setdefault("metadata", {}).setdefault("ui", {"proxied": True})
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post("http://rasa:5005/webhooks/rest/webhook", json=payload)
+        r.raise_for_status()
+        return r.json()
