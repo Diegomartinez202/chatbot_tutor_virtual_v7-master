@@ -1,4 +1,4 @@
-﻿version: "3.1"
+version: "3.1"
 
 rules:
 
@@ -144,6 +144,7 @@ rules:
       - action: utter_cambio_idioma_espanol
 
   # 📝 Inscribirme
+  # ⚠️ Asegúrate de tener 'utter_confirmacion_inscripcion' en domain.yml
   - rule: Inscribirme
     steps:
       - intent: inscribirme
@@ -207,7 +208,7 @@ rules:
   - rule: Pedir correo (dedicado)
     steps:
       - intent: pedir_correo
-      - action: utter_pedir_correo
+      - action: utter_pedir_correo   # ⚠️ Define esta respuesta en domain.yml si no existe
 
   - rule: Pedir email (dedicado)
     steps:

@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import axiosClient from "@/services/axiosClient";
 import { STORAGE_KEYS } from "@/lib/constants";
-import { registerLogout } from "@/services/authHelper"; // stub más abajo
+import { registerLogout } from "@/services/authHelper";
 
 const AuthContext = createContext({
     token: null,
@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
         setAxiosAuthHeader(token);
     }, [token]);
 
+    // 🔄 Mantener sincronizado el token entre pestañas
     useEffect(() => {
         const onStorage = (e) => {
             if (e.key === STORAGE_KEYS.accessToken) {
@@ -81,6 +82,7 @@ export const AuthProvider = ({ children }) => {
         } catch { }
     }, [logout]);
 
+    // 🔍 Validar token actual
     useEffect(() => {
         let alive = true;
         (async () => {
@@ -106,6 +108,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, [token, logout]);
 
+    // ✅ Login manual y reenvío inmediato al chat embebido
     const login = useMemo(
         () =>
             async (newToken) => {
@@ -113,26 +116,41 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem(STORAGE_KEYS.accessToken, newToken);
                 } catch { }
                 setToken(newToken);
+                setAxiosAuthHeader(newToken);
+
                 try {
                     const res = await axiosClient.get("/auth/me");
                     setUser(res.data);
                 } catch (err) {
                     console.error("Error al obtener perfil tras login:", err);
                 }
+
+                // 🚀 Enviar token al chat embebido si está montado
+                try {
+                    window.__zjBubble?.sendAuthToken?.(newToken);
+                } catch { }
             },
         []
     );
 
-    // ⚙️ Agregamos la función para redirigir al proveedor SSO (Zajuna)
+    // ⚙️ Redirigir al SSO Zajuna
     const redirectToZajunaSSO = () => {
         const ssoUrl = import.meta.env.VITE_ZAJUNA_SSO_URL;
         if (ssoUrl) {
             const redirectUri = `${window.location.origin}/auth/callback`;
             window.location.href = `${ssoUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
         } else {
-            console.warn("⚠️ No se configuró la URL del proveedor SSO (VITE_ZAJUNA_SSO_URL).");
+            console.warn("⚠️ No se configuró VITE_ZAJUNA_SSO_URL");
         }
     };
+
+    // 🔁 Cada vez que cambia el token, reenviarlo al iframe embebido
+    useEffect(() => {
+        if (!token) return;
+        try {
+            window.__zjBubble?.sendAuthToken?.(token);
+        } catch { }
+    }, [token]);
 
     const value = useMemo(
         () => ({
@@ -143,7 +161,7 @@ export const AuthProvider = ({ children }) => {
             isAuthenticated,
             login,
             logout,
-            redirectToZajunaSSO, // ✅ la exponemos en el contexto
+            redirectToZajunaSSO,
         }),
         [token, user, role, loading, isAuthenticated, login, logout]
     );

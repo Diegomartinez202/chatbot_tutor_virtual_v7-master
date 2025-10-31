@@ -341,6 +341,7 @@ services:
       WATCHPACK_POLLING: "true"
       LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
       APP_ENV: ${APP_ENV:-dev}
+      PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
     volumes:
       - ./backend:/app/backend
     depends_on:
@@ -429,6 +430,7 @@ services:
       RASA_MODELS_COLLECTION: "trained_models"
       LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
       APP_ENV: ${APP_ENV:-prod}
+      PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
     depends_on:
       rasa:
        condition: service_healthy

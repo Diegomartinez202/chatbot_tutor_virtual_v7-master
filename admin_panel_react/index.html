@@ -104,29 +104,46 @@
     <!-- 🧩 Chatbot Widget Embebido -->
     <script src="/embed/zajuna-bubble.js"></script>
     <script>
+        // Si tienes un token (usuario autenticado), pásalo inmediatamente:
+        function getUserTokenMaybe() {
+            try {
+                return localStorage.getItem("app_access_token")
+                    || localStorage.getItem("zajuna_token")
+                    || localStorage.getItem("accessToken");
+            } catch { return null; }
+        }
         // Inicialización del widget flotante
+        // --- Inicialización del widget flotante ---
         const bubble = ZajunaBubble.create({
-            // Si el chat corre en otro dominio/puerto, ajusta estos valores:
-            // iframeUrl: "http://localhost:8080/?embed=1",
-            // allowedOrigin: "http://localhost:8080",
-            startOpen: false,           // ⬅️ No se abre solo
-            draggable: true,            // ⬅️ Se puede arrastrar
-            closeOnEsc: true,
-            closeOnOutsideClick: false,
-            position: "bottom-right",
+            iframeUrl: "http://localhost:8080/?embed=1&guest=1",
+            // ⬅️ ya no pongas allowedOrigin; lo calcula del iframeUrl
+            startOpen: false,
+            draggable: true,
             width: 380,
             height: 560,
-            showLabel: false,
-            theme: "auto",
+            autoSendToken: true,
+            tokenStorageKey: "app:accessToken",
+            tokenCookieName: "access_token",
         });
 
         bubble.mount();
+        window.__zjBubble = bubble;
 
-        // Escucha mensajes desde el iframe (Rasa o frontend del chat) para controlar el widget
+        // Escucha mensajes del iframe (para abrir/cerrar o pedir auth)
+        bubble.onEvent((evt) => {
+            if (evt?.type === "auth:missing" || evt?.type === "auth:needed") {
+                // 👉 abre tu modal de login o redirige al flujo de autenticación
+                if (window.showLoginModal) window.showLoginModal();
+            }
+        });
+
+        // Función global para reenviar token manualmente (si lo necesitas)
+        window.sendChatAuthToken = (token) => {
+            try { bubble.sendAuthToken(token); } catch { }
+        };
+
+        // También puedes escuchar mensajes manuales (opcional)
         window.addEventListener("message", (event) => {
-            // Opcional: valida origen si lo conoces
-            // if (event.origin !== "http://localhost:8080") return;
-
             const msg = event.data || {};
             if (msg.type === "widget:toggle") bubble.toggle();
             if (msg.type === "widget:open") bubble.open();

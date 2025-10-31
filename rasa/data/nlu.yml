@@ -1,4 +1,4 @@
-﻿version: "3.1"
+version: "3.1"
 
 nlu:
 
@@ -34,6 +34,9 @@ nlu:
     - cursos disponibles
     - quiero aprender algo nuevo
     - ver catálogo
+    # 👇 extra ligero, no rompe nada
+    - ver cursos disponibles
+    - catálogo académico
 
 # ————— INGRESO / LOGIN
 - intent: ingreso_zajuna
@@ -274,6 +277,9 @@ nlu:
     - abrir el login
 
 # (Intent técnico para reglas, SIN solaparse con 'auth_login')
+# Nota: mantenemos estas frases porque tu bot ya entrena sin errores.
+# Si notas confusiones entre 'auth_login' y 'auth_login_cmd', podemos
+# mover aquí más variantes con "/" para reforzar el estilo comando.
 - intent: auth_login_cmd
   examples: |
     - /auth_login

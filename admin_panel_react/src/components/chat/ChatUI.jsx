@@ -1,5 +1,5 @@
 // src/components/chat/ChatUI.jsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,83 +11,61 @@ import { useAuthStore } from "@/store/authStore";
 import { STORAGE_KEYS } from "@/lib/constants";
 import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
+import QuickActions from "@/components/chat/QuickActions";
 
 // Evita doble saludo: aquí controlamos saludo inicial del cliente
 const SEND_CLIENT_HELLO = true;
 
 // Helpers
 function getParentOrigin() {
-    try {
-        return new URL(document.referrer || "").origin;
-    } catch {
-        return window.location.origin;
-    }
+    try { return new URL(document.referrer || "").origin; } catch { return window.location.origin; }
 }
-function normalize(o) {
-    return String(o || "").trim().replace(/\/+$/, "");
-}
+function normalize(o) { return String(o || "").trim().replace(/\/+$/, ""); }
 
 const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
-    .split(",")
-    .map((s) => normalize(s))
-    .filter(Boolean);
+    .split(",").map((s) => normalize(s)).filter(Boolean);
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
 /* --- Router local para payloads opcionales (UX instantánea) --- */
 function localNodesToItems(nodes, tChat, sendToRasa) {
-    return nodes
-        .map((n, i) => {
-            const id = `local-${Date.now()}-${i}`;
-            if (n.type === "text") {
-                return { id, role: "bot", text: typeof n.text === "function" ? n.text(tChat) : n.text };
-            }
-            if (n.type === "buttons") {
-                return {
-                    id,
-                    role: "bot",
-                    render: () => (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {n.items.map((btn, j) => (
-                                <button
-                                    key={j}
-                                    type="button"
-                                    className="bot-interactive"
-                                    onClick={() =>
-                                        sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })
-                                    }
-                                >
-                                    {btn.label}
-                                </button>
-                            ))}
-                        </div>
-                    ),
-                };
-            }
-            if (n.type === "links") {
-                return {
-                    id,
-                    role: "bot",
-                    render: () => (
-                        <div className="flex flex-col gap-2 mt-2">
-                            {n.items.map((lnk, j) => (
-                                <a
-                                    key={j}
-                                    href={lnk.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bot-interactive"
-                                >
-                                    {lnk.label}
-                                </a>
-                            ))}
-                        </div>
-                    ),
-                };
-            }
-            return null;
-        })
+    return nodes.map((n, i) => {
+        const id = `local-${Date.now()}-${i}`;
+        if (n.type === "text") {
+            return { id, role: "bot", text: typeof n.text === "function" ? n.text(tChat) : n.text };
+        }
+        if (n.type === "buttons") {
+            return {
+                id, role: "bot",
+                render: () => (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {n.items.map((btn, j) => (
+                            <button key={j} type="button" className="bot-interactive"
+                                onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })}>
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                ),
+            };
+        }
+        if (n.type === "links") {
+            return {
+                id, role: "bot",
+                render: () => (
+                    <div className="flex flex-col gap-2 mt-2">
+                        {n.items.map((lnk, j) => (
+                            <a key={j} href={lnk.href} target="_blank" rel="noopener noreferrer" className="bot-interactive">
+                                {lnk.label}
+                            </a>
+                        ))}
+                    </div>
+                ),
+            };
+        }
+        return null;
+    })
         .filter(Boolean);
 }
 
@@ -95,81 +73,54 @@ const LOCAL_ROUTES = {
     "/faq_ingreso": (tChat) => [
         { type: "text", text: () => tChat("inicio.title", "Elige una opción para continuar:") },
         {
-            type: "links",
-            items: [
-                {
-                    label: tChat("links.zajunaRegister", "Registro en Zajuna"),
-                    href: "https://zajuna.example/faq/registro",
-                },
-                {
-                    label: tChat("links.zajunaLogin", "Inicio de sesión"),
-                    href: "https://zajuna.example/faq/login",
-                },
-                {
-                    label: tChat("links.changePassword", "Cambiar contraseña"),
-                    href: "https://zajuna.example/faq/password",
-                },
-                {
-                    label: tChat("links.userBlocked", "Usuario bloqueado"),
-                    href: "https://zajuna.example/faq/bloqueo",
-                },
-            ],
+            type: "links", items: [
+                { label: tChat("links.zajunaRegister", "Registro en Zajuna"), href: "https://zajuna.example/faq/registro" },
+                { label: tChat("links.zajunaLogin", "Inicio de sesión"), href: "https://zajuna.example/faq/login" },
+                { label: tChat("links.changePassword", "Cambiar contraseña"), href: "https://zajuna.example/faq/password" },
+                { label: tChat("links.userBlocked", "Usuario bloqueado"), href: "https://zajuna.example/faq/bloqueo" },
+            ]
         },
         {
-            type: "buttons",
-            items: [
+            type: "buttons", items: [
                 { label: tChat("inicio.options.explorar", "Explorar temas"), payload: "/explorar_temas" },
                 { label: tChat("inicio.options.cursos", "Mis cursos y contenidos"), payload: "/mis_cursos" },
-                {
-                    label: tChat("inicio.options.academico", "Proceso académico / administrativo"),
-                    payload: "/academico_admin",
-                },
+                { label: tChat("inicio.options.academico", "Proceso académico / administrativo"), payload: "/academico_admin" },
                 { label: tChat("inicio.options.soporte", "Soporte técnico"), payload: "/soporte_tecnico" },
-            ],
+            ]
         },
     ],
-
     "/explorar_temas": (tChat) => [
         { type: "text", text: tChat("sections.topicsFeatured", "Temas destacados:") },
         {
-            type: "buttons",
-            items: [
+            type: "buttons", items: [
                 { label: tChat("topics.pythonBasic", "Python Básico"), payload: "/tema_python_basico" },
                 { label: tChat("topics.aiEducation", "IA Educativa"), payload: "/tema_ia_educativa" },
                 { label: tChat("topics.excelBasic", "Excel Básico"), payload: "/tema_excel_basico" },
                 { label: tChat("topics.webProgramming", "Programación Web"), payload: "/tema_programacion_web" },
-            ],
+            ]
         },
     ],
-
     "/mis_cursos": (tChat) => [
         { type: "text", text: tChat("sections.yourActiveCourses", "Tus cursos activos:") },
-        {
-            type: "links",
-            items: [{ label: tChat("links.coursesPanel", "Mi panel de cursos"), href: "https://zajuna.example/cursos" }],
-        },
+        { type: "links", items: [{ label: tChat("links.coursesPanel", "Mi panel de cursos"), href: "https://zajuna.example/cursos" }] },
     ],
-
     "/academico_admin": (tChat) => [
         { type: "text", text: tChat("sections.whichPart", "¿Qué parte del proceso?") },
         {
-            type: "buttons",
-            items: [
+            type: "buttons", items: [
                 { label: tChat("faq.matricula", "Matrícula"), payload: "/faq_matricula" },
                 { label: tChat("faq.pagosBecas", "Pagos y becas"), payload: "/faq_pagos_becas" },
                 { label: tChat("faq.certificados", "Certificados"), payload: "/faq_certificados" },
-            ],
+            ]
         },
     ],
-
     "/soporte_tecnico": (tChat) => [
         { type: "text", text: tChat("sections.supportOptions", "Opciones de soporte:") },
         {
-            type: "links",
-            items: [
+            type: "links", items: [
                 { label: tChat("links.usageGuide", "Guía de uso"), href: "https://zajuna.example/soporte/guia" },
                 { label: tChat("links.openTicket", "Abrir ticket"), href: "https://zajuna.example/soporte/ticket" },
-            ],
+            ]
         },
     ],
 };
@@ -192,19 +143,13 @@ async function handleLocalPayload({ text, tChat, setMessages, sendToRasa }) {
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
-        <div
-            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
-            style={{ width: size, height: size }}
-        >
-            {err ? (
-                <UserIcon className="w-4 h-4 text-indigo-600" />
-            ) : (
+        <div className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center" style={{ width: size, height: size }}>
+            {err ? <UserIcon className="w-4 h-4 text-indigo-600" /> : (
                 <img src={BOT_AVATAR} alt="Bot" className="w-full h-full object-cover" onError={() => setErr(true)} />
             )}
         </div>
     );
 }
-
 function getInitials(source) {
     const s = String(source || "").trim();
     if (!s) return "U";
@@ -214,32 +159,21 @@ function getInitials(source) {
     const b = (parts[1] || "").charAt(0);
     return (a + b).toUpperCase() || a.toUpperCase() || "U";
 }
-
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
     const src = user?.avatarUrl || user?.photoUrl || user?.image || user?.photo || USER_AVATAR_FALLBACK || "";
     if (!src || err) {
         const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
-            <div
-                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
-                style={{ width: size, height: size }}
-            >
+            <div className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold" style={{ width: size, height: size }}>
                 {initials?.slice(0, 2) || <UserIcon className="w-4 h-4" />}
             </div>
         );
     }
-    return (
-        <img
-            src={src}
-            alt={user?.nombre || user?.name || user?.email}
-            className="w-full h-full object-cover rounded-full"
-            onError={() => setErr(true)}
-        />
-    );
+    return <img src={src} alt={user?.nombre || user?.name || user?.email} className="w-full h-full object-cover rounded-full" onError={() => setErr(true)} />;
 }
 
-export default function ChatUI({ embed = false, placeholder = "Escribe un mensaje…" }) {
+export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
     const { t: tConfig } = useTranslation("config");
@@ -252,30 +186,30 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     const [error, setError] = useState("");
     const [typing, setTyping] = useState(false);
 
-    // Sugerencias: switches
+    // Acciones rápidas visibles al inicio (como el viejo widget)
+    const [showQuick, setShowQuick] = useState(true);
+
+    // Sugerencias clásicas (se mantienen, pero ya no auto-inyectamos /explorar_temas)
     const [hasShownSuggestions, setHasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
 
     // Saludo inicial inmediato
     useEffect(() => {
         if (SEND_CLIENT_HELLO) {
-            setMessages([
-                {
-                    id: "welcome",
-                    role: "bot",
-                    text: tChat("welcome", "¡Hola! Soy tu tutor virtual 🤖. ¿En qué puedo ayudarte hoy?"),
-                },
-            ]);
+            setMessages([{
+                id: "welcome",
+                role: "bot",
+                text: tChat("welcome", "¡Hola! Soy tu tutor virtual 🤖. ¿En qué puedo ayudarte hoy?"),
+            }]);
         }
     }, [tChat]);
 
-    // Token centralizado / localStorage
+    // Token del store / localStorage
     useEffect(() => {
         if (storeToken) setAuthToken(storeToken);
         else {
             try {
-                const ls =
-                    localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
+                const ls = localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
                 if (ls) setAuthToken(ls);
             } catch { }
         }
@@ -288,11 +222,23 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
     const urlParams = new URLSearchParams(window.location.search);
     const isGuestEmbed = urlParams.get("guest") === "1";
 
-    // ANTES: const needAuth = embed || !user;
-    // AHORA: en modo invitado NO pedimos login
-    const needAuth = !isGuestEmbed && (embed || !user);
+    // 🔐 REGLA CLAVE: sólo obligar login para intents/acciones que lo requieran
+    function requiresAuthFor(text) {
+        const t = String(text || "").trim();
+        // payloads/acciones de Zajuna que sí requieren estar logueado
+        const NEED_AUTH = [
+            "/mis_cursos",
+            "/ver_progreso",
+            "/estado_estudiante",
+            "/tutor_asignado",
+            "/ingreso_zajuna",
+            "/faq_ingreso_privado", // por si tienes uno
+            "/user_panel",
+        ];
+        return NEED_AUTH.includes(t);
+    }
 
-    // Embed: recibe token del host
+    // Bridge: recibe token del host
     useEffect(() => {
         if (!embed) return;
         const onMsg = (ev) => {
@@ -301,129 +247,81 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                 if (envAllowed.length && !envAllowed.includes(origin)) return;
                 const data = ev.data || {};
                 if (data?.type === "auth:token" && data?.token) setAuthToken(String(data.token));
+                if (data?.type === "host:open") { /* opcional */ }
+                if (data?.type === "host:close") { /* opcional */ }
             } catch { }
         };
         window.addEventListener("message", onMsg);
         return () => window.removeEventListener("message", onMsg);
     }, [embed]);
 
+    // Al cargar en embed, solicita token al host si existe sesión
+    useEffect(() => {
+        if (!embed) return;
+        try { window.parent?.postMessage({ type: "auth:request" }, "*"); } catch { }
+    }, [embed]);
+
     const rspToArray = (rsp) => (Array.isArray(rsp) ? rsp : rsp ? [rsp] : []);
 
-    const appendBotMessages = useCallback(
-        async (rsp) => {
-            const items = [];
-            rspToArray(rsp).forEach((item, idx) => {
-                const baseId = `b-${Date.now()}-${idx}`;
-                if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
-                if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
-                if (item.buttons) {
-                    items.push({
-                        id: `${baseId}-btns`,
-                        role: "bot",
-                        render: () => (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {item.buttons.map((btn, i) => (
-                                    <button
-                                        key={i}
-                                        type="button"
-                                        className="bot-interactive"
-                                        onClick={() => handleActionClick(baseId, btn)}
-                                    >
-                                        {btn.title}
-                                    </button>
-                                ))}
-                            </div>
-                        ),
-                    });
-                }
-                if (item.quick_replies) {
-                    items.push({
-                        id: `${baseId}-qr`,
-                        role: "bot",
-                        render: () => (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {item.quick_replies.map((qr, i) => (
-                                    <button
-                                        key={i}
-                                        type="button"
-                                        className="bot-interactive"
-                                        onClick={() => handleActionClick(baseId, qr)}
-                                    >
-                                        {qr.title}
-                                    </button>
-                                ))}
-                            </div>
-                        ),
-                    });
-                }
-            });
-            if (!items.length)
-                items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
-
-            setTyping(true);
-            for (let i = 0; i < items.length; i++) {
-                await new Promise((r) => setTimeout(r, 140));
-                setMessages((m) => [...m, items[i]]);
+    const appendBotMessages = useCallback(async (rsp) => {
+        const items = [];
+        rspToArray(rsp).forEach((item, idx) => {
+            const baseId = `b-${Date.now()}-${idx}`;
+            if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
+            if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
+            if (item.buttons) {
+                items.push({
+                    id: `${baseId}-btns`,
+                    role: "bot",
+                    render: () => (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {item.buttons.map((btn, i) => (
+                                <button key={i} type="button" className="bot-interactive"
+                                    onClick={() => handleActionClick(baseId, btn)}>
+                                    {btn.title}
+                                </button>
+                            ))}
+                        </div>
+                    ),
+                });
             }
-            setTyping(false);
+            if (item.quick_replies) {
+                items.push({
+                    id: `${baseId}-qr`,
+                    role: "bot",
+                    render: () => (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {item.quick_replies.map((qr, i) => (
+                                <button key={i} type="button" className="bot-interactive"
+                                    onClick={() => handleActionClick(baseId, qr)}>
+                                    {qr.title}
+                                </button>
+                            ))}
+                        </div>
+                    ),
+                });
+            }
+        });
+        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
 
-            try {
-                window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*");
-            } catch { }
-        },
-        [tChat]
-    );
+        setTyping(true);
+        for (let i = 0; i < items.length; i++) {
+            await new Promise((r) => setTimeout(r, 140));
+            setMessages((m) => [...m, items[i]]);
+        }
+        setTyping(false);
 
-    // Sugerencias iniciales (si decides usarlas además del primer payload local)
-    const appendFirstSuggestions = useCallback(() => {
-        if (hasShownSuggestions) return;
-        const opts = [
-            { label: tChat("inicio.options.explorar", "Explorar temas"), payload: "/explorar_temas" },
-            { label: tChat("inicio.options.ingreso", "Ingreso a Zajuna"), payload: "/faq_ingreso" },
-            { label: tChat("inicio.options.cursos", "Mis cursos y contenidos"), payload: "/mis_cursos" },
-            {
-                label: tChat("inicio.options.academico", "Proceso académico / administrativo"),
-                payload: "/academico_admin",
-            },
-            { label: tChat("inicio.options.soporte", "Soporte técnico"), payload: "/soporte_tecnico" },
-        ];
-        setMessages((m) => [
-            ...m,
-            {
-                id: `b-${Date.now()}-intro`,
-                role: "bot",
-                text: tChat("inicio.title", "Puedo ayudarte en estos temas:"),
-            },
-            {
-                id: `b-${Date.now()}-opts`,
-                role: "bot",
-                render: () => (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {opts.map((btn, i) => (
-                            <button
-                                key={i}
-                                type="button"
-                                className="bot-interactive"
-                                onClick={() => sendToRasa({ text: btn.payload, displayAs: btn.label, isPayload: true })}
-                            >
-                                {btn.label}
-                            </button>
-                        ))}
-                    </div>
-                ),
-            },
-        ]);
-        setHasShownSuggestions(true);
-    }, [hasShownSuggestions, tChat]);
+        try { window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*"); } catch { }
+    }, [tChat]);
 
-    /* --- sendToRasa con handler local --- */
+    /* --- sendToRasa con auth diferida --- */
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
 
-        // Si el embed está en modo invitado, NUNCA pedimos login
-        if (needAuth && !authToken) {
-            window.parent?.postMessage?.({ type: "auth:needed" }, "*");
-            setError(tChat("authRequired"));
+        // 🔐 Sólo exige auth si la acción lo requiere (Zajuna) y no hay token
+        if (embed && requiresAuthFor(text) && !authToken) {
+            try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
+            setError(tChat("authRequired", "Para continuar, inicia sesión."));
             return;
         }
 
@@ -432,20 +330,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
 
-        // Al primer mensaje del usuario, empuja menú local de forma inmediata
-        if (!hasSentFirstMessage) {
-            setHasSentFirstMessage(true);
-            await handleLocalPayload({
-                text: "/explorar_temas",
-                tChat,
-                setMessages,
-                sendToRasa,
-            });
-            // Evita que luego se dupliquen con appendFirstSuggestions
-            setHasShownSuggestions(true);
-        }
+        // oculta QuickActions al primer input/acción
+        setShowQuick(false);
 
-        // (Opcional) si mantienes las sugerencias clásicas también:
+        // (Opcional) sugerencias clásicas
         if (!isPayload && !hasShownSuggestions && hasSentFirstMessage) {
             appendFirstSuggestions();
         }
@@ -470,6 +358,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
             setError(e?.message || tChat("errorSending"));
         } finally {
             setSending(false);
+            if (!hasSentFirstMessage) setHasSentFirstMessage(true);
         }
     };
 
@@ -477,39 +366,63 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
         if (!input.trim() || sending) return;
         await sendToRasa({ text: input });
     };
-    try {
-        window.parent?.postMessage({ type: "widget:open" }, "*");
-    } catch { /* no-op */ }
+
     const onKeyDown = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
     };
+
     const handleActionClick = async (_groupId, { title, payload, url }) => {
         if (url) window.open(url, "_blank", "noopener,noreferrer");
         if (!payload) return;
         await sendToRasa({ text: payload, displayAs: title, isPayload: true });
     };
 
-    const BotRow = ({ children }) => (
-        <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>
-    );
-    const UserRow = ({ children }) => (
-        <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>
-    );
+    const BotRow = ({ children }) => <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>;
+    const UserRow = ({ children }) => <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>;
 
     return (
         <div className="h-full flex flex-col chat-container">
             {/* Header simple con Config a la derecha */}
             <div className="chat-header">
                 <div className="chat-title">Asistente</div>
+
+                {/* 👇 botón de cerrar/minimizar SOLO en embed */}
+                {embed && (
+                    <button
+                        type="button"
+                        className="ml-2 inline-flex items-center justify-center rounded px-2 py-1 text-sm border hover:bg-gray-50"
+                        aria-label="Minimizar chat"
+                        onClick={() => {
+                            try { window.parent?.postMessage?.({ type: "widget:toggle" }, "*"); } catch { }
+                        }}
+                    >
+                        ✕
+                    </button>
+                )}
+
                 <div className="ml-auto">
                     <ChatConfigMenu />
                 </div>
             </div>
 
             <div className="chat-messages px-3 py-4">
+                {/* 🔹 QuickActions visible al inicio. Se oculta al primer input */}
+                {showQuick && (
+                    <QuickActions
+                        show
+                        onAction={(payload, title) => {
+                            // pinta lo elegido
+                            setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: title || payload }]);
+                            setShowQuick(false);
+                            // envía el payload a Rasa (auth diferida aplica dentro de sendToRasa)
+                            sendToRasa({ text: payload, displayAs: title, isPayload: true });
+                        }}
+                    />
+                )}
+
                 {messages.map((m) =>
                     m.role === "user" ? (
                         <UserRow key={m.id}>
@@ -533,8 +446,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe un mensaj
                     <BotRow>
                         <BotAvatar />
                         <div className="bubble bot">
-                            {tChat("typing")}
-                            <span className="typing-dots" />
+                            {tChat("typing")}<span className="typing-dots" />
                         </div>
                     </BotRow>
                 )}

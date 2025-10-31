@@ -2,236 +2,170 @@
 ; (() => {
     const DEFAULTS = {
         iframeUrl: `${window.location.origin}/?embed=1`,
-        allowedOrigin: window.location.origin, // Usa "*" si hospedas el chat en otro dominio
+        // ✅ Se resuelve automáticamente desde iframeUrl si no lo pasas
+        allowedOrigin: null,
         title: "Tutor Virtual",
         subtitle: "Sustentación",
         position: "bottom-right", // bottom-right | bottom-left | top-right | top-left
-        startOpen: false,          // ⬅️ NO se abre solo al cargar
-        theme: "auto",             // auto | light | dark
+        startOpen: false,
+        theme: "auto",            // auto | light | dark
         zIndex: 2147483000,
-        showLabel: false,          // false => botón flotante redondo
+        showLabel: false,         // false => FAB redondo
         padding: 20,
-        width: 360,
-        height: 520,
-        draggable: true,           // ⬅️ Arrastrable
+        avatar: "/bot-avatar.png",
+
+        // ✅ SOLO permisos necesarios (sin autoplay/clipboard-write)
+        permissions: "microphone; camera; fullscreen",
+
+        // Opciones extra
+        draggable: true,
         closeOnEsc: true,
         closeOnOutsideClick: false,
-        // 🖼️ avatar por defecto (puedes cambiarlo al inicializar)
-        avatar: "/bot-avatar.png",
-        // Permisos modernos para el iframe
-        permissions: "microphone; camera; autoplay; clipboard-write; fullscreen",
-        // Sandbox (no incluimos allow-same-origin si no hace falta para cookies)
-        sandbox: "allow-scripts allow-forms allow-popups",
+        width: 380,
+        height: 560,
+
+        // 🔐 Bridge de auth
+        autoSendToken: true,
+        tokenStorageKey: "app:accessToken", // ajústalo a tu app
+        tokenCookieName: "access_token",    // "" si no usas cookie
     };
 
     function css(el, styles) { Object.assign(el.style, styles); }
 
-    function injectCssOnce() {
-        if (document.getElementById("zj-bubble-styles")) return;
-        const s = document.createElement("style");
-        s.id = "zj-bubble-styles";
-        s.textContent = `
-      [data-zj-bubble]{opacity:0;transition:opacity .15s ease}
-      .zj-bubble-button{
-        display:flex;align-items:center;gap:.5rem;
-        border:0;outline:0;cursor:pointer;
-        border-radius:999px;padding:.5rem .75rem;
-        box-shadow:0 10px 25px rgba(0,0,0,.18);
-        background:#0f172a;color:#fff;font:600 14px/1 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      }
-      .zj-bubble-button.zj-compact{
-        width:56px;height:56px;justify-content:center;padding:0;border-radius:50%;
-      }
-      .zj-avatar-wrap{display:inline-flex}
-      .zj-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover}
-      .zj-bubble-title{font-weight:700}
-      .zj-bubble-sub{font-weight:400;opacity:.8;font-size:12px}
-      .zj-bubble-iframe-wrap{
-        position:relative; margin-bottom:.5rem;
-        box-shadow:0 20px 48px rgba(0,0,0,.22);
-        border-radius:16px; overflow:hidden; background:#fff;
-      }
-      .zj-bubble-iframe{border:0;display:block;width:100%;height:100%}
-      .zj-drag-overlay{position:fixed;inset:0;cursor:grabbing;z-index:2147483646}
-    `;
-        document.head.appendChild(s);
+    // Lee token del host (localStorage y/o cookie)
+    function readHostToken(opts) {
+        try {
+            const ls = localStorage.getItem(opts.tokenStorageKey);
+            if (ls) return ls;
+        } catch { }
+        if (opts.tokenCookieName) {
+            const m = document.cookie.match(new RegExp(`(?:^|; )${opts.tokenCookieName}=([^;]*)`));
+            if (m) return decodeURIComponent(m[1]);
+        }
+        return null;
     }
 
     function create(options = {}) {
-        injectCssOnce();
-        const opts = { ...DEFAULTS, ...options };
+        // ▶️ allowedOrigin = origin(iframeUrl) si no se pasa
+        const tmp = { ...DEFAULTS, ...options };
+        if (!tmp.allowedOrigin) {
+            try { tmp.allowedOrigin = new URL(tmp.iframeUrl).origin; }
+            catch { tmp.allowedOrigin = "*"; }
+        }
+        const opts = tmp;
 
-        let root, btn, iframeWrap, iframeEl;
+        let root, btn, iframeWrap, iframeEl, headerEl;
         let isMounted = false;
         let opened = false;
-        let dragging = false;
-        let dragStart = null;
-        let dragOrigin = null;
-
         const listeners = new Set();
-        const onEvent = (cb) => (typeof cb === "function" ? (listeners.add(cb), () => listeners.delete(cb)) : () => { });
-        const emit = (evt) => { for (const cb of listeners) { try { cb(evt); } catch { } } };
+
+        function emit(evt) { for (const cb of listeners) { try { cb(evt); } catch { } } }
+        function onEvent(cb) {
+            if (typeof cb === "function") { listeners.add(cb); return () => listeners.delete(cb); }
+            return () => { };
+        }
 
         function post(msg) {
             try {
-                iframeEl?.contentWindow?.postMessage(
-                    msg,
-                    opts.allowedOrigin === "*" ? "*" : opts.allowedOrigin
-                );
+                iframeEl?.contentWindow?.postMessage(msg, opts.allowedOrigin || "*");
             } catch { }
         }
 
-        function handleMessage(e) {
-            if (opts.allowedOrigin !== "*" && e.origin !== opts.allowedOrigin) return;
-            const data = e?.data || {};
-            // Control remoto desde el iframe (opcional)
-            if (data?.type === "widget:open") open();
-            else if (data?.type === "widget:close") close();
-            else if (data?.type === "widget:toggle") toggle();
-            if (data.type === "widget:open") { open(); return; }
-            if (data.type === "widget:close") { close(); return; }
-            if (data.type === "widget:toggle") { toggle(); return; }
-            emit(data);
+        function setOpenState(next) {
+            opened = !!next;
+            root.classList.toggle("zj-open", opened);
+            iframeWrap.setAttribute("aria-hidden", opened ? "false" : "true");
+            btn.setAttribute("aria-expanded", opened ? "true" : "false");
         }
 
-        function applyPosition() {
-            const pad = (opts.padding ?? 16) + "px";
-            const positions = {
-                "bottom-right": { right: pad, bottom: pad, left: "auto", top: "auto" },
-                "bottom-left": { left: pad, bottom: pad, right: "auto", top: "auto" },
-                "top-right": { right: pad, top: pad, left: "auto", bottom: "auto" },
-                "top-left": { left: pad, top: pad, right: "auto", bottom: "auto" },
-            };
-            css(root, positions[opts.position] || positions["bottom-right"]);
-        }
-
-        function open() {
-            if (!isMounted) return;
-            iframeWrap.style.display = "block";
-            opened = true;
-            btn.setAttribute("aria-expanded", "true");
-            post({ type: "host:open" });
-            emit({ type: "telemetry", event: "open" });
-        }
-
-        function close() {
-            if (!isMounted) return;
-            iframeWrap.style.display = "none";
-            opened = false;
-            btn.setAttribute("aria-expanded", "false");
-            post({ type: "host:close" });
-            emit({ type: "telemetry", event: "close" });
-        }
-
+        function open() { if (!isMounted) return; setOpenState(true); post({ type: "host:open" }); emit({ type: "telemetry", event: "open" }); }
+        function close() { if (!isMounted) return; setOpenState(false); post({ type: "host:close" }); emit({ type: "telemetry", event: "close" }); }
         const toggle = () => (opened ? close() : open());
         const isOpen = () => opened;
 
-        const setTheme = (theme) => {
-            post({ type: "host:setTheme", theme });
-            emit({ type: "prefs:update", source: "host", prefs: { theme } });
-        };
-        const setLanguage = (language) => {
-            post({ type: "host:setLanguage", language });
-            emit({ type: "prefs:update", source: "host", prefs: { language } });
-        };
-        const sendAuthToken = (token) => {
+        // 🔐 Enviar token hacia el iframe
+        function sendAuthToken(token) {
+            if (!token) return;
             post({ type: "auth:token", token });
             emit({ type: "telemetry", event: "auth_sent" });
-        };
+        }
 
-        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+        // Mensajes desde el iframe
+        function handleMessage(e) {
+            // ✅ comparar contra el origen REAL del iframe
+            if (opts.allowedOrigin !== "*" && e.origin !== opts.allowedOrigin) return;
+            const data = e?.data || {};
 
-        function startDrag(ev) {
+            if (data.type === "widget:open") { open(); return; }
+            if (data.type === "widget:close") { close(); return; }
+            if (data.type === "widget:toggle") { toggle(); return; }
+
+            if (data.type === "auth:request") {
+                const token = readHostToken(opts);
+                if (token) sendAuthToken(token);
+                else emit({ type: "auth:missing" });
+                return;
+            }
+
+            if (data.type === "auth:needed") {
+                // Aquí podrías abrir tu modal de login del host
+                // if (window.showLoginModal) window.showLoginModal();
+                return;
+            }
+
+            emit(data);
+        }
+
+        const setTheme = (theme) => { post({ type: "host:setTheme", theme }); emit({ type: "prefs:update", source: "host", prefs: { theme } }); };
+        const setLanguage = (language) => { post({ type: "host:setLanguage", language }); emit({ type: "prefs:update", source: "host", prefs: { language } }); };
+
+        /* ──────────────── Drag support ──────────────── */
+        function makeDraggable(handle) {
             if (!opts.draggable) return;
-            dragging = true;
-            const r = root.getBoundingClientRect();
-            dragOrigin = { left: r.left, top: r.top };
-            const p = ev.touches?.[0] || ev;
-            dragStart = { x: p.clientX, y: p.clientY };
+            let startX, startY, startLeft, startTop, dragging = false;
 
-            // Para que no “tape” clicks mientras arrastras, usamos un overlay
-            const overlay = document.createElement("div");
-            overlay.className = "zj-drag-overlay";
-            overlay.dataset.zjDrag = "1";
-            document.body.appendChild(overlay);
+            handle.style.cursor = "grab";
+            handle.addEventListener("pointerdown", (ev) => {
+                dragging = true;
+                handle.setPointerCapture(ev.pointerId);
+                handle.style.cursor = "grabbing";
+                const rect = root.getBoundingClientRect();
+                startX = ev.clientX;
+                startY = ev.clientY;
+                startLeft = rect.left;
+                startTop = rect.top;
+            });
+            handle.addEventListener("pointermove", (ev) => {
+                if (!dragging) return;
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
+                css(root, { left: `${startLeft + dx}px`, top: `${startTop + dy}px`, right: "auto", bottom: "auto" });
+            });
+            handle.addEventListener("pointerup", (ev) => {
+                dragging = false;
+                handle.releasePointerCapture?.(ev.pointerId);
+                handle.style.cursor = "grab";
+            });
         }
 
-        function moveDrag(ev) {
-            if (!dragging || !dragStart || !dragOrigin) return;
-            const p = ev.touches?.[0] || ev;
-            const dx = p.clientX - dragStart.x;
-            const dy = p.clientY - dragStart.y;
-
-            // Pasamos a posicionamiento absoluto para libre arrastre
-            css(root, { right: "auto", bottom: "auto", left: "auto", top: "auto" });
-
-            const nextLeft = dragOrigin.left + dx;
-            const nextTop = dragOrigin.top + dy;
-
-            const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-            const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-            const rect = root.getBoundingClientRect();
-            const clampedLeft = clamp(nextLeft, 0, vw - rect.width);
-            const clampedTop = clamp(nextTop, 0, vh - rect.height);
-
-            css(root, { position: "fixed", left: `${clampedLeft}px`, top: `${clampedTop}px` });
-        }
-
-        function endDrag() {
-            dragging = false;
-            dragStart = null;
-            dragOrigin = null;
-            document.querySelectorAll('[data-zj-drag="1"]').forEach(el => el.remove());
-        }
-
-        function handleKey(ev) {
-            if (!opts.closeOnEsc) return;
-            if (ev.key === "Escape" && opened) close();
-        }
-
-        function handleOutsideClick(ev) {
-            if (!opts.closeOnOutsideClick || !opened) return;
-            if (!root.contains(ev.target)) close();
-        }
-
+        /* ──────────────── MONTAJE ──────────────── */
         function mount() {
             if (isMounted) return;
 
+            // Contenedor raíz
             root = document.createElement("div");
             root.setAttribute("data-zj-bubble", "");
-            css(root, {
-                position: "fixed",
-                zIndex: String(opts.zIndex),
-                inset: "auto",
-                // Truco: el contenedor no intercepta clicks; solo sus hijos
-                pointerEvents: "none"
-            });
+            root.className = "zj-bubble-root";
+            css(root, { position: "fixed", zIndex: String(opts.zIndex), inset: "auto", pointerEvents: "none" });
 
-            applyPosition();
-
-            // Iframe container
-            iframeWrap = document.createElement("div");
-            iframeWrap.className = "zj-bubble-iframe-wrap";
-            css(iframeWrap, {
-                width: `${opts.width}px`,
-                height: `${opts.height}px`,
-                pointerEvents: "auto",
-                display: "none", // ⬅️ inicia cerrado
-                background: "#fff",
-                borderRadius: "16px",
-            });
-
-            iframeEl = document.createElement("iframe");
-            iframeEl.className = "zj-bubble-iframe";
-            iframeEl.src = opts.iframeUrl;
-            iframeEl.setAttribute("title", opts.title || "Chat");
-            iframeEl.setAttribute("allow", opts.permissions || DEFAULTS.permissions);
-            iframeEl.setAttribute("sandbox", opts.sandbox || DEFAULTS.sandbox);
-            iframeEl.addEventListener("load", () => {
-                post({ type: "host:hello", theme: opts.theme, language: "es" });
-            });
-
-            iframeWrap.appendChild(iframeEl);
+            const pad = (opts.padding ?? 16) + "px";
+            const positions = {
+                "bottom-right": { right: pad, bottom: pad },
+                "bottom-left": { left: pad, bottom: pad },
+                "top-right": { right: pad, top: pad },
+                "top-left": { left: pad, top: pad },
+            };
+            css(root, positions[opts.position] || positions["bottom-right"]);
 
             // Botón launcher
             btn = document.createElement("button");
@@ -240,7 +174,9 @@
             btn.setAttribute("aria-label", opts.title || "Abrir chat");
             btn.className = "zj-bubble-button";
             css(btn, { pointerEvents: "auto" });
+            btn.addEventListener("click", toggle);
 
+            // Avatar + labels
             const avatarWrap = document.createElement("span");
             avatarWrap.className = "zj-avatar-wrap";
             const avatarImg = document.createElement("img");
@@ -264,79 +200,134 @@
                 btn.appendChild(subEl);
             }
             btn.prepend(avatarWrap);
-            btn.addEventListener("click", toggle);
 
-            // Draggable: permite arrastrar con mouse o touch
-            if (opts.draggable) {
-                const dragTarget = btn; // arrastrar desde el botón
-                dragTarget.addEventListener("mousedown", (e) => {
-                    // Evitamos conflicto con click-toggle si mantienes arrastrando
-                    if (e.buttons === 1) startDrag(e);
-                });
-                dragTarget.addEventListener("touchstart", (e) => startDrag(e), { passive: true });
-                window.addEventListener("mousemove", (e) => moveDrag(e));
-                window.addEventListener("touchmove", (e) => moveDrag(e), { passive: false });
-                window.addEventListener("mouseup", endDrag);
-                window.addEventListener("touchend", endDrag);
-            }
+            // Wrapper del iframe
+            iframeWrap = document.createElement("div");
+            iframeWrap.className = "zj-bubble-iframe-wrap";
+            css(iframeWrap, {
+                pointerEvents: "auto",
+                width: `${opts.width}px`,
+                height: `${opts.height}px`,
+            });
+            // Accesibilidad/estado visible
+            iframeWrap.setAttribute("aria-hidden", "true");
 
-            // Ensamblado
+            // Barra de drag
+            headerEl = document.createElement("div");
+            headerEl.className = "zj-bubble-dragbar";
+            headerEl.title = "Arrastrar";
+            iframeWrap.appendChild(headerEl);
+
+            // Iframe
+            const iframeUrl = opts.iframeUrl;
+
+            iframeEl = document.createElement("iframe");
+            iframeEl.className = "zj-bubble-iframe";
+            iframeEl.src = iframeUrl;
+            iframeEl.setAttribute("title", opts.title || "Chat");
+
+            // ✅ SOLO permisos necesarios (sin autoplay/clipboard-write)
+            iframeEl.setAttribute("allow", "microphone; camera; fullscreen");
+
+            // Sandbox: necesario para app embebida (nota: same-origin + scripts reduce confinamiento)
+            iframeEl.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");
+
+            iframeEl.addEventListener("load", () => {
+                post({ type: "host:hello", theme: opts.theme, language: "es" });
+
+                // 🔐 Enviar token automáticamente si existe en el host
+                if (opts.autoSendToken) {
+                    const t = readHostToken(opts);
+                    if (t) {
+                        post({ type: "auth:token", token: t });
+                        emit({ type: "telemetry", event: "auth_sent" });
+                    }
+                }
+            });
+
+            iframeWrap.appendChild(iframeEl);
             root.appendChild(iframeWrap);
             root.appendChild(btn);
             document.body.appendChild(root);
 
             // Eventos globales
             window.addEventListener("message", handleMessage);
-            if (opts.closeOnEsc) window.addEventListener("keydown", handleKey);
-            if (opts.closeOnOutsideClick) window.addEventListener("mousedown", handleOutsideClick);
+            if (opts.closeOnEsc) {
+                window.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && opened) close(); });
+            }
+            if (opts.closeOnOutsideClick) {
+                document.addEventListener("mousedown", (ev) => {
+                    if (!opened) return;
+                    const t = ev.target;
+                    if (root && !root.contains(t)) close();
+                }, true);
+            }
+
+            // Drag
+            makeDraggable(headerEl);
 
             isMounted = true;
 
-            // Preferencias iniciales
+            // Tema inicial
             if (opts.theme && opts.theme !== "auto") setTheme(opts.theme);
 
-            // Estado inicial abierto/cerrado
+            // 🚪 Estado inicial: por defecto CERRADO (evita “flash abierto”)
+            setOpenState(false);
             if (opts.startOpen) open(); else close();
+        }
 
-            // Mostrar con fade-in
-            document.querySelectorAll("[data-zj-bubble]").forEach(el => (el.style.opacity = "1"));
-           }
-           // Cerrar con ESC
-           if (opts.closeOnEsc) {
-              window.addEventListener("keydown", (ev) => {
-                  if (ev.key === "Escape" && opened) close();
-           });
-           }
-
-          // Cerrar con click fuera del iframe
-          if (opts.closeOnOutsideClick) {
-              document.addEventListener("mousedown", (ev) => {
-                  if (!opened) return;
-                  const t = ev.target;
-                  if (root && !root.contains(t)) close();
-              }, true);
-         }
         function unmount() {
             if (!isMounted) return;
             try {
                 window.removeEventListener("message", handleMessage);
-                window.removeEventListener("keydown", handleKey);
-                window.removeEventListener("mousedown", handleOutsideClick);
                 root?.remove();
             } catch { }
             isMounted = false;
             opened = false;
         }
 
-        return {
-            mount, unmount, open, close, toggle, isOpen,
-            onEvent, setTheme, setLanguage, sendAuthToken
-        };
+        // Inyección mínima de estilos (fallback)
+        (function ensureStyles() {
+            if (document.getElementById("zj-bubble-styles")) return;
+            const st = document.createElement("style");
+            st.id = "zj-bubble-styles";
+            st.textContent = `
+        .zj-bubble-iframe-wrap { 
+          position: relative;
+          margin-bottom: 10px;
+          border-radius: 12px; 
+          overflow: hidden; 
+          box-shadow: 0 12px 32px rgba(0,0,0,.2);
+          opacity: 0; transform: translateY(6px); 
+          transition: opacity .18s ease, transform .18s ease; 
+          display: none;
+          background: #0000;
+        }
+        .zj-bubble-root.zj-open .zj-bubble-iframe-wrap { 
+          display: block; 
+          opacity: 1; transform: translateY(0);
+        }
+        .zj-bubble-button { 
+          pointer-events: auto; border: none; border-radius: 9999px; 
+          background: #4f46e5; color: #fff; 
+          padding: 10px; display: inline-flex; align-items: center; gap: 8px; 
+          box-shadow: 0 8px 20px rgba(79,70,229,.35);
+        }
+        .zj-compact { width: 56px; height: 56px; padding: 0; justify-content: center; }
+        .zj-avatar-wrap{ display:inline-grid; place-items:center; width:28px; height:28px; border-radius:9999px; overflow:hidden; background:#fff; }
+        .zj-avatar{ width:100%; height:100%; object-fit:cover; }
+        .zj-bubble-title{ font-weight:600; font-size:14px; color:#fff; line-height:1; }
+        .zj-bubble-sub{ font-size:11px; color:#e0e7ff; line-height:1; }
+        .zj-bubble-iframe{ width:100%; height:100%; border:0; background:#fff; }
+        .zj-bubble-dragbar{ position:absolute; top:0; left:0; right:0; height:10px; cursor:grab; background:transparent; z-index:2; }
+      `;
+            document.head.appendChild(st);
+        })();
+
+        return { mount, unmount, open, close, toggle, isOpen, onEvent, setTheme, setLanguage, sendAuthToken };
     }
 
     window.ZajunaBubble = { create };
-
-    // Auto-fade para los que se monten después
     window.addEventListener("load", () => {
         document.querySelectorAll("[data-zj-bubble]").forEach(el => el.style.opacity = "1");
     });

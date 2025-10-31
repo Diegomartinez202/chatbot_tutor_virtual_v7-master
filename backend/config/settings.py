@@ -63,18 +63,20 @@ class Settings(BaseSettings):
     CSP/embebido, rate limiting, helpdesk, etc.
     """
 
-    # === Configuración general ===
-    model_config = SettingsConfigDict(
-        env_file=_resolve_env_file(),
-        case_sensitive=False,
-        extra="ignore",  # ✅ ignora envs no mapeados (e.g., NODE_ENV)
-    )
+    # === Configuración general (Pydantic v2) ===
+    # Si estás en v1, más abajo definimos class Config condicionalmente.
+    if _V2:
+        model_config = SettingsConfigDict(
+            env_file=_resolve_env_file(),
+            case_sensitive=False,
+            extra="ignore",  # ✅ ignora envs no mapeados (e.g., NODE_ENV)
+        )
 
     # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
 
-    # 🌱 Entorno
-    app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="APP_ENV")
+    # 🌱 Entorno (unificado; antes estaba duplicado)
+    app_env: Literal["dev", "test", "prod", "staging"] = Field(default="dev", alias="APP_ENV")
     debug: bool = Field(default=False, alias="DEBUG")
     base_url: str = Field(default="http://localhost:8000", alias="BASE_URL")
 
@@ -190,6 +192,12 @@ class Settings(BaseSettings):
     node_env: Optional[str] = Field(default=None, alias="NODE_ENV")
     environment_compat: Optional[str] = Field(default=None, alias="ENVIRONMENT")
 
+    # 🆕 Política explícita (opcional) para Permissions-Policy.
+    # Ejemplo: "autoplay=(), clipboard-write=(), microphone=(), camera=()"
+    permissions_policy: Optional[str] = Field(
+        default_factory=lambda: os.getenv("PERMISSIONS_POLICY") or None
+    )
+
     # ───────────────────────────────
     # Validadores/normalizadores
     # ───────────────────────────────
@@ -205,7 +213,7 @@ class Settings(BaseSettings):
             "dev": "dev",
             "testing": "test",
             "test": "test",
-            "staging": "test",
+            "staging": "staging",
             "prod": "prod",
             "production": "prod",
         }
@@ -394,6 +402,41 @@ class Settings(BaseSettings):
     @property
     def jwt_refresh_cookie_name(self) -> str:
         return self.refresh_cookie_name
+
+    # ─────────────────────────────────────────────────────────
+    # Helpers “inteligentes”
+    # ─────────────────────────────────────────────────────────
+    @property
+    def app_env_effective(self) -> str:
+        """
+        Entorno efectivo en minúsculas (dev/prod/staging/test).
+        """
+        val = (self.app_env or "prod").lower().strip()
+        return val if val in {"dev", "prod", "staging", "test"} else "prod"
+
+    @property
+    def permissions_policy_effective(self) -> str:
+        """
+        Devuelve la Permissions-Policy final:
+        - Si PERMISSIONS_POLICY está seteado -> usar literal
+        - Si no, preset por entorno:
+            dev     -> relajado (autorizamos pruebas locales)
+            otro    -> estricto (silencia warnings)
+        """
+        if self.permissions_policy and str(self.permissions_policy).strip():
+            return str(self.permissions_policy).strip()
+
+        if self.app_env_effective == "dev":
+            # relaxed
+            return "autoplay=(self), clipboard-write=(self), microphone=(self), camera=(self)"
+        # strict por defecto
+        return "autoplay=(), clipboard-write=(), microphone=(), camera=()"
+
+    # 🔁 Compat Pydantic v1: solo si NO estamos en v2
+    if not _V2:
+        class Config:
+            env_file = _resolve_env_file()
+            case_sensitive = False
 
 
 # Instancia global

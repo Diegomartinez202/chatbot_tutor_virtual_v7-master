@@ -1,110 +1,87 @@
 version: "3.1"
 
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+
 intents:
-  # Intents principales del asistente
   - saludo
-  - explorar_temas
+  - explorar_temas            # 👈 usado en stories
   - ingreso_zajuna
-  - recuperar_contrasena
   - otro_problema_acceso
   - proceso_academico
+  - tutor_asignado
+  - horarios_calendario       # 👈 usado en stories
+  - estado_estudiante
+  - estado_estudiante_info
   - ver_certificados
   - ver_certificados_info
-  - tutor_asignado
-  - horarios_calendario
+  - necesita_auth
   - soporte_tecnico
+  - otro_problema_tecnico
   - problema_no_ingreso
   - pantalla_blanca
   - error_actividad
-  - otro_problema_tecnico
-  - escalar_humano
+  - deny
+  - affirm
+  - recuperar_contrasena
+  - escalar_humano            # 👈 usado en stories/rules
   - confirmacion_escalar_humano
   - negar_escalar
-  - estado_estudiante
   - cambiar_idioma_ingles
   - cambiar_idioma_espanol
   - inscribirme
   - enviar_correo
-  - auth_login
-  # Intents de fallback y confirmación
-  - affirm
-  - deny
-  - fallback
-  - enviar_soporte
   - enviar_telefono
   - enviar_cedula
   - enviar_numero
   - enviar_url
-  # Intents dedicados (placeholders)
-  - pedir_correo
-  - pedir_email
-  - pedir_nombre
-  - pedir_mensaje
-  - estado_estudiante_info
-  - necesita_auth
   - soporte_confirmar
   - soporte_error
+  - auth_login
   - auth_login_cmd
+  - enviar_soporte
   - enviar_soporte_directo
+  - fallback
+  - nlu_fallback
 
 entities:
+  - nombre        # 👈 anotaste nombres en NLU
   - email
   - telefono
   - cedula
   - numero
   - url
-  - nombre   # ⬅️ añadida porque la usas en NLU
 
 slots:
-  email:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_entity
-        entity: email
-      - type: from_text
-
   nombre:
     type: text
     influence_conversation: false
     mappings:
-      - type: from_entity
-        entity: nombre
       - type: from_text
-
+  email:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+      - type: from_text
   mensaje:
     type: text
     influence_conversation: false
     mappings:
       - type: from_text
-
   telefono:
     type: text
     influence_conversation: false
     mappings:
       - type: from_entity
         entity: telefono
+      - type: from_text
 
-  cedula:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: from_entity
-        entity: cedula
-
-  numero:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: from_entity
-        entity: numero
-
-  url:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: from_entity
-        entity: url
+# ❗️En versiones 3.x los mapeos de slots van en `slots: ... mappings:`.
+# Si tenías un bloque `slot_mappings:` a nivel raíz, Rasa no lo usa.
+# Ya incorporé esos mismos mapeos arriba, slot por slot.
 
 forms:
   soporte_form:
@@ -112,205 +89,164 @@ forms:
       - nombre
       - email
       - mensaje
+      # teléfono es opcional (lo pedimos si quieres en rules/stories)
   recovery_form:
     required_slots:
       - email
 
 responses:
-  # --- Saludo inicial ---
+
+  # 👋 Saludo + menú de arranque controlado por Rasa
   utter_saludo:
-    - text: "¡Hola! Soy tu asistente Zajuna 🤖. ¿Cómo te ayudo hoy?"
-    - text: "Hola! ¿En qué puedo ayudarte hoy?"
+    - text: "¡Hola! Soy tu asistente Zajuna 🤖. ¿En qué puedo ayudarte?"
       buttons:
         - title: "Explorar temas"
           payload: "/explorar_temas"
         - title: "Ingreso a Zajuna"
           payload: "/ingreso_zajuna"
-        - title: "Mis cursos y contenidos"
-          payload: "/explorar_temas"
-        - title: "Proceso académico / administrativo"
-          payload: "/proceso_academico"
         - title: "Soporte técnico"
           payload: "/soporte_tecnico"
 
-  # --- Cursos ---
-  utter_cursos_carousel:
-    - custom:
-        cards:
-          - title: "Excel Básico"
-            subtitle: "20h - Virtual"
-            image: "https://via.placeholder.com/300x160?text=Excel"
-            buttons:
-              - title: "Inscribirme"
-                payload: "/inscribirme"
-          - title: "Soldadura MIG"
-            subtitle: "40h - Presencial"
-            image: "https://via.placeholder.com/300x160?text=Soldadura"
-            buttons:
-              - title: "Inscribirme"
-                payload: "/inscribirme"
-          - title: "Programación Web"
-            subtitle: "60h - Virtual"
-            image: "https://via.placeholder.com/300x160?text=Web"
-            buttons:
-              - title: "Inscribirme"
-                payload: "/inscribirme"
-
-  utter_cursos_recomendados:
-    - text: "Aquí tienes algunos cursos que podrían interesarte:"
-      buttons:
-        - title: "Python Básico – Ago 2025"
-          payload: "/inscribirme"
-        - title: "IA Educativa – Sep 2025"
-          payload: "/inscribirme"
-
-  # --- Problemas de acceso ---
+  # 🔐 Ingreso a Zajuna
   utter_preguntar_problema_acceso:
-    - text: "Entiendo. ¿Tienes problemas de acceso? ¿Deseas recuperar tu contraseña?"
+    - text: "¿Con qué necesitas ayuda para ingresar?"
       buttons:
-        - title: "Sí, recuperar contraseña"
+        - title: "Recuperar contraseña"
           payload: "/recuperar_contrasena"
-        - title: "No, otro problema"
+        - title: "No puedo ingresar"
+          payload: "/problema_no_ingreso"
+        - title: "Otro problema de acceso"
           payload: "/otro_problema_acceso"
 
-  utter_pedir_correo:
-    - text: "Por favor, dime tu correo para enviarte el enlace de recuperación."
-
-  utter_confirmar_recuperacion:
-    - text: "Perfecto. Revisa tu bandeja de entrada."
-
-  # --- Menú proceso académico ---
+  # 📚 Proceso académico (menú)
   utter_menu_proceso_academico:
-    - text: "¿Sobre qué deseas información?"
+    - text: "Puedo ayudarte con diferentes partes del proceso académico:"
       buttons:
-        - title: "Tutor asignado"
-          payload: "/tutor_asignado"
+        - title: "Matrícula"
+          payload: "/proceso_academico"
+        - title: "Pagos y becas"
+          payload: "/proceso_academico"
         - title: "Certificados"
-          payload: "/ver_certificados"
-        - title: "Horarios y calendario"
-          payload: "/horarios_calendario"
+          payload: "/ver_certificados_info"
 
-  utter_certificados_info:
-    - text: |
-        Python Básico – Nov 2024
-        IA Educativa – Ene 2025
-      buttons:
-        - title: "Descargar todos"
-          payload: "/ver_certificados"
-        - title: "Ver detalles"
-          payload: "/ver_certificados"
-
+  # 👩‍🏫 Tutor asignado (informativo)
   utter_tutor_asignado:
-    - text: |
-        Tu tutor actual es:
-        Nombre: Prof. Ana María Restrepo
-        Email: ana.restrepo@zajuna.edu
-        Horario: Lun y Mié 10:00 - 12:00
-      buttons:
-        - title: "Ver disponibilidad"
-          payload: "/tutor_asignado"
-        - title: "Enviar mensaje"
-          payload: "/tutor_asignado"
+    - text: "Tu tutor asignado será visible en tu panel académico. Si necesitas más información, puedo guiarte."
 
-  # --- Soporte técnico ---
+  # ✅ Certificados (información sin auth)
+  utter_certificados_info:
+    - text: "Para descargar certificados visita el módulo de certificados en Zajuna. Si necesitas asistencia, te puedo guiar paso a paso."
+
+  # 🧑‍💻 Soporte (arranque de form por reglas)
   utter_soporte_tecnico:
-    - text: "Entiendo. Vamos a tomar tus datos para ayudarte mejor."
+    - text: "Te ayudaré creando un ticket de soporte. Te haré algunas preguntas."
 
+  # 📝 Preguntas del soporte_form
+  utter_ask_nombre:
+    - text: "¿Cuál es tu nombre?"
+  utter_ask_email:
+    - text: "¿Cuál es tu correo electrónico?"
+  utter_ask_mensaje:
+    - text: "Cuéntame brevemente el problema."
+  utter_ask_telefono:
+    - text: "Si deseas, indícame un número de contacto (opcional)."
+
+  # ✅ Resumen de soporte y confirmaciones
+  utter_soporte_resumen:
+    - text: "Resumen del caso:\n• Nombre: {nombre}\n• Email: {email}\n• Teléfono: {telefono}\n• Mensaje: {mensaje}"
+  utter_soporte_creado:
+    - text: "¡Listo! He enviado tu solicitud de soporte."
+  utter_soporte_form_ok:
+    - text: "Nuestro equipo te contactará pronto. ¿Deseas algo más?"
+  utter_soporte_confirm:
+    - text: "Perfecto, confirmo tu solicitud de soporte."
+  utter_soporte_error:
+    - text: "Hubo un problema al crear el ticket. Inténtalo de nuevo o prueba más tarde."
+
+  # 🔑 Estado/Certificados protegidos → pedir auth
+  utter_need_auth:
+    - text: "Necesitas iniciar sesión para continuar con esta acción."
   utter_estado_estudiante:
-    - text: "Estás activo para el periodo académico 2025-2."
+    - text: "Puedo consultar tu estado académico cuando inicies sesión."
 
-  # --- Cambio de idioma ---
+  # 🔁 Recuperación de contraseña
+  utter_confirmar_recuperacion:
+    - text: "Si el correo es válido, recibirás un enlace para restablecer la contraseña."
+
+  # 👍/👎 y continuar
+  utter_gracias_continuar:
+    - text: "Gracias. ¿Deseas continuar con otra consulta?"
+
+  # 🌐 Cambio de idioma
   utter_cambio_idioma_ingles:
-    - text: "Sure! Let's switch to English. You can ask me anything about your academic process or technical issues."
-
+    - text: "Language switched to English."
   utter_cambio_idioma_espanol:
-    - text: "Volvamos a Español."
+    - text: "Ahora hablamos en español 🇪🇸."
 
-  # --- Escalamiento humano ---
+  # 📧 Confirmaciones genéricas
+  utter_enviar_correo:
+    - text: "He enviado el correo. Revisa tu bandeja de entrada por favor."
+  utter_enviar_telefono:
+    - text: "Gracias por compartir tu teléfono."
+  utter_enviar_cedula:
+    - text: "Gracias por compartir tu cédula."
+  utter_enviar_numero:
+    - text: "Gracias por compartir el número."
+  utter_enviar_url:
+    - text: "Gracias por compartir el enlace."
+
+  # 🚨 Fallbacks
+  utter_default:
+    - text: "No estoy seguro de haber entendido. ¿Puedes reformular tu consulta?"
+  utter_fallback:
+    - text: "También puedo ayudarte con: ingreso a Zajuna, soporte técnico y proceso académico."
+      buttons:
+        - title: "Ingreso a Zajuna"
+          payload: "/ingreso_zajuna"
+        - title: "Soporte técnico"
+          payload: "/soporte_tecnico"
+        - title: "Proceso académico"
+          payload: "/proceso_academico"
+
+  # 🧭 Explorar (para stories)
+  utter_cursos_recomendados:
+    - text: "Te recomiendo estos temas para comenzar:"
+      buttons:
+        - title: "Python Básico"
+          payload: "/inscribirme"
+        - title: "IA Educativa"
+          payload: "/inscribirme"
+        - title: "Excel Básico"
+          payload: "/inscribirme"
+
+  # Carrusel (si tu canal lo soporta; si no, queda como lista textual)
+  utter_cursos_carousel:
+    - text: "Explora nuestro carrusel de cursos destacados (usa las flechas para navegar)."
+
+  # 🙋 Escalado humano
   utter_escalar_humano:
-    - text: "¿Quieres que te comunique con un agente humano?"
+    - text: "¿Deseas que te conecte con un asesor humano?"
       buttons:
         - title: "Sí, por favor"
           payload: "/confirmacion_escalar_humano"
-        - title: "No, seguir con bot"
+        - title: "No, sigamos aquí"
           payload: "/negar_escalar"
 
   utter_confirmar_escalado:
-    - text: "Te estoy conectando con un agente humano, por favor espera..."
-
-  utter_gracias_continuar:
-    - text: "Perfecto, sigamos aquí en el chat."
-
-  # --- Inscripciones ---
+    - text: "Perfecto, te estoy conectando con un asesor humano. 🙋"
+  # 📝 Inscripción (placeholder usado por la regla "Inscribirme")
   utter_confirmacion_inscripcion:
-    - text: "Estás inscrito al curso. Te enviaremos confirmación por correo."
+    - text: "¡Genial! Para inscribirte, ingresa a tu cuenta y selecciona el curso deseado. Si quieres, puedo guiarte."
 
-  # --- Fallback ---
-  utter_default:
-    - text: "No entendí eso. ¿Podrías reformularlo?"
-
-  # --- Prompts del soporte_form (utter_ask_<slot>) ---
-  utter_ask_nombre:
-    - text: "¿Cuál es tu nombre completo?"
-  utter_ask_email:
-    - text: "¿Cuál es tu correo de contacto?"
-  utter_ask_mensaje:
-    - text: "Cuéntame brevemente el problema técnico (máx. 5000 caracteres)."
-
-  utter_soporte_form_ok:
-    - text: "Gracias. Estoy registrando tu solicitud..."
-
-  utter_soporte_resumen:
-    - text: |
-        Gracias {nombre}. Voy a crear un ticket con:
-        - Email: {email}
-        - Mensaje: "{mensaje}"
-
-  utter_soporte_creado:
-    - text: "Ticket creado correctamente. Te enviaremos novedades a tu correo."
-
-  utter_soporte_error:
-    - text: "Ocurrió un error al crear el ticket. Intenta de nuevo en unos minutos."
-
-  # --- Autenticación requerida ---
-  utter_need_auth:
-    - text: "Necesitas iniciar sesión para ver esta información."
-      buttons:
-        - title: "Iniciar sesión"
-          payload: "/auth_login"
-    - custom:
-        type: "auth_needed"
-        message: "Necesitas iniciar sesión para continuar."
-
-  # --- Confirmación soporte directo ---
-  utter_soporte_confirm:
-    - text: "Listo. He enviado tu solicitud de soporte. Te contactaremos al correo indicado."
-
-  # --- Eco de entidades capturadas ---
-  utter_enviar_correo:
-    - text: "Perfecto, he registrado tu correo: {email}"
-  utter_enviar_telefono:
-    - text: "He guardado tu teléfono: {telefono}"
-  utter_enviar_cedula:
-    - text: "Tu cédula quedó registrada: {cedula}"
-  utter_enviar_numero:
-    - text: "Número recibido: {numero}"
-  utter_enviar_url:
-    - text: "He registrado el enlace: {url}"
-
-  utter_fallback:
-    - text: "Lo siento, no entendí. ¿Puedes repetirlo?"
-
+  # 📧 Pedir correo (placeholder usado por la regla 'Pedir correo')
+  utter_pedir_correo:
+    - text: "¿Cuál es tu correo electrónico?"
+  
 actions:
+  - action_check_auth
+  - action_soporte_submit
   - action_enviar_correo
   - action_conectar_humano
-  - action_soporte_submit
   - action_enviar_soporte
-  - validate_soporte_form
-  - validate_recovery_form
-  - action_check_auth
-  - action_health_check
-
-session_config:
-  session_expiration_time: 60
-  carry_over_slots_to_new_session: true
+  - action_deactivate_loop  
+  

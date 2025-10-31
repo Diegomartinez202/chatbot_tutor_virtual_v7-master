@@ -46,6 +46,11 @@ from backend.db.mongodb import get_database  # noqa: F401  (asegura init y dispo
 # 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
 from pymongo import MongoClient
+from backend.middleware.permissions_policy import add_permissions_policy
+
+
+from backend.config.settings import settings
+
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -82,7 +87,17 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
+    app_env = (getattr(settings, "app_env", None) or os.getenv("APP_ENV") or "prod").lower()
+    if app_env == "dev":
+        add_permissions_policy(app, preset="relaxed")
+    else:
+        add_permissions_policy(app, preset="strict")
 
+        add_permissions_policy(
+    app,
+    policy=getattr(settings, "permissions_policy_effective", None),
+    add_legacy_feature_policy=True,
+)
     # 🌐 CORS (bloque original)
     app.add_middleware(
         CORSMiddleware,
