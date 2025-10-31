@@ -227,7 +227,7 @@
             iframeEl.setAttribute("title", opts.title || "Chat");
 
             // ✅ SOLO permisos necesarios (sin autoplay/clipboard-write)
-            iframeEl.setAttribute("allow", "microphone; camera; fullscreen");
+            iframeEl.allow = "microphone; camera";
 
             // Sandbox: necesario para app embebida (nota: same-origin + scripts reduce confinamiento)
             iframeEl.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");

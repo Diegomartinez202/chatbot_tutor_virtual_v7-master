@@ -30,14 +30,11 @@ const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-/* 🔒 Local router desactivado (Rasa controla el flujo)
-   Mantenemos estructura vacía para no romper nada. */
-const LOCAL_ROUTES = {};
-async function handleLocalPayload({ text /*, tChat, setMessages, sendToRasa */ }) {
-    const make = LOCAL_ROUTES[text];
-    if (!make) return false;
-    // Si en el futuro reactivas algo local, aquí lo pintas.
-    return true;
+const LOCAL_ROUTES = Object.freeze({});
+
+async function handleLocalPayload(/* { text, tChat, setMessages, sendToRasa } */) {
+    // Siempre delegamos en Rasa.
+    return false;
 }
 
 /* --- Avatares --- */
@@ -232,7 +229,13 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     /* --- sendToRasa con auth diferida --- */
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
-
+        try {
+            const rsp = await sendRasaMessage({
+                text,
+                sender: userId || undefined,
+                token: authToken || undefined,
+            });
+            await appendBotMessages(rsp);
         // 🔐 Solo exige auth si la acción lo requiere (y no hay token)
         if (embed && requiresAuthFor(text) && !authToken) {
             try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }

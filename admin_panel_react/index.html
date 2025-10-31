@@ -149,6 +149,18 @@
             if (msg.type === "widget:open") bubble.open();
             if (msg.type === "widget:close") bubble.close();
         });
+        window.onHostLoginSuccess = function onHostLoginSuccess(currentToken) {
+            try {
+                // Guarda en el host (para autoSendToken y persistencia)
+                localStorage.setItem("app:accessToken", String(currentToken));
+            } catch { }
+            // Envíalo de inmediato al iframe (bridge)
+            bubble.sendAuthToken(String(currentToken));
+
+            // (Opcional) duplicado directo al iframe:
+            const iframe = document.querySelector(".zj-bubble-iframe");
+            iframe?.contentWindow?.postMessage({ type: "auth:token", token: String(currentToken) }, "*");
+        };
     </script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
 </body>

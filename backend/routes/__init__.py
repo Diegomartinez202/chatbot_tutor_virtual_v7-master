@@ -28,6 +28,7 @@ from . import train
 
 # Intents (controlador nuevo, rutas ya incluyen /admin/…)
 from . import intent_controller
+from . import chat
 
 # Usuarios (opcional si existe un router en backend/routes/)
 try:
@@ -58,11 +59,7 @@ else:
 # 🔐 Auth
 router.include_router(auth.router, tags=["Auth"])
 router.include_router(auth_tokens.router, tags=["Auth Tokens"])
-
-# 💬 Chat
-router.include_router(api_chat.router, tags=["Chat"])              # /api/chat
-router.include_router(chat_module.chat_router, tags=["Chat"])      # /chat/*
-
+router.include_router(chat.router)
 # 📋 Logs
 router.include_router(logs.router, prefix="/logs", tags=["Logs"])
 
@@ -86,3 +83,5 @@ router.include_router(intent_controller.router, tags=["Intents"])
 # ➕ Intents Legacy (solo si se habilita por ENV)
 if intent_legacy and hasattr(intent_legacy, "router"):
     router.include_router(intent_legacy.router, tags=["Intents Legacy"])
+
+

@@ -3,10 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from time import perf_counter
 from typing import Optional, Any, Dict, List
-
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field, ConfigDict
-
 from backend.config.settings import settings
 from backend.middleware.request_id import get_request_id
 from backend.services.jwt_service import decode_token
@@ -16,6 +14,7 @@ from backend.utils.logging import get_logger
 from backend.rate_limit import limit
 from backend.ext.rate_limit import limiter
 
+router = APIRouter()
 chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
 
@@ -137,9 +136,9 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
 
 
 # ==== Demo ====
-@chat_router.post("/demo", summary="Demo sin conexión Rasa")
+@router.post("/demo", summary="Demo sin conexión Rasa")
 async def chat_demo(data: ChatRequest):
-    """Respuesta local de prueba."""
+    """Respuesta local de prueba sin conexión a Rasa."""
     user_message = data.message.lower().strip()
     if "hola" in user_message:
         bot_responses = [{"text": "👋 ¡Hola! Soy el bot tutor virtual de Zajuna. ¿En qué puedo ayudarte hoy?"}]
@@ -151,12 +150,24 @@ async def chat_demo(data: ChatRequest):
         bot_responses = [{"text": "🤖 Esta es una respuesta de prueba del bot Zajuna."}]
     return bot_responses
 
-@router.post("/rasa/rest/webhook")
+
+# ==== Proxy hacia Rasa ====
+@router.post("/rasa/rest/webhook", summary="Proxy REST → Rasa")
 async def rasa_rest_proxy(payload: dict):
-    # payload llega con sender, message (del front)
-    # Añade metadata si falta (por si en algún flujo no pasó desde el front)
+    """
+    Reenvía mensajes al servidor Rasa (puerto 5005 en docker).
+    Adjunta metadata mínima si no viene desde el frontend.
+    """
     payload.setdefault("metadata", {}).setdefault("ui", {"proxied": True})
+
+    rasa_url = "http://rasa:5005/webhooks/rest/webhook"
     async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.post("http://rasa:5005/webhooks/rest/webhook", json=payload)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.post(rasa_url, json=payload)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            log.error(f"❌ Error proxying to Rasa: {e}")
+            return {"error": "No se pudo contactar con el servidor Rasa"}
+
+__all__ = ["router"]

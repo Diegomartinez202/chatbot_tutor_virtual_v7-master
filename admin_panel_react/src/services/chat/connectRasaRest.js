@@ -1,28 +1,23 @@
 // src/services/chat/connectRasaRest.js
 
-/**
- * URL base del REST proxy del backend (FastAPI) hacia Rasa.
- * - Por defecto usamos /api/chat (proxy recomendado).
- * - Puedes sobreescribir con VITE_CHAT_REST_URL o pasando { baseUrl }.
- */
-export const DEFAULT_CHAT_URL =
-    (import.meta?.env?.VITE_CHAT_REST_URL && String(import.meta.env.VITE_CHAT_REST_URL).trim()) ||
-    "/api/chat";
+// 👉 Base API del backend (no Rasa directo). Si no viene por env, usa http://localhost:8000
+const API_BASE = (import.meta?.env?.VITE_API_BASE && String(import.meta.env.VITE_API_BASE).trim())
+    || "http://localhost:8000";
+
+// 👉 Endpoint REST del proxy hacia Rasa en tu backend
+export const RASA_PROXY_URL = `${API_BASE.replace(/\/$/, "")}/chat/rasa/rest/webhook`;
+
+// (opcional) health si lo necesitas en otros lugares del front
+export const DEFAULT_CHAT_HEALTH =
+    (import.meta?.env?.VITE_CHAT_REST_URL && String(import.meta.env.VITE_CHAT_REST_URL).trim())
+    || `${API_BASE.replace(/\/$/, "")}/chat/health`;
 
 /**
  * Healthcheck simple contra tu backend (alias a Rasa).
- * GET <baseUrl>/health → OK si responde 2xx.
- *
- * @param {Object} opts
- * @param {string} [opts.baseUrl]   - Base URL del chat (ej: "/api/chat" o "https://.../api/chat")
- * @param {string} [opts.token]     - Token Bearer para Authorization
- * @param {string} [opts.healthUrl] - URL absoluta para health, si no deriva de baseUrl
- * @returns {Promise<boolean>}
+ * GET <healthUrl> → OK si responde 2xx.
  */
 export async function connectRasaRest(opts = {}) {
-    const base = String(opts.baseUrl || DEFAULT_CHAT_URL).replace(/\/$/, "");
-    const healthUrl = opts.healthUrl || `${base}/health`;
-
+    const healthUrl = String(opts.healthUrl || DEFAULT_CHAT_HEALTH);
     const headers = {};
     const token =
         opts.token ||
@@ -32,7 +27,7 @@ export async function connectRasaRest(opts = {}) {
     const res = await fetch(healthUrl, {
         method: "GET",
         headers,
-        credentials: "include", // 👈 por si usas cookie HttpOnly
+        credentials: "include",
     });
     if (!res.ok) throw new Error(`Healthcheck failed: ${res.status}`);
     return true;
@@ -44,19 +39,15 @@ export async function connectRasaRest(opts = {}) {
  * Adjunta Authorization: Bearer <token> si existe.
  *
  * @param {Object} params
- * @param {string} params.text                  - Texto o payload ("/intent{...}")
- * @param {string} [params.sender]              - ID del usuario/sender
- * @param {Object} [params.metadata={}]         - Metadatos para tracker.latest_message.metadata
- * @param {string} [params.baseUrl]             - Override del endpoint (por defecto DEFAULT_CHAT_URL)
- * @param {string} [params.token]               - Token Bearer (si no, usa localStorage.zajuna_token)
- * @returns {Promise<Array>}                    - Array de mensajes Rasa [{ text?, image?, ... }]
+ * @param {string} params.text          Texto o payload ("/intent{...}")
+ * @param {string} [params.sender]      ID del usuario/sender
+ * @param {Object} [params.metadata={}] Metadatos para tracker.latest_message.metadata
+ * @param {string} [params.token]       Token Bearer (si no, usa localStorage.zajuna_token)
+ * @returns {Promise<Array>}            Array de mensajes Rasa [{ text?, image?, buttons?, ... }]
  */
-export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, token } = {}) {
-    if (!text || !String(text).trim()) {
-        throw new Error("Mensaje vacío");
-    }
+export async function sendRasaMessage({ text, sender, metadata = {}, token } = {}) {
+    if (!text || !String(text).trim()) throw new Error("Mensaje vacío");
 
-    const host = String(baseUrl || DEFAULT_CHAT_URL).replace(/\/$/, "");
     const authToken =
         token || (typeof localStorage !== "undefined" ? localStorage.getItem("zajuna_token") : null);
 
@@ -70,20 +61,20 @@ export async function sendRasaMessage({ text, sender, metadata = {}, baseUrl, to
         sender: sender || getOrCreateSenderId(),
         metadata: {
             ...metadata,
-            auth: { hasToken: !!authToken },
+            auth: { hasToken: !!authToken }, // <- clave para ActionCheckAuth
         },
     };
 
-    const res = await fetch(host, {
+    const res = await fetch(RASA_PROXY_URL, {
         method: "POST",
         headers,
-        credentials: "include", // 👈 por si usas cookie HttpOnly
+        credentials: "include",
         body: JSON.stringify(body),
     });
 
     if (!res.ok) {
         const msg = await res.text().catch(() => "");
-        throw new Error(`REST ${res.status}: ${msg || "error al enviar mensaje"}`);
+        throw new Error(`RASA REST ${res.status}: ${msg || "error al enviar mensaje"}`);
     }
 
     const data = await res.json().catch(() => []);

@@ -47,10 +47,7 @@ from backend.db.mongodb import get_database  # noqa: F401  (asegura init y dispo
 from backend.middleware.cors_csp import add_cors_and_csp
 from pymongo import MongoClient
 from backend.middleware.permissions_policy import add_permissions_policy
-
-
 from backend.config.settings import settings
-
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -124,7 +121,7 @@ def create_app() -> FastAPI:
 
     # 🔐 Auth: agrega request.state.user (JWT o demo)
     app.add_middleware(AuthMiddleware)
-
+    add_permissions_policy(app, preset="strict")
     # 📁 Archivos estáticos
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -136,7 +133,8 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(me_router)  # shim compat /api/me/*
     app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  # /api/me/settings
-
+    app.include_router(api_router)
+   
     # 🔒 CSP adicional (solo si nadie la puso antes)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
