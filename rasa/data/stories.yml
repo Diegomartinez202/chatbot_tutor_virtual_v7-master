@@ -11,35 +11,15 @@ stories:
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
-  # 🔎 Explorar directo → (misma secuencia para evitar conflicto)
+  # 🔎 Explorar directo → Recomendados + Carrusel
   - story: Explorar directo → Recomendados + Carrusel
     steps:
       - intent: explorar_temas
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
-  # 📚 Mis cursos → recomendados + carrusel
-  - story: Mis cursos → Recomendados + Carrusel
-    steps:
-      - intent: explorar_temas
-      - action: utter_cursos_recomendados
-      - action: utter_cursos_carousel
-
-  # 🔐 Recuperar contraseña desde ingreso
-  - story: Recuperar contraseña desde ingreso
-    steps:
-      - intent: ingreso_zajuna
-      - action: utter_preguntar_problema_acceso
-      - intent: recuperar_contrasena
-      - action: recovery_form
-      - active_loop: recovery_form
-      - action: recovery_form
-      - active_loop: null
-      - action: action_enviar_correo
-      - action: utter_confirmar_recuperacion
-
-  # 📚 Proceso académico completo
-  - story: Proceso académico completo
+  # 📚 Proceso académico (flujo básico con auth-check y otros)
+  - story: Proceso académico básico
     steps:
       - intent: proceso_academico
       - action: utter_menu_proceso_academico
@@ -67,16 +47,24 @@ stories:
       - intent: negar_escalar
       - action: utter_gracias_continuar
 
-  # 🛠️ Soporte técnico (genérico: solo arranque del form)
-  #    El submit lo maneja la REGLA "Submit soporte_form"
-  - story: Soporte técnico (genérico)
+  # 🛠️ Soporte técnico (arranque del form)
+  #    El submit lo maneja la RULE "Submit soporte_form"
+  - story: Soporte técnico (arranque form)
     steps:
       - intent: soporte_tecnico
       - action: soporte_form
       - active_loop: soporte_form
 
-  # 📧 saludo y envío de correo (acción + utter)
-  - story: saludo y envío de correo
+  # 🔁 Recuperación de contraseña (form directo)
+  #    El submit lo maneja la RULE "Submit recovery_form"
+  - story: Recuperar contraseña (form)
+    steps:
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+  # 📧 Saludo y envío de correo (acción + utter)
+  - story: Saludo → enviar_correo
     steps:
       - intent: saludo
       - action: utter_saludo
@@ -84,24 +72,24 @@ stories:
       - action: action_enviar_correo
       - action: utter_enviar_correo
 
-  # 📞 saludo y envío de teléfono
-  - story: saludo y envío de teléfono
+  # 📞 Saludo y envío de teléfono
+  - story: Saludo → enviar_telefono
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: enviar_telefono
       - action: utter_enviar_telefono
 
-  # 🪪 saludo y envío de cédula
-  - story: saludo y envío de cédula
+  # 🪪 Saludo y envío de cédula
+  - story: Saludo → enviar_cedula
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: enviar_cedula
       - action: utter_enviar_cedula
 
-  # 🔗 saludo y envío de url
-  - story: saludo y envío de url
+  # 🔗 Saludo y envío de URL
+  - story: Saludo → enviar_url
     steps:
       - intent: saludo
       - action: utter_saludo

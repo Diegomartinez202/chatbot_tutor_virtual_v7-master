@@ -200,6 +200,15 @@ export default function ChatPage({
         window.addEventListener("message", handler);
         return () => window.removeEventListener("message", handler);
     }, [i18n]);
+    // 🔽 Minimizar automáticamente al cargar si está embebido
+    useEffect(() => {
+        if (isEmbed) {
+            const timer = setTimeout(() => {
+                window.parent?.postMessage({ type: "widget:toggle", action: "close" }, "*");
+            }, 800); // espera 0.8 segundos tras el montaje
+            return () => clearTimeout(timer);
+        }
+    }, [isEmbed]);
 
     /* 🧱 UI principal */
     if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) return null;

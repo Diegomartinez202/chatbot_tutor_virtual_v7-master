@@ -133,11 +133,12 @@
         };
 
         // También puedes escuchar mensajes manuales (opcional)
-        window.addEventListener("message", (event) => {
-            const msg = event.data || {};
-            if (msg.type === "widget:toggle") bubble.toggle();
-            if (msg.type === "widget:open") bubble.open();
-            if (msg.type === "widget:close") bubble.close();
+        window.addEventListener("message", (e) => {
+            if (e.data?.type === "widget:toggle") {
+                const iframe = document.getElementById("chatbot-iframe");
+                if (!iframe) return;
+                iframe.style.display = e.data.action === "close" ? "none" : "block";
+            }
         });
         window.onHostLoginSuccess = function onHostLoginSuccess(currentToken) {
             try {

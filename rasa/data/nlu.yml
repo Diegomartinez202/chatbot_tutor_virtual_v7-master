@@ -429,12 +429,19 @@ nlu:
       - envía soporte directo
       - crear ticket directo
       - mandar ticket ya
+# ————— Soporte AVA directo (SAVA)
   - intent: soporte_ava_directo
     examples: |
+      - necesito soporte del AVA
       - soporte ava
-      - soporte del ambiente virtual
-      - abrir soporte sava
-  # ─────────────────────────────────────────────
+      - ayuda con el ambiente virtual
+      - dónde pido soporte del ava
+      - problema en el SAVA
+      - quiero soporte del ambiente virtual de aprendizaje
+      - soporte de cursos en línea
+      - problemas con el campus virtual
+      - abrir ticket en el SAVA
+      - contacto del SAVA─────────────
   # REGEX FEATURES
   # ─────────────────────────────────────────────
   - regex: email
