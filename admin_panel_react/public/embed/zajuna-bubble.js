@@ -1,7 +1,7 @@
 /* public/embed/zajuna-bubble.js */
 ; (() => {
     const DEFAULTS = {
-        iframeUrl: `${window.location.origin}/?embed=1`,
+        iframeUrl: `${window.location.origin}/hybrid-host.html`,
         // ✅ Se resuelve automáticamente desde iframeUrl si no lo pasas
         allowedOrigin: null,
         title: "Tutor Virtual",

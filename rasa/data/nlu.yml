@@ -243,7 +243,6 @@ nlu:
       - ver mi estado
       - mi estado académico
       - /estado_estudiante
-
   # ————— CAMBIO DE IDIOMA
   - intent: cambiar_idioma_ingles
     examples: |
@@ -279,10 +278,12 @@ nlu:
   # ————— LOGIN EXPLÍCITO (TRACKING)
   - intent: auth_login
     examples: |
-      - iniciar sesión
-      - abrir inicio de sesión
-      - ir al login
-      - quiero loguearme
+
+      - abrir pantalla de autenticación
+      - necesito autenticarme
+      - redireccionarme al login
+      - quiero ver si puedo loguearme
+      - iniciar sesión ahora
       - acceder a mi cuenta
       - entrar con mi usuario
       - abrir el login
@@ -290,7 +291,7 @@ nlu:
   # Intent técnico (comando)
   - intent: auth_login_cmd
     examples: |
-      - /auth_login
+      - auth_login
       - auth login
       - login ahora
 
@@ -409,13 +410,6 @@ nlu:
       - cuál mensaje envío
       - acá va mi mensaje
 
-  # Estados/auth “informativos”
-  - intent: estado_estudiante_info
-    examples: |
-      - dime mi estado de estudiante
-      - cuál es mi estado actual
-      - estado académico rápido
-
   - intent: necesita_auth
     examples: |
       - necesito autenticarme?
@@ -442,8 +436,6 @@ nlu:
       - crear ticket directo
       - mandar ticket ya
 # ————— Soporte AVA directo (SAVA)
-  - intent: soporte_ava_directo
-    examples: |
   - intent: soporte_ava_directo
     examples: |
       - soporte ava

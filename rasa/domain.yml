@@ -6,16 +6,11 @@ session_config:
 
 intents:
   - saludo
-  - explorar_temas            # 👈 usado en stories
+  - explorar_temas            
   - ingreso_zajuna
   - otro_problema_acceso
   - proceso_academico
-  - tutor_asignado
   - horarios_calendario       
-  - estado_estudiante
-  - estado_estudiante_info
-  - ver_certificados
-  - ver_certificados_info
   - necesita_auth
   - soporte_tecnico
   - otro_problema_tecnico
@@ -51,9 +46,11 @@ intents:
   - soporte_ava_directo
   - estado_estudiante
   - ver_certificados
-  - tutor_asignado
-  - ingreso_zajuna        
+  - tutor_asignado        
   - abrir_chat_autenticado
+  - estado_estudiante
+  - estado_estudiante_info
+  - ver_certificados_info
 entities:
   - nombre      
   - email
@@ -93,18 +90,7 @@ slots:
     initial_value: false
     mappings:
       - type: custom
-
-forms:
-  soporte_form:
-    required_slots:
-      - nombre
-      - email
-      - mensaje
-      # teléfono es opcional (lo pedimos si quieres en rules/stories)
-  recovery_form:
-    required_slots:
-      - email
-
+  
 responses:
 
   # 👋 Saludo + menú de arranque controlado por Rasa
@@ -288,6 +274,9 @@ responses:
   utter_login_hint:
     - text: "Abre el login de Zajuna e inicia sesión. Si estás en el portal, regresaremos el token automáticamente al chat."
   
+  utter_estado_estudiante:
+    - text: "Tu estado académico (demo): Activo."
+
   utter_estado_estudiante_demo:
     - text: "Tu estado académico actual: Activo (demo)."
 
@@ -297,10 +286,20 @@ actions:
   - action_enviar_correo
   - action_conectar_humano
   - action_enviar_soporte
-  - action_deactivate_loop  
   - action_sync_auth_from_metadata
   - action_estado_estudiante
   - action_ver_certificados
   - action_tutor_asignado
   - action_check_auth_estado
   
+
+forms:
+  soporte_form:
+    required_slots:
+      - nombre
+      - email
+      - mensaje
+      # teléfono es opcional (lo pedimos si quieres en rules/stories)
+  recovery_form:
+    required_slots:
+      - email
