@@ -44,6 +44,10 @@ intents:
   - enviar_soporte_directo
   - fallback
   - nlu_fallback
+  - pedir_correo
+  - pedir_email
+  - pedir_nombre
+  - pedir_mensaje
 
 entities:
   - nombre        # 👈 anotaste nombres en NLU

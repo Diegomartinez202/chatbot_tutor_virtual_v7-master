@@ -114,20 +114,10 @@
         }
         // Inicialización del widget flotante
         // --- Inicialización del widget flotante ---
-        const bubble = ZajunaBubble.create({
-            iframeUrl: "http://localhost:8080/?embed=1&guest=1",
-            // ⬅️ ya no pongas allowedOrigin; lo calcula del iframeUrl
-            startOpen: false,
-            draggable: true,
-            width: 380,
-            height: 560,
-            autoSendToken: true,
-            tokenStorageKey: "app:accessToken",
-            tokenCookieName: "access_token",
-        });
-
-        bubble.mount();
-        window.__zjBubble = bubble;
+            const bubble = window.ZajunaBubble.create({ iframeUrl: `${location.origin}/?embed=1`, startOpen: false, autoSendToken: true, tokenStorageKey: "app:accessToken", tokenCookieName: "access_token" });
+            bubble.mount();
+            function onHostLoginSuccess(currentToken){ bubble.sendAuthToken(currentToken); }
+            window.__zjBubble = bubble;
 
         // Escucha mensajes del iframe (para abrir/cerrar o pedir auth)
         bubble.onEvent((evt) => {

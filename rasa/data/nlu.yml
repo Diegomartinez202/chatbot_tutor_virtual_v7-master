@@ -34,7 +34,6 @@ nlu:
     - cursos disponibles
     - quiero aprender algo nuevo
     - ver catálogo
-    # 👇 extra ligero, no rompe nada
     - ver cursos disponibles
     - catálogo académico
 

@@ -30,9 +30,9 @@ const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-const LOCAL_ROUTES = Object.freeze({});
+/*const LOCAL_ROUTES = Object.freeze({});
 
-async function handleLocalPayload(/* { text, tChat, setMessages, sendToRasa } */) {
+/*async function handleLocalPayload(/* { text, tChat, setMessages, sendToRasa } */) {
     // Siempre delegamos en Rasa.
     return false;
 }

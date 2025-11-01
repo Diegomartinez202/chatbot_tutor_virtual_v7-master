@@ -3,33 +3,16 @@ from __future__ import annotations
 
 import os
 from fastapi import APIRouter
-
-# Crea el router principal antes de incluir subrouters
-router = APIRouter()
-
-# ─────────────────────────────────────────────────────
-# Importa módulos por su nombre real
-# ─────────────────────────────────────────────────────
-
-# Auth principal y tokens
 from . import auth
 from . import auth_tokens
-
-# Chat:
-# - api_chat: define `router` (prefijo /api)
-# - chat:     define `chat_router` (prefijo /chat)
 from . import api_chat
 from . import chat as chat_module
-
-# Logs / Stats / Train
 from . import logs
 from . import stats
 from . import train
 
 # Intents (controlador nuevo, rutas ya incluyen /admin/…)
 from . import intent_controller
-from . import chat
-
 # Usuarios (opcional si existe un router en backend/routes/)
 try:
     from . import user_controller as users_module
@@ -51,7 +34,9 @@ if ENABLE_INTENT_LEGACY:
         intent_legacy = None
 else:
     intent_legacy = None
-
+# Crea el router principal antes de incluir subrouters
+router = APIRouter()
+router.include_router(chat_module.chat_router, tags=["Chat"])
 # ─────────────────────────────────────────────────────
 # Incluir routers
 # ─────────────────────────────────────────────────────
@@ -59,7 +44,7 @@ else:
 # 🔐 Auth
 router.include_router(auth.router, tags=["Auth"])
 router.include_router(auth_tokens.router, tags=["Auth Tokens"])
-router.include_router(chat.router)
+
 # 📋 Logs
 router.include_router(logs.router, prefix="/logs", tags=["Logs"])
 

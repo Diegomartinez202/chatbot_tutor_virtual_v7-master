@@ -48,6 +48,7 @@ from backend.middleware.cors_csp import add_cors_and_csp
 from pymongo import MongoClient
 from backend.middleware.permissions_policy import add_permissions_policy
 from backend.config.settings import settings
+from backend.routes.chat import chat_router 
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -104,38 +105,36 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ✅ CORS + CSP dinámico adicional
+    
     add_cors_and_csp(app)
 
-    # 🔎 Request-ID
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
 
-    # ➕ Middleware IP/UA
     app.middleware("http")(request_meta_middleware)
 
-    # 🧾 Logging HTTP con duración, IP, user y request-id
+    
     app.add_middleware(LoggingMiddleware)
 
-    # 📜 Access logs a base de datos (usa request.state.user)
     app.add_middleware(AccessLogMiddleware)
 
-    # 🔐 Auth: agrega request.state.user (JWT o demo)
+    
     app.add_middleware(AuthMiddleware)
     add_permissions_policy(app, preset="strict")
-    # 📁 Archivos estáticos
+   
+
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # 🔀 Rutas API principales
+    
     app.include_router(api_router)
     app.include_router(admin_ctrl.router)
     app.include_router(users_ctrl.router)
     app.include_router(chat_router)
-    app.include_router(me_router)  # shim compat /api/me/*
-    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  # /api/me/settings
+    app.include_router(me_router)  
+    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  
     app.include_router(api_router)
-   
-    # 🔒 CSP adicional (solo si nadie la puso antes)
+ 
+    
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)

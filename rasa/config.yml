@@ -1,4 +1,4 @@
-﻿assistant_id: "tutorbot-local"
+assistant_id: "tutorbot-local"
 recipe: default.v1
 version: "3.1"
 language: "es"

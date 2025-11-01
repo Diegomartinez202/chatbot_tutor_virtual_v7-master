@@ -18,7 +18,6 @@ router = APIRouter()
 chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
 
-
 # ==== Modelos ====
 class ChatRequest(BaseModel):
     sender_id: str = Field(default="anonimo", alias="sender", description="ID de sesión o usuario")
@@ -30,13 +29,6 @@ class ChatRequest(BaseModel):
         validate_by_name=True,
         extra="allow",
     )
-
-
-# ==== Endpoints auxiliares ====
-@chat_router.get("/health", summary="Healthcheck de chat")
-async def chat_health():
-    """Verifica que el servicio de chat esté operativo."""
-    return {"ok": True, "rasa_url": settings.rasa_url}
 
 
 @chat_router.get("/debug", summary="Inspección de request (solo DEBUG)")
@@ -136,7 +128,7 @@ async def send_message_to_bot(data: ChatRequest, request: Request):
 
 
 # ==== Demo ====
-@router.post("/demo", summary="Demo sin conexión Rasa")
+@chat_router.post("/demo", summary="Demo sin conexión Rasa")
 async def chat_demo(data: ChatRequest):
     """Respuesta local de prueba sin conexión a Rasa."""
     user_message = data.message.lower().strip()
@@ -150,24 +142,62 @@ async def chat_demo(data: ChatRequest):
         bot_responses = [{"text": "🤖 Esta es una respuesta de prueba del bot Zajuna."}]
     return bot_responses
 
+@chat_router.get("/health", summary="Healthcheck de chat")
+async def chat_health():
+    # intenta un OPTIONS (barato) a Rasa para confirmar conectividad de red
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.options("http://rasa:5005/webhooks/rest/webhook")
+        ok = 200 <= r.status_code < 500  # si Rasa está vivo, suele dar 204/405/200
+        return {"ok": bool(ok), "rasa_url": "http://rasa:5005"}
+    except Exception as e:
+        log.exception("chat_health error: %s", e)
+        return {"ok": False, "rasa_url": "http://rasa:5005", "error": str(e)}
 
-# ==== Proxy hacia Rasa ====
-@router.post("/rasa/rest/webhook", summary="Proxy REST → Rasa")
-async def rasa_rest_proxy(payload: dict):
+@chat_router.post("/rasa/rest/webhook", summary="Proxy REST → Rasa")
+async def rasa_rest_proxy(payload: dict, request: Request):
     """
-    Reenvía mensajes al servidor Rasa (puerto 5005 en docker).
-    Adjunta metadata mínima si no viene desde el frontend.
+    Reenvía el body tal cual a Rasa REST.
+    Devuelve el JSON de Rasa (lista de mensajes [{text?, image?, buttons?, ...}]).
     """
-    payload.setdefault("metadata", {}).setdefault("ui", {"proxied": True})
+    url = "http://rasa:5005/webhooks/rest/webhook"
 
-    rasa_url = "http://rasa:5005/webhooks/rest/webhook"
-    async with httpx.AsyncClient(timeout=15) as client:
+    # Log de depuración mínimo (no loguear datos sensibles)
+    try:
+        ua = request.headers.get("user-agent", "-")
+        log.info("proxy rasa start ua=%s bytes=%s", ua, len(str(payload)))
+    except Exception:
+        pass
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(url, json=payload)
+        # si upstream falla, queremos ver el texto de error del upstream
         try:
-            r = await client.post(rasa_url, json=payload)
-            r.raise_for_status()
-            return r.json()
-        except Exception as e:
-            log.error(f"❌ Error proxying to Rasa: {e}")
-            return {"error": "No se pudo contactar con el servidor Rasa"}
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            detail = e.response.text if e.response is not None else str(e)
+            log.error("rasa upstream error %s: %s", e.response.status_code if e.response else "?", detail)
+            raise HTTPException(status_code=e.response.status_code if e.response else 502,
+                                detail=f"rasa_upstream_error: {detail}")
+
+        data = resp.json()
+        if not isinstance(data, list):
+            log.warning("rasa proxy non-list response: %r", data)
+        return data
+
+    except httpx.RequestError as e:
+        # problema de red / DNS / timeout
+        log.exception("proxy network error: %s", e)
+        raise HTTPException(status_code=502, detail=f"proxy_network_error: {e}")
+
+    except ValueError as e:
+        # JSON inválido desde Rasa
+        log.exception("proxy json error: %s", e)
+        raise HTTPException(status_code=502, detail=f"proxy_json_error: {e}")
+
+    except Exception as e:
+        log.exception("proxy fatal error: %s", e)
+        raise HTTPException(status_code=500, detail=f"proxy_internal_error: {e}")
 
 __all__ = ["router"]
