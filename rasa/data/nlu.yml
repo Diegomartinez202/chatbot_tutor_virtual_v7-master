@@ -432,16 +432,17 @@ nlu:
 # ————— Soporte AVA directo (SAVA)
   - intent: soporte_ava_directo
     examples: |
-      - necesito soporte del AVA
+  - intent: soporte_ava_directo
+    examples: |
       - soporte ava
-      - ayuda con el ambiente virtual
-      - dónde pido soporte del ava
-      - problema en el SAVA
-      - quiero soporte del ambiente virtual de aprendizaje
-      - soporte de cursos en línea
-      - problemas con el campus virtual
-      - abrir ticket en el SAVA
-      - contacto del SAVA─────────────
+      - soporte del ambiente virtual
+      - ayuda con el AVA
+      - problemas en SAVA
+      - link de soporte SAVA
+      - necesito soporte del aula virtual
+      - abrir soporte ava
+      - soporte plataforma zajuna
+      - cómo contacto soporte SAVA
   # REGEX FEATURES
   # ─────────────────────────────────────────────
   - regex: email

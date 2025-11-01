@@ -278,3 +278,8 @@ rules:
       - intent: enviar_soporte
       - action: action_enviar_soporte
       - action: utter_soporte_confirm
+  
+  - rule: Soporte AVA directo (intent dedicado)
+    steps:
+      - intent: soporte_ava_directo
+      - action: utter_soporte_ava

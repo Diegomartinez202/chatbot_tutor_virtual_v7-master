@@ -11,7 +11,6 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
-import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { uploadVoiceBlob } from "@/services/voice/uploadVoice";
 
 // ⛳️ nuevo helper REST con metadata.auth.hasToken
@@ -369,7 +368,11 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="chat-input-container">
-                <MicButton onVoice={(p) => sendToRasa({ text: p })} disabled={sending} />
+                <MicButton
+                    stt="auto"                              // o "none" si aún no tienes STT_URL configurado
+                    onVoice={(text) => sendToRasa({ text })}
+                    disabled={sending}
+                />
                 <input
                     type="text"
                     value={input}
