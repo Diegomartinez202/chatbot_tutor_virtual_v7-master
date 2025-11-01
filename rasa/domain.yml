@@ -48,7 +48,7 @@ intents:
   - pedir_email
   - pedir_nombre
   - pedir_mensaje
-
+  - soporte_ava_directo
 entities:
   - nombre        # 👈 anotaste nombres en NLU
   - email
@@ -245,7 +245,35 @@ responses:
   # 📧 Pedir correo (placeholder usado por la regla 'Pedir correo')
   utter_pedir_correo:
     - text: "¿Cuál es tu correo electrónico?"
-  
+  utter_soporte_pqrs:
+    - text: "Para radicar o consultar una PQRS usa el sistema oficial del SENA:"
+      buttons:
+        - title: "📨 Radicar / Consultar PQRS"
+          payload: "https://sciudadanos.sena.edu.co/SolicitudIndex.aspx"
+
+  utter_soporte_ava:
+    - text: "Soporte del Ambiente Virtual de Aprendizaje (SAVA):"
+      buttons:
+        - title: "🛠️ Soporte AVA (SAVA)"
+          payload: "https://sava.sena.edu.co/gfvd/"
+
+  utter_ingreso_zajuna_instrucciones:
+    - text: |
+        Portal principal de Zajuna:
+        • Acceso: https://zajuna.sena.edu.co/
+
+        ¿No puedes ingresar?
+        1) Si OLVIDASTE la contraseña → usa “¿Olvidé mi contraseña?” en el portal.
+        2) Si NO TIENES cuenta → usa “Registrarse” y completa tus datos.
+        3) Si el problema persiste → abre un ticket en SAVA o radica una PQRS.
+
+      buttons:
+        - title: "🔐 Ir a Zajuna"
+          payload: "https://zajuna.sena.edu.co/"
+        - title: "🛠️ Soporte AVA (SAVA)"
+          payload: "https://sava.sena.edu.co/gfvd/"
+        - title: "📨 PQRS SENA"
+          payload: "https://sciudadanos.sena.edu.co/SolicitudIndex.aspx"
 actions:
   - action_check_auth
   - action_soporte_submit

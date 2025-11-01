@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { connectChatHealth } from "@/services/chat/health";
 import { connectWS } from "@/services/chat/connectWS";
 import Harness from "@/pages/Harness";
-import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import { STORAGE_KEYS } from "@/lib/constants";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
@@ -234,7 +233,6 @@ export default function ChatPage({
                     </div>
                     <div className="flex items-center gap-2">
                         <ChatbotStatusMini status={status} />
-                        <ChatConfigMenu />
                     </div>
                 </div>
             )}

@@ -10,6 +10,8 @@ from . import chat as chat_module
 from . import logs
 from . import stats
 from . import train
+from . import link_preview as link_preview_module
+from . import telemetry as telemetry_module
 
 # Intents (controlador nuevo, rutas ya incluyen /admin/…)
 from . import intent_controller
@@ -54,6 +56,8 @@ router.include_router(stats.router, prefix="/admin", tags=["Estadísticas"])
 # 🧠 Entrenamiento
 router.include_router(train.router, prefix="/admin", tags=["Entrenamiento"])
 
+router.include_router(link_preview_module.router)
+router.include_router(telemetry_module.router)
 # 🧪 Tests (opcional si existe)
 if test_module and hasattr(test_module, "router"):
     router.include_router(test_module.router, prefix="/admin", tags=["Test"])

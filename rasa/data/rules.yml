@@ -8,11 +8,17 @@ rules:
       - intent: saludo
       - action: utter_saludo
 
-  # 🔐 Ingreso a Zajuna (preguntar tipo de ayuda)
-  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+  # 🔐 Ingreso a Zajuna → instrucciones (links)
+  - rule: Ingreso a Zajuna (instrucciones)
     steps:
       - intent: ingreso_zajuna
-      - action: utter_preguntar_problema_acceso
+      - action: utter_ingreso_zajuna_instrucciones
+
+ 
+  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+    steps:
+       - intent: ingreso_zajuna
+       - action: utter_preguntar_problema_acceso
 
   # 🚪 Otro problema de acceso → iniciar soporte
   - rule: Otro problema de acceso → iniciar soporte
@@ -82,7 +88,7 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  # ✅ Submit soporte_form (única, con OK final)
+  # ✅ Submit soporte_form (OK final)
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
@@ -144,7 +150,6 @@ rules:
       - action: utter_cambio_idioma_espanol
 
   # 📝 Inscribirme
-  # ⚠️ Asegúrate de tener 'utter_confirmacion_inscripcion' en domain.yml
   - rule: Inscribirme
     steps:
       - intent: inscribirme
@@ -178,23 +183,35 @@ rules:
       - intent: enviar_url
       - action: utter_enviar_url
 
-  # 🚨 Fallbacks (intent manual y NLU)
-  - rule: Fallback unificado
+  # 🚨 Fallbacks
+  - rule: Fallback unificado (manual)
     steps:
       - intent: fallback
       - action: utter_default
       - action: utter_fallback
 
-  - rule: NLU fallback (unificado)
+  - rule: NLU fallback (umbral)
     steps:
       - intent: nlu_fallback
       - action: utter_default
       - action: utter_fallback
 
-  # ─────────────────────────────────────────────
-  # Placeholders para “marcar uso” (evitar warnings)
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────
+  # Atajos directos a enlaces
+  # ─────────────────────────────
+  - rule: Soporte PQRS directo
+    steps:
+      - intent: enviar_soporte
+      - action: utter_soporte_pqrs
 
+  - rule: Soporte AVA directo
+    steps:
+      - intent: soporte_ava_directo
+      - action: utter_soporte_ava
+
+  # ─────────────────────────────
+  # Placeholders para “marcar uso”
+  # ─────────────────────────────
   - rule: Estado estudiante (informativo directo)
     steps:
       - intent: estado_estudiante_info
@@ -208,7 +225,7 @@ rules:
   - rule: Pedir correo (dedicado)
     steps:
       - intent: pedir_correo
-      - action: utter_pedir_correo   # ⚠️ Define esta respuesta en domain.yml si no existe
+      - action: utter_pedir_correo
 
   - rule: Pedir email (dedicado)
     steps:
@@ -234,8 +251,6 @@ rules:
     steps:
       - intent: soporte_error
       - action: utter_soporte_error
-
-  # ======= Reglas para marcar uso de intents que el validador reportó =======
 
   - rule: Affirm genérico (marca uso)
     steps:

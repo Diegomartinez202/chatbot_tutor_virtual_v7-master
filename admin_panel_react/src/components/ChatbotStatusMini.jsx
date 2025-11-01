@@ -6,9 +6,9 @@ import IconTooltip from "@/components/ui/IconTooltip";
 import assets from "@/config/assets";
 
 const STATUS_MAP = {
-    connecting: { badge: "pendiente", label: "Conectando…" },
+    connecting: { badge: "pendiente", label: "Conectandoâ€¦" },
     ready: { badge: "ok", label: "Conectado" },
-    error: { badge: "error", label: "Error de conexión" },
+    error: { badge: "error", label: "Error de conexiÃ³n" },
 };
 
 const ChatbotStatusMini = React.memo(

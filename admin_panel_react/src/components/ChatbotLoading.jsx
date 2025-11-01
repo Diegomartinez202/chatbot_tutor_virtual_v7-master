@@ -8,7 +8,7 @@ import { useAvatarPreload } from "@/hooks/useAvatar";
 
 export default function ChatbotLoading({
     avatarSrc = assets.BOT_LOADING,
-    label = "Cargando…",
+    label = "Cargandoâ€¦",
     useSpinner = true,
     showStatusBadge = false,
     status,
@@ -24,16 +24,18 @@ export default function ChatbotLoading({
         <div className="w-full h-full flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
             <div className="relative">
                 <IconTooltip label={label} side="top">
-                    <div className="w-20 h-20 rounded-full shadow-lg overflow-hidden bg-white flex items-center justify-center" aria-busy={useSpinner}>
+                    <div className="w-24 h-24 sm:w-20 sm:h-20 rounded-full shadow-lg overflow-hidden bg-white flex items-center justify-center"
+                        aria-busy={useSpinner}
+                    >
                         {imgError ? (
                             <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-white">
-                                <Bot className="w-8 h-8" aria-hidden="true" />
+                                <Bot className="w-10 h-10" aria-hidden="true" />
                             </div>
                         ) : (
                             <img
                                 src={avatarSrc}
                                 alt="Avatar del chatbot"
-                                className="w-full h-full object-cover"
+                                className="max-w-[96px] max-h-[96px] w-full h-full object-contain"
                                 loading="eager"
                                 onError={() => setImgError(true)}
                             />

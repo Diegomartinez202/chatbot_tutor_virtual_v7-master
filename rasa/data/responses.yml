@@ -1,0 +1,24 @@
+version: "3.1"
+responses:
+  utter_catalogo_cursos:
+    - text: "Aquí tienes el catálogo y guías:"
+      buttons:
+        - title: "📚 Oferta académica"
+          payload: "https://zajuna.example/cursos"
+        - title: "📝 Cómo inscribirse"
+          payload: "https://zajuna.example/guias/inscripcion"
+        - title: "💬 Soporte"
+          payload: "https://zajuna.example/soporte"
+
+  # Link “duro” dentro del texto
+  utter_link_soporte:
+    - text: "Si necesitas ayuda, visita https://zajuna.example/soporte"
+
+  # Tarjeta enriquecida (el front la renderea si viene en metadata)
+  utter_card_ejemplo:
+    - custom:
+        cards:
+          - title: "Diplomados 2025"
+            description: "Todo sobre diplomados del semestre"
+            url: "https://zajuna.example/diplomados"
+            image: "https://cdn.example/img/diplomados.jpg"
