@@ -49,8 +49,13 @@ intents:
   - pedir_nombre
   - pedir_mensaje
   - soporte_ava_directo
+  - estado_estudiante
+  - ver_certificados
+  - tutor_asignado
+  - ingreso_zajuna        
+  - abrir_chat_autenticado
 entities:
-  - nombre        # 👈 anotaste nombres en NLU
+  - nombre      
   - email
   - telefono
   - cedula
@@ -82,10 +87,12 @@ slots:
       - type: from_entity
         entity: telefono
       - type: from_text
-
-# ❗️En versiones 3.x los mapeos de slots van en `slots: ... mappings:`.
-# Si tenías un bloque `slot_mappings:` a nivel raíz, Rasa no lo usa.
-# Ya incorporé esos mismos mapeos arriba, slot por slot.
+  has_token:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: custom
 
 forms:
   soporte_form:
@@ -169,9 +176,12 @@ responses:
 
   # 🔑 Estado/Certificados protegidos → pedir auth
   utter_need_auth:
-    - text: "Necesitas iniciar sesión para continuar con esta acción."
-  utter_estado_estudiante:
-    - text: "Puedo consultar tu estado académico cuando inicies sesión."
+    - text: "Para continuar con esa acción necesitas iniciar sesión."
+      buttons:
+        - title: "🔐 Iniciar sesión"
+          payload: "/ingreso_zajuna"
+        - title: "Abrir chat autenticado"
+          payload: "/abrir_chat_autenticado"
 
   # 🔁 Recuperación de contraseña
   utter_confirmar_recuperacion:
@@ -274,6 +284,10 @@ responses:
           payload: "https://sava.sena.edu.co/gfvd/"
         - title: "📨 PQRS SENA"
           payload: "https://sciudadanos.sena.edu.co/SolicitudIndex.aspx"
+  # (Opcional) mensaje cuando el usuario cliquea "ingreso_zajuna"
+  utter_login_hint:
+    - text: "Abre el login de Zajuna e inicia sesión. Si estás en el portal, regresaremos el token automáticamente al chat."
+
 actions:
   - action_check_auth
   - action_soporte_submit
@@ -281,4 +295,8 @@ actions:
   - action_conectar_humano
   - action_enviar_soporte
   - action_deactivate_loop  
+  - action_sync_auth_from_metadata
+  - action_estado_estudiante
+  - action_ver_certificados
+  - action_tutor_asignado
   

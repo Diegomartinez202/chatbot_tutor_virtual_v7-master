@@ -39,6 +39,10 @@ pipeline:
     threshold: 0.55         # 👈 Alineado al informe
     ambiguity_threshold: 0.1
 
+  - name: FallbackClassifier
+    threshold: 0.55
+    ambiguity_threshold: 0.1
+
 policies:
   - name: RulePolicy
     core_fallback_threshold: 0.3

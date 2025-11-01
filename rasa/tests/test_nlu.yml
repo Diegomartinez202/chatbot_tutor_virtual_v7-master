@@ -1,0 +1,26 @@
+version: "3.1"
+nlu:
+  - intent: soporte_ava_directo
+    examples: |
+      - soporte ava
+      - ayuda con sava
+
+  - intent: soporte_tecnico
+    examples: |
+      - soporte por favor
+      - necesito soporte técnico
+
+  - intent: recuperar_contrasena
+    examples: |
+      - olvidé mi clave
+      - recuperar contraseña
+
+  - intent: ingreso_zajuna
+    examples: |
+      - quiero ingresar a zajuna
+      - abrir login
+
+  - intent: fallback
+    examples: |
+      - ?
+      - no entiendo

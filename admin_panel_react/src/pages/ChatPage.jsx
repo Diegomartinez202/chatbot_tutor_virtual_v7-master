@@ -28,8 +28,10 @@ const USER_SETTINGS_URL =
         String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
     "/api/me/settings";
 
+const AUTO_MINIMIZE = import.meta.env.VITE_AUTO_MINIMIZE_WIDGET === "true";
+
 /* =======================================================
-   ⚙️  Preferencias visuales (tema, contraste, idioma)
+   ⚙️ Preferencias visuales (tema, contraste, idioma)
    ======================================================= */
 function applyPrefsToDocument(prefs, i18n) {
     try {
@@ -76,7 +78,7 @@ async function fetchUserSettingsIfPossible(token) {
 }
 
 /* =======================================================
-   🧩 ChatPage (solo cascarón de UI)
+   🧩 ChatPage (modo web directo u embebido según query)
    ======================================================= */
 export default function ChatPage({
     forceEmbed = false,
@@ -88,12 +90,14 @@ export default function ChatPage({
 }) {
     const { t, i18n } = useTranslation();
     const [params] = useSearchParams();
+    // 👉 embed=true únicamente cuando se usa en un iframe: /chat?embed=1
     const isEmbed = forceEmbed || params.get("embed") === "1";
+
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [status, setStatus] = useState("connecting");
 
-    /* 🟢 Token invitado si no hay */
+    /* 🟢 Token invitado si no hay (FAQs como invitado) */
     try {
         const existing = localStorage.getItem(STORAGE_KEYS.accessToken);
         if (!existing) {
@@ -102,7 +106,7 @@ export default function ChatPage({
         }
     } catch { }
 
-    /* 🔒 Bloquear navegación externa en modo embed */
+    /* 🔒 Bloquear navegación directa en modo embed (los links se abren en _blank desde la UI) */
     useEffect(() => {
         if (!isEmbed) return;
         const onClick = (e) => {
@@ -116,7 +120,7 @@ export default function ChatPage({
         return () => window.removeEventListener("click", onClick, true);
     }, [isEmbed]);
 
-    /* 🌐 Determinar tipo de conexión */
+    /* 🌐 Determinar tipo de conexión (health) */
     const defaultConnect = useMemo(() => {
         if (connectFn) return connectFn;
         if (TRANSPORT === "ws") {
@@ -129,8 +133,12 @@ export default function ChatPage({
         setStatus("connecting");
         try {
             if (import.meta.env.MODE !== "production") {
-                console.info("[ChatPage] mode=%s | REST=%s | WS=%s",
-                    TRANSPORT.toUpperCase(), CHAT_REST_URL, RASA_WS_URL);
+                console.info(
+                    "[ChatPage] mode=%s | REST=%s | WS=%s",
+                    TRANSPORT.toUpperCase(),
+                    CHAT_REST_URL,
+                    RASA_WS_URL
+                );
             }
             if (defaultConnect) await defaultConnect();
             else await new Promise((r) => setTimeout(r, 600));
@@ -141,7 +149,9 @@ export default function ChatPage({
         }
     }, [defaultConnect]);
 
-    useEffect(() => { connect(); }, [connect]);
+    useEffect(() => {
+        connect();
+    }, [connect]);
 
     /* 🔐 Redirigir a login si es requerido (solo fuera de embed) */
     useEffect(() => {
@@ -150,12 +160,14 @@ export default function ChatPage({
         }
     }, [isEmbed, isAuthenticated, navigate]);
 
-    /* 🎨 Cargar preferencias visuales del usuario autenticado */
+    /* 🎨 Cargar prefs del usuario autenticado */
     useEffect(() => {
         if (status !== "ready") return;
         if (!isAuthenticated) return;
         let token = null;
-        try { token = localStorage.getItem(STORAGE_KEYS.accessToken) || null; } catch { }
+        try {
+            token = localStorage.getItem(STORAGE_KEYS.accessToken) || null;
+        } catch { }
         (async () => {
             const prefs = await fetchUserSettingsIfPossible(token);
             if (prefs && typeof document !== "undefined") applyPrefsToDocument(prefs, i18n);
@@ -175,12 +187,16 @@ export default function ChatPage({
     useEffect(() => {
         const el = document.querySelector(".chat-messages");
         if (!el) return;
-        const onFocus = () => { try { el.scrollTop = el.scrollHeight; } catch { } };
+        const onFocus = () => {
+            try {
+                el.scrollTop = el.scrollHeight;
+            } catch { }
+        };
         window.addEventListener("focusin", onFocus);
         return () => window.removeEventListener("focusin", onFocus);
     }, []);
 
-    /* 🧭 Escuchar mensajes del host: idioma/tema/auth */
+    /* 🧭 Escuchar mensajes del host (iframe): idioma/tema/auth */
     useEffect(() => {
         const handler = (e) => {
             const { data } = e;
@@ -193,19 +209,22 @@ export default function ChatPage({
                 document.documentElement.setAttribute("lang", lang);
             }
             if (data?.type === "auth:token" && data?.token) {
-                // Bridge también lo captura, pero mantenemos sincronía local
-                try { localStorage.setItem(STORAGE_KEYS.accessToken, data.token); } catch { }
+                // El bridge en ChatUI también lo maneja, pero sincronizamos localmente
+                try {
+                    localStorage.setItem(STORAGE_KEYS.accessToken, data.token);
+                } catch { }
             }
         };
         window.addEventListener("message", handler);
         return () => window.removeEventListener("message", handler);
     }, [i18n]);
-    // 🔽 Minimizar automáticamente al cargar si está embebido
+
+    /* 🔽 Minimizar widget embebido automáticamente (opcional por ENV) */
     useEffect(() => {
-        if (isEmbed) {
+        if (isEmbed && AUTO_MINIMIZE) {
             const timer = setTimeout(() => {
                 window.parent?.postMessage({ type: "widget:toggle", action: "close" }, "*");
-            }, 800); // espera 0.8 segundos tras el montaje
+            }, 800);
             return () => clearTimeout(timer);
         }
     }, [isEmbed]);
@@ -220,7 +239,7 @@ export default function ChatPage({
 
     return (
         <div className={wrapperClass} style={wrapperStyle}>
-            {/* 🔹 Header en modo embed */}
+            {/* 🔹 Header fijo solo en modo embed */}
             {isEmbed && (
                 <div className="fixed top-0 left-0 w-full bg-slate-800 text-white p-2 text-sm flex justify-between items-center z-50">
                     <span>Tutor Virtual</span>
@@ -271,6 +290,9 @@ export default function ChatPage({
 
                 {status === "ready" && (
                     <div className="w-full h-full">
+                        {/* 👇 Render directo del chat.
+                - Web normal: /chat  (embed=false)
+                - Embebido:     /chat?embed=1  (embed=true) */}
                         {children ?? <ChatUI embed={isEmbed} />}
                     </div>
                 )}

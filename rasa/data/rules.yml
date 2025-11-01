@@ -283,3 +283,65 @@ rules:
     steps:
       - intent: soporte_ava_directo
       - action: utter_soporte_ava
+  
+  # ---------- ESTADO ----------
+  - rule: Estado → requiere auth
+    steps:
+      - intent: estado_estudiante
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  - rule: Estado → con auth
+    steps:
+      - intent: estado_estudiante
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_estado_estudiante
+
+  # ---------- CERTIFICADOS ----------
+  - rule: Certificados → requiere auth
+    steps:
+      - intent: ver_certificados
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  - rule: Certificados → con auth
+    steps:
+      - intent: ver_certificados
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_ver_certificados
+
+  # ---------- TUTOR ----------
+  - rule: Tutor asignado → requiere auth
+    steps:
+      - intent: tutor_asignado
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  - rule: Tutor asignado → con auth
+    steps:
+      - intent: tutor_asignado
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_tutor_asignado
+
+  # ---------- Ingreso (CTA) ----------
+  - rule: CTA /ingreso_zajuna
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_login_hint
+
+  - rule: CTA /abrir_chat_autenticado
+    steps:
+      - intent: abrir_chat_autenticado
+      - action: utter_login_hint

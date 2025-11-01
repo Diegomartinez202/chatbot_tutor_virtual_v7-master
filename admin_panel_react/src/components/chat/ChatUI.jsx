@@ -16,6 +16,7 @@ import { uploadVoiceBlob } from "@/services/voice/uploadVoice";
 // ⛳️ nuevo helper REST con metadata.auth.hasToken
 import { sendToRasaREST } from "./rasa/restClient.js";
 
+
 // Evita doble saludo: aquí controlamos saludo inicial del cliente
 const SEND_CLIENT_HELLO = true;
 
@@ -90,7 +91,19 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             return "web-" + Math.random().toString(36).slice(2, 10);
         }
     });
+    // Requieren auth (ajústalo según tu negocio)
+    const NEED_AUTH = new Set([
+        "/estado_estudiante",
+        "/ver_certificados",
+        "/tutor_asignado",
+        "/user_panel",
+        "/ingreso_zajuna", // opcional si quieres forzar login aquí
+    ]);
 
+    function requiresAuthFor(text) {
+        const t = String(text || "").trim();
+        return NEED_AUTH.has(t);
+    }
     const storeToken = useAuthStore((s) => s.accessToken);
     const [authToken, setAuthToken] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -105,7 +118,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     // Placeholders para compatibilidad
     const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
-    const appendFirstSuggestions = () => { }; 
+    const appendFirstSuggestions = () => { };
     // Saludo inicial inmediato (solo cliente)
     useEffect(() => {
         if (SEND_CLIENT_HELLO) {
@@ -226,48 +239,95 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         try { window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*"); } catch { }
     }, [tChat]);
 
-    /* --- sendToRasa con auth diferida --- */
+    /* --- sendToRasa con auth diferida (versión final) --- */
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
-        try {
-            const rsp = await sendRasaMessage({
-                text,
-                sender: userId || undefined,
-                token: authToken || undefined,
-            });
-            await appendBotMessages(rsp);
-        // 🔐 Solo exige auth si la acción lo requiere (y no hay token)
-        if (embed && requiresAuthFor(text) && !authToken) {
-            try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
+
+        // 1) Si requiere auth y NO hay token
+        if (requiresAuthFor(text) && !authToken) {
+            // Caso embed → pedir token al host + CTA de login
+            if (embed) {
+                try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
+                const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
+
+                // Pinta el mensaje del usuario (opcional)
+                setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
+
+                // Bot CTA(s)
+                setMessages((m) => [
+                    ...m,
+                    {
+                        id: `b-${Date.now()}`,
+                        role: "bot",
+                        text: "Para continuar con esa acción, por favor inicia sesión.",
+                        render: () => (
+                            <div className="mt-2">
+                                <a
+                                    href={loginUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center rounded bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700"
+                                >
+                                    🔐 Iniciar sesión
+                                </a>
+                                {/* Alternativa: abrir chat web autenticado */}
+                                <a
+                                    href="/chat"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ml-2 underline"
+                                >
+                                    Abrir chat autenticado
+                                </a>
+                            </div>
+                        ),
+                    },
+                ]);
+                setError(tChat("authRequired", "Para continuar, inicia sesión."));
+                return;
+            }
+
+            // Caso web (no-embed) → CTA a /login del panel + (opcional) Zajuna
+            const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
+            setMessages((m) => [
+                ...m,
+                {
+                    id: `b-${Date.now()}`,
+                    role: "bot",
+                    text: "Para continuar, inicia sesión en el panel.",
+                    render: () => (
+                        <div className="mt-2 flex gap-2">
+                            <a
+                                href="/login"
+                                className="inline-flex items-center rounded bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700"
+                            >
+                                🔐 Iniciar sesión (panel)
+                            </a>
+                            <a
+                                href={loginUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center rounded border px-3 py-2 hover:bg-gray-50"
+                            >
+                                Zajuna
+                            </a>
+                        </div>
+                    ),
+                },
+            ]);
             setError(tChat("authRequired", "Para continuar, inicia sesión."));
             return;
         }
 
-        // pinta el mensaje del usuario
+        // 2) Pinta el mensaje del usuario
         setSending(true);
         setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
-
-        // oculta QuickActions al primer input/acción
         setShowQuick(false);
 
-        // (Compat) sugerencias clásicas (no-op si no las usas)
-        if (!isPayload && !hasShownSuggestions && hasSentFirstMessage) {
-            appendFirstSuggestions();
-        }
-
         try {
-            window.parent?.postMessage?.({ type: "telemetry", event: "message_sent" }, "*");
-        } catch { }
-
-        try {
-            // Si quisieras, aquí podrías renderizar algo local; por ahora todo lo maneja Rasa
-            if (isPayload) {
-                await handleLocalPayload({ text /*, tChat, setMessages, sendToRasa */ });
-            }
-
-            // ⛳️ LLAMADA ÚNICA: siempre via REST helper con metadata
-            const rsp = await sendToRasaREST(senderId, text);
+            // 3) ÚNICA llamada REST a Rasa con token (si hay)
+            const rsp = await sendToRasaREST(senderId, text, authToken || undefined);
             await appendBotMessages(rsp);
         } catch (e) {
             setError(e?.message || tChat("errorSending"));
@@ -276,7 +336,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             if (!hasSentFirstMessage) setHasSentFirstMessage(true);
         }
     };
-
     const handleSend = async () => {
         if (!input.trim() || sending) return;
         await sendToRasa({ text: input });

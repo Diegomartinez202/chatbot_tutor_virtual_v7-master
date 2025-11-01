@@ -1,0 +1,94 @@
+version: "3.1"
+
+stories:
+
+  # ─────────────────────────────────────────
+  # 🧰 SOPORTE_FORM — camino feliz (happy path)
+  # ─────────────────────────────────────────
+  - story: soporte_form_happy_path_explicit
+    steps:
+      - user: "necesito soporte técnico"
+        intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+      # Nombre
+      - action: utter_ask_nombre
+      - user: "Mi nombre es Andrés"
+        intent: pedir_nombre
+      - action: soporte_form
+
+      # Email
+      - action: utter_ask_email
+      - user: "andres@correo.com"
+        intent: enviar_correo
+      - action: soporte_form
+
+      # Mensaje
+      - action: utter_ask_mensaje
+      - user: "No puedo acceder a mi curso en AVA"
+        intent: pedir_mensaje
+      - action: soporte_form
+
+      # Submit final
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
+      - action: utter_soporte_form_ok
+
+  # ─────────────────────────────────────────
+  # 🧰 SOPORTE_FORM — cancelado por deny
+  # ─────────────────────────────────────────
+  - story: soporte_form_cancel_explicit
+    steps:
+      - user: "necesito ayuda técnica"
+        intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+      # Primer slot
+      - action: utter_ask_nombre
+      - user: "no quiero seguir"
+        intent: deny
+
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar
+
+  # ─────────────────────────────────────────
+  # 🔑 RECOVERY_FORM — camino feliz (recuperación contraseña)
+  # ─────────────────────────────────────────
+  - story: recovery_form_happy_path_explicit
+    steps:
+      - user: "olvidé mi contraseña"
+        intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+      - action: utter_ask_email
+      - user: "user@example.com"
+        intent: enviar_correo
+      - action: recovery_form
+
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
+
+  # ─────────────────────────────────────────
+  # 🔑 RECOVERY_FORM — cancelado
+  # ─────────────────────────────────────────
+  - story: recovery_form_cancel_explicit
+    steps:
+      - user: "quiero recuperar mi clave"
+        intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+      - action: utter_ask_email
+      - user: "no"
+        intent: deny
+
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_cancelar_recuperacion

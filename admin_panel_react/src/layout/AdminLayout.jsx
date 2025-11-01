@@ -15,6 +15,7 @@ import {
     BarChart2,
     FlaskConical,
     LogOut,
+    Mic // 👈 añadido para el icono de Voice
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -92,6 +93,14 @@ const AdminLayout = () => {
                             </IconTooltip>
                             <span>Pruebas</span>
                         </Link>
+
+                        {/* 🎙️ NUEVO: Voice dashboard */}
+                        <Link to="/voice" className="hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2">
+                            <IconTooltip label="Audios (Voice)" side="right">
+                                <Mic className="w-4 h-4" />
+                            </IconTooltip>
+                            <span>Audios (Voice)</span>
+                        </Link>
                     </nav>
                 </div>
 
@@ -113,7 +122,8 @@ const AdminLayout = () => {
             </main>
 
             {/* ✅ Un solo widget global (REST/WS según ENV) */}
-            <ChatWidget connectFn={connectFn} title="TutorBot" />
+            <ChatWidget connectFn={connectFn} title="TutorBot" embed={false} authToken={accessToken || null} />
+            <HybridChatWidget defaultOpen={false} />
         </div>
     );
 };

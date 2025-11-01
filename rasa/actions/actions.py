@@ -560,3 +560,57 @@ class ActionCheckAuth(Action):
 
         # Otros intents: no interviene
         return []
+class ActionSyncAuthFromMetadata(Action):
+    def name(self) -> Text:
+        return "action_sync_auth_from_metadata"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+        """
+        Lee tracker.latest_message.metadata.auth.hasToken y setea el slot has_token.
+        Si tu proxy REST adjunta el token como metadata.auth.token, también funciona.
+        """
+        has_token = False
+        try:
+            md = tracker.latest_message.get("metadata") or {}
+            auth = md.get("auth") or {}
+            # soporta cualquiera de estas variantes
+            if isinstance(auth, dict):
+                if auth.get("hasToken") is True:
+                    has_token = True
+                elif auth.get("token"):  # string no vacío
+                    has_token = True
+        except Exception:
+            has_token = False
+
+        return [SlotSet("has_token", has_token)]
+
+
+# --------- Acciones DEMO (reemplaza por tu lógica real) ---------
+class ActionEstadoEstudiante(Action):
+    def name(self) -> Text:
+        return "action_estado_estudiante"
+
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+        dispatcher.utter_message(text="✅ Estado académico (demo): estás autenticado y la consulta fue exitosa.")
+        return []
+
+class ActionVerCertificados(Action):
+    def name(self) -> Text:
+        return "action_ver_certificados"
+
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+        dispatcher.utter_message(text="📄 Certificados (demo): listado de certificados disponible (requiere auth).")
+        return []
+
+class ActionTutorAsignado(Action):
+    def name(self) -> Text:
+        return "action_tutor_asignado"
+
+    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+        dispatcher.utter_message(text="👩‍🏫 Tutor asignado (demo): Ing. María Pérez. (flujo real va aquí)")
+        return []

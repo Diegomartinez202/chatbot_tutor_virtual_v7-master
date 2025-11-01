@@ -17,11 +17,6 @@
     <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- ✅ Quita /static/css/index.css (no se usa con Vite) -->
-    <!-- ✅ Deja solo CSS del widget si lo necesitas -->
-    <link rel="stylesheet" href="/embed/widget.css" />
-    <link rel="stylesheet" href="/embed/zajuna-bubble.css" />
-
     <!-- Favicons / Manifest -->
     <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" data-base-href="favicon-32x32.png" />
@@ -44,17 +39,12 @@
     <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
     <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
 
-    <!-- Ajustes dinámicos -->
+    <!-- Ajustes dinámicos base-url/og -->
     <script type="module">
-        // og:url
         const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || (location.origin + "/");
         const metaOgUrl = document.getElementById("og-url");
         if (metaOgUrl) metaOgUrl.setAttribute("content", SITE_URL);
 
-        // Transporte de chat (debug)
-        window.__CHAT_TRANSPORT__ = import.meta.env.VITE_CHAT_TRANSPORT || "rest";
-
-        // Reescribe href/content de assets según base de Vite
         const BASE = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "/");
         const setBaseAttr = (selector, attr) => {
             document.querySelectorAll(selector).forEach((el) => {
@@ -68,7 +58,6 @@
         setBaseAttr("link[data-base-href]", "href");
         setBaseAttr("meta[data-base-content]", "content");
 
-        // Preloads condicionales
         const shouldPreloadBot =
             location.pathname.startsWith("/chat") ||
             new URLSearchParams(location.search).get("preloadBot") === "1";
@@ -84,7 +73,6 @@
                 l.href = href;
                 document.head.appendChild(l);
             };
-
             const avatar =
                 document.querySelector('link[data-base-href="bot-avatar.png"]')?.getAttribute("href") ||
                 "/bot-avatar.png";
@@ -99,60 +87,8 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Vite reemplaza esto en build -->
+    <!-- Vite inyecta el bundle -->
     <script type="module" src="/src/main.jsx"></script>
-    <!-- 🧩 Chatbot Widget Embebido -->
-    <script src="/embed/zajuna-bubble.js"></script>
-    <script>
-        // Si tienes un token (usuario autenticado), pásalo inmediatamente:
-        function getUserTokenMaybe() {
-            try {
-                return localStorage.getItem("app_access_token")
-                    || localStorage.getItem("zajuna_token")
-                    || localStorage.getItem("accessToken");
-            } catch { return null; }
-        }
-        // Inicialización del widget flotante
-        // --- Inicialización del widget flotante ---
-            const bubble = window.ZajunaBubble.create({ iframeUrl: `${location.origin}/?embed=1`, startOpen: false, autoSendToken: true, tokenStorageKey: "app:accessToken", tokenCookieName: "access_token" });
-            bubble.mount();
-            function onHostLoginSuccess(currentToken){ bubble.sendAuthToken(currentToken); }
-            window.__zjBubble = bubble;
-
-        // Escucha mensajes del iframe (para abrir/cerrar o pedir auth)
-        bubble.onEvent((evt) => {
-            if (evt?.type === "auth:missing" || evt?.type === "auth:needed") {
-                // 👉 abre tu modal de login o redirige al flujo de autenticación
-                if (window.showLoginModal) window.showLoginModal();
-            }
-        });
-
-        // Función global para reenviar token manualmente (si lo necesitas)
-        window.sendChatAuthToken = (token) => {
-            try { bubble.sendAuthToken(token); } catch { }
-        };
-
-        // También puedes escuchar mensajes manuales (opcional)
-        window.addEventListener("message", (e) => {
-            if (e.data?.type === "widget:toggle") {
-                const iframe = document.getElementById("chatbot-iframe");
-                if (!iframe) return;
-                iframe.style.display = e.data.action === "close" ? "none" : "block";
-            }
-        });
-        window.onHostLoginSuccess = function onHostLoginSuccess(currentToken) {
-            try {
-                // Guarda en el host (para autoSendToken y persistencia)
-                localStorage.setItem("app:accessToken", String(currentToken));
-            } catch { }
-            // Envíalo de inmediato al iframe (bridge)
-            bubble.sendAuthToken(String(currentToken));
-
-            // (Opcional) duplicado directo al iframe:
-            const iframe = document.querySelector(".zj-bubble-iframe");
-            iframe?.contentWindow?.postMessage({ type: "auth:token", token: String(currentToken) }, "*");
-        };
-    </script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>
 </body>
 </html>

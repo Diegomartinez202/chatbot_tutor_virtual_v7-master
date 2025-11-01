@@ -1,0 +1,196 @@
+version: "3.1"
+
+stories:
+
+  # ─────────────────────────────────────────
+  # ✅ AVA directo
+  # ─────────────────────────────────────────
+  - story: test_soporte_ava_directo
+    steps:
+      - user: "soporte ava"
+        intent: soporte_ava_directo
+      - action: utter_soporte_ava
+
+  # ─────────────────────────────────────────
+  # 🚨 Fallback unificado (1 disparo)
+  #   Espera: utter_default → utter_fallback
+  # ─────────────────────────────────────────
+  - story: test_fallback_unificado_una_vez
+    steps:
+      - user: "¿¿???"
+        intent: nlu_fallback
+      - action: utter_default
+      - action: utter_fallback
+
+  # ─────────────────────────────────────────
+  # 🚨 Fallback unificado (2 disparos seguidos)
+  #   Repite la misma secuencia
+  # ─────────────────────────────────────────
+  - story: test_fallback_unificado_dos_veces
+    steps:
+      - user: "??"
+        intent: nlu_fallback
+      - action: utter_default
+      - action: utter_fallback
+      - user: "no entiendo"
+        intent: nlu_fallback
+      - action: utter_default
+      - action: utter_fallback
+
+  # ─────────────────────────────────────────
+  # 🧰 Soporte form (camino feliz)
+  #   soporte_tecnico → soporte_form → ask/slot → submit → ok
+  #   (Orden correcto: primero pregunta el bot, luego responde el usuario)
+  # ─────────────────────────────────────────
+  - story: test_soporte_form_happy_path
+    steps:
+      - user: "necesito soporte técnico"
+        intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+      # nombre
+      - action: utter_ask_nombre
+      - user: "Carlos Ruiz"
+        intent: pedir_nombre
+      - action: soporte_form
+
+      # email
+      - action: utter_ask_email
+      - user: "carlos@example.com"
+        intent: enviar_correo
+      - action: soporte_form
+
+      # mensaje
+      - action: utter_ask_mensaje
+      - user: "Se queda en pantalla blanca al entrar al curso"
+        intent: pedir_mensaje
+      - action: soporte_form
+
+      # submit del form → tus reglas existentes
+      - active_loop: null
+      - action: utter_soporte_resumen
+      - action: action_soporte_submit
+      - action: utter_soporte_creado
+      - action: utter_soporte_form_ok
+
+  # ─────────────────────────────────────────
+  # 🧰 Soporte form (cancelado por deny)
+  #   soporte_tecnico → soporte_form → (bot pregunta) → deny → cierre
+  # ─────────────────────────────────────────
+  - story: test_soporte_form_cancel
+    steps:
+      - user: "soporte por favor"
+        intent: soporte_tecnico
+      - action: soporte_form
+      - active_loop: soporte_form
+
+      # Bot pregunta el primer slot (puede ser nombre)
+      - action: utter_ask_nombre
+      - user: "no"
+        intent: deny
+
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_gracias_continuar
+
+  # ─────────────────────────────────────────
+  # 🔑 Recovery (camino feliz)
+  #   recuperar_contrasena → recovery_form → ask email → submit
+  # ─────────────────────────────────────────
+  - story: test_recovery_form_happy_path
+    steps:
+      - user: "olvidé mi clave"
+        intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
+
+      - action: utter_ask_email
+      - user: "user@demo.com"
+        intent: enviar_correo
+      - action: recovery_form
+
+      - active_loop: null
+      - action: action_enviar_correo
+      - action: utter_confirmar_recuperacion
+
+  # ─────────────────────────────────────────
+  # 🔐 Ingreso → instrucciones Zajuna
+  # ─────────────────────────────────────────
+  - story: test_ingreso_zajuna_instrucciones
+    steps:
+      - user: "quiero ingresar a zajuna"
+        intent: ingreso_zajuna
+      - action: utter_ingreso_zajuna_instrucciones
+
+  # ─────────────────────────────────────────
+  # 🧩 Flujo híbrido: Estado SIN token (embed o web sin auth)
+  #   Debe ir a utter_need_auth luego de sincronizar metadata
+  # ─────────────────────────────────────────
+  - story: test_estado_sin_token
+    steps:
+      - user: "/estado_estudiante"
+        intent: estado_estudiante
+        metadata:
+          auth:
+            hasToken: false
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  # ─────────────────────────────────────────
+  # 🧩 Flujo híbrido: Estado CON token
+  #   Ejecuta la acción real
+  # ─────────────────────────────────────────
+  - story: test_estado_con_token
+    steps:
+      - user: "/estado_estudiante"
+        intent: estado_estudiante
+        metadata:
+          auth:
+            hasToken: true
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_estado_estudiante
+
+  # ─────────────────────────────────────────
+  # 🧩 Flujo híbrido: Certificados SIN token
+  # ─────────────────────────────────────────
+  - story: test_certificados_sin_token
+    steps:
+      - user: "/ver_certificados"
+        intent: ver_certificados
+        metadata:
+          auth:
+            hasToken: false
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  # ─────────────────────────────────────────
+  # 🧩 Flujo híbrido: Certificados CON token
+  # ─────────────────────────────────────────
+  - story: test_certificados_con_token
+    steps:
+      - user: "/ver_certificados"
+        intent: ver_certificados
+        metadata:
+          auth:
+            hasToken: true
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_ver_certificados
+
+  # ─────────────────────────────────────────
+  # 🧩 CTA bot: "Abrir chat autenticado"
+  #   (lleva a un hint; tu frontend abre /chat en nueva pestaña)
+  # ─────────────────────────────────────────
+  - story: test_cta_abrir_chat_autenticado
+    steps:
+      - user: "abrir chat autenticado"
+        intent: abrir_chat_autenticado
+      - action: utter_login_hint

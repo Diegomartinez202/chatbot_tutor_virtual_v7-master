@@ -320,6 +320,21 @@ export default function App() {
                         </PublicOnlyRoute>
                     }
                 />
+                <Route
+                    path="voice"
+                    element={
+                        <ProtectedRoute>
+                            <VoicePage />
+                        </ProtectedRoute>
+                    }
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute>
+                            <AdminLayout />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route path="*" element={<CatchAllRedirect />} />
             </Routes>
 

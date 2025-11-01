@@ -50,7 +50,9 @@ nlu:
       - entrar a mi cuenta
       - no puedo abrir el login
       - necesito iniciar sesión
-
+      - iniciar sesión
+      - login en Zajuna
+      - quiero autenticarme
   # ————— RECUPERAR CONTRASEÑA
   - intent: recuperar_contrasena
     examples: |
@@ -120,7 +122,9 @@ nlu:
       - necesito el contacto de mi tutor
       - datos del tutor
       - cómo contacto al tutor
-
+      - quién es mi tutor
+      - tutor asignado
+      - ver tutor
   - intent: horarios_calendario
     examples: |
       - ver horario
@@ -230,7 +234,11 @@ nlu:
       - sigo activo este periodo
       - mi estatus académico
       - estado en el periodo actual
-      - ver mi estado actual
+      - ver mi estado actual       
+      - ver mi estado académico
+      - estado del estudiante
+      - cómo va mi estado
+      - mi estado actual
 
   # ————— CAMBIO DE IDIOMA
   - intent: cambiar_idioma_ingles
@@ -443,6 +451,16 @@ nlu:
       - abrir soporte ava
       - soporte plataforma zajuna
       - cómo contacto soporte SAVA
+  - intent: abrir_chat_autenticado
+    examples: |
+      - abrir chat autenticado
+      - abrir el chat con login
+
+  - intent: ver_certificados
+    examples: |
+      - ver certificados
+      - descargar certificados
+      - mis certificados
   # REGEX FEATURES
   # ─────────────────────────────────────────────
   - regex: email
