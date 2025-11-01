@@ -239,6 +239,10 @@ nlu:
       - estado del estudiante
       - cómo va mi estado
       - mi estado actual
+      - estado estudiante
+      - ver mi estado
+      - mi estado académico
+      - /estado_estudiante
 
   # ————— CAMBIO DE IDIOMA
   - intent: cambiar_idioma_ingles

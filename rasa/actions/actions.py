@@ -16,8 +16,8 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet
 from rasa_sdk.types import DomainDict
-from rasa_sdk.forms import FormValidationAction  # Rasa SDK 3.x
-
+from rasa_sdk.forms import FormValidationAction 
+from rasa_sdk.events import SlotSet, FollowupAction
 __all__ = [
     "ValidateSoporteForm",
     "ValidateRecoveryForm",
@@ -614,3 +614,20 @@ class ActionTutorAsignado(Action):
     def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
         dispatcher.utter_message(text="👩‍🏫 Tutor asignado (demo): Ing. María Pérez. (flujo real va aquí)")
         return []
+
+class ActionCheckAuthEstado(Action):
+    def name(self) -> Text:
+        return "action_check_auth_estado"
+
+    def run(self,
+            dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        meta = (tracker.latest_message or {}).get("metadata") or {}
+        has_token = bool(((meta.get("auth") or {}).get("hasToken")))
+        if has_token:
+            # Aquí podrías llamar tu action real de estado o una utter temporal:
+            return [FollowupAction("utter_estado_estudiante_demo")]
+        else:
+            return [FollowupAction("utter_need_auth")]

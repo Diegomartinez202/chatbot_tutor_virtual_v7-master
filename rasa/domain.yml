@@ -11,7 +11,7 @@ intents:
   - otro_problema_acceso
   - proceso_academico
   - tutor_asignado
-  - horarios_calendario       # 👈 usado en stories
+  - horarios_calendario       
   - estado_estudiante
   - estado_estudiante_info
   - ver_certificados
@@ -25,7 +25,7 @@ intents:
   - deny
   - affirm
   - recuperar_contrasena
-  - escalar_humano            # 👈 usado en stories/rules
+  - escalar_humano            
   - confirmacion_escalar_humano
   - negar_escalar
   - cambiar_idioma_ingles
@@ -287,6 +287,9 @@ responses:
   # (Opcional) mensaje cuando el usuario cliquea "ingreso_zajuna"
   utter_login_hint:
     - text: "Abre el login de Zajuna e inicia sesión. Si estás en el portal, regresaremos el token automáticamente al chat."
+  
+  utter_estado_estudiante_demo:
+    - text: "Tu estado académico actual: Activo (demo)."
 
 actions:
   - action_check_auth
@@ -299,4 +302,5 @@ actions:
   - action_estado_estudiante
   - action_ver_certificados
   - action_tutor_asignado
+  - action_check_auth_estado
   

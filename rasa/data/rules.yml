@@ -41,10 +41,10 @@ rules:
       - action: utter_tutor_asignado
 
   # 🔑 Verificación de auth centralizada
-  - rule: Estado estudiante (verifica auth)
+  - rule: Estado estudiante → chequear auth
     steps:
       - intent: estado_estudiante
-      - action: action_check_auth
+      - action: action_check_auth_estado
 
   - rule: Ver certificados (verifica auth)
     steps:
@@ -345,3 +345,8 @@ rules:
     steps:
       - intent: abrir_chat_autenticado
       - action: utter_login_hint
+  
+  - rule: Estado estudiante → chequear auth
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth_estado
