@@ -106,45 +106,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     // Placeholders para compatibilidad
     const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
-    const appendFirstSuggestions = () => { }; // no-op (evita romper referencias antiguas)
-    const { recording, start, stop } = useVoiceRecorder();
-
-    async function handleMicClick() {
-        try {
-            if (!recording) {
-                await start();
-            } else {
-                const blob = await stop();
-                if (!blob || blob.size < 10) return;
-
-                // Subir y transcribir
-                const sender = localStorage.getItem("chat_sender_id") || "web";
-                const r = await uploadVoiceBlob(blob, { sender, lang: "es", stt: "none" }); // cambia stt si luego integras whisper
-                // Si hubo transcript, lo mandamos al chat como si fuera texto normal
-                const txt = (r && r.transcript) ? String(r.transcript).trim() : "[audio enviado]";
-                // Reusa tu función de envío al bot:
-                await sendToRasa({ text: txt, displayAs: "user" });
-            }
-        } catch (e) {
-            console.error("mic error", e);
-            // opcional: setError(String(e.message || e))
-        }
-    }
-    return (
-        <div className="flex items-center gap-2">
-            {/* ... tu input y botón de enviar existentes */}
-            <button
-                type="button"
-                onClick={handleMicClick}
-                className={"px-3 py-2 rounded " + (recording ? "bg-red-600 text-white" : "bg-slate-200")}
-                title={recording ? "Detener grabación" : "Grabar audio"}
-            >
-                {recording ? "● Grabando" : "🎙️ Mic"}
-            </button>
-        </div>
-    );
-}
-
+    const appendFirstSuggestions = () => { }; 
     // Saludo inicial inmediato (solo cliente)
     useEffect(() => {
         if (SEND_CLIENT_HELLO) {

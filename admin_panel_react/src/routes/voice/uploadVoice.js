@@ -1,5 +1,5 @@
-// src/services/voice/uploadVoice.js
-export async function uploadVoiceBlob(blob, { sender, lang = "es", stt = "none" } = {}) {
+// src/services/voice/uploadVoice.js  (NUEVO)
+export async function uploadVoiceBlob(blob, { sender, lang = "es", stt = "auto" } = {}) {
     const fd = new FormData();
     fd.append("file", blob, `voice-${Date.now()}.webm`);
     if (sender) fd.append("sender", sender);

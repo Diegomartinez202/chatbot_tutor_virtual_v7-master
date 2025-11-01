@@ -1,4 +1,4 @@
-// src/hooks/useVoiceRecorder.js
+// src/hooks/useVoiceRecorder.js  (NUEVO)
 import { useEffect, useRef, useState } from "react";
 
 export function useVoiceRecorder({ mimeType = "audio/webm" } = {}) {
@@ -8,10 +8,7 @@ export function useVoiceRecorder({ mimeType = "audio/webm" } = {}) {
     const recRef = useRef(null);
     const chunksRef = useRef([]);
 
-    useEffect(() => {
-        return () => stop(); // cleanup
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    useEffect(() => () => stop(), []); // cleanup
 
     async function ensurePerm() {
         if (permission != null) return permission;
