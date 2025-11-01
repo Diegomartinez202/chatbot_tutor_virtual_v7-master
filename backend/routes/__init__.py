@@ -12,7 +12,7 @@ from . import stats
 from . import train
 from . import link_preview as link_preview_module
 from . import telemetry as telemetry_module
-
+from . import voice
 # Intents (controlador nuevo, rutas ya incluyen /admin/…)
 from . import intent_controller
 # Usuarios (opcional si existe un router en backend/routes/)
@@ -49,7 +49,7 @@ router.include_router(auth_tokens.router, tags=["Auth Tokens"])
 
 # 📋 Logs
 router.include_router(logs.router, prefix="/logs", tags=["Logs"])
-
+router.include_router(voice.router)
 # 📊 Estadísticas
 router.include_router(stats.router, prefix="/admin", tags=["Estadísticas"])
 

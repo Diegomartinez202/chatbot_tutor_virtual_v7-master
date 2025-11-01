@@ -1,4 +1,3 @@
-// components/chat/ChatMessage.jsx (parte de render del mensaje del bot)
 import LinkCard from "./LinkCard";
 import MessageText from "./MessageText";
 
@@ -17,3 +16,4 @@ export default function ChatMessage({ msg }) {
         </div>
     );
 }
+
