@@ -1,7 +1,7 @@
 version: "3.1"
 nlu:
 
-- intent: estado_estudiante_info
+- intent: ver_estado_estudiante_info
   examples: |
     - cuál es mi estado como estudiante
     - estado del estudiante
@@ -69,7 +69,7 @@ nlu:
     - mandar soporte ahora
     - abre un ticket
 
-- intent: fallback
+- intent: nlu_fallback
   examples: |
     - no entiendo
     - qué
@@ -100,4 +100,3 @@ nlu:
   examples: |
     - revisa [https://zajuna.edu](url)
     - te paso el enlace [http://example.com/recurso](url)
-

@@ -209,3 +209,73 @@ rules:
     steps:
       - intent: ver_soporte_creado_info
       - action: utter_soporte_creado
+  - rule: Fallback NLU
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback
+  
+
+  - rule: handle affirm
+    steps:
+      - intent: affirm
+      - action: utter_affirm
+
+  - rule: handle deny
+    steps:
+      - intent: deny
+      - action: utter_deny
+
+  - rule: handle cambiar_idioma_espanol
+    steps:
+      - intent: cambiar_idioma_espanol
+      - action: utter_cambiar_idioma_espanol
+
+  - rule: handle cambiar_idioma_ingles
+    steps:
+      - intent: cambiar_idioma_ingles
+      - action: utter_cambiar_idioma_ingles
+
+  - rule: handle enviar_numero
+    steps:
+      - intent: enviar_numero
+      - action: utter_enviar_numero
+
+  - rule: handle error_actividad
+    steps:
+      - intent: error_actividad
+      - action: utter_error_actividad
+
+  - rule: handle horarios_calendario
+    steps:
+      - intent: horarios_calendario
+      - action: utter_horarios_calendario
+
+  - rule: handle inscribirme
+    steps:
+      - intent: inscribirme
+      - action: utter_inscribirme
+
+  - rule: handle necesita_auth
+    steps:
+      - intent: necesita_auth
+      - action: utter_necesita_auth
+
+  - rule: handle otro_problema_acceso
+    steps:
+      - intent: otro_problema_acceso
+      - action: utter_otro_problema_acceso
+
+  - rule: handle otro_problema_tecnico
+    steps:
+      - intent: otro_problema_tecnico
+      - action: utter_otro_problema_tecnico
+
+  - rule: handle pantalla_blanca
+    steps:
+      - intent: pantalla_blanca
+      - action: utter_pantalla_blanca
+
+  - rule: handle problema_no_ingreso
+    steps:
+      - intent: problema_no_ingreso
+      - action: utter_problema_no_ingreso

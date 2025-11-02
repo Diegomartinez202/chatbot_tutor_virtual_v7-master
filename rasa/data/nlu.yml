@@ -29,12 +29,10 @@ nlu:
       - explorar contenidos
       - muéstrame los cursos
       - qué programas tienen
-      - catálogo de cursos
       - ver oferta académica
       - cursos disponibles
       - quiero aprender algo nuevo
       - ver cursos disponibles
-      - catálogo académico
 
   # ————— INGRESO / LOGIN (unificado)
   - intent: ingreso_zajuna
@@ -221,7 +219,7 @@ nlu:
       - no, continuemos aquí
 
   # ————— ESTADO ESTUDIANTE (PRIVADO → REQUIERE AUTH)
-  - intent: estado_estudiante
+  - intent: ver_estado_estudiante_info
     examples: |
       - status académico
       - cuál es mi estado académico
@@ -482,6 +480,14 @@ nlu:
     examples: |
       - ver confirmación de soporte
       - mostrar ticket creado
+  - intent: estado_estudiante
+    examples: |
+      - quiero ver mi estado como estudiante
+      - ver estado de estudiante
+      - estado estudiante
+      - dime mi estado como estudiante
+      - consultar estado académico
+
   # ─────────────────────────────────────────────
   # REGEX FEATURES
   # ─────────────────────────────────────────────

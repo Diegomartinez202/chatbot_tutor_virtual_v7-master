@@ -1,59 +1,62 @@
 version: "3.1"
 
 intents:
-  # Base / navegación
-  - saludo
-  - nlu_fallback
-  - explorar_temas
-  - proceso_academico
-  - horarios_calendario
-  - tutor_asignado
-  - estado_estudiante
-  - ver_certificados
-  - ver_certificados_info
-  - ingreso_zajuna
-  # Escalado a humano
-  - escalar_humano
-  - confirmacion_escalar_humano
-  - negar_escalar
-
-  # Soporte técnico
-  - soporte_tecnico
-  - problema_no_ingreso
-  - pantalla_blanca
-  - error_actividad
-  - otro_problema_tecnico
-  - otro_problema_acceso
-
-  # Forms y datos
-  - enviar_soporte
-  - enviar_soporte_directo
-  - soporte_confirmar
-  - soporte_error
-  - soporte_ava_directo
-  - pedir_nombre
-  - pedir_email
-  - pedir_correo
-  - pedir_mensaje
-  - enviar_correo
-  - enviar_telefono
-  - enviar_cedula
-  - enviar_url
-  - enviar_numero
-
-  # Auth / recovery / idioma / inscripciones
-  - recuperar_contrasena
-  - confirmar_recuperacion
   - abrir_chat_autenticado
-  - necesita_auth
+  - affirm
+  - auth_login_cmd
   - cambiar_idioma_espanol
   - cambiar_idioma_ingles
+  - confirmar_recuperacion
+  - deny
+  - enviar_cedula
+  - enviar_correo
+  - enviar_numero
+  - enviar_soporte
+  - enviar_soporte_directo
+  - enviar_telefono
+  - enviar_url
+  - escalar_humano
+  - explorar_temas
+  - horarios_calendario
+  - ingreso_zajuna
   - inscribirme
+  - nlu_fallback
+  - necesita_auth
+  - otro_problema_acceso
+  - otro_problema_tecnico
+  - pedir_correo
+  - pedir_email
+  - pedir_mensaje
+  - pedir_nombre
+  - pantalla_blanca
+  - problema_no_ingreso
+  - proceso_academico
+  - recuperar_contrasena
+  - saludo
+  - soporte_ava_directo
+  - soporte_confirmar
+  - soporte_error
+  - soporte_tecnico
+  - tutor_asignado
+  - ver_card_demo
+  - ver_catalogo
+  - ver_certificados
+  - ver_certificados_info
+  - ver_confirmar_recuperacion_info
+  - ver_error_actividad_info
+  - ver_estado_estudiante_info
+  - ver_link_soporte
+  - ver_login_hint
+  - ver_pregunta_acceso
+  - ver_soporte_creado_info
+  - ver_soporte_tecnico_info
+  - ver_tutor_asignado_info
+  - error_actividad
+  - confirmacion_escalar_humano
+  - negar_escalar 
+  - estado_estudiante
+  - estado_estudiante_info 
 
-  # Afirmaciones
-  - affirm
-  - deny       
-  - ver_catalogo   
 entities:
   - nombre
   - email
@@ -242,24 +245,18 @@ forms:
       - email
 
 actions:
-  # Auth gating + sincronización
+ 
   - action_check_auth
   - action_check_auth_estado
   - action_sync_auth_from_metadata
-
-  # Flujos con auth (demo/real)
   - action_estado_estudiante
   - action_ver_certificados
   - action_tutor_asignado
-
-  # Soporte / correo / humano
   - action_enviar_soporte
   - action_soporte_submit
   - action_submit_soporte
   - action_enviar_correo
   - action_conectar_humano
-
-  # Health / recovery
   - action_health_check
   - action_submit_recovery
 
