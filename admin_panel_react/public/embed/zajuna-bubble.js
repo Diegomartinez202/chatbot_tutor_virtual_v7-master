@@ -230,7 +230,7 @@
             iframeEl.allow = "microphone; camera";
 
             // Sandbox: necesario para app embebida (nota: same-origin + scripts reduce confinamiento)
-            iframeEl.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-popups");
+            iframeEl.setAttribute("sandbox", "allow-scripts allow-forms allow-popups");
 
             iframeEl.addEventListener("load", () => {
                 post({ type: "host:hello", theme: opts.theme, language: "es" });

@@ -1,119 +1,145 @@
 version: "3.1"
-
 rules:
 
-  # 👋 Saludo
-  - rule: Saludo
+  # ---------- Fallback ----------
+  - rule: Fallback NLU
     steps:
-      - intent: saludo
-      - action: utter_saludo
+      - intent: nlu_fallback
+      - action: utter_fallback
 
-  # 🔐 Ingreso a Zajuna → instrucciones (links)
-  - rule: Ingreso a Zajuna (instrucciones)
+  # ---------- Sincronizar auth desde metadata ----------
+  - rule: Sincronizar auth desde metadata
+    steps:
+      - action: action_sync_auth_from_metadata
+
+  # ---------- Tutor asignado (con/sin token) ----------
+  - rule: Tutor asignado requiere auth
+    condition:
+      - slot_was_set:
+          - has_token: false
+    steps:
+      - intent: tutor_asignado
+      - action: utter_need_auth
+
+  - rule: Tutor asignado con auth
+    condition:
+      - slot_was_set:
+          - has_token: true
+    steps:
+      - intent: tutor_asignado
+      - action: action_tutor_asignado
+
+  # ---------- Estado estudiante (con/sin token) ----------
+  - rule: Estado estudiante requiere auth
+    condition:
+      - slot_was_set:
+          - has_token: false
+    steps:
+      - intent: estado_estudiante
+      - action: utter_need_auth
+
+  - rule: Estado estudiante con auth
+    condition:
+      - slot_was_set:
+          - has_token: true
+    steps:
+      - intent: estado_estudiante
+      - action: action_estado_estudiante
+
+  # ---------- Certificados (con/sin token) ----------
+  - rule: Ver certificados requiere auth
+    condition:
+      - slot_was_set:
+          - has_token: false
+    steps:
+      - intent: ver_certificados
+      - action: utter_need_auth
+
+  - rule: Ver certificados con auth
+    condition:
+      - slot_was_set:
+          - has_token: true
+    steps:
+      - intent: ver_certificados
+      - action: action_ver_certificados
+
+  # ---------- Ingreso a Zajuna (una sola salida → evita conflicto) ----------
+  - rule: Ingreso a Zajuna → instrucciones
     steps:
       - intent: ingreso_zajuna
       - action: utter_ingreso_zajuna_instrucciones
 
- 
-  - rule: Ingreso a Zajuna (preguntar tipo de ayuda)
+  # ---------- Prompts para limpiar "not used" ----------
+  - rule: Pedir nombre -> utter_ask_nombre
     steps:
-       - intent: ingreso_zajuna
-       - action: utter_preguntar_problema_acceso
+      - intent: pedir_nombre
+      - action: utter_ask_nombre
 
-  # 🚪 Otro problema de acceso → iniciar soporte
-  - rule: Otro problema de acceso → iniciar soporte
+  - rule: Pedir correo -> utter_ask_email
     steps:
-      - intent: otro_problema_acceso
-      - action: utter_soporte_tecnico
-      - action: soporte_form
-      - active_loop: soporte_form
+      - intent: pedir_correo
+      - action: utter_ask_email
 
-  # 📚 Menú proceso académico
-  - rule: Menú proceso académico
+  - rule: Pedir email -> utter_ask_email
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_proceso_academico
+      - intent: pedir_email
+      - action: utter_ask_email
 
-  # 👩‍🏫 Tutor asignado (público)
-  - rule: Tutor asignado (público)
+  - rule: Pedir mensaje -> utter_ask_mensaje
     steps:
-      - intent: tutor_asignado
-      - action: utter_tutor_asignado
+      - intent: pedir_mensaje
+      - action: utter_ask_mensaje
 
-  # 🔑 Verificación de auth centralizada
-  - rule: Estado estudiante → chequear auth
+  - rule: Soporte AVA directo
     steps:
-      - intent: estado_estudiante
-      - action: action_check_auth_estado
+      - intent: soporte_ava_directo
+      - action: utter_soporte_ava
 
-  - rule: Ver certificados (verifica auth)
+  - rule: Soporte error directo
     steps:
-      - intent: ver_certificados
-      - action: action_check_auth
+      - intent: soporte_error
+      - action: utter_soporte_error
 
-  # ✅ Certificados info directa (sin auth)
-  - rule: Certificados (info directa)
+  - rule: Estado estudiante info (informativo)
+    steps:
+      - intent: ver_estado_estudiante_info
+      - action: utter_estado_estudiante
+
+  - rule: Certificados info (informativo)
     steps:
       - intent: ver_certificados_info
       - action: utter_certificados_info
 
-  # 🛠️ Forms de soporte (múltiples disparadores)
-  - rule: Iniciar soporte (soporte_tecnico)
+  # ---------- Soporte form ----------
+  - rule: Iniciar soporte_form
     steps:
-      - intent: soporte_tecnico
+      - intent: enviar_soporte
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Iniciar soporte (otro_problema_tecnico)
+  - rule: Enviar soporte_form directo
     steps:
-      - intent: otro_problema_tecnico
+      - intent: enviar_soporte_directo
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Iniciar soporte (no_ingreso)
+  - rule: Confirmar soporte
     steps:
-      - intent: problema_no_ingreso
-      - action: soporte_form
-      - active_loop: soporte_form
+      - intent: soporte_confirmar
+      - action: utter_soporte_confirm
 
-  - rule: Iniciar soporte (pantalla_blanca)
-    steps:
-      - intent: pantalla_blanca
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Iniciar soporte (error_actividad)
-    steps:
-      - intent: error_actividad
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  # ✅ Submit soporte_form (OK final)
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
     steps:
       - action: soporte_form
       - active_loop: null
-      - action: utter_soporte_resumen
       - action: action_soporte_submit
-      - action: utter_soporte_creado
-      - action: utter_soporte_form_ok
 
-  # ❌ Cancelar soporte_form (deny)
-  - rule: Cancelar soporte_form (deny)
-    condition:
-      - active_loop: soporte_form
+  # ---------- Recovery form ----------
+  - rule: Iniciar recovery_form (al confirmar)
     steps:
-      - intent: deny
-      - action: action_deactivate_loop
-      - active_loop: null
-      - action: utter_gracias_continuar
-
-  # 🔑 Recovery form
-  - rule: Iniciar recovery_form
-    steps:
-      - intent: recuperar_contrasena
+      - intent: confirmar_recuperacion
       - action: recovery_form
       - active_loop: recovery_form
 
@@ -123,230 +149,63 @@ rules:
     steps:
       - action: recovery_form
       - active_loop: null
-      - action: action_enviar_correo
+      - action: action_submit_recovery
+ 
+  - rule: Ver catálogo directo
+    steps:
+      - intent: ver_catalogo
+      - action: utter_catalogo_cursos
+   # ---------- Reglas para marcar uso de utter_* auxiliares ----------
+  - rule: Ver catálogo → utter_catalogo_cursos
+    steps:
+      - intent: ver_catalogo
+      - action: utter_catalogo_cursos
+
+  - rule: Ver link soporte → utter_link_soporte
+    steps:
+      - intent: ver_link_soporte
+      - action: utter_link_soporte
+
+  - rule: Ver tarjeta demo → utter_card_ejemplo
+    steps:
+      - intent: ver_card_demo
+      - action: utter_card_ejemplo
+
+  - rule: Ver login hint → utter_login_hint
+    steps:
+      - intent: ver_login_hint
+      - action: utter_login_hint
+
+  - rule: Ver pregunta acceso → utter_preguntar_problema_acceso
+    steps:
+      - intent: ver_pregunta_acceso
+      - action: utter_preguntar_problema_acceso
+
+  - rule: Ver soporte técnico info → utter_soporte_tecnico
+    steps:
+      - intent: ver_soporte_tecnico_info
+      - action: utter_soporte_tecnico
+
+  - rule: Ver confirmar recuperación → utter_confirmar_recuperacion
+    steps:
+      - intent: ver_confirmar_recuperacion_info
       - action: utter_confirmar_recuperacion
 
-  # 🙋 Escalado humano
-  - rule: Confirmar escalado a humano
+  - rule: Ver error actividad info → utter_error_actividad
     steps:
-      - intent: confirmacion_escalar_humano
-      - action: action_conectar_humano
-      - action: utter_confirmar_escalado
+      - intent: ver_error_actividad_info
+      - action: utter_error_actividad
 
-  - rule: Negar escalado a humano
+  - rule: Ver tutor asignado info → utter_tutor_asignado
     steps:
-      - intent: negar_escalar
-      - action: utter_gracias_continuar
-
-  # 🌐 Cambio de idioma
-  - rule: Cambiar a inglés
-    steps:
-      - intent: cambiar_idioma_ingles
-      - action: utter_cambio_idioma_ingles
-
-  - rule: Cambiar a español
-    steps:
-      - intent: cambiar_idioma_espanol
-      - action: utter_cambio_idioma_espanol
-
-  # 📝 Inscribirme
-  - rule: Inscribirme
-    steps:
-      - intent: inscribirme
-      - action: utter_confirmacion_inscripcion
-
-  # 📧 Enviar correo: acción + confirmación
-  - rule: Enviar correo (acción y confirmación)
-    steps:
-      - intent: enviar_correo
-      - action: action_enviar_correo
-      - action: utter_enviar_correo
-
-  # 📞 Teléfono / 🪪 Cédula / 🔢 Número / 🔗 URL
-  - rule: Responder cuando usuario envía teléfono
-    steps:
-      - intent: enviar_telefono
-      - action: utter_enviar_telefono
-
-  - rule: Responder cuando usuario envía cédula
-    steps:
-      - intent: enviar_cedula
-      - action: utter_enviar_cedula
-
-  - rule: Responder cuando usuario envía número
-    steps:
-      - intent: enviar_numero
-      - action: utter_enviar_numero
-
-  - rule: Responder cuando usuario envía url
-    steps:
-      - intent: enviar_url
-      - action: utter_enviar_url
-
-  # 🚨 Fallbacks
-  - rule: Fallback unificado (manual)
-    steps:
-      - intent: fallback
-      - action: utter_default
-      - action: utter_fallback
-
-  - rule: NLU fallback (umbral)
-    steps:
-      - intent: nlu_fallback
-      - action: utter_default
-      - action: utter_fallback
-
-  # ─────────────────────────────
-  # Atajos directos a enlaces
-  # ─────────────────────────────
-  - rule: Soporte PQRS directo
-    steps:
-      - intent: enviar_soporte
-      - action: utter_soporte_pqrs
-
-  - rule: Soporte AVA directo
-    steps:
-      - intent: soporte_ava_directo
-      - action: utter_soporte_ava
-
-  # ─────────────────────────────
-  # Placeholders para “marcar uso”
-  # ─────────────────────────────
-  - rule: Estado estudiante (informativo directo)
-    steps:
-      - intent: estado_estudiante_info
-      - action: utter_estado_estudiante
-
-  - rule: Necesita auth (informativo directo)
-    steps:
-      - intent: necesita_auth
-      - action: utter_need_auth
-
-  - rule: Pedir correo (dedicado)
-    steps:
-      - intent: pedir_correo
-      - action: utter_pedir_correo
-
-  - rule: Pedir email (dedicado)
-    steps:
-      - intent: pedir_email
-      - action: utter_ask_email
-
-  - rule: Pedir nombre (dedicado)
-    steps:
-      - intent: pedir_nombre
-      - action: utter_ask_nombre
-
-  - rule: Pedir mensaje (dedicado)
-    steps:
-      - intent: pedir_mensaje
-      - action: utter_ask_mensaje
-
-  - rule: Confirmación soporte (directo)
-    steps:
-      - intent: soporte_confirmar
-      - action: utter_soporte_confirm
-
-  - rule: Error soporte (directo)
-    steps:
-      - intent: soporte_error
-      - action: utter_soporte_error
-
-  - rule: Affirm genérico (marca uso)
-    steps:
-      - intent: affirm
-      - action: utter_gracias_continuar
-
-  - rule: Auth login (directo) (marca uso)
-    steps:
-      - intent: auth_login
-      - action: utter_saludo
-
-  - rule: Auth login (cmd) (marca uso)
+      - intent: ver_tutor_asignado_info
+      - action: utter_tutor_asignado   
+      
+  - rule: Login por comando
     steps:
       - intent: auth_login_cmd
-      - action: utter_saludo
-
-  - rule: Enviar soporte directo (marca uso)
+      - action: utter_ingreso_zajuna_instrucciones  
+  - rule: Ver confirmación de ticket de soporte (demo)
     steps:
-      - intent: enviar_soporte_directo
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
-
-  - rule: Enviar soporte (marca uso)
-    steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_confirm
-  
-  - rule: Soporte AVA directo (intent dedicado)
-    steps:
-      - intent: soporte_ava_directo
-      - action: utter_soporte_ava
-  
-  # ---------- ESTADO ----------
-  - rule: Estado → requiere auth
-    steps:
-      - intent: estado_estudiante
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: false
-      - action: utter_need_auth
-
-  - rule: Estado → con auth
-    steps:
-      - intent: estado_estudiante
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: true
-      - action: action_estado_estudiante
-
-  # ---------- CERTIFICADOS ----------
-  - rule: Certificados → requiere auth
-    steps:
-      - intent: ver_certificados
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: false
-      - action: utter_need_auth
-
-  - rule: Certificados → con auth
-    steps:
-      - intent: ver_certificados
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: true
-      - action: action_ver_certificados
-
-  # ---------- TUTOR ----------
-  - rule: Tutor asignado → requiere auth
-    steps:
-      - intent: tutor_asignado
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: false
-      - action: utter_need_auth
-
-  - rule: Tutor asignado → con auth
-    steps:
-      - intent: tutor_asignado
-      - action: action_sync_auth_from_metadata
-      - slot_was_set:
-          - has_token: true
-      - action: action_tutor_asignado
-
-  # ---------- Ingreso (CTA) ----------
-  - rule: CTA /ingreso_zajuna
-    steps:
-      - intent: ingreso_zajuna
-      - action: utter_login_hint
-
-  - rule: CTA /abrir_chat_autenticado
-    steps:
-      - intent: abrir_chat_autenticado
-      - action: utter_login_hint
-  
-  - rule: Estado estudiante → chequear auth
-    steps:
-      - intent: estado_estudiante
-      - action: action_check_auth_estado
+      - intent: ver_soporte_creado_info
+      - action: utter_soporte_creado

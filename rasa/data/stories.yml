@@ -1,5 +1,4 @@
 version: "3.1"
-
 stories:
 
   # 👋 Saludo → recomendados + carrusel
@@ -18,19 +17,43 @@ stories:
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
 
-  # 📚 Proceso académico (flujo básico con auth-check y otros)
-  - story: Proceso académico básico
+  # 🔐 Ingreso a Zajuna (solo una salida en stories; la otra la controlan las rules)
+  - story: Ingreso a Zajuna (instrucciones)
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_ingreso_zajuna_instrucciones
+
+  # 📚 Proceso académico (neutral, evita conflictos con rules)
+  - story: Proceso académico (neutral)
     steps:
       - intent: proceso_academico
       - action: utter_menu_proceso_academico
-      - intent: tutor_asignado
-      - action: utter_tutor_asignado
-      - intent: ver_certificados
-      - action: action_check_auth
-      - intent: horarios_calendario
-      - action: utter_menu_proceso_academico
 
-  # 🙋 Escalar a humano (confirmado)
+  # 🔎 Estado estudiante autenticado (demo)
+  - story: Estado estudiante autenticado (demo)
+    steps:
+      - slot_was_set:
+          - has_token: true
+      - intent: estado_estudiante
+      - action: action_estado_estudiante
+
+  # 📜 Certificados autenticado (demo)
+  - story: Ver certificados autenticado (demo)
+    steps:
+      - slot_was_set:
+          - has_token: true
+      - intent: ver_certificados
+      - action: action_ver_certificados
+
+  # 👩‍🏫 Tutor asignado autenticado (demo)
+  - story: Tutor asignado autenticado (demo)
+    steps:
+      - slot_was_set:
+          - has_token: true
+      - intent: tutor_asignado
+      - action: action_tutor_asignado
+
+  # 🙋 Escalar a humano (confirmado/negado)
   - story: Escalar a humano (confirmado)
     steps:
       - intent: escalar_humano
@@ -39,7 +62,6 @@ stories:
       - action: action_conectar_humano
       - action: utter_confirmar_escalado
 
-  # 🙅 Escalar a humano (negado)
   - story: Escalar a humano (negado)
     steps:
       - intent: escalar_humano
@@ -48,22 +70,20 @@ stories:
       - action: utter_gracias_continuar
 
   # 🛠️ Soporte técnico (arranque del form)
-  #    El submit lo maneja la RULE "Submit soporte_form"
   - story: Soporte técnico (arranque form)
     steps:
       - intent: soporte_tecnico
       - action: soporte_form
       - active_loop: soporte_form
 
-  # 🔁 Recuperación de contraseña (form directo)
-  #    El submit lo maneja la RULE "Submit recovery_form"
+  # 🔁 Recuperación de contraseña (form)
   - story: Recuperar contraseña (form)
     steps:
       - intent: recuperar_contrasena
       - action: recovery_form
       - active_loop: recovery_form
 
-  # 📧 Saludo y envío de correo (acción + utter)
+  # 📧 Saludo y envío de correo
   - story: Saludo → enviar_correo
     steps:
       - intent: saludo
@@ -72,7 +92,7 @@ stories:
       - action: action_enviar_correo
       - action: utter_enviar_correo
 
-  # 📞 Saludo y envío de teléfono
+  # 📞/🪪/🔗 variantes sencillas
   - story: Saludo → enviar_telefono
     steps:
       - intent: saludo
@@ -80,7 +100,6 @@ stories:
       - intent: enviar_telefono
       - action: utter_enviar_telefono
 
-  # 🪪 Saludo y envío de cédula
   - story: Saludo → enviar_cedula
     steps:
       - intent: saludo
@@ -88,10 +107,11 @@ stories:
       - intent: enviar_cedula
       - action: utter_enviar_cedula
 
-  # 🔗 Saludo y envío de URL
   - story: Saludo → enviar_url
     steps:
       - intent: saludo
       - action: utter_saludo
       - intent: enviar_url
       - action: utter_enviar_url
+
+

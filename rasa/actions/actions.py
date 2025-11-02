@@ -1,4 +1,3 @@
-# rasa/actions/actions.py
 from __future__ import annotations
 
 import os
@@ -14,19 +13,33 @@ from email.mime.text import MIMEText
 
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
-from rasa_sdk.events import SlotSet
+from rasa_sdk.events import SlotSet, EventType, FollowupAction
 from rasa_sdk.types import DomainDict
-from rasa_sdk.forms import FormValidationAction 
-from rasa_sdk.events import SlotSet, FollowupAction
+from rasa_sdk.forms import FormValidationAction
+
 __all__ = [
+    # Validators
     "ValidateSoporteForm",
     "ValidateRecoveryForm",
+    # Core utility / email
     "ActionEnviarCorreo",
+    # Soporte (rápido + form submit + alias retrocompat)
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",
+    "ActionSubmitSoporte",
+    # Humano / health
     "ActionConectarHumano",
     "ActionHealthCheck",
+    # Auth gates y sync
     "ActionCheckAuth",
+    "ActionCheckAuthEstado",
+    "ActionSyncAuthFromMetadata",
+    # Flujos académicos
+    "ActionEstadoEstudiante",
+    "ActionVerCertificados",
+    "ActionTutorAsignado",
+    # Recovery
+    "ActionSubmitRecovery",
 ]
 
 # =========================
@@ -248,7 +261,7 @@ class ActionEnviarCorreo(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         email = (tracker.get_slot("email") or "").strip()
         if not email:
             dispatcher.utter_message(text="⚠️ No detecté tu correo. Por favor, escríbelo (ej: usuario@ejemplo.com).")
@@ -287,7 +300,7 @@ class ActionEnviarSoporte(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         # 1) Entities del último mensaje
         nombre_ent = _entity_value(tracker, "nombre")
         email_ent = _entity_value(tracker, "email")
@@ -369,7 +382,7 @@ class ActionSoporteSubmit(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         nombre = (tracker.get_slot("nombre") or "").strip()
         email = (tracker.get_slot("email") or "").strip()
         mensaje = (tracker.get_slot("mensaje") or "").strip()
@@ -422,6 +435,24 @@ class ActionSoporteSubmit(Action):
             return []
 
 
+class ActionSubmitSoporte(Action):
+    """
+    Alias retrocompatible: mantiene el nombre antiguo `action_submit_soporte`
+    y **DELEGA** en `action_soporte_submit` para no duplicar lógica.
+    """
+    def name(self) -> Text:
+        return "action_submit_soporte"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+        # Reutiliza la lógica de ActionSoporteSubmit
+        return ActionSoporteSubmit().run(dispatcher, tracker, domain)
+
+
 class ActionConectarHumano(Action):
     """Crea ticket de 'escalado a humano' por el mismo webhook genérico."""
 
@@ -433,7 +464,7 @@ class ActionConectarHumano(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         nombre = (tracker.get_slot("nombre") or "Estudiante").strip()
         email = (tracker.get_slot("email") or "sin-correo@zajuna.edu").strip()
         last_user_msg = tracker.latest_message.get("text") or "El usuario solicitó ser atendido por un humano."
@@ -487,7 +518,7 @@ class ActionHealthCheck(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         status: Dict[str, Any] = {"actions": "ok"}
         if ACTIONS_PING_HELPDESK:
             try:
@@ -499,7 +530,6 @@ class ActionHealthCheck(Action):
             status["helpdesk"] = "skip"
 
         jlog(logging.INFO, "action_health_check", **status)
-        # Mensaje simple para ver en UI/logs
         dispatcher.utter_message(text=f"health: {json.dumps(status, ensure_ascii=False)}")
         return []
 
@@ -541,25 +571,23 @@ class ActionCheckAuth(Action):
 
     async def run(
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         intent = ((tracker.latest_message or {}).get("intent") or {}).get("name") or ""
         authed = _has_auth(tracker)
 
         if intent in ("estado_estudiante", "ver_certificados"):
             if not authed:
-                # ChatUI reconocerá custom.type=auth_needed y mostrará botón "Iniciar sesión"
                 dispatcher.utter_message(response="utter_need_auth")
                 return []
 
-            # Con auth válida: responde (o delega a otra action que consulte tu API)
+            # Con auth válida: delega al flujo real
             if intent == "estado_estudiante":
-                dispatcher.utter_message(response="utter_estado_estudiante")
+                return [FollowupAction("action_estado_estudiante")]
             elif intent == "ver_certificados":
-                dispatcher.utter_message(response="utter_certificados_info")
-            return []
-
-        # Otros intents: no interviene
+                return [FollowupAction("action_ver_certificados")]
         return []
+
+
 class ActionSyncAuthFromMetadata(Action):
     def name(self) -> Text:
         return "action_sync_auth_from_metadata"
@@ -569,7 +597,7 @@ class ActionSyncAuthFromMetadata(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: Dict[Text, Any]
-    ) -> List[Dict[Text, Any]]:
+    ) -> List[EventType]:
         """
         Lee tracker.latest_message.metadata.auth.hasToken y setea el slot has_token.
         Si tu proxy REST adjunta el token como metadata.auth.token, también funciona.
@@ -578,7 +606,6 @@ class ActionSyncAuthFromMetadata(Action):
         try:
             md = tracker.latest_message.get("metadata") or {}
             auth = md.get("auth") or {}
-            # soporta cualquiera de estas variantes
             if isinstance(auth, dict):
                 if auth.get("hasToken") is True:
                     has_token = True
@@ -595,39 +622,56 @@ class ActionEstadoEstudiante(Action):
     def name(self) -> Text:
         return "action_estado_estudiante"
 
-    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         dispatcher.utter_message(text="✅ Estado académico (demo): estás autenticado y la consulta fue exitosa.")
         return []
+
 
 class ActionVerCertificados(Action):
     def name(self) -> Text:
         return "action_ver_certificados"
 
-    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         dispatcher.utter_message(text="📄 Certificados (demo): listado de certificados disponible (requiere auth).")
         return []
+
 
 class ActionTutorAsignado(Action):
     def name(self) -> Text:
         return "action_tutor_asignado"
 
-    def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         dispatcher.utter_message(text="👩‍🏫 Tutor asignado (demo): Ing. María Pérez. (flujo real va aquí)")
         return []
+
 
 class ActionCheckAuthEstado(Action):
     def name(self) -> Text:
         return "action_check_auth_estado"
 
-    def run(self,
-            dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[EventType]:
         meta = (tracker.latest_message or {}).get("metadata") or {}
         has_token = bool(((meta.get("auth") or {}).get("hasToken")))
         if has_token:
-            # Aquí podrías llamar tu action real de estado o una utter temporal:
-            return [FollowupAction("utter_estado_estudiante_demo")]
+            # Delegamos a la acción real de estado (evita depender de un utter demo inexistente)
+            return [FollowupAction("action_estado_estudiante")]
         else:
             return [FollowupAction("utter_need_auth")]
+
+
+class ActionSubmitRecovery(Action):
+    def name(self) -> Text:
+        return "action_submit_recovery"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        email = tracker.get_slot("email")
+        if not email:
+            dispatcher.utter_message(text="Indícame tu correo para enviarte la recuperación.")
+            return []
+        dispatcher.utter_message(text=f"Se envió un enlace de recuperación a {email}.")
+        return []

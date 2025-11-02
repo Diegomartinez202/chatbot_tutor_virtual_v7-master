@@ -33,11 +33,10 @@ nlu:
       - ver oferta académica
       - cursos disponibles
       - quiero aprender algo nuevo
-      - ver catálogo
       - ver cursos disponibles
       - catálogo académico
 
-  # ————— INGRESO / LOGIN
+  # ————— INGRESO / LOGIN (unificado)
   - intent: ingreso_zajuna
     examples: |
       - quiero ingresar a zajuna
@@ -53,6 +52,7 @@ nlu:
       - iniciar sesión
       - login en Zajuna
       - quiero autenticarme
+
   # ————— RECUPERAR CONTRASEÑA
   - intent: recuperar_contrasena
     examples: |
@@ -88,7 +88,7 @@ nlu:
       - ayuda con el proceso académico
       - procesos administrativos
 
-  # ————— CERTIFICADOS (PRIVADO → REQUIERE AUTH)
+  # ————— CERTIFICADOS (PRIVADO → REQUIERE AUTH) + INFO
   - intent: ver_certificados
     examples: |
       - quiero ver mis certificados
@@ -104,8 +104,9 @@ nlu:
       - necesito mi constancia
       - quiero mis certificados en PDF
       - descargar mis diplomas
+      - ver certificados
+      - mis certificados
 
-  # ————— INTENT DEDICADO: certificados (info directa, sin auth)
   - intent: ver_certificados_info
     examples: |
       - muéstrame certificados sin login
@@ -122,9 +123,9 @@ nlu:
       - necesito el contacto de mi tutor
       - datos del tutor
       - cómo contacto al tutor
-      - quién es mi tutor
       - tutor asignado
       - ver tutor
+
   - intent: horarios_calendario
     examples: |
       - ver horario
@@ -222,27 +223,19 @@ nlu:
   # ————— ESTADO ESTUDIANTE (PRIVADO → REQUIERE AUTH)
   - intent: estado_estudiante
     examples: |
-      - estoy activo este semestre
+      - status académico
       - cuál es mi estado académico
-      - mi matrícula está activa
-      - quiero saber si estoy inscrito
-      - estado de estudiante
-      - mi estado en la institución
-      - estoy habilitado para cursar
-      - aparezco activo
-      - verificar estado académico
-      - sigo activo este periodo
-      - mi estatus académico
-      - estado en el periodo actual
-      - ver mi estado actual       
       - ver mi estado académico
-      - estado del estudiante
-      - cómo va mi estado
-      - mi estado actual
-      - estado estudiante
-      - ver mi estado
-      - mi estado académico
-      - /estado_estudiante
+      - estado del aprendiz
+
+  - intent: necesita_auth
+    examples: |
+      - necesito autenticarme
+      - eso requiere autenticación
+      - debo iniciar sesión para eso
+      - me falta iniciar sesión
+      - requiere autenticación
+
   # ————— CAMBIO DE IDIOMA
   - intent: cambiar_idioma_ingles
     examples: |
@@ -275,27 +268,7 @@ nlu:
       - quiero matricularme
       - inscribirme en ese programa
 
-  # ————— LOGIN EXPLÍCITO (TRACKING)
-  - intent: auth_login
-    examples: |
-
-      - abrir pantalla de autenticación
-      - necesito autenticarme
-      - redireccionarme al login
-      - quiero ver si puedo loguearme
-      - iniciar sesión ahora
-      - acceder a mi cuenta
-      - entrar con mi usuario
-      - abrir el login
-
-  # Intent técnico (comando)
-  - intent: auth_login_cmd
-    examples: |
-      - auth_login
-      - auth login
-      - login ahora
-
-  # ————— AFFIRM / DENY / FALLBACK
+  # ————— AFFIRM / DENY
   - intent: affirm
     examples: |
       - sí
@@ -318,16 +291,6 @@ nlu:
       - no por ahora
       - nah
       - cancela
-
-  - intent: fallback
-    examples: |
-      - no entiendo
-      - ?
-      - qué
-      - no sé
-      - ayuda
-      - mmm
-      - ¿ah?
 
   # ————— EMAIL / DATOS / URL / NÚMEROS
   - intent: enviar_correo
@@ -410,12 +373,6 @@ nlu:
       - cuál mensaje envío
       - acá va mi mensaje
 
-  - intent: necesita_auth
-    examples: |
-      - necesito autenticarme?
-      - me falta iniciar sesión
-      - requiere autenticación
-
   # Soporte confirmación / error directos
   - intent: soporte_confirmar
     examples: |
@@ -435,7 +392,8 @@ nlu:
       - envía soporte directo
       - crear ticket directo
       - mandar ticket ya
-# ————— Soporte AVA directo (SAVA)
+
+  # ————— Soporte AVA directo (SAVA)
   - intent: soporte_ava_directo
     examples: |
       - soporte ava
@@ -447,16 +405,84 @@ nlu:
       - abrir soporte ava
       - soporte plataforma zajuna
       - cómo contacto soporte SAVA
+
+  # ————— Atajo para abrir chat autenticado
   - intent: abrir_chat_autenticado
     examples: |
       - abrir chat autenticado
       - abrir el chat con login
 
-  - intent: ver_certificados
+  # ————— Confirmación de recuperación
+  - intent: confirmar_recuperacion
     examples: |
-      - ver certificados
-      - descargar certificados
-      - mis certificados
+      - sí, envía la recuperación
+      - confirmo recuperación
+      - envía el enlace de recuperación
+      - por favor envíalo
+      - quiero recuperar mi clave
+      - confirma recuperación
+      - proceder con la recuperación
+
+  - intent: ver_catalogo
+    examples: |
+      - ver catálogo completo
+      - muéstrame el catálogo
+      - catálogo de cursos detallado
+      - catálogo
+
+  - intent: ver_link_soporte
+    examples: |
+      - ver link soporte
+      - mostrar enlace de soporte
+      - enlace soporte
+
+  - intent: ver_card_demo
+    examples: |
+      - ver tarjeta demo
+      - mostrar card ejemplo
+      - tarjeta de ejemplo
+
+  - intent: ver_login_hint
+    examples: |
+      - ver login hint
+      - mostrar consejo de login
+      - ayuda para iniciar sesión
+
+  - intent: ver_pregunta_acceso
+    examples: |
+      - ver pregunta de acceso
+      - mostrar pregunta de acceso
+      - cuál es el problema de acceso
+
+  - intent: ver_soporte_tecnico_info
+    examples: |
+      - ver soporte técnico info
+      - mostrar soporte técnico
+      - abrir soporte técnico
+
+  - intent: ver_confirmar_recuperacion_info
+    examples: |
+      - ver confirmar recuperación
+      - mostrar confirmación de recuperación
+      - confirmación de recuperación
+
+  - intent: ver_error_actividad_info
+    examples: |
+      - ver error actividad info
+      - mostrar error de actividad
+      - ayuda error en actividad
+
+  - intent: ver_tutor_asignado_info
+    examples: |
+      - ver tutor asignado info
+      - mostrar tutor asignado
+      - info tutor asignado
+
+  - intent: ver_soporte_creado_info
+    examples: |
+      - ver confirmación de soporte
+      - mostrar ticket creado
+  # ─────────────────────────────────────────────
   # REGEX FEATURES
   # ─────────────────────────────────────────────
   - regex: email
@@ -478,3 +504,5 @@ nlu:
   - regex: cedula
     examples: |
       - (?<!\d)\d{6,12}(?!\d)
+
+

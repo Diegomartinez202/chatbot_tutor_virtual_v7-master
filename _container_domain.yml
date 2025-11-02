@@ -68,7 +68,6 @@ entities:
   - ver_tutor_asignado_info 
   - auth_login_cmd
   - ver_estado_estudiante_info
-  - ver_soporte_creado_info
 slots:
   has_token:
     type: bool
