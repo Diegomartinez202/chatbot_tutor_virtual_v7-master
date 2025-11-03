@@ -397,39 +397,13 @@ export default function App() {
                             flexWrap: "wrap",
                         }}
                     >
-                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">
-                            Abrir Chat
-                        </button>
-                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">
-                            Cerrar Chat
-                        </button>
-                        <button onClick={handleLoginDemo} className="btn">
-                            Login & Enviar Token
-                        </button>
-                        <button
-                            onClick={() => bubbleRef.current?.setTheme?.("dark")}
-                            className="btn"
-                        >
-                            Tema: Dark
-                        </button>
-                        <button
-                            onClick={() => bubbleRef.current?.setTheme?.("light")}
-                            className="btn"
-                        >
-                            Tema: Light
-                        </button>
-                        <button
-                            onClick={() => bubbleRef.current?.setLanguage?.("en")}
-                            className="btn"
-                        >
-                            Idioma: EN
-                        </button>
-                        <button
-                            onClick={() => bubbleRef.current?.setLanguage?.("es")}
-                            className="btn"
-                        >
-                            Idioma: ES
-                        </button>
+                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
+                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
+                        <button onClick={handleLoginDemo} className="btn">Login & Enviar Token</button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
+                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
+                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">Idioma: ES</button>
                     </div>
                 </div>
             )}
