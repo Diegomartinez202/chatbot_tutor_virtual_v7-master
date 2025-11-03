@@ -14,18 +14,22 @@ stories:
 
   - story: Menú académico jerárquico (secundario)
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_proceso_academico
-      - action: action_preguntar_resolucion
-
+    - intent: proceso_academico_secundario
+    - action: utter_menu_proceso_academico
+  
+  - story: Navegación a submenú académico
+    steps:
+    - intent: proceso_academico_secundario
+    - action: utter_menu_proceso_academico
+  
   - story: Estado estudiante (autenticado)
     steps:
     - slot_was_set:
         - is_authenticated: true
     - intent: ver_estado_estudiante_info
     - action: action_estado_estudiante
-    - action: utter_estado_estudiante      # 👈 añadir este utter
-    - action: action_preguntar_resolucion  # 👈 ahora sí
+    - action: utter_estado_estudiante
+    - action: action_preguntar_resolucion
 
   # 3) Estado de estudiante (NO AUTENTICADO)
   - story: Estado estudiante (no autenticado)
@@ -63,42 +67,18 @@ stories:
       - action: utter_need_auth
       - action: action_preguntar_resolucion
 
-  # 6) Tutor asignado (AUTENTICADO)
-  - story: Tutor asignado (autenticado)
-    steps:
-      - intent: proceso_academico
-      - action: utter_menu_academico
-      - slot_was_set:
-          - is_authenticated: true
-      - intent: ver_tutor_asignado_info
-      - action: action_tutor_asignado
-      - action: utter_tutor_asignado_info
-      - action: action_preguntar_resolucion
-
-  # 7) Tutor asignado (NO AUTENTICADO)
   - story: Tutor asignado (no autenticado)
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_academico
-      - slot_was_set:
-          - is_authenticated: false
-      - intent: ver_tutor_asignado_info
-      - action: utter_instrucciones_tutor
-      - action: utter_need_auth
-      - action: action_preguntar_resolucion
+    - slot_was_set:
+        - is_authenticated: false
+    - intent: ver_tutor_asignado_info
+    - action: utter_instrucciones_tutor
+    - action: utter_need_auth
+    - action: action_preguntar_resolucion
 
   # ==============================
   # BLOQUE: SOPORTE TÉCNICO
   # ==============================
-
-  - story: Soporte técnico (formulario)
-    steps:
-    - intent: enviar_soporte          # 👈 NO 'soporte_tecnico'
-    - action: soporte_form
-    - active_loop: soporte_form
-    - action: action_soporte_submit   # 👈 al cerrar el form
-    - action: action_preguntar_resolucion
-
 
   # 9) Soporte AVA directo (guía inmediata)
   - story: Soporte AVA (directo)
@@ -168,21 +148,28 @@ stories:
       - intent: negar_escalar
       - action: utter_gracias_continuar
   
-  - story: Validación académica — intents heredados
+  - story: Validación académica — estado
     steps:
-      - action: utter_instrucciones_estado
-      - action: action_preguntar_resolucion
-      - action: utter_instrucciones_tutor
-      - action: action_preguntar_resolucion
-      - action: utter_instrucciones_certificados
-      - action: utter_certificados_info
-      - action: action_preguntar_resolucion
+    - action: utter_instrucciones_estado
+    - action: action_preguntar_resolucion   # o termina aquí si no encadenas
 
-  - story: Validación de respuestas informativas
+  - story: Validación académica — tutor
     steps:
- 
+    - action: utter_instrucciones_tutor
+    - action: action_preguntar_resolucion
+
+  - story: Validación académica — certificados
+    steps:
+    - action: utter_instrucciones_certificados
+    - action: action_preguntar_resolucion
+
   - story: Confirmación de resolución mínima
     steps:
-      - action: action_preguntar_resolucion
-      - intent: problema_resuelto_si
-      - action: utter_encuesta_satisfaccion
+    - intent: problema_resuelto_si
+    - action: utter_encuesta_satisfaccion
+    - action: utter_cierre
+  
+  - story: Navegación académica — submenú especializado
+    steps:
+    - intent: proceso_academico_secundario
+    - action: utter_menu_proceso_academico

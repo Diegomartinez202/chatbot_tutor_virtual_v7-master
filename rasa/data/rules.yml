@@ -29,11 +29,18 @@ rules:
       - action: utter_saludo            # saludo breve/profesional
       - action: utter_saludo_menu       # menú principal
 
+
   - rule: Ir al menú académico
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_academico
+    - intent: proceso_academico
+    - action: utter_menu_academico
 
+  # Submenú académico (jerárquico) con intent dedicado
+  - rule: Ir al submenú académico (jerárquico)
+    steps:
+    - intent: proceso_academico_secundario
+    - action: utter_menu_proceso_academico
+  
   - rule: Ir al menú de soporte
     steps:
       - intent: soporte_tecnico
@@ -53,16 +60,6 @@ rules:
       - action: utter_estado_estudiante      # muestra estado con placeholders
       - action: action_preguntar_resolucion
 
-  - rule: Estado estudiante (requiere auth)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: ver_estado_estudiante_info
-      - action: utter_instrucciones_estado
-      - action: utter_need_auth
-      - action: action_preguntar_resolucion
-
   # ---- CERTIFICADOS ---- (INTENT OFICIAL: ver_certificados_info)
   - rule: Ver certificados (autenticado)
     condition:
@@ -72,37 +69,6 @@ rules:
       - intent: ver_certificados_info
       - action: action_listar_certificados   # llena lista_certificados
       - action: utter_ver_certificados       # muestra con placeholders
-      - action: action_preguntar_resolucion
-
-  - rule: Ver certificados (requiere auth)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: ver_certificados_info
-      - action: utter_instrucciones_certificados
-      - action: utter_need_auth
-      - action: action_preguntar_resolucion
-
-  # ---- TUTOR ASIGNADO ---- (INTENT OFICIAL: ver_tutor_asignado_info)
-  - rule: Tutor asignado (autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: ver_tutor_asignado_info
-      - action: action_tutor_asignado        # llena tutor_nombre/tutor_contacto
-      - action: utter_tutor_asignado_info    # muestra con placeholders
-      - action: action_preguntar_resolucion
-
-  - rule: Tutor asignado (requiere auth)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: ver_tutor_asignado_info
-      - action: utter_instrucciones_tutor
-      - action: utter_need_auth
       - action: action_preguntar_resolucion
 
   # ====== SOPORTE (forms + atajos) ======
@@ -276,9 +242,9 @@ rules:
   # ====== CIERRE / ENCUESTA (ciclo formal) ======
   - rule: Resuelto → Encuesta + Cierre
     steps:
-      - intent: problema_resuelto_si
-      - action: utter_encuesta_satisfaccion
-      - action: utter_cierre
+    - intent: problema_resuelto_si
+    - action: utter_encuesta_satisfaccion
+    - action: utter_cierre
 
   - rule: No resuelto → Derivar + Cierre
     steps:
@@ -314,29 +280,19 @@ rules:
       - action: action_estado_estudiante
       - action: action_preguntar_resolucion
 
-  - rule: Después de ver certificados → preguntar resolución
+  - rule: Certificados (no autenticado) — encadenado
+    condition:
+    - slot_was_set:
+        - is_authenticated: false
     steps:
-      - action: action_listar_certificados
-      - action: action_preguntar_resolucion
+    - intent: ver_certificados_info
+    - action: utter_instrucciones_certificados
+    - action: utter_need_auth
+    - action: action_preguntar_resolucion
 
   - rule: Después de ver tutor asignado → preguntar resolución
     steps:
       - action: action_tutor_asignado
-      - action: action_preguntar_resolucion
-
-  - rule: Después de instrucciones (estado) → preguntar resolución
-    steps:
-      - action: utter_instrucciones_estado
-      - action: action_preguntar_resolucion
-
-  - rule: Después de instrucciones (certificados) → preguntar resolución
-    steps:
-      - action: utter_instrucciones_certificados
-      - action: action_preguntar_resolucion
-
-  - rule: Después de instrucciones (tutor) → preguntar resolución
-    steps:
-      - action: utter_instrucciones_tutor
       - action: action_preguntar_resolucion
 
   # Soporte

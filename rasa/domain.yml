@@ -56,7 +56,7 @@ intents:
   - problema_resuelto_no
   - confirmacion_escalar_humano
   - negar_escalar
- 
+  - proceso_academico_secundario
 entities:
   - nombre
   - email
@@ -206,6 +206,8 @@ responses:
         • Certificados
         • Tutor asignado
       buttons:
+        - title: "📚 Submenú académico"
+          payload: /proceso_academico_secundario
         - title: "🧾 Estado estudiante"
           payload: /ver_estado_estudiante_info
         - title: "📜 Ver certificados"
@@ -214,6 +216,7 @@ responses:
           payload: /ver_tutor_asignado_info
         - title: "⬅️ Menú principal"
           payload: /saludo
+
 
   utter_menu_soporte:
     - text: |
@@ -233,12 +236,6 @@ responses:
 
   utter_ver_certificados:
     - text: "Estos son tus certificados: {lista_certificados}"
-
-  utter_tutor_asignado_info:
-    - text: "Tu tutor asignado es {tutor_nombre} (contacto: {tutor_contacto})."
-
-  utter_certificados_info:
-    - text: "Los certificados se descargan desde tu cuenta. Inicia sesión y te muestro el listado."
 
   # Catálogo / tarjetas demo
   utter_catalogo_cursos:

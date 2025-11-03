@@ -86,6 +86,12 @@ nlu:
       - ayuda con el proceso académico
       - procesos administrativos
 
+  - intent: proceso_academico_secundario
+    examples: |
+      - submenú académico
+      - menú académico secundario
+      - ver submenú de académico
+      - abrir submenú académico
   - intent: ver_certificados_info
     examples: |
       - muéstrame certificados sin login
@@ -476,17 +482,6 @@ nlu:
     examples: |
       - ver confirmación de soporte
       - mostrar ticket creado
-  - intent: estado_estudiante
-    examples: |
-      - quiero ver mi estado como estudiante
-      - ver estado de estudiante
-      - estado estudiante
-      - dime mi estado como estudiante
-      - consultar estado académico
-  - intent: encuesta_satis_yes
-    examples: |
-      - sí me sirvió
-      - fue útil
 
   - intent: encuesta_satis_no
     examples: |
@@ -498,7 +493,6 @@ nlu:
       - sí quedó resuelto
       - ya quedó
       - listo, solucionado
-      - sí, gracias
       - todo bien ya
       - quedó resuelto
 
@@ -511,7 +505,21 @@ nlu:
       - requiero un asesor
       - necesito que me atienda alguien
 
+  - intent: encuesta_satis_yes
+    examples: |
+      - sí me sirvió
+      - fue útil
+      - sí, útil
+      - me ayudó
+      - sí, gracias
 
+  - intent: encuesta_satis_no
+    examples: |
+      - no me sirvió
+      - no fue útil
+      - no, gracias
+      - no me ayudó
+      - no, aún tengo dudas
   # ─────────────────────────────────────────────
   # REGEX FEATURES
   # ─────────────────────────────────────────────
