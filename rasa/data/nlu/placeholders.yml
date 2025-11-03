@@ -1,13 +1,6 @@
 version: "3.1"
 nlu:
 
-- intent: ver_estado_estudiante_info
-  examples: |
-    - cuál es mi estado como estudiante
-    - estado del estudiante
-    - estoy activo este periodo
-    - dime mi estado académico
-
 - intent: necesita_auth
   examples: |
     - me pide iniciar sesión

@@ -21,26 +21,38 @@ __all__ = [
     # Validators
     "ValidateSoporteForm",
     "ValidateRecoveryForm",
+
     # Core utility / email
     "ActionEnviarCorreo",
+
     # Soporte (rápido + form submit + alias retrocompat)
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",
     "ActionSubmitSoporte",
+
     # Humano / health
     "ActionConectarHumano",
     "ActionHealthCheck",
+
     # Auth gates y sync
     "ActionCheckAuth",
     "ActionCheckAuthEstado",
     "ActionSyncAuthFromMetadata",
+    "ActionSetAuthenticatedTrue",
+    "ActionMarkAuthenticated",
+
     # Flujos académicos
     "ActionEstadoEstudiante",
     "ActionVerCertificados",
     "ActionTutorAsignado",
+    "ActionListarCertificados",
+
     # Recovery
     "ActionSubmitRecovery",
+    "action: action_preguntar_resolucion"
+
 ]
+
 
 # =========================
 #    Logging estructurado
@@ -173,6 +185,16 @@ def _json_payload_from_text(text: str) -> Dict[str, Any]:
     except Exception:
         pass
     return {}
+# --------- Helpers reutilizables ---------
+def _is_auth(tracker: Tracker) -> bool:
+    return bool(tracker.get_slot("is_authenticated"))
+
+def _backend_base() -> str:
+    return (os.getenv("BACKEND_URL") or "").rstrip("/")
+
+def _auth_headers(tracker: Tracker) -> Dict[str, str]:
+    token = tracker.get_slot("auth_token")
+    return {"Authorization": f"Bearer {token}"} if token else {}
 
 # =========================
 #   Validaciones de Forms
@@ -627,12 +649,34 @@ class ActionEstadoEstudiante(Action):
         return []
 
 
-class ActionVerCertificados(Action):
+class ActionEstadoEstudiante(Action):
     def name(self) -> Text:
-        return "action_ver_certificados"
+        return "action_estado_estudiante"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        dispatcher.utter_message(text="📄 Certificados (demo): listado de certificados disponible (requiere auth).")
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        # 1) Gate de autenticación
+        if not _is_auth(tracker):
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        # 2) Backend opcional
+        estado: Optional[str] = None
+        base = _backend_base()
+        if base:
+            try:
+                resp = requests.get(f"{base}/api/estado-estudiante", headers=_auth_headers(tracker), timeout=8)
+                if resp.ok:
+                    data = resp.json()
+                    # Espera {"estado":"Activo"} o similar
+                    estado = data.get("estado") if isinstance(data, dict) else None
+            except Exception:
+                pass
+
+        # 3) Fallback demo
+        if not estado:
+            estado = "Activo (demo)"
+
+        dispatcher.utter_message(text=f"✅ Tu estado académico es: {estado}.")
         return []
 
 
@@ -640,8 +684,35 @@ class ActionTutorAsignado(Action):
     def name(self) -> Text:
         return "action_tutor_asignado"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        dispatcher.utter_message(text="👩‍🏫 Tutor asignado (demo): Ing. María Pérez. (flujo real va aquí)")
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        # 1) Gate de autenticación
+        if not _is_auth(tracker):
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        # 2) Backend opcional
+        base = _backend_base()
+        tutor_nombre: Optional[str] = None
+        tutor_contacto: Optional[str] = None
+
+        if base:
+            try:
+                resp = requests.get(f"{base}/api/tutor", headers=_auth_headers(tracker), timeout=8)
+                if resp.ok:
+                    data = resp.json() if isinstance(resp.json(), dict) else {}
+                    # Espera {"nombre":"..","contacto":".."}
+                    tutor_nombre = data.get("nombre")
+                    tutor_contacto = data.get("contacto")
+            except Exception:
+                pass
+
+        # 3) Fallback demo
+        if not tutor_nombre:
+            tutor_nombre = "Ing. María Pérez (demo)"
+        if not tutor_contacto:
+            tutor_contacto = "maria.perez@zajuna.edu (demo)"
+
+        dispatcher.utter_message(text=f"👩‍🏫 Tu tutor asignado es {tutor_nombre}. Contacto: {tutor_contacto}.")
         return []
 
 
@@ -674,4 +745,130 @@ class ActionSubmitRecovery(Action):
             dispatcher.utter_message(text="Indícame tu correo para enviarte la recuperación.")
             return []
         dispatcher.utter_message(text=f"Se envió un enlace de recuperación a {email}.")
+        return []
+       
+class ActionSetAuthenticatedTrue(Action):
+    def name(self) -> Text:
+        return "action_set_authenticated_true"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+        return [SlotSet("is_authenticated", True)]
+
+class ActionMarkAuthenticated(Action):
+    def name(self):
+        return "action_mark_authenticated"
+
+    def run(self, dispatcher, tracker, domain):
+        return [SlotSet("is_authenticated", True)]
+
+
+class ActionListarCertificados(Action):
+    def name(self) -> Text:
+        return "action_listar_certificados"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+        # 1) Verifica autenticación (reutiliza una sola respuesta de login)
+        is_auth = bool(tracker.get_slot("is_authenticated"))
+        if not is_auth:
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        # 2) Intenta obtener certificados desde el backend (opcional)
+        base_url = (os.getenv("BACKEND_URL") or "").rstrip("/")
+        certificados: Optional[List[Dict[str, Any]]] = None
+
+        if base_url:
+            try:
+                # Si manejas token vía slot:
+                token = tracker.get_slot("auth_token")
+                headers = {"Authorization": f"Bearer {token}"} if token else {}
+                resp = requests.get(f"{base_url}/api/certificados", headers=headers, timeout=8)
+                if resp.ok:
+                    data = resp.json()
+                    # Espera {"certificados":[{curso,fecha,url},...]} o lista directa
+                    certificados = data.get("certificados") if isinstance(data, dict) else data
+            except Exception:
+                # Silencioso: usa fallback abajo
+                pass
+
+        # 3) Fallback demo si no hay backend o respuesta vacía
+        if not certificados:
+            certificados = [
+                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
+                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
+            ]
+
+        # 4) Formatea salida
+        lines = []
+        for item in certificados:
+            curso = item.get("curso", "Certificado")
+            fecha = item.get("fecha", "s.f.")
+            url = item.get("url")
+            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
+
+        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
+        return []
+
+class ActionVerCertificados(Action):
+    def name(self) -> Text:
+        return "action_ver_certificados"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        # 1) Gate de autenticación
+        if not _is_auth(tracker):
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        # 2) Backend opcional
+        base = _backend_base()
+        certificados: Optional[List[Dict[str, Any]]] = None
+        if base:
+            try:
+                resp = requests.get(f"{base}/api/certificados", headers=_auth_headers(tracker), timeout=8)
+                if resp.ok:
+                    data = resp.json()
+                    certificados = data.get("certificados") if isinstance(data, dict) else data
+            except Exception:
+                pass
+
+        # 3) Fallback demo
+        if not certificados:
+            certificados = [
+                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
+                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
+            ]
+
+        lines = []
+        for item in certificados:
+            curso = item.get("curso", "Certificado")
+            fecha = item.get("fecha", "s.f.")
+            url = item.get("url")
+            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
+
+        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
+        return []
+class ActionPreguntarResolucion(Action):
+    def name(self) -> Text:
+        return "action_preguntar_resolucion"
+
+    def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(response="utter_esta_resuelto")
+        return []
+
+class ActionDerivarYRegistrarHumano(Action):
+    def name(self) -> Text:
+        return "action_derivar_y_registrar_humano"
+
+    def run(self, dispatcher, tracker, domain):
+        # Aquí crear ticket / enviar correo / registrar en Mongo (cuando quieras)
         return []

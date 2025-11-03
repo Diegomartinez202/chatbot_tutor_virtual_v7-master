@@ -86,9 +86,11 @@ nlu:
       - ayuda con el proceso académico
       - procesos administrativos
 
-  # ————— CERTIFICADOS (PRIVADO → REQUIERE AUTH) + INFO
-  - intent: ver_certificados
+  - intent: ver_certificados_info
     examples: |
+      - muéstrame certificados sin login
+      - ver certificados de ejemplo
+      - listar certificados rápidos
       - quiero ver mis certificados
       - certificados que tengo
       - ver diplomas
@@ -105,24 +107,6 @@ nlu:
       - ver certificados
       - mis certificados
 
-  - intent: ver_certificados_info
-    examples: |
-      - muéstrame certificados sin login
-      - ver certificados de ejemplo
-      - listar certificados rápidos
-
-  # ————— TUTOR / HORARIOS
-  - intent: tutor_asignado
-    examples: |
-      - quién es mi tutor
-      - ver mi tutor
-      - profesor asignado
-      - cuál es mi tutor actual
-      - necesito el contacto de mi tutor
-      - datos del tutor
-      - cómo contacto al tutor
-      - tutor asignado
-      - ver tutor
 
   - intent: horarios_calendario
     examples: |
@@ -225,6 +209,10 @@ nlu:
       - cuál es mi estado académico
       - ver mi estado académico
       - estado del aprendiz
+      - cuál es mi estado como estudiante
+      - estado del estudiante
+      - estoy activo este periodo
+      - dime mi estado académico
 
   - intent: necesita_auth
     examples: |
@@ -475,7 +463,15 @@ nlu:
       - ver tutor asignado info
       - mostrar tutor asignado
       - info tutor asignado
-
+      - quién es mi tutor
+      - ver mi tutor
+      - profesor asignado
+      - cuál es mi tutor actual
+      - necesito el contacto de mi tutor
+      - datos del tutor
+      - cómo contacto al tutor
+      - tutor asignado
+      - ver tutor
   - intent: ver_soporte_creado_info
     examples: |
       - ver confirmación de soporte
@@ -487,6 +483,34 @@ nlu:
       - estado estudiante
       - dime mi estado como estudiante
       - consultar estado académico
+  - intent: encuesta_satis_yes
+    examples: |
+      - sí me sirvió
+      - fue útil
+
+  - intent: encuesta_satis_no
+    examples: |
+      - no me sirvió
+      - no fue útil
+
+  - intent: problema_resuelto_si
+    examples: |
+      - sí quedó resuelto
+      - ya quedó
+      - listo, solucionado
+      - sí, gracias
+      - todo bien ya
+      - quedó resuelto
+
+  - intent: problema_resuelto_no
+    examples: |
+      - no, necesito ayuda humana
+      - no se resolvió
+      - aún tengo el problema
+      - no quedó claro
+      - requiero un asesor
+      - necesito que me atienda alguien
+
 
   # ─────────────────────────────────────────────
   # REGEX FEATURES

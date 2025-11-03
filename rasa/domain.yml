@@ -37,10 +37,8 @@ intents:
   - soporte_confirmar
   - soporte_error
   - soporte_tecnico
-  - tutor_asignado
   - ver_card_demo
   - ver_catalogo
-  - ver_certificados
   - ver_certificados_info
   - ver_confirmar_recuperacion_info
   - ver_error_actividad_info
@@ -52,33 +50,34 @@ intents:
   - ver_soporte_tecnico_info
   - ver_tutor_asignado_info
   - error_actividad
+  - encuesta_satis_yes
+  - encuesta_satis_no
+  - problema_resuelto_si
+  - problema_resuelto_no
   - confirmacion_escalar_humano
-  - negar_escalar 
-  - estado_estudiante
-  - estado_estudiante_info 
-
+  - negar_escalar
+ 
 entities:
   - nombre
   - email
-  - mensaje                 
-  - ver_link_soporte               
-  - ver_card_demo                  
-  - ver_login_hint                 
-  - ver_pregunta_acceso            
-  - ver_soporte_tecnico_info       
-  - ver_confirmar_recuperacion_info
-  - ver_error_actividad_info       
-  - ver_tutor_asignado_info 
-  - auth_login_cmd
-  - ver_estado_estudiante_info
-  - ver_soporte_creado_info
+  - mensaje
+
 slots:
   has_token:
     type: bool
     initial_value: false
     influence_conversation: true
     mappings:
-      - type: custom    # lo setea action_sync_auth_from_metadata
+      - type: custom   # lo setea action_sync_auth_from_metadata
+
+  is_authenticated:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+      - type: from_intent
+        intent: abrir_chat_autenticado
+        value: true
 
   nombre:
     type: text
@@ -116,12 +115,52 @@ slots:
             requested_slot: mensaje
 
 responses:
-  # --- Fallback / Login / Auth ---
+
+  utter_affirm:
+    - text: "¡Perfecto! Continuemos."
+
+  utter_deny:
+    - text: "Entendido. ¿Quieres volver al menú principal?"
+
   utter_fallback:
     - text: "No te entendí bien 🤔. ¿Puedes reformularlo o elegir una opción del menú?"
 
+  # ÚNICA respuesta estándar para TODO lo que requiere login (con variantes)
   utter_need_auth:
-    - text: "Para continuar necesito que inicies sesión. Pulsa **Iniciar sesión** y vuelve a intentarlo."
+    - text: |
+        Para ver esta información necesitas iniciar sesión en Zajuna.
+        Pasos:
+        1) Entra a https://zajuna.edu/login
+        2) Inicia sesión con tu usuario y contraseña
+        3) Vuelve aquí y presiona «✅ Ya inicié sesión»
+      buttons:
+        - title: "🔐 Ir a Zajuna"
+          type: web_url
+          url: "https://zajuna.edu/login"
+        - title: "✅ Ya inicié sesión"
+          payload: /abrir_chat_autenticado
+    - text: |
+        Esta opción requiere autenticación en Zajuna.
+        1) Abre https://zajuna.edu/login
+        2) Ingresa tus credenciales
+        3) Presiona «✅ Ya inicié sesión» para continuar
+      buttons:
+        - title: "🔐 Iniciar sesión"
+          type: web_url
+          url: "https://zajuna.edu/login"
+        - title: "✅ Ya inicié sesión"
+          payload: /abrir_chat_autenticado
+
+  utter_necesita_auth:
+    - text: |
+        Para ver esta información necesitas iniciar sesión en Zajuna.
+        1) Ve a https://zajuna.edu/login, inicia sesión y regresa aquí.
+      buttons:
+        - title: "🔐 Ir a Zajuna"
+          type: web_url
+          url: "https://zajuna.edu/login"
+        - title: "✅ Ya inicié sesión"
+          payload: /abrir_chat_autenticado
 
   utter_ingreso_zajuna_instrucciones:
     - text: "Para ingresar a Zajuna: 1) Pulsa **Iniciar sesión** 2) Autoriza en la ventana 3) Regresa al chat (se sincroniza automáticamente)."
@@ -129,16 +168,79 @@ responses:
   utter_login_hint:
     - text: "Si ya iniciaste sesión, escribe de nuevo la consulta o selecciona la opción que necesitas."
 
-  utter_preguntar_problema_acceso:
-    - text: "¿Qué problema de acceso tienes? (pantalla en blanco, clave olvidada, error de plataforma, etc.)"
+  utter_login_steps:
+    - text: |
+        Para iniciar sesión:
+        1) Abre https://zajuna.edu/login
+        2) Ingresa tus credenciales
+        3) Vuelve y presiona «✅ Ya inicié sesión»
+      buttons:
+        - title: "🔐 Abrir login"
+          type: web_url
+          url: "https://zajuna.edu/login"
+        - title: "✅ Ya inicié sesión"
+          payload: /abrir_chat_autenticado
 
-  # --- Informativos / Catálogo ---
+  # Saludo + Menús
+  utter_saludo:
+    - text: "¡Hola! Soy tu Tutor Virtual. ¿Qué te gustaría hacer?"
+
+  utter_saludo_menu:
+    - text: |
+        ¡Hola! Soy tu Tutor Virtual. ¿Qué te gustaría hacer?
+      buttons:
+        - title: "📚 FAQs académicas/administrativas"
+          payload: /proceso_academico
+        - title: "🛠️ Soporte técnico básico"
+          payload: /soporte_tecnico
+        - title: "🔐 Ingresar a Zajuna"
+          payload: /ingreso_zajuna
+
+  utter_menu_proceso_academico:
+    - text: "Menú académico: Tutor asignado • Certificados • Horarios/Calendario."
+
+  utter_menu_academico:
+    - text: |
+        Menú académico/administrativo:
+        • Estado de estudiante
+        • Certificados
+        • Tutor asignado
+      buttons:
+        - title: "🧾 Estado estudiante"
+          payload: /ver_estado_estudiante_info
+        - title: "📜 Ver certificados"
+          payload: /ver_certificados_info
+        - title: "👨‍🏫 Tutor asignado"
+          payload: /ver_tutor_asignado_info
+        - title: "⬅️ Menú principal"
+          payload: /saludo
+
+  utter_menu_soporte:
+    - text: |
+        Soporte técnico básico:
+        • Problemas de acceso
+        • Pantalla en blanco
+        • Error en actividad
+      buttons:
+        - title: "🙋 Pedir ayuda humana"
+          payload: /escalar_humano
+        - title: "⬅️ Menú principal"
+          payload: /saludo
+
+  # Informativas / con placeholders autenticados
   utter_estado_estudiante:
-    - text: "Tu estado académico estará disponible al iniciar sesión ✅."
+    - text: "Tu estado académico es: {estado}."
+
+  utter_ver_certificados:
+    - text: "Estos son tus certificados: {lista_certificados}"
+
+  utter_tutor_asignado_info:
+    - text: "Tu tutor asignado es {tutor_nombre} (contacto: {tutor_contacto})."
 
   utter_certificados_info:
     - text: "Los certificados se descargan desde tu cuenta. Inicia sesión y te muestro el listado."
 
+  # Catálogo / tarjetas demo
   utter_catalogo_cursos:
     - text: "Aquí tienes el catálogo y guías:"
       buttons:
@@ -149,9 +251,11 @@ responses:
         - title: "💬 Soporte"
           payload: "https://zajuna.example/soporte"
 
-  utter_link_soporte:
-    - text: "Si necesitas ayuda, visita https://zajuna.example/soporte"
+  utter_cursos_recomendados:
+    - text: "Cursos recomendados para ti: Programación Básica, Excel Intermedio, Emprendimiento."
 
+  utter_cursos_carousel:
+    - text: "Mostrando carrusel de cursos destacados."
 
   utter_card_ejemplo:
     - custom:
@@ -161,38 +265,12 @@ responses:
             url: "https://zajuna.example/diplomados"
             image: "https://cdn.example/img/diplomados.jpg"
 
-  utter_cursos_recomendados:
-    - text: "Cursos recomendados para ti: Programación Básica, Excel Intermedio, Emprendimiento."
-
-  utter_cursos_carousel:
-    - text: "Mostrando carrusel de cursos destacados."
-
-  # --- Menús y flujo académico ---
-  utter_saludo:
-    - text: "¡Hola! Soy tu Tutor Virtual. ¿Qué te gustaría hacer?"
-
-  utter_menu_proceso_academico:
-    - text: "Menú académico: Tutor asignado • Certificados • Horarios/Calendario."
-
-  utter_tutor_asignado:
-    - text: "Para ver tu tutor asignado, primero inicia sesión."
-
-  # --- Atajos demo ---
-  utter_enviar_correo:
-    - text: "Correo enviado (demo)."
-
-  utter_enviar_telefono:
-    - text: "Nuestro teléfono de contacto es 300 000 0000 (demo)."
-
-  utter_enviar_cedula:
-    - text: "Tu cédula estará disponible tras verificar tu identidad (demo)."
-
-  utter_enviar_url:
-    - text: "Enlace: https://ejemplo.edu (demo)."
-
-  # --- Soporte / AVA ---
+  # Soporte / formulario
   utter_soporte_tecnico:
     - text: "Describe el problema técnico y abrimos un ticket."
+
+  utter_preguntar_problema_acceso:
+    - text: "¿Qué problema de acceso tienes? (pantalla en blanco, clave olvidada, error de plataforma, etc.)"
 
   utter_soporte_confirm:
     - text: "¿Confirmas que enviemos el ticket con la información capturada?"
@@ -206,7 +284,7 @@ responses:
   utter_soporte_ava:
     - text: "Soporte AVA: cuéntame el problema con el aula virtual."
 
-  # --- Preguntas del form ---
+  # Slots del form
   utter_ask_nombre:
     - text: "¿Cuál es tu nombre completo?"
 
@@ -216,23 +294,116 @@ responses:
   utter_ask_mensaje:
     - text: "Cuéntame brevemente el problema (mínimo 8 caracteres)."
 
-  # --- Escalado a humano ---
+  # Escalado a humano / cierre
   utter_escalar_humano:
     - text: "¿Deseas que te conecte con un agente humano?"
 
   utter_confirmar_escalado:
-    - text: "Perfecto, estoy escalando tu caso a un agente humano. ⏳"
+    - text: "¿Deseas que te contacte un asesor humano?"
+      buttons:
+        - title: "Sí, por favor"
+          payload: /confirmacion_escalar_humano
+        - title: "No, gracias"
+          payload: /negar_escalar
+
+  utter_derivado_humano:
+    - text: "Listo, te derivé con un asesor humano. Te escribirán en breve."
 
   utter_gracias_continuar:
     - text: "¡Listo! Continuemos por aquí."
 
-  # --- Recuperación de contraseña ---
+  # Recuperación
   utter_confirmar_recuperacion:
     - text: "Te enviaré un enlace de recuperación al correo indicado."
 
-  # --- Mensaje para errores de actividad ---
+  # Problemas técnicos comunes
   utter_error_actividad:
     - text: "Parece que tienes un error con tu actividad. ¿Podrías especificar cuál?"
+
+  utter_pantalla_blanca:
+    - text: "Prueba limpiar caché/recargar. Si sigue en blanco, dime navegador y versión."
+
+  utter_problema_no_ingreso:
+    - text: "¿Qué mensaje aparece al intentar ingresar?"
+
+  utter_otro_problema_acceso:
+    - text: "Cuéntame el otro problema de acceso, te ayudo a resolverlo."
+
+  utter_otro_problema_tecnico:
+    - text: "Describe el problema técnico y, si puedes, adjunta captura."
+
+  # Envíos varios
+  utter_enviar_correo:
+    - text: "Correo enviado (demo)."
+
+  utter_enviar_telefono:
+    - text: "Nuestro teléfono de contacto es 300 000 0000 (demo)."
+
+  utter_enviar_cedula:
+    - text: "Tu cédula estará disponible tras verificar tu identidad (demo)."
+
+  utter_enviar_url:
+    - text: "Enlace: https://ejemplo.edu (demo)."
+
+  utter_enviar_numero:
+    - text: "Recibí el número. ¿Deseas que lo guarde para este caso?"
+
+  # Idioma / horarios / inscripción
+  utter_cambiar_idioma_espanol:
+    - text: "Idioma cambiado a Español."
+
+  utter_cambiar_idioma_ingles:
+    - text: "Language switched to English."
+
+  utter_horarios_calendario:
+    - text: "Aquí tienes información general de horarios y calendario."
+
+  utter_inscribirme:
+    - text: "Para inscribirte: 1) verifica requisitos, 2) completa el formulario, 3) confirma tu correo."
+
+  # Encuesta + cierre
+  utter_encuesta_satisfaccion:
+    - text: "¿Esta respuesta te resultó útil?"
+      buttons:
+        - title: "👍 Sí"
+          payload: /encuesta_satis_yes
+        - title: "👎 No"
+          payload: /encuesta_satis_no
+
+  utter_gracias_feedback:
+    - text: "¡Gracias por tu feedback! Me ayuda a mejorar."
+
+  utter_cierre:
+    - text: "Gracias por usar el Tutor Virtual. ¡Estoy aquí cuando me necesites! 🙌"
+
+  # Instrucciones pedagógicas (FAQs con pasos)
+  utter_instrucciones_estado:
+    - text: |
+        🔎 **Cómo ver tu estado de estudiante en Zajuna**
+        1) Ingresa a tu cuenta.
+        2) Ve a **Mi perfil** → **Estado académico**.
+        3) Si tienes dudas, vuelve aquí y te guío.
+
+  utter_instrucciones_certificados:
+    - text: |
+        🧾 **Cómo descargar tus certificados**
+        1) Inicia sesión en Zajuna.
+        2) Abre **Certificados** en tu panel.
+        3) Selecciona el curso y pulsa **Descargar**.
+
+  utter_instrucciones_tutor:
+    - text: |
+        👨‍🏫 **Cómo ver tu tutor asignado**
+        1) Inicia sesión.
+        2) Ve a **Mis cursos** → **Detalle del curso**.
+        3) Busca la tarjeta **Tutor asignado** (nombre y contacto).
+
+  utter_link_soporte:
+     - text: "Soporte Zajuna: https://zajuna.edu/soporte"
+       buttons:
+          - title: "🆘 Abrir Soporte"
+            type: web_url
+            url: "https://zajuna.edu/soporte"
 
 forms:
   soporte_form:
@@ -240,17 +411,18 @@ forms:
       - nombre
       - email
       - mensaje
+
   recovery_form:
     required_slots:
       - email
 
 actions:
- 
   - action_check_auth
   - action_check_auth_estado
   - action_sync_auth_from_metadata
   - action_estado_estudiante
   - action_ver_certificados
+  - action_listar_certificados
   - action_tutor_asignado
   - action_enviar_soporte
   - action_soporte_submit
@@ -259,6 +431,11 @@ actions:
   - action_conectar_humano
   - action_health_check
   - action_submit_recovery
+  - action_mark_authenticated         
+  - action_start_flow
+  - action_preguntar_resolucion
+  - action_registrar_encuesta
+  - action_derivar_y_registrar_humano
 
 session_config:
   session_expiration_time: 60
