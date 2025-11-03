@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <title>Host Híbrido – Tutor Virtual</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+    <<script>
+       window.APP_CONTEXT = "hybrid";
+       document.documentElement.setAttribute('data-app-context','hybrid');
+    </script>
     <!-- La CSP real la controlas desde Nginx; aquí solo estilos mínimos para la demo -->
     <style>
         body {
@@ -113,9 +116,9 @@
 </head>
 <body>
     <header>
+       
         <strong>Portal de prueba (host híbrido)</strong>
         <div>
-            <!-- CTA real de login y abrir el chat web autenticado -->
             <a class="cta" href="https://zajuna.sena.edu.co/" target="_blank" rel="noopener noreferrer">🔐 Iniciar sesión</a>
             <a class="link" href="/chat" target="_blank" rel="noopener noreferrer">Abrir chat autenticado</a>
         </div>
@@ -134,7 +137,6 @@
         </div>
     </main>
 
-    <!-- Lanzador & Burbuja -->
     <button id="launcher" class="bubble-launch">💬 Abrir chat</button>
 
     <div id="bubble" class="bubble" aria-live="polite">
@@ -156,7 +158,7 @@
     </div>
 
     <script>
-        // Elementos
+      
         const frame = document.getElementById("chatFrame");
         const bubble = document.getElementById("bubble");
         const launcher = document.getElementById("launcher");
@@ -166,14 +168,12 @@
         const btnSet = document.getElementById("btn-set-token");
         const btnClear = document.getElementById("btn-clear-token");
 
-        // Orígenes permitidos (ajusta si el chat vive en otro host)
         const ALLOWED_IFRAME_ORIGINS = [
             location.origin,               // http://localhost:8080 (host en tu Nginx)
-            "https://zajuna.sena.edu.co",  // futuro host/chat oficial
-            "http://localhost:5173"        // chat en Vite durante dev (si aplica)
+            "https://zajuna.sena.edu.co",  
+            "http://localhost:5173"       
         ];
 
-        // Token del host (simula Zajuna o SSO)
         function getToken() {
             try { return localStorage.getItem("host_token") || localStorage.getItem("zajuna_token") || null; } catch { return null; }
         }
@@ -184,13 +184,12 @@
         function postToIframe(msg) {
             try { frame.contentWindow?.postMessage(msg, "*"); } catch { }
         }
-        // Empuja token al iframe si existe (respuesta a auth:request)
+     
         function sendAuthToken() {
             const tok = getToken();
             if (tok) postToIframe({ type: "auth:token", token: tok });
         }
 
-        // Responder a peticiones del iframe (auth y toggle)
         window.addEventListener("message", (ev) => {
             const origin = ev.origin || ev.originalEvent?.origin;
             if (ALLOWED_IFRAME_ORIGINS.length && !ALLOWED_IFRAME_ORIGINS.includes(origin)) return;
@@ -198,17 +197,14 @@
             const data = ev.data || {};
             if (!data || typeof data !== "object") return;
 
-            // Chat solicita autenticación diferida
             if (data.type === "auth:request") sendAuthToken();
 
-            // Chat pide minimizar/abrir
             if (data.type === "widget:toggle") {
                 if (data.action === "close") bubble.classList.remove("open");
                 else bubble.classList.toggle("open");
             }
         });
 
-        // UI de burbuja
         launcher.addEventListener("click", () => {
             bubble.classList.add("open");
             sendAuthToken(); // al abrir, empuja token si ya hay

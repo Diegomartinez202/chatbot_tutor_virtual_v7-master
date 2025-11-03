@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -10,21 +11,20 @@
     <meta name="application-name" content="Chatbot Tutor Virtual" />
     <meta name="theme-color" content="#0f172a" />
 
-    <!-- iOS / PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Chatbot Tutor Virtual" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- Favicons / Manifest -->
+
     <link rel="icon" sizes="any" href="/favicon.ico" data-base-href="favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" data-base-href="favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" data-base-href="favicon-16x16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" data-base-href="apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" data-base-href="site.webmanifest" />
 
-    <!-- Open Graph -->
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Chatbot Tutor Virtual" />
     <meta property="og:title" content="Chatbot Tutor Virtual — Panel" />
@@ -35,11 +35,24 @@
     <meta property="og:image:height" content="512" />
     <meta property="og:url" content="/" id="og-url" />
 
-    <!-- Prefetch -->
+
     <link rel="prefetch" as="image" href="/bot-avatar.png" data-base-href="bot-avatar.png" />
     <link rel="prefetch" as="image" href="/bot-loading.png" data-base-href="bot-loading.png" />
 
-    <!-- Ajustes dinámicos base-url/og -->
+
+    <style>
+
+        [data-zj-bubble] {
+            display: none !important;
+        }
+    </style>
+
+    <script>
+        window.APP_CONTEXT = "panel";
+        window.__DISABLE_CHAT_WIDGET__ = true;
+        document.documentElement.setAttribute('data-app-context', 'panel');
+    </script>
+
     <script type="module">
         const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || (location.origin + "/");
         const metaOgUrl = document.getElementById("og-url");
@@ -75,18 +88,37 @@
             };
             const avatar =
                 document.querySelector('link[data-base-href="bot-avatar.png"]')?.getAttribute("href") ||
-                "/bot-avatar.png";
+                BASE + "bot-avatar.png";
             const loading =
                 document.querySelector('link[data-base-href="bot-loading.png"]')?.getAttribute("href") ||
-                "/bot-loading.png";
+                BASE + "bot-loading.png";
 
             ensurePreload(avatar);
             ensurePreload(loading);
         }
+
     </script>
 </head>
 <body>
+
     <div id="root"></div>
+
+    <!-- 🧹 Desmontaje/prevención del widget si algún script legacy lo intenta -->
+    <script>
+        (function hardenAgainstLegacyEmbed() {
+            // 1) Quita scripts del bubble si alguien los inyectó en el panel
+            document.querySelectorAll('script[src*="/embed/zajuna-bubble.js"]').forEach(s => {
+                try { s.parentNode.removeChild(s); } catch { }
+            });
+            // 2) Quita cualquier FAB ya montado (por timing de otros bundles)
+            window.addEventListener("DOMContentLoaded", () => {
+                document.querySelectorAll("[data-zj-bubble]").forEach(n => { try { n.remove(); } catch { } });
+            });
+            // 3) Si algún módulo intenta crear el bubble, que verifique la bandera (opcional)
+            //    Tu código React ya NO monta <HostChatBubble> en el panel, pero esto da otra capa.
+        })();
+    </script>
+
     <!-- Vite inyecta el bundle -->
     <script type="module" src="/src/main.jsx"></script>
     <noscript>Esta aplicación requiere JavaScript para funcionar.</noscript>

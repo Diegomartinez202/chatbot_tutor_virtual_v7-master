@@ -7,7 +7,6 @@ name: tutorbot-local
 networks:
   app-net:
     driver: bridge
-    external: true
     name: tutorbot-local_app-net
 
 # ============================================================
@@ -470,6 +469,24 @@ services:
       - redis-data:/data
     networks:
       - app-net
+  # ============================================================
+  # Frontend (solo BUILD) — sirve dist con "serve"
+  # ============================================================
+  frontend:
+    profiles: ["build"]
+    image: node:18-alpine
+    container_name: frontend
+    working_dir: /app
+    command: sh -lc "npm ci && npm run build && npx --yes serve -s dist -l 8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    depends_on:
+      - backend-dev
+    networks:
+      - app-net
 
   # ============================================================
   # Frontend Builder (solo en PROD) — genera ./dist para Nginx
@@ -481,19 +498,13 @@ services:
     working_dir: /app
     restart: "no"
     command: >
-      bash -lc "
-        echo '[backend] ⚙️ Modo activo: '${MODE:-unknown};
-        echo '[backend] 📄 BACKEND_ENV_FILE='${BACKEND_ENV_FILE:-unset};
-        echo '[backend] 🧩 COMPOSE_PROFILES='${COMPOSE_PROFILES:-unset};
-        echo '[backend] 🗄️ Mongo='${MONGO_URI:-unset};
-        echo '[backend] 🤖 Rasa='${RASA_URL:-unset};
-        exec uvicorn backend.main:app
-      --host ${UVICORN_HOST}
-      --port ${UVICORN_PORT}
-      --workers ${UVICORN_WORKERS}
-      --proxy-headers
-      --forwarded-allow-ips='*'"
-
+      sh -lc "
+        echo '[admin-builder] 🧱 Construyendo panel (Vite)...';
+        npm ci &&
+        npm run build &&
+        echo '[admin-builder] ✅ Build listo en /app/dist';
+      "
+    # Si tienes .env.production en el repo, Vite lo usará automáticamente
     volumes:
       - ./admin_panel_react:/app
       - /app/node_modules
@@ -511,7 +522,8 @@ services:
     depends_on:
       - backend        
       - rasa
-    ports:
+      - admin-builder
+    ports:       
       - "8080:80"      
       - "443:443"    
     volumes:
@@ -582,3 +594,4 @@ volumes:
 
   # 🛠️ Logs del Action Server (opcional)
   action-logs:
+  

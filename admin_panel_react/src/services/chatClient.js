@@ -16,9 +16,9 @@ export async function sendTextMessage({ baseUrl = DEFAULT_BASE, sender, text }) 
     return await res.json();
 }
 
-// Conexión "fake" para estados del loader (puedes reemplazar por socket real)
+// ConexiÃ³n "fake" para estados del loader (puedes reemplazar por socket real)
 export async function connectChat({ baseUrl = DEFAULT_BASE }) {
-    // Simula latencia de conexión
+    // Simula latencia de conexiÃ³n
     await new Promise((r) => setTimeout(r, 300));
     // Si quieres validar health:
     // const health = await fetch(`${baseUrl.replace(/\/$/, "")}/status`);

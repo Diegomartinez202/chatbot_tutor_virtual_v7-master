@@ -13,32 +13,34 @@ import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
 import { uploadVoiceBlob } from "@/services/voice/uploadVoice";
 
-// ⛳️ nuevo helper REST con metadata.auth.hasToken
 import { sendToRasaREST } from "./rasa/restClient.js";
 
-
-// Evita doble saludo: aquí controlamos saludo inicial del cliente
 const SEND_CLIENT_HELLO = true;
 
 // Helpers
 function getParentOrigin() {
-    try { return new URL(document.referrer || "").origin; } catch { return window.location.origin; }
+    try { return new URL(document.referrer || "").origin; }
+    catch { return window.location.origin; }
 }
-function normalize(o) { return String(o || "").trim().replace(/\/+$/, ""); }
+
+function normalize(o) {
+    return String(o || "").trim().replace(/\/+$/, "");
+}
 
 const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
-    .split(",").map((s) => normalize(s)).filter(Boolean);
+    .split(",")
+    .map((s) => normalize(s))
+    .filter(Boolean);
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-/*const LOCAL_ROUTES = Object.freeze({});
-
-/*async function handleLocalPayload(/* { text, tChat, setMessages, sendToRasa } */) {
-    // Siempre delegamos en Rasa.
-    return false;
+// (opcional) si lo usas en el render del typing
+function shouldShowTyping(typing, lastMessageTs) {
+    if (!typing) return false;
+    if (!lastMessageTs) return true;
+    return Date.now() - lastMessageTs < 5000;
 }
-
 /* --- Avatares --- */
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
@@ -72,13 +74,11 @@ function UserAvatar({ user, size = 28 }) {
     }
     return <img src={src} alt={user?.nombre || user?.name || user?.email} className="w-full h-full object-cover rounded-full" onError={() => setErr(true)} />;
 }
-
 export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
     const { t: tConfig } = useTranslation("config");
 
-    // ✅ senderId estable por sesión para Rasa
     const [senderId] = useState(() => {
         const k = "rasa:senderId";
         try {
@@ -91,13 +91,13 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             return "web-" + Math.random().toString(36).slice(2, 10);
         }
     });
-    // Requieren auth (ajústalo según tu negocio)
+    
     const NEED_AUTH = new Set([
         "/estado_estudiante",
         "/ver_certificados",
         "/tutor_asignado",
         "/user_panel",
-        "/ingreso_zajuna", // opcional si quieres forzar login aquí
+        "/ingreso_zajuna", 
     ]);
 
     function requiresAuthFor(text) {
@@ -112,25 +112,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const [error, setError] = useState("");
     const [typing, setTyping] = useState(false);
 
-    // Acciones rápidas visibles al inicio
     const [showQuick, setShowQuick] = useState(true);
 
-    // Placeholders para compatibilidad
     const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
     const appendFirstSuggestions = () => { };
-    // Saludo inicial inmediato (solo cliente)
-    useEffect(() => {
-        if (SEND_CLIENT_HELLO) {
-            setMessages([{
-                id: "welcome",
-                role: "bot",
-                text: tChat("welcome", "¡Hola! Soy tu tutor virtual 🤖. ¿En qué puedo ayudarte hoy?"),
-            }]);
-        }
-    }, [tChat]);
-
-    // Token del store / localStorage
+    
     useEffect(() => {
         if (storeToken) setAuthToken(storeToken);
         else {
@@ -148,7 +135,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const urlParams = new URLSearchParams(window.location.search);
     const isGuestEmbed = urlParams.get("guest") === "1";
 
-    // 🔐 Solo obliga login para intents que lo requieran
     function requiresAuthFor(text) {
         const t = String(text || "").trim();
         const NEED_AUTH = [
@@ -163,7 +149,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         return NEED_AUTH.includes(t);
     }
 
-    // Bridge: recibe token del host
     useEffect(() => {
         if (!embed) return;
         const onMsg = (ev) => {
@@ -180,7 +165,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         return () => window.removeEventListener("message", onMsg);
     }, [embed]);
 
-    // Al cargar en embed, solicita token al host si existe sesión
     useEffect(() => {
         if (!embed) return;
         try { window.parent?.postMessage({ type: "auth:request" }, "*"); } catch { }
@@ -239,21 +223,17 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         try { window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*"); } catch { }
     }, [tChat]);
 
-    /* --- sendToRasa con auth diferida (versión final) --- */
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
 
-        // 1) Si requiere auth y NO hay token
         if (requiresAuthFor(text) && !authToken) {
-            // Caso embed → pedir token al host + CTA de login
+         
             if (embed) {
                 try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
                 const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
 
-                // Pinta el mensaje del usuario (opcional)
                 setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
 
-                // Bot CTA(s)
                 setMessages((m) => [
                     ...m,
                     {
@@ -287,7 +267,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                 return;
             }
 
-            // Caso web (no-embed) → CTA a /login del panel + (opcional) Zajuna
             const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
             setMessages((m) => [
                 ...m,
@@ -319,14 +298,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             return;
         }
 
-        // 2) Pinta el mensaje del usuario
         setSending(true);
         setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
         setShowQuick(false);
 
         try {
-            // 3) ÚNICA llamada REST a Rasa con token (si hay)
             const rsp = await sendToRasaREST(senderId, text, authToken || undefined);
             await appendBotMessages(rsp);
         } catch (e) {
@@ -391,7 +368,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                             // pinta lo elegido
                             setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: title || payload }]);
                             setShowQuick(false);
-                            // envía el payload a Rasa (auth diferida aplica dentro de sendToRasa)
                             sendToRasa({ text: payload, displayAs: title, isPayload: true });
                         }}
                     />
@@ -428,7 +404,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="chat-input-container">
                 <MicButton
-                    stt="auto"                              // o "none" si aún no tienes STT_URL configurado
+                    stt="auto"                              
                     onVoice={(text) => sendToRasa({ text })}
                     disabled={sending}
                 />

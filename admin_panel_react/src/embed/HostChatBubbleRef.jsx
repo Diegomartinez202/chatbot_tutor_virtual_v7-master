@@ -91,6 +91,9 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         showDebug = false,
         // 🖼️ avatar visible en el FAB del widget (servido desde /public)
         avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/mi-avatar.png",
+
+        // 🆕 añadidos: loadingAvatar opcional + persistencia local
+        loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/bot-loading.png",
     },
     ref
 ) {
@@ -99,6 +102,12 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
     const [lastPrefs, setLastPrefs] = useState({ theme: "light", language: "es" });
     const [lastEvent, setLastEvent] = useState(null);
     const [error, setError] = useState("");
+
+    // 🆕 Persistencia
+    const LS_OPEN = "zj_bubble_open";
+    const LS_MIN = "zj_bubble_min";
+    const savedOpen = (typeof window !== "undefined" && localStorage.getItem(LS_OPEN) === "1");
+    const savedMin = (typeof window !== "undefined" && localStorage.getItem(LS_MIN) === "1");
 
     const ensureBubble = useCallback(async () => {
         if (injectCss) ensureBubbleCss("/embed/zajuna-bubble.css");
@@ -137,11 +146,12 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
 
             const bubble = window.ZajunaBubble.create({
                 iframeUrl,
-                allowedOrigin,
+                // 🔒 origin estricto del iframe
+                allowedOrigin: expectedOrigin,
                 title,
                 subtitle,
                 position,
-                startOpen,
+                startOpen: (savedOpen ?? startOpen), // 🆕 respeta persistencia si existe
                 theme,
                 zIndex,
                 showLabel: false,
@@ -165,12 +175,34 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 } else if (evt?.type === "auth:needed") {
                     onAuthNeeded?.();
                 }
+
+                // 🆕 Persistencia si el bubble emite estos eventos
+                if (evt?.type === "widget:opened") { try { localStorage.setItem(LS_OPEN, "1"); } catch { } }
+                if (evt?.type === "widget:closed") { try { localStorage.setItem(LS_OPEN, "0"); } catch { } }
+                if (evt?.type === "widget:min") { try { localStorage.setItem(LS_MIN, "1"); } catch { } }
+                if (evt?.type === "widget:restore") { try { localStorage.setItem(LS_MIN, "0"); } catch { } }
+
+                // 🆕 Typing -> avatar loading (si tu bubble expone setAvatar)
+                if (evt?.type === "bot:typing") {
+                    const on = !!evt.active;
+                    if (typeof bubble.setAvatar === "function") {
+                        bubble.setAvatar(on ? loadingAvatar : avatar);
+                    } else {
+                        const img = document.querySelector('[data-zj-fab] img');
+                        if (img) img.src = on ? loadingAvatar : avatar;
+                    }
+                }
             });
 
             bubble.mount();
             setMounted(true);
 
             if (initialToken) bubble.sendAuthToken(initialToken);
+
+            // 🆕 restaurar minimizado si existe API
+            if (savedOpen && savedMin && typeof bubble.minimize === "function") {
+                bubble.minimize(true);
+            }
 
             bubbleRef.current = bubble;
         })();
@@ -195,6 +227,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         onTelemetry,
         onAuthNeeded,
         avatar,
+        loadingAvatar,      // 🆕
+        savedOpen, savedMin // 🆕
     ]);
 
     useImperativeHandle(
@@ -224,6 +258,10 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             },
             getLastEvent: () => lastEvent,
             getLastPrefs: () => lastPrefs,
+
+            // 🆕 expone helpers opcionales (no rompen nada si no se usan)
+            setAvatar: (src) => bubbleRef.current?.setAvatar?.(src),
+            minimize: (toMin = true) => bubbleRef.current?.minimize?.(toMin),
         }),
         [lastEvent, lastPrefs, theme]
     );

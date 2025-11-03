@@ -39,34 +39,42 @@ import "@/i18n";
 // ✅ Variables de entorno
 // =========================
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png";
+const BOT_LOADING = import.meta.env.VITE_BOT_LOADING || "/bot-loading.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const SHOW_BUBBLE_DEBUG = import.meta.env.VITE_SHOW_BUBBLE_DEBUG === "true";
+const CTX = (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
+const isHybridContext = CTX === "hybrid";
 
-// =========================
-// Helpers
-// =========================
+const location = useLocation(); 
+const params = new URLSearchParams(window.location.search);
+const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
+const isChatRoute = /^\/(chat|widget|iframe\/chat)/.test(location.pathname);
 
-/** Ruta por defecto según rol */
+const ENABLE_CHAT_WIDGET =
+    (import.meta.env.VITE_ENABLE_CHAT_WIDGET === "true") &&
+    (typeof window === "undefined" ? true : !window.__DISABLE_CHAT_WIDGET__);
+
+const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
+
+const iframeUrl = `${window.location.origin}/?embed=1&guest=1`;
+const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
 function roleDefaultPath(role) {
     const r = (role || "").toLowerCase();
     return r === "admin" || r === "soporte" ? "/dashboard" : "/";
 }
 
-/** Redirección catch-all según sesión/rol */
 function CatchAllRedirect() {
     const { isAuthenticated, user } = useAuth();
     const to = isAuthenticated ? roleDefaultPath(user?.rol || user?.role) : "/";
     return <Navigate to={to} replace />;
 }
 
-/** Rutas públicas que NO deben verse si ya hay sesión */
 function PublicOnlyRoute({ children }) {
     const { isAuthenticated, user } = useAuth();
     if (!isAuthenticated) return children;
     return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
 }
 
-/** Permite AuthCallback si trae token en query/hash */
 function PublicOnlyOrToken({ children }) {
     const { isAuthenticated, user } = useAuth();
     const location = useLocation();
@@ -85,8 +93,6 @@ function PublicOnlyOrToken({ children }) {
     }
     return children;
 }
-
-/** Carga perezosa segura */
 function lazyWithFallback(loader, name) {
     return React.lazy(async () => {
         try {
@@ -110,21 +116,33 @@ const ForgotPasswordPage = lazyWithFallback(
     "Recuperar contraseña"
 );
 
-// Config UI
 const ui = {
     avatar: BOT_AVATAR,
 };
 
-// =========================
-// App principal
-// =========================
 export default function App() {
     const bubbleRef = useRef(null);
     const { isAuthenticated, accessToken } = useAuth();
 
-    // Detecta si está embebido
     const params = new URLSearchParams(window.location.search);
+    const location = useLocation();
     const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
+
+    const APP_CONTEXT = (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
+    const isHybridContext = APP_CONTEXT === "hybrid";
+
+    // no mostrar el FAB en rutas de chat (ya hay UI de chat)
+    const isChatRoute = /^\/(chat|widget|iframe\/chat)/.test(location.pathname);
+
+    // respeta bandera global del panel y la env opcional
+    const ENABLE_CHAT_WIDGET =
+        (import.meta.env.VITE_ENABLE_CHAT_WIDGET === "true") &&
+        !(typeof window !== "undefined" && window.__DISABLE_CHAT_WIDGET__ === true);
+
+    const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
+
+    const iframeUrl = `${window.location.origin}/?embed=1&guest=1`;
+    const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
 
     const handleSendToken = () => {
         if (isAuthenticated && accessToken) {
@@ -327,6 +345,7 @@ export default function App() {
                             <VoicePage />
                         </ProtectedRoute>
                     }
+                /> 
                 <Route
                     path="/admin"
                     element={
@@ -339,26 +358,25 @@ export default function App() {
             </Routes>
 
             {/* 🫧 Widget embebido */}
-            {!isEmbedded && (
+            {CAN_SHOW_BUBBLE && (
                 <HostChatBubbleRef
                     ref={bubbleRef}
-                    iframeUrl={`${window.location.origin}/?embed=1&guest=1`}
-                    allowedOrigin={window.location.origin}
+                    iframeUrl={iframeUrl}
+                    allowedOrigin={allowedOrigin}
                     title="Tutor Virtual"
                     subtitle="Sustentación"
-                    startOpen={true}
+                    startOpen={false}
                     theme="auto"
                     showDebug={false}
                     avatar={BOT_AVATAR}
+                    loadingAvatar={BOT_LOADING}
                     onAuthNeeded={handleSendToken}
-                    onTelemetry={(evt) =>
-                        import.meta.env.DEV && console.log("[telemetry]", evt)
-                    }
+                    onTelemetry={(evt) => import.meta.env.DEV && console.log("[telemetry]", evt)}
                 />
             )}
 
             {/* 🔧 Debug opcional */}
-            {!isEmbedded && SHOW_BUBBLE_DEBUG && (
+            {CAN_SHOW_BUBBLE && SHOW_BUBBLE_DEBUG && (
                 <div
                     style={{
                         position: "fixed",

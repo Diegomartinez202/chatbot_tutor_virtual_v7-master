@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================================================
-   🎨 ESTILOS CORPORATIVOS UNIFICADOS - PANEL + CHATBOT
-   ========================================================= */
-
-/* --- Paleta y tipografía base (modo claro por defecto) --- */
 :root {
     --color-primary: #004a77;
     --color-primary-light: #0d6efd;
@@ -20,30 +15,27 @@
     --font: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-/* --- Variables para modo oscuro (se aplican con la clase html.dark) --- */
 html.dark {
-    --color-bg: #111827; /* bg-gray-900 */
-    --color-surface: #1f2937; /* bg-gray-800 */
-    --color-text: #f5f5f5; /* text-gray-100 */
-    --color-muted: #94a3b8; /* textos secundarios */
-    --color-border: #374151; /* borders sutiles */
-    --color-primary: #4f46e5; /* indigo-600 */
-    --color-primary-light: #6366f1; /* indigo-500 */
+    --color-bg: #111827; 
+    --color-surface: #1f2937; 
+    --color-text: #f5f5f5; 
+    --color-muted: #94a3b8; 
+    --color-border: #374151; 
+    --color-primary: #4f46e5; 
+    --color-primary-light: #6366f1; 
 }
 
-/* --- Base general --- */
 html {
-    background-color: #f9fafb; /* fondo claro */
-    color: #111827; /* texto oscuro */
+    background-color: #f9fafb; 
+    color: #111827; 
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
     html.dark {
-        background-color: #0f172a; /* fondo oscuro */
-        color: #f1f5f9; /* texto claro */
+        background-color: #0f172a; 
+        color: #f1f5f9; 
     }
 
-    /* Alto contraste opcional (con clase html.high-contrast) */
     html.high-contrast {
         filter: contrast(1.25);
     }
@@ -61,13 +53,9 @@ body {
     color: var(--color-text);
 }
 
-/* 🌗 Transición suave entre temas */
 html, body {
     transition: background-color 0.4s ease, color 0.4s ease, filter 0.3s ease;
 }
-/* =========================================================
-   🧭 COMPONENTES GENERALES DEL PANEL
-   ========================================================= */
 
 header {
     background-color: var(--color-primary);
@@ -87,7 +75,6 @@ header {
     border: 1px solid var(--color-border);
 }
 
-/* --- Botones --- */
 button {
     background-color: var(--color-primary);
     color: #fff;
@@ -109,7 +96,6 @@ button {
         cursor: not-allowed;
     }
 
-/* --- Inputs --- */
 input,
 textarea {
     width: 100%;
@@ -128,7 +114,6 @@ textarea {
         outline: none;
     }
 
-/* --- Tooltip (Radix/otros) --- */
 .tooltip {
     background-color: #333;
     color: #fff;
@@ -152,11 +137,6 @@ textarea {
     }
 }
 
-/* =========================================================
-   💬 COMPONENTES DEL CHATBOT CORPORATIVO
-   ========================================================= */
-
-/* --- Lanzador del chat --- */
 .chatbot-launcher {
     border-radius: 50%;
     background: var(--color-primary);
@@ -169,7 +149,6 @@ textarea {
         background: var(--color-primary-light);
     }
 
-/* --- Ventana principal --- */
 .chatbot-window {
     background: var(--color-bg);
     border-radius: var(--radius);
@@ -193,7 +172,6 @@ textarea {
     }
 }
 
-/* --- Header --- */
 .chatbot-header {
     background: linear-gradient(90deg, var(--color-primary) 0%, #0a5e97 100%);
     color: #fff;
@@ -226,7 +204,6 @@ textarea {
             background: rgba(255, 255, 255, 0.15);
         }
 
-/* --- Cuerpo del chat --- */
 .chatbot-body {
     flex: 1;
     background-color: var(--color-surface);
@@ -237,7 +214,6 @@ textarea {
     padding: 1rem;
 }
 
-/* --- Mensajes --- */
 .message {
     max-width: 80%;
     margin-bottom: 10px;
@@ -262,7 +238,6 @@ textarea {
         border-top-right-radius: 4px;
     }
 
-/* --- Campo de entrada --- */
 .chatbot-input {
     display: flex;
     align-items: center;
@@ -300,7 +275,6 @@ textarea {
             background: var(--color-primary-light);
         }
 
-/* --- Estado de conexión --- */
 .chatbot-status {
     color: var(--color-muted);
     font-size: 0.9rem;
@@ -308,7 +282,6 @@ textarea {
     padding: 1rem;
 }
 
-/* --- Scrollbar personalizada --- */
 .chatbot-body::-webkit-scrollbar {
     width: 6px;
 }
@@ -317,16 +290,6 @@ textarea {
     background-color: var(--color-border);
     border-radius: 6px;
 }
-
-/* =========================================================
-   🌙 MODO OSCURO - APLICA SOBRE LAS VARIABLES
-   ========================================================= */
-
-/* (No se necesitan reglas duplicadas: los componentes usan variables) */
-
-/* =========================================================
-   ♿ MODO ALTO CONTRASTE
-   ========================================================= */
 
 html.high-contrast {
     background-color: #000 !important;
@@ -365,10 +328,6 @@ html.high-contrast {
         border: 1px solid #fff !important;
     }
 
-/* =========================================================
-   🔧 CLASES DE UTILIDAD PERSONALIZADAS
-   ========================================================= */
-
 .card,
 .panel {
     background-color: #ffffff;
@@ -383,47 +342,36 @@ html.dark .panel {
     color: #f4f4f5;
 }
 
-/* Colores de alto contraste para botones de header */
 html.high-contrast .header-actions button {
     background-color: #fff !important;
     color: #000 !important;
     border: 2px solid #fff !important;
 }
 
-/* Header actions */
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem; /* separación entre botones */
+    gap: 0.5rem; 
     justify-content: flex-end;
 }
 
-/* Alto contraste (opcional) */
+
 html.high-contrast .header-actions button {
     background-color: #fff !important;
     color: #000 !important;
     border: 2px solid #fff !important;
 }
 
-/* Si existe el id puesto en la versión de arriba */
 #host-bubble-debug {
     display: none !important;
 }
 
-/* Alternativa sin id: oculta por texto (menos limpio) */
-/* div:has(> div > div:contains("HostChatBubbleRef (Debug)")) { display:none !important; } */
-/* (esta alternativa depende del soporte del navegador y NO la recomiendo) */
-/* admin_panel_react/public/embed/zajuna-bubble.css */
-
-/* botón base (ya lo tenías) … */
-
-/* 👇 Oculta la etiqueta cuando showLabel = false */
 .zj-bubble-button[data-showlabel="0"] .zj-bubble-title,
 .zj-bubble-button[data-showlabel="0"] .zj-bubble-sub {
     display: none !important;
 }
 
-/* (opcional) separa un poco el widget del borde inferior para no tapar inputs */
+
 .zj-bubble-iframe-wrap {
     margin-bottom: 4px;
 }
@@ -448,7 +396,7 @@ html.high-contrast .header-actions button {
     opacity: .9;
 }
 
-.zj-bubble-iframe-wrap { /* ya lo tendrás; aquí solo de ejemplo */
+.zj-bubble-iframe-wrap { 
     width: min(420px, 95vw);
     height: min(70vh, 720px);
     margin-bottom: 10px;
@@ -471,3 +419,39 @@ html.high-contrast {
     html.high-contrast .focus-visible\:ring-2:focus-visible {
         box-shadow: 0 0 0 3px var(--ring);
     }
+
+.bubble-launch {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9998;
+    width: 56px; 
+    height: 56px;
+    padding: 0; 
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.18);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .bubble-launch img {
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        display: block;
+    }
+
+.bubble .head {
+    background: #1f2937;
+    color: #fff;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    cursor: pointer;
+}

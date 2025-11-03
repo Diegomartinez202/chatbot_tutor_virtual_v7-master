@@ -30,9 +30,6 @@ const USER_SETTINGS_URL =
 
 const AUTO_MINIMIZE = import.meta.env.VITE_AUTO_MINIMIZE_WIDGET === "true";
 
-/* =======================================================
-   ⚙️ Preferencias visuales (tema, contraste, idioma)
-   ======================================================= */
 function applyPrefsToDocument(prefs, i18n) {
     try {
         const html = document.documentElement;
@@ -57,13 +54,10 @@ function applyPrefsToDocument(prefs, i18n) {
         };
         localStorage.setItem("app:settings", JSON.stringify(merged));
     } catch {
-        /* no-op */
+      
     }
 }
 
-/* =======================================================
-   🔐 Cargar preferencias de usuario (si hay token)
-   ======================================================= */
 async function fetchUserSettingsIfPossible(token) {
     try {
         const headers = { Accept: "application/json" };
@@ -77,9 +71,6 @@ async function fetchUserSettingsIfPossible(token) {
     }
 }
 
-/* =======================================================
-   🧩 ChatPage (modo web directo u embebido según query)
-   ======================================================= */
 export default function ChatPage({
     forceEmbed = false,
     avatarSrc = DEFAULT_BOT_AVATAR,
@@ -90,14 +81,13 @@ export default function ChatPage({
 }) {
     const { t, i18n } = useTranslation();
     const [params] = useSearchParams();
-    // 👉 embed=true únicamente cuando se usa en un iframe: /chat?embed=1
+   
     const isEmbed = forceEmbed || params.get("embed") === "1";
 
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [status, setStatus] = useState("connecting");
 
-    /* 🟢 Token invitado si no hay (FAQs como invitado) */
     try {
         const existing = localStorage.getItem(STORAGE_KEYS.accessToken);
         if (!existing) {

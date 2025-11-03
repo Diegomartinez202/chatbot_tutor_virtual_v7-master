@@ -1,8 +1,6 @@
 /* =========================================================
    🎨 ESTILOS CHAT UI
    ========================================================= */
-
-/* Contenedor principal */
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -11,7 +9,6 @@
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-/* Header dentro del chat (título + config) */
 .chat-header {
     display: flex;
     align-items: center;
@@ -29,7 +26,6 @@
     color: #111827;
 }
 
-/* Lista de mensajes */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -41,7 +37,6 @@
         margin-bottom: 0.75rem;
     }
 
-/* Burbujas */
 .bubble {
     max-width: 75%;
     padding: 0.5rem 0.75rem;
@@ -67,7 +62,6 @@
         transform: translateY(-1px);
     }
 
-    /* Markdown & links */
     .bubble a {
         color: #4f46e5;
         text-decoration: underline;
@@ -106,7 +100,6 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.08);
     }
 
-/* Botón/Link interactivo uniforme (para botones de opciones/links FAQ) */
 .bot-interactive {
     display: inline-block;
     padding: .35rem .75rem;
@@ -117,7 +110,7 @@
     cursor: pointer;
     transition: all .2s;
     font-size: .875rem;
-    text-decoration: none; /* para <a> */
+    text-decoration: none; 
 }
 
     .bot-interactive:hover {
@@ -130,7 +123,6 @@
         box-shadow: 0 0 0 3px rgba(79,70,229,.35);
     }
 
-/* Alias visual para “quick replies” (sin composes) */
 .quick-reply {
     display: inline-block;
     padding: .35rem .75rem;
@@ -155,7 +147,6 @@
         cursor: not-allowed;
     }
 
-/* Input + enviar */
 .chat-input-container {
     display: flex;
     gap: .5rem;
@@ -205,7 +196,6 @@
         cursor: not-allowed;
     }
 
-/* Escribiendo... */
 .typing-dots {
     display: inline-block;
     width: 1rem;
@@ -236,7 +226,6 @@
     }
 }
 
-/* Dark mode + Alto contraste */
 :root {
     --chat-indigo: #4f46e5;
     --chat-indigo-700: #4338ca;
@@ -308,14 +297,12 @@
         border-color: #344055;
     }
 
-/* Alto contraste (html.high-contrast) */
 .high-contrast .chat-container,
 .high-contrast .chat-header,
 .high-contrast .chat-input-container {
     filter: contrast(1.2) saturate(1.1);
 }
 
-/* Scrollbar sutil */
 .chat-messages::-webkit-scrollbar {
     width: 10px;
 }
@@ -329,7 +316,6 @@
     background: rgba(255,255,255,.15);
 }
 
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .bubble, .send-button {
         transition: none !important;
@@ -337,7 +323,6 @@
     }
 }
 
-/* Responsive pequeños ajustes */
 @media (max-width: 480px) {
     .bubble {
         max-width: 85%;

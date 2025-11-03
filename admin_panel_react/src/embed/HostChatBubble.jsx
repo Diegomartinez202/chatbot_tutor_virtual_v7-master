@@ -13,12 +13,27 @@ export default function HostChatBubble({
     initialToken,
     onTelemetry,
     onAuthNeeded,
+    // 🆕 Opcionales añadidos: avatares (NO rompen nada si no se usan)
+    avatar = import.meta?.env?.VITE_BOT_AVATAR || "/bot-avatar.png",
+    loadingAvatar = import.meta?.env?.VITE_BOT_LOADING || "/bot-loading.png",
 }) {
     const bubbleRef = useRef(null);
     const [mounted, setMounted] = useState(false);
     const [lastPrefs, setLastPrefs] = useState({ theme: "light", language: "es" });
     const [lastEvent, setLastEvent] = useState(null);
     const [error, setError] = useState("");
+
+    // 🆕 Persistencia local (no afecta si no existe soporte en el bubble)
+    const LS_OPEN = "zj_bubble_open";
+    const LS_MIN = "zj_bubble_min";
+    const savedOpen = (typeof window !== "undefined" && localStorage.getItem(LS_OPEN) === "1");
+    const savedMin = (typeof window !== "undefined" && localStorage.getItem(LS_MIN) === "1");
+
+    // 🆕 allowedOrigin efectivo: usamos el real del iframe si es posible (origin estricto)
+    const effectiveAllowedOrigin = (() => {
+        try { return new URL(iframeUrl, window.location.href).origin; }
+        catch { return allowedOrigin; }
+    })();
 
     // Carga segura del script del bubble
     const ensureBubbleScript = useCallback(() => {
@@ -53,15 +68,19 @@ export default function HostChatBubble({
                 }
 
                 // crea instancia del bubble (el iframe y el botón los gestiona el script)
+                // 🔒 usamos effectiveAllowedOrigin y también añadimos avatar/showLabel sin romper compat
                 const bubble = window.ZajunaBubble.create({
                     iframeUrl,
-                    allowedOrigin,
+                    allowedOrigin: effectiveAllowedOrigin, // <- origin estricto del iframe
                     title,
                     subtitle,
                     position,
-                    startOpen,
+                    startOpen: (savedOpen ?? startOpen),   // 🆕 respeta persistencia si existe
                     theme,
                     zIndex,
+                    // 🆕 extras no disruptivos:
+                    showLabel: false,  // si tu CSS/JS ya maneja compact, esto no rompe nada
+                    avatar,            // avatar del FAB si tu bubble lo soporta
                 });
 
                 // escucha eventos del iframe
@@ -81,6 +100,24 @@ export default function HostChatBubble({
                     } else if (evt?.type === "auth:needed") {
                         onAuthNeeded?.();
                     }
+
+                    // 🆕 Persistencia si el bubble emite estos eventos (no molesta si no existen)
+                    if (evt?.type === "widget:opened") { try { localStorage.setItem(LS_OPEN, "1"); } catch { } }
+                    if (evt?.type === "widget:closed") { try { localStorage.setItem(LS_OPEN, "0"); } catch { } }
+                    if (evt?.type === "widget:min") { try { localStorage.setItem(LS_MIN, "1"); } catch { } }
+                    if (evt?.type === "widget:restore") { try { localStorage.setItem(LS_MIN, "0"); } catch { } }
+
+                    // 🆕 “Typing”: si el bubble reenvía {type:'bot:typing', active:true|false}
+                    if (evt?.type === "bot:typing") {
+                        const on = !!evt.active;
+                        if (typeof bubble.setAvatar === "function") {
+                            bubble.setAvatar(on ? loadingAvatar : avatar);
+                        } else {
+                            // fallback: intenta cambiar el <img> del FAB si está marcado en el DOM
+                            const img = document.querySelector('[data-zj-fab] img');
+                            if (img) img.src = on ? loadingAvatar : avatar;
+                        }
+                    }
                 });
 
                 bubble.mount();
@@ -88,6 +125,11 @@ export default function HostChatBubble({
 
                 // envía token si viene
                 if (initialToken) bubble.sendAuthToken(initialToken);
+
+                // 🆕 restaurar minimizado si el bubble expone minimize(true)
+                if (savedOpen && savedMin && typeof bubble.minimize === "function") {
+                    bubble.minimize(true);
+                }
 
                 bubbleRef.current = bubble;
             } catch (e) {
@@ -105,6 +147,7 @@ export default function HostChatBubble({
         ensureBubbleScript,
         iframeUrl,
         allowedOrigin,
+        effectiveAllowedOrigin, // 🆕
         title,
         subtitle,
         position,
@@ -114,6 +157,9 @@ export default function HostChatBubble({
         initialToken,
         onTelemetry,
         onAuthNeeded,
+        avatar,          // 🆕
+        loadingAvatar,   // 🆕
+        savedOpen, savedMin, // 🆕
     ]);
 
     // API de conveniencia

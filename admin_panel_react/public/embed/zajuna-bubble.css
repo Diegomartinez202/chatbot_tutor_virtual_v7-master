@@ -119,3 +119,60 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+/* ───────────────────────────────────────────────────── */
+/*                    MEJORAS AÑADIDAS                   */
+/*  (no intrusivas; no reemplazan reglas existentes)     */
+/* ───────────────────────────────────────────────────── */
+
+/* 1) Estado minimizado: el contenedor mantiene el marco pero con altura mínima */
+.zj-bubble-root.zj-min .zj-bubble-iframe-wrap {
+    height: 56px !important; /* misma alzada que el FAB compacto */
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+/* 2) Focus visible para accesibilidad en teclado */
+.zj-bubble-button:focus-visible,
+.zj-bubble-iframe:focus-visible {
+    outline: 2px solid #6366f1; /* indigo-500 */
+    outline-offset: 2px;
+}
+
+/* 3) Respeto a reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    [data-zj-bubble],
+    .zj-bubble-iframe-wrap {
+        transition: none !important;
+    }
+}
+
+/* 4) Avatar perfecto en modo compacto (sin deformaciones) */
+.zj-bubble-button.zj-compact .zj-avatar-wrap {
+    width: 100%;
+    height: 100%;
+    max-width: 44px;
+    max-height: 44px;
+    border: 0;
+    background: transparent;
+}
+
+.zj-bubble-button.zj-compact .zj-avatar {
+    border-radius: 9999px;
+    display: block;
+}
+
+/* 5) Ajuste “seguro” en móviles muy pequeños */
+@media (max-height: 560px) {
+    .zj-bubble-iframe-wrap {
+        height: calc(100vh - 120px);
+    }
+}
+
+/* 6) (Opcional) posición izquierda en pantallas muy angostas: evita que tape el input del SO */
+@media (max-width: 360px) {
+    .zj-bubble-root[style*="right"] .zj-bubble-iframe-wrap {
+        right: auto;
+        left: 0;
+    }
+}

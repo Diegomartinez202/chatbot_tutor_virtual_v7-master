@@ -1,7 +1,7 @@
-// admin_panel_react/src/embed/authBridge.js
+// admin_panel_react/src/embed/authBridge.js 
 export const authState = {
     hasToken: false,
-    token: null, // si NO quieres usar el token crudo para nada, lo puedes ignorar
+    token: null, 
 };
 
 export function initAuthBridge(allowedOrigin = "*") {
@@ -10,21 +10,36 @@ export function initAuthBridge(allowedOrigin = "*") {
         return origin === allowedOrigin;
     }
 
+    function getTargetOrigin() {
+        if (allowedOrigin && allowedOrigin !== "*") return allowedOrigin;
+        try {
+            if (document.referrer) return new URL(document.referrer).origin;
+        } catch { /* ignore */ }
+        try {
+            return (window.top && window.top.origin) || (window.parent && window.parent.origin) || "*";
+        } catch { /* ignore */ }
+        return "*"; 
+    }
+    function safePostToParent(msg) {
+        try {
+            const target = getTargetOrigin();
+            window.parent?.postMessage(msg, target);
+        } catch { /* ignore */ }
+    }
+
     window.addEventListener("message", (e) => {
         if (!isAllowed(e.origin)) return;
         const data = (e && e.data) || {};
         if (data && data.type === "auth:token") {
             authState.hasToken = !!data.token;
             authState.token = data.token || null;
-            // Opcional: avisar al host que lo recibiste
-            // window.parent?.postMessage({ type: "auth:received" }, "*");
+
         }
         if (data && data.type === "host:hello") {
-            // el host nos saludó: puedes volver a pedir el token si te sirve
-            try { window.parent && window.parent.postMessage({ type: "auth:request" }, "*"); } catch (e) { }
+
+            safePostToParent({ type: "auth:request" });
         }
     });
 
-    // Nada más cargar el iframe, pide token al host
-    try { window.parent && window.parent.postMessage({ type: "auth:request" }, "*"); } catch (e) { }
+    safePostToParent({ type: "auth:request" });
 }

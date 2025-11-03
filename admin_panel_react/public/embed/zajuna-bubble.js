@@ -28,6 +28,9 @@
         autoSendToken: true,
         tokenStorageKey: "app:accessToken", // ajústalo a tu app
         tokenCookieName: "access_token",    // "" si no usas cookie
+
+        // 🆕 (opcional) avatar de “cargando/typing” para el FAB
+        loadingAvatar: "/bot-loading.png",
     };
 
     function css(el, styles) { Object.assign(el.style, styles); }
@@ -55,8 +58,13 @@
         const opts = tmp;
 
         let root, btn, iframeWrap, iframeEl, headerEl;
+        // 🆕 referencias adicionales sin romper tu flujo:
+        let avatarImgRef = null;      // referencia al <img> del FAB
         let isMounted = false;
         let opened = false;
+        // 🆕 estado minimizado
+        let minimized = false;
+
         const listeners = new Set();
 
         function emit(evt) { for (const cb of listeners) { try { cb(evt); } catch { } } }
@@ -78,10 +86,45 @@
             btn.setAttribute("aria-expanded", opened ? "true" : "false");
         }
 
-        function open() { if (!isMounted) return; setOpenState(true); post({ type: "host:open" }); emit({ type: "telemetry", event: "open" }); }
-        function close() { if (!isMounted) return; setOpenState(false); post({ type: "host:close" }); emit({ type: "telemetry", event: "close" }); }
+        function open() {
+            if (!isMounted) return;
+            setOpenState(true);
+            post({ type: "host:open" });
+            emit({ type: "telemetry", event: "open" });
+            // 🆕 evento para persistencia del host
+            emit({ type: "widget:opened" });
+        }
+        function close() {
+            if (!isMounted) return;
+            setOpenState(false);
+            post({ type: "host:close" });
+            emit({ type: "telemetry", event: "close" });
+            // 🆕 evento para persistencia del host
+            emit({ type: "widget:closed" });
+        }
         const toggle = () => (opened ? close() : open());
         const isOpen = () => opened;
+
+        // 🆕 Minimizar / restaurar (cambia altura vía clase CSS o estilo)
+        function minimize(toMin = true) {
+            minimized = !!toMin;
+            root.classList.toggle("zj-min", minimized);
+            emit({ type: minimized ? "widget:min" : "widget:restore" });
+        }
+        const isMinimized = () => minimized;
+
+        // 🆕 Cambiar avatar del FAB en caliente
+        function setAvatar(src) {
+            try {
+                if (!src) return;
+                if (avatarImgRef) avatarImgRef.src = src;
+                else {
+                    // fallback: busca el img por DOM si aún no tenemos ref
+                    const img = btn?.querySelector?.(".zj-avatar") || document.querySelector?.('[data-zj-fab] img');
+                    if (img) img.src = src;
+                }
+            } catch { }
+        }
 
         // 🔐 Enviar token hacia el iframe
         function sendAuthToken(token) {
@@ -100,6 +143,11 @@
             if (data.type === "widget:close") { close(); return; }
             if (data.type === "widget:toggle") { toggle(); return; }
 
+            // 🆕 soporta minimizar desde el iframe (si lo emite)
+            if (data.type === "widget:minimize") { minimize(true); return; }
+            if (data.type === "widget:restore") { minimize(false); return; }
+            if (data.type === "widget:minToggle") { minimize(!minimized); return; }
+
             if (data.type === "auth:request") {
                 const token = readHostToken(opts);
                 if (token) sendAuthToken(token);
@@ -110,6 +158,15 @@
             if (data.type === "auth:needed") {
                 // Aquí podrías abrir tu modal de login del host
                 // if (window.showLoginModal) window.showLoginModal();
+                return;
+            }
+
+            // 🆕 si el iframe reenvía typing, emítelo y (opcional) cambia avatar
+            if (data.type === "bot:typing") {
+                emit({ type: "bot:typing", active: !!data.active });
+                if (opts.loadingAvatar) {
+                    setAvatar(data.active ? opts.loadingAvatar : opts.avatar || DEFAULTS.avatar);
+                }
                 return;
             }
 
@@ -173,6 +230,8 @@
             btn.setAttribute("aria-expanded", "false");
             btn.setAttribute("aria-label", opts.title || "Abrir chat");
             btn.className = "zj-bubble-button";
+            // 🆕 marca para selectores opcionales desde host
+            btn.setAttribute("data-zj-fab", "");
             css(btn, { pointerEvents: "auto" });
             btn.addEventListener("click", toggle);
 
@@ -184,6 +243,8 @@
             avatarImg.alt = "bot avatar";
             avatarImg.src = opts.avatar || DEFAULTS.avatar;
             avatarWrap.appendChild(avatarImg);
+            // 🆕 guarda referencia sin romper tu const local
+            avatarImgRef = avatarImg;
 
             const titleEl = document.createElement("span");
             titleEl.className = "zj-bubble-title";
@@ -217,6 +278,8 @@
             headerEl.className = "zj-bubble-dragbar";
             headerEl.title = "Arrastrar";
             iframeWrap.appendChild(headerEl);
+            // 🆕 doble click para minimizar/restaurar
+            headerEl.addEventListener("dblclick", () => minimize(!minimized));
 
             // Iframe
             const iframeUrl = opts.iframeUrl;
@@ -274,6 +337,8 @@
             // 🚪 Estado inicial: por defecto CERRADO (evita “flash abierto”)
             setOpenState(false);
             if (opts.startOpen) open(); else close();
+            // 🆕 si alguien precargó minimizado desde fuera, respétalo
+            if (minimized) minimize(true);
         }
 
         function unmount() {
@@ -284,6 +349,7 @@
             } catch { }
             isMounted = false;
             opened = false;
+            minimized = false;
         }
 
         // Inyección mínima de estilos (fallback)
@@ -320,11 +386,29 @@
         .zj-bubble-sub{ font-size:11px; color:#e0e7ff; line-height:1; }
         .zj-bubble-iframe{ width:100%; height:100%; border:0; background:#fff; }
         .zj-bubble-dragbar{ position:absolute; top:0; left:0; right:0; height:10px; cursor:grab; background:transparent; z-index:2; }
+        /* 🆕 estado minimizado (si el host añade .zj-min) */
+        .zj-bubble-root.zj-min .zj-bubble-iframe-wrap{ height:56px !important; }
       `;
             document.head.appendChild(st);
         })();
 
-        return { mount, unmount, open, close, toggle, isOpen, onEvent, setTheme, setLanguage, sendAuthToken };
+        // 🔁 API pública (se añaden métodos nuevos sin quitar los tuyos)
+        return {
+            mount,
+            unmount,
+            open,
+            close,
+            toggle,
+            isOpen,
+            onEvent,
+            setTheme,
+            setLanguage,
+            sendAuthToken,
+            // 🆕 nuevos métodos expuestos:
+            minimize,
+            isMinimized,
+            setAvatar,
+        };
     }
 
     window.ZajunaBubble = { create };
