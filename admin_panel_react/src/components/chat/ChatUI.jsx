@@ -41,17 +41,29 @@ function shouldShowTyping(typing, lastMessageTs) {
     if (!lastMessageTs) return true;
     return Date.now() - lastMessageTs < 5000;
 }
+
 /* --- Avatares --- */
 function BotAvatar({ size = 28 }) {
     const [err, setErr] = useState(false);
     return (
-        <div className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center" style={{ width: size, height: size }}>
-            {err ? <UserIcon className="w-4 h-4 text-indigo-600" /> : (
-                <img src={BOT_AVATAR} alt="Bot" className="w-full h-full object-cover" onError={() => setErr(true)} />
+        <div
+            className="shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center"
+            style={{ width: size, height: size }}
+        >
+            {err ? (
+                <UserIcon className="w-4 h-4 text-indigo-600" />
+            ) : (
+                <img
+                    src={BOT_AVATAR}
+                    alt="Bot"
+                    className="w-full h-full object-cover"
+                    onError={() => setErr(true)}
+                />
             )}
         </div>
     );
 }
+
 function getInitials(source) {
     const s = String(source || "").trim();
     if (!s) return "U";
@@ -61,19 +73,37 @@ function getInitials(source) {
     const b = (parts[1] || "").charAt(0);
     return (a + b).toUpperCase() || a.toUpperCase() || "U";
 }
+
 function UserAvatar({ user, size = 28 }) {
     const [err, setErr] = useState(false);
-    const src = user?.avatarUrl || user?.photoUrl || user?.image || user?.photo || USER_AVATAR_FALLBACK || "";
+    const src =
+        user?.avatarUrl ||
+        user?.photoUrl ||
+        user?.image ||
+        user?.photo ||
+        USER_AVATAR_FALLBACK ||
+        "";
     if (!src || err) {
         const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
-            <div className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold" style={{ width: size, height: size }}>
+            <div
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
+                style={{ width: size, height: size }}
+            >
                 {initials?.slice(0, 2) || <UserIcon className="w-4 h-4" />}
             </div>
         );
     }
-    return <img src={src} alt={user?.nombre || user?.name || user?.email} className="w-full h-full object-cover rounded-full" onError={() => setErr(true)} />;
+    return (
+        <img
+            src={src}
+            alt={user?.nombre || user?.name || user?.email}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setErr(true)}
+        />
+    );
 }
+
 export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
@@ -91,19 +121,32 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             return "web-" + Math.random().toString(36).slice(2, 10);
         }
     });
-    
+
+    // Intents/acciones que requieren auth (mantiene tu lógica)
     const NEED_AUTH = new Set([
         "/estado_estudiante",
         "/ver_certificados",
         "/tutor_asignado",
         "/user_panel",
-        "/ingreso_zajuna", 
+        "/ingreso_zajuna",
+        "/mis_cursos",
+        "/ver_progreso",
+        "/faq_ingreso_privado",
     ]);
 
     function requiresAuthFor(text) {
         const t = String(text || "").trim();
-        return NEED_AUTH.has(t);
+        return NEED_AUTH.has(t) || [
+            "/mis_cursos",
+            "/ver_progreso",
+            "/estado_estudiante",
+            "/tutor_asignado",
+            "/ingreso_zajuna",
+            "/faq_ingreso_privado",
+            "/user_panel",
+        ].includes(t);
     }
+
     const storeToken = useAuthStore((s) => s.accessToken);
     const [authToken, setAuthToken] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -117,12 +160,14 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
     const appendFirstSuggestions = () => { };
-    
+
     useEffect(() => {
         if (storeToken) setAuthToken(storeToken);
         else {
             try {
-                const ls = localStorage.getItem(STORAGE_KEYS.accessToken) || localStorage.getItem("zajuna_token");
+                const ls =
+                    localStorage.getItem(STORAGE_KEYS.accessToken) ||
+                    localStorage.getItem("zajuna_token");
                 if (ls) setAuthToken(ls);
             } catch { }
         }
@@ -134,20 +179,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     // Detecta modo invitado en embed: /?embed=1&guest=1
     const urlParams = new URLSearchParams(window.location.search);
     const isGuestEmbed = urlParams.get("guest") === "1";
-
-    function requiresAuthFor(text) {
-        const t = String(text || "").trim();
-        const NEED_AUTH = [
-            "/mis_cursos",
-            "/ver_progreso",
-            "/estado_estudiante",
-            "/tutor_asignado",
-            "/ingreso_zajuna",
-            "/faq_ingreso_privado",
-            "/user_panel",
-        ];
-        return NEED_AUTH.includes(t);
-    }
 
     useEffect(() => {
         if (!embed) return;
@@ -172,67 +203,87 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
     const rspToArray = (rsp) => (Array.isArray(rsp) ? rsp : rsp ? [rsp] : []);
 
-    const appendBotMessages = useCallback(async (rsp) => {
-        const items = [];
-        rspToArray(rsp).forEach((item, idx) => {
-            const baseId = `b-${Date.now()}-${idx}`;
-            if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
-            if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
-            if (item.buttons) {
+    const appendBotMessages = useCallback(
+        async (rsp) => {
+            const items = [];
+            rspToArray(rsp).forEach((item, idx) => {
+                const baseId = `b-${Date.now()}-${idx}`;
+                if (item.text) items.push({ id: `${baseId}-t`, role: "bot", text: item.text });
+                if (item.image) items.push({ id: `${baseId}-img`, role: "bot", image: item.image });
+                if (item.buttons) {
+                    items.push({
+                        id: `${baseId}-btns`,
+                        role: "bot",
+                        render: () => (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {item.buttons.map((btn, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        className="bot-interactive"
+                                        onClick={() => handleActionClick(baseId, btn)}
+                                    >
+                                        {btn.title}
+                                    </button>
+                                ))}
+                            </div>
+                        ),
+                    });
+                }
+                if (item.quick_replies) {
+                    items.push({
+                        id: `${baseId}-qr`,
+                        role: "bot",
+                        render: () => (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {item.quick_replies.map((qr, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        className="bot-interactive"
+                                        onClick={() => handleActionClick(baseId, qr)}
+                                    >
+                                        {qr.title}
+                                    </button>
+                                ))}
+                            </div>
+                        ),
+                    });
+                }
+            });
+            if (!items.length)
                 items.push({
-                    id: `${baseId}-btns`,
+                    id: `b-${Date.now()}-empty`,
                     role: "bot",
-                    render: () => (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {item.buttons.map((btn, i) => (
-                                <button key={i} type="button" className="bot-interactive"
-                                    onClick={() => handleActionClick(baseId, btn)}>
-                                    {btn.title}
-                                </button>
-                            ))}
-                        </div>
-                    ),
+                    text: tChat("noResponse"),
                 });
-            }
-            if (item.quick_replies) {
-                items.push({
-                    id: `${baseId}-qr`,
-                    role: "bot",
-                    render: () => (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {item.quick_replies.map((qr, i) => (
-                                <button key={i} type="button" className="bot-interactive"
-                                    onClick={() => handleActionClick(baseId, qr)}>
-                                    {qr.title}
-                                </button>
-                            ))}
-                        </div>
-                    ),
-                });
-            }
-        });
-        if (!items.length) items.push({ id: `b-${Date.now()}-empty`, role: "bot", text: tChat("noResponse") });
 
-        setTyping(true);
-        for (let i = 0; i < items.length; i++) {
-            await new Promise((r) => setTimeout(r, 140));
-            setMessages((m) => [...m, items[i]]);
-        }
-        setTyping(false);
+            setTyping(true);
+            for (let i = 0; i < items.length; i++) {
+                await new Promise((r) => setTimeout(r, 140));
+                setMessages((m) => [...m, items[i]]);
+            }
+            setTyping(false);
 
-        try { window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*"); } catch { }
-    }, [tChat]);
+            try {
+                window.parent?.postMessage({ type: "telemetry", event: "message_received" }, "*");
+            } catch { }
+        },
+        [tChat]
+    );
 
     const sendToRasa = async ({ text, displayAs, isPayload = false }) => {
         setError("");
 
         if (requiresAuthFor(text) && !authToken) {
-         
             if (embed) {
                 try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
                 const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
 
-                setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
+                setMessages((m) => [
+                    ...m,
+                    { id: `u-${Date.now()}`, role: "user", text: displayAs || text },
+                ]);
 
                 setMessages((m) => [
                     ...m,
@@ -250,7 +301,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                                 >
                                     🔐 Iniciar sesión
                                 </a>
-                                {/* Alternativa: abrir chat web autenticado */}
                                 <a
                                     href="/chat"
                                     target="_blank"
@@ -299,7 +349,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         }
 
         setSending(true);
-        setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
+        setMessages((m) => [
+            ...m,
+            { id: `u-${Date.now()}`, role: "user", text: displayAs || text },
+        ]);
         setInput("");
         setShowQuick(false);
 
@@ -313,6 +366,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             if (!hasSentFirstMessage) setHasSentFirstMessage(true);
         }
     };
+
     const handleSend = async () => {
         if (!input.trim() || sending) return;
         await sendToRasa({ text: input });
@@ -331,8 +385,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         await sendToRasa({ text: payload, displayAs: title, isPayload: true });
     };
 
-    const BotRow = ({ children }) => <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>;
-    const UserRow = ({ children }) => <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>;
+    const BotRow = ({ children }) => (
+        <div className="flex items-start gap-2 justify-start animate-fade-slide">{children}</div>
+    );
+    const UserRow = ({ children }) => (
+        <div className="flex items-start gap-2 justify-end animate-fade-slide">{children}</div>
+    );
 
     return (
         <div className="h-full flex flex-col chat-container">
@@ -354,7 +412,8 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     </button>
                 )}
 
-                <div className="ml-auto">
+                {/* 👇 Asegura visibilidad del menú de configuración */}
+                <div className="ml-auto relative z-20 flex items-center">
                     <ChatConfigMenu />
                 </div>
             </div>
@@ -365,8 +424,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     <QuickActions
                         show
                         onAction={(payload, title) => {
-                            // pinta lo elegido
-                            setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: title || payload }]);
+                            setMessages((m) => [
+                                ...m,
+                                { id: `u-${Date.now()}`, role: "user", text: title || payload },
+                            ]);
                             setShowQuick(false);
                             sendToRasa({ text: payload, displayAs: title, isPayload: true });
                         }}
@@ -385,7 +446,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                         <BotRow key={m.id}>
                             <BotAvatar />
                             <div className="bubble bot">
-                                {m.text && <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>}
+                                {m.text && (
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                                )}
                                 {m.render && m.render()}
                             </div>
                         </BotRow>
@@ -396,15 +459,22 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     <BotRow>
                         <BotAvatar />
                         <div className="bubble bot">
-                            {tChat("typing")}<span className="typing-dots" />
+                            {tChat("typing")}
+                            <span className="typing-dots" />
                         </div>
                     </BotRow>
                 )}
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="chat-input-container">
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSend();
+                }}
+                className="chat-input-container"
+            >
                 <MicButton
-                    stt="auto"                              
+                    stt="auto"
                     onVoice={(text) => sendToRasa({ text })}
                     disabled={sending}
                 />
@@ -417,7 +487,12 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     className="chat-input"
                     disabled={sending}
                 />
-                <button type="submit" disabled={sending || !input.trim()} className="send-button" aria-label="Enviar">
+                <button
+                    type="submit"
+                    disabled={sending || !input.trim()}
+                    className="send-button"
+                    aria-label="Enviar"
+                >
                     <Send className="w-4 h-4" />
                 </button>
             </form>

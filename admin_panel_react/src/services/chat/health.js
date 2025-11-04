@@ -34,8 +34,15 @@ function toAbsoluteWs(urlLike) {
 }
 
 async function tryGet(url) {
-    const res = await axios.get(url, { timeout: 5000 });
-    // 2xx / 3xx / incluso 404 nos sirven para saber que el host responde
+    // Aceptamos 2xx-4xx como “host responde” para health
+    const res = await axios.get(url, {
+        timeout: 5000,
+        withCredentials: false,
+        headers: { Accept: "application/json, text/plain, */*" },
+        // Evita que axios agregue baseURL sin querer si lo usan globalmente
+        baseURL: undefined,
+        validateStatus: (code) => code >= 200 && code < 500,
+    });
     return res.status >= 200 && res.status < 500;
 }
 
@@ -68,12 +75,20 @@ async function wsPing(wsUrl) {
  * Health universal del chat:
  * - WS: intenta abrir/cerrar el socket (no envía mensajes)
  * - REST: prueba /health, /status, /live, /ready en el host
+ *
+ * NOTA: no eliminé nada de tu lógica; solo reforcé fallbacks/headers y debug.
  */
 export async function connectChatHealth() {
     const mode = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
 
+    if (import.meta.env.DEV) {
+        // Ayuda para ver qué endpoints está probando
+        console.info("[connectChatHealth] mode =", mode);
+    }
+
     if (mode === "ws") {
         const wsUrl = import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
+        if (import.meta.env.DEV) console.info("[connectChatHealth] wsUrl =", wsUrl);
         await wsPing(wsUrl);
         return true;
     }
@@ -89,15 +104,17 @@ export async function connectChatHealth() {
         const base = restChatUrl.includes("/api/chat")
             ? restChatUrl.replace(/\/api\/chat$/i, "")
             : restChatUrl;
-        candidates.push(`${base}/health`);
-        candidates.push(`${base}/status`);
-        candidates.push(`${base}/live`);
-        candidates.push(`${base}/ready`);
+
+        const apiBase = trimSlash(base || "/api");
+        candidates.push(`${apiBase}/health`);
+        candidates.push(`${apiBase}/status`);
+        candidates.push(`${apiBase}/live`);
+        candidates.push(`${apiBase}/ready`);
     }
 
     // Si apuntas directo a Rasa REST
     if (rasaRest) {
-        const base = stripWebhook(rasaRest);
+        const base = trimSlash(stripWebhook(rasaRest));
         candidates.push(`${base}/status`);
         candidates.push(`${base}/health`);
     }
@@ -105,6 +122,10 @@ export async function connectChatHealth() {
     // Fallback local por si estás desarrollando
     if (candidates.length === 0) {
         candidates.push("/api/health");
+    }
+
+    if (import.meta.env.DEV) {
+        console.info("[connectChatHealth] candidates =", candidates);
     }
 
     // Probar en orden

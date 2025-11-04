@@ -1,196 +1,152 @@
-/* public/embed/zajuna-bubble.css */
+/* === Overrides adicionales — no destructivos === */
 
-/* Estado base del widget */
-[data-zj-bubble] {
-    opacity: 1;
-    transition: opacity .2s;
-}
-
-/* ------------------------------- */
-/*            BOTÓN FAB            */
-/* ------------------------------- */
-.zj-bubble-button {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    background: #111827;
-    color: #e5e7eb;
-    border: 1px solid #374151;
-    border-radius: 9999px;
-    padding: .5rem .75rem;
-    box-shadow: 0 10px 24px rgba(0,0,0,.25);
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-    .zj-bubble-button:hover {
-        background: #0b1220;
-    }
-
-    .zj-bubble-button.zj-compact {
-        width: 56px;
-        height: 56px;
-        border-radius: 9999px;
-        padding: 0;
-        justify-content: center;
-    }
-
-/* Avatar */
-.zj-avatar-wrap {
-    display: inline-flex;
-    width: 40px;
-    height: 40px;
-    border-radius: 9999px;
-    overflow: hidden;
-    border: 1px solid #334155;
-    background: #0b1220;
-}
-
-.zj-compact .zj-avatar-wrap {
-    width: 44px;
-    height: 44px;
-}
-
-.zj-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.zj-bubble-title {
-    font-weight: 700;
-    font-size: .9rem;
-}
-
-.zj-bubble-sub {
-    font-size: .75rem;
-    opacity: .8;
-}
-
-/* ------------------------------- */
-/*        IFRAME CONTENEDOR        */
-/* ------------------------------- */
-
-.zj-bubble-iframe-wrap {
-    position: absolute;
-    right: 0;
-    bottom: 72px;
-    width: min(420px, 92vw);
-    height: min(70vh, 680px);
-    pointer-events: auto;
-    display: none;
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity .18s ease, transform .18s ease;
-}
-
-/* Estado abierto */
-[data-zj-bubble].zj-open .zj-bubble-iframe-wrap {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Iframe */
+/* Elevar el iframe sobre cualquier UI externa */
+.zj-bubble-iframe-wrap { z-index: 2147483000 !important; }
 .zj-bubble-iframe {
-    width: 100%;
-    height: 100%;
-    background: #0b0f19;
-    color-scheme: light dark;
-    border: 1px solid #1f2937;
-    border-radius: 16px;
-    box-shadow: 0 14px 50px rgba(0,0,0,.45);
+  border-radius: 16px !important;
+  border: 1px solid #1f2937 !important;
+  background: #0b0f19;
 }
 
-/* Dragbar superior */
-.zj-bubble-dragbar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 10px;
-    cursor: grab;
-    background: transparent;
-    z-index: 2;
-}
-
-/* ------------------------------- */
-/*        MEJORAS ADICIONALES      */
-/* ------------------------------- */
-
-/* Minimizado */
-.zj-bubble-root.zj-min .zj-bubble-iframe-wrap {
-    height: 56px !important;
-    overflow: hidden;
-    border-radius: 16px;
-}
-
-/* Accesibilidad */
-.zj-bubble-button:focus-visible,
-.zj-bubble-iframe:focus-visible {
-    outline: 2px solid #6366f1;
-    outline-offset: 2px;
-}
-
-/* Reduce motion */
-@media (prefers-reduced-motion: reduce) {
-    [data-zj-bubble],
-    .zj-bubble-iframe-wrap {
-        transition: none !important;
-    }
-}
-
-/* Avatar perfecto en modo compacto */
-.zj-bubble-button.zj-compact .zj-avatar-wrap {
-    width: 100%;
-    height: 100%;
-    max-width: 44px;
-    max-height: 44px;
-    border: 0;
-    background: transparent;
-}
-
-.zj-bubble-button.zj-compact .zj-avatar {
-    border-radius: 9999px;
-    display: block;
-}
-
-/* Móviles pequeños */
-@media (max-height: 560px) {
-    .zj-bubble-iframe-wrap {
-        height: calc(100vh - 120px);
-    }
-}
-
-/* Móviles muy angostos: mover a la izquierda */
-@media (max-width: 360px) {
-    .zj-bubble-root[style*="right"] .zj-bubble-iframe-wrap {
-        right: auto;
-        left: 0;
-    }
-}
-
-/* ------------------------------- */
-/*           FAB REDONDEADO        */
-/* ------------------------------- */
+/* FAB perfectamente redondo, sin etiquetas ni cintas */
 [data-zj-fab] {
-    width: 64px;
-    height: 64px;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(2,6,23,.18) !important;
+}
+[data-zj-fab] img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+}
+[data-zj-fab] .label,
+[data-zj-fab] [data-label] {
+  display: none !important;
+}
+
+/* Ocultar cualquier botón de cerrar/minimizar que emita el widget */
+[data-zj-bubble] .head .btn,
+[data-zj-bubble] .zj-header .btn,
+[data-zj-bubble] [data-action="close"],
+[data-zj-bubble] [data-action="min"],
+[data-zj-bubble] button[aria-label*="Cerrar"],
+[data-zj-bubble] button[aria-label*="Minimizar"] {
+  display: none !important;
+}
+
+/* Forzar “modo compacto” visual si el script no lo hacía */
+.zj-bubble-button { border-radius: 9999px !important; }
+.zj-bubble-button .zj-bubble-title,
+.zj-bubble-button .zj-bubble-sub { display: none !important; }
+
+/* Avatar del botón */
+.zj-avatar-wrap {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.zj-avatar { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+
+/* Estados */
+[data-zj-bubble] { border-radius: 16px !important; overflow: hidden !important; }
+[data-zj-bubble].zj-open .zj-bubble-iframe-wrap { display: block !important; opacity: 1 !important; transform: translateY(0) !important; }
+
+/* Móviles extremos: asegurar cabida */
+@media (max-width: 360px) {
+  .zj-bubble-root[style*="right"] .zj-bubble-iframe-wrap { right: auto !important; left: 0 !important; }
+}
+/* === Overrides adicionales — no destructivos === */
+
+/* Elevar el iframe sobre cualquier UI externa */
+.zj-bubble-iframe-wrap {
+    z-index: 2147483000 !important;
+}
+
+.zj-bubble-iframe {
+    border-radius: 16px !important;
+    border: 1px solid #1f2937 !important;
+    background: #0b0f19;
+}
+
+/* FAB perfectamente redondo, sin etiquetas ni cintas */
+[data-zj-fab] {
+    width: 64px !important;
+    height: 64px !important;
     border-radius: 9999px !important;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(2,6,23,0.18);
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(2,6,23,.18) !important;
 }
 
     [data-zj-fab] img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: inherit;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: inherit !important;
     }
 
-    [data-zj-fab][data-has-bg="1"] {
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        border-radius: 9999px !important;
+    [data-zj-fab] .label,
+    [data-zj-fab] [data-label] {
+        display: none !important;
     }
+
+/* Ocultar cualquier botón de cerrar/minimizar que emita el widget */
+[data-zj-bubble] .head .btn,
+[data-zj-bubble] .zj-header .btn,
+[data-zj-bubble] [data-action="close"],
+[data-zj-bubble] [data-action="min"],
+[data-zj-bubble] button[aria-label*="Cerrar"],
+[data-zj-bubble] button[aria-label*="Minimizar"] {
+    display: none !important;
+}
+
+/* Forzar “modo compacto” visual si el script no lo hacía */
+.zj-bubble-button {
+    border-radius: 9999px !important;
+}
+
+    .zj-bubble-button .zj-bubble-title,
+    .zj-bubble-button .zj-bubble-sub {
+        display: none !important;
+    }
+
+/* Avatar del botón */
+.zj-avatar-wrap {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 9999px !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.zj-avatar {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Estados */
+[data-zj-bubble] {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+}
+
+    [data-zj-bubble].zj-open .zj-bubble-iframe-wrap {
+        display: block !important;
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
+
+/* Móviles extremos: asegurar cabida */
+@media (max-width: 360px) {
+    .zj-bubble-root[style*="right"] .zj-bubble-iframe-wrap {
+        right: auto !important;
+        left: 0 !important;
+    }
+}

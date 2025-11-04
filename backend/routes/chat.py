@@ -13,7 +13,7 @@ from backend.services.chat_service import process_user_message
 from backend.utils.logging import get_logger
 from backend.rate_limit import limit
 from backend.ext.rate_limit import limiter
-
+import httpx
 router = APIRouter()
 chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
@@ -53,8 +53,6 @@ async def chat_debug(request: Request):
         },
     }
 
-
-# ==== Endpoint principal ====
 @chat_router.post(
     "",
     summary="Enviar mensaje al chatbot y registrar en MongoDB",
@@ -142,17 +140,35 @@ async def chat_demo(data: ChatRequest):
         bot_responses = [{"text": "🤖 Esta es una respuesta de prueba del bot Zajuna."}]
     return bot_responses
 
-@chat_router.get("/health", summary="Healthcheck de chat")
-async def chat_health():
-    # intenta un OPTIONS (barato) a Rasa para confirmar conectividad de red
+@chat_router.get("/health", summary="Healthcheck de chat (subrouter /chat)")
+async def chat_health_embed():
+    """
+    Verifica conectividad a Rasa usando un OPTIONS barato al webhook REST.
+    Útil cuando el front llama /api/chat/health (por estar debajo de `chat_router`).
+    """
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             r = await client.options("http://rasa:5005/webhooks/rest/webhook")
-        ok = 200 <= r.status_code < 500  # si Rasa está vivo, suele dar 204/405/200
+        ok = 200 <= r.status_code < 500  # Rasa suele responder 204/405/200 si está vivo
         return {"ok": bool(ok), "rasa_url": "http://rasa:5005"}
     except Exception as e:
-        log.exception("chat_health error: %s", e)
+        log.exception("chat_health_embed error: %s", e)
         return {"ok": False, "rasa_url": "http://rasa:5005", "error": str(e)}
+
+@router.get("/chat/health", summary="Healthcheck de chat (Rasa /status)")
+async def chat_health_root():
+    """
+    Verifica el estado del servidor Rasa consultando /status.
+    Queda expuesto como /api/chat/health si montas este router con prefix="/api".
+    """
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            r = await client.get("http://rasa:5005/status")
+            rasa_ok = r.status_code == 200
+        return {"ok": rasa_ok, "rasa_url": "http://rasa:5005"}
+    except Exception as e:
+        # (opcional) log.exception("chat_health_root error: %s", e)
+        return {"ok": False, "error": str(e), "rasa_url": "http://rasa:5005"}
 
 @chat_router.post("/rasa/rest/webhook", summary="Proxy REST → Rasa")
 async def rasa_rest_proxy(payload: dict, request: Request):
@@ -199,5 +215,6 @@ async def rasa_rest_proxy(payload: dict, request: Request):
     except Exception as e:
         log.exception("proxy fatal error: %s", e)
         raise HTTPException(status_code=500, detail=f"proxy_internal_error: {e}")
+
 
 __all__ = ["router"]

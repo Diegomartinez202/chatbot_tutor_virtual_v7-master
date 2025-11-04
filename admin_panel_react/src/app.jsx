@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 
-// Páginas públicas
+
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import Unauthorized from "@/pages/Unauthorized";
@@ -13,7 +13,7 @@ import AuthCallback from "@/pages/AuthCallback";
 import AdminRegisterPage from "@/pages/AdminRegisterPage";
 import AdminLoginPage from "@/pages/AdminLoginPage";
 
-// Páginas principales (protegidas)
+
 import Dashboard from "@/pages/Dashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import TestPage from "@/pages/TestPage";
@@ -27,7 +27,7 @@ import UploadIntentsCSV from "@/components/UploadIntentsCSV";
 import ExportacionesPage from "@/pages/ExportacionesPage";
 import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 
-// Chat
+
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
@@ -122,7 +122,7 @@ export default function App() {
 
   const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
 
-  const iframeUrl = `${window.location.origin}/hybrid-host.html?embed=1&guest=1`;
+  const iframeUrl = `${window.location.origin}/chat?embed=1&guest=1`;
   const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
 
   const handleSendToken = () => {

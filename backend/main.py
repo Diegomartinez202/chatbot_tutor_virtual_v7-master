@@ -49,7 +49,7 @@ from pymongo import MongoClient
 from backend.middleware.permissions_policy import add_permissions_policy
 from backend.config.settings import settings
 from backend.routes.chat import chat_router 
-
+from backend.routes.chat import router as root_router, chat_router as chat_api_router
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
 # =========================================================
@@ -133,7 +133,8 @@ def create_app() -> FastAPI:
     app.include_router(me_router)  
     app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  
     app.include_router(api_router)
- 
+    app.include_router(chat_api_router, prefix="/api")
+    app.include_router(root_router, prefix="/api")
     
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
