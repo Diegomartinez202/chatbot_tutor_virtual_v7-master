@@ -6,7 +6,7 @@ load_dotenv()
 
 import os
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, Response, RedirectResponse
@@ -34,22 +34,21 @@ from backend.controllers import user_controller as users_ctrl
 from backend.routes.chat_proxy import router as chat_router
 from backend.routes.me_settings import router as me_router                  # /api/me (shim/compat)
 from backend.routes.user_settings import router as user_settings_router    # /api/me/settings
+from backend.routes.chat import router as root_router, chat_router as chat_api_router
 
 # ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
 
 # 🗄️ Mongo (tu módulo actual con PyMongo síncrono; abre conexión al import)
-#     No expone connect_to_mongo/close_mongo, así que NO se esperan en startup/shutdown.
 from backend.db.mongodb import get_database  # noqa: F401  (asegura init y disponible)
 
 # 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
-from pymongo import MongoClient
 from backend.middleware.permissions_policy import add_permissions_policy
-from backend.config.settings import settings
-from backend.routes.chat import chat_router 
-from backend.routes.chat import router as root_router, chat_router as chat_api_router
+
+from pymongo import MongoClient
+
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
 # =========================================================
@@ -85,17 +84,20 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
-    app_env = (getattr(settings, "app_env", None) or os.getenv("APP_ENV") or "prod").lower()
-    if app_env == "dev":
-        add_permissions_policy(app, preset="relaxed")
-    else:
-        add_permissions_policy(app, preset="strict")
 
-        add_permissions_policy(
-    app,
-    policy=getattr(settings, "permissions_policy_effective", None),
-    add_legacy_feature_policy=True,
-)
+    # ─────────────────────────────────────────
+    # Permissions-Policy (una sola vez, según entorno)
+    # ─────────────────────────────────────────
+    app_env = (getattr(settings, "app_env", None) or os.getenv("APP_ENV") or "prod").lower()
+    add_permissions_policy(app, preset="relaxed" if app_env == "dev" else "strict")
+
+    # Si defines una policy efectiva a mano, también la aplicamos (mantiene tu lógica)
+    add_permissions_policy(
+        app,
+        policy=getattr(settings, "permissions_policy_effective", None),
+        add_legacy_feature_policy=True,
+    )
+
     # 🌐 CORS (bloque original)
     app.add_middleware(
         CORSMiddleware,
@@ -104,38 +106,41 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    
+    # CSP/CORS adicionales que ya usas
     add_cors_and_csp(app)
 
+    # Middlewares propios (orden conservado)
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
-
     app.middleware("http")(request_meta_middleware)
-
-    
     app.add_middleware(LoggingMiddleware)
-
     app.add_middleware(AccessLogMiddleware)
-
-    
     app.add_middleware(AuthMiddleware)
-    add_permissions_policy(app, preset="strict")
-   
 
+    # Archivos estáticos
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    
-    app.include_router(api_router)
-    app.include_router(admin_ctrl.router)
-    app.include_router(users_ctrl.router)
+    # ─────────────────────────────────────────
+    # Agrupador /api (evita duplicados y mantiene todo bajo /api)
+    # ─────────────────────────────────────────
+    api = APIRouter()
+
+    # Mantengo tus routers tal cual, pero organizados en el agrupador
+    api.include_router(api_router)                         # tu router agregador principal
+    api.include_router(admin_ctrl.router)                  # controladores admin
+    api.include_router(users_ctrl.router)                  # controladores users
+    api.include_router(chat_api_router)                    # rutas de chat expuestas bajo /api
+    api.include_router(root_router)                        # otras rutas de chat bajo /api
+    api.include_router(me_router)                          # shim /me (compat)
+    api.include_router(user_settings_router, prefix="/me", tags=["user-settings"])  # /api/me/*
+
+    # Montamos todo el grupo en /api (un solo include → sin duplicados)
+    app.include_router(api, prefix="/api")
+
+    # Chat proxy externo (mantengo tu include original fuera de /api si así lo usas)
     app.include_router(chat_router)
-    app.include_router(me_router)  
-    app.include_router(user_settings_router, prefix="/api/me", tags=["user-settings"])  
-    app.include_router(api_router)
-    app.include_router(chat_api_router, prefix="/api")
-    app.include_router(root_router, prefix="/api")
-    
+
+    # CSP por si falta (no pisa cuando ya viene desde Nginx/otros)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)
@@ -203,6 +208,8 @@ app = create_app()
 # ─────────────────────────────────────────────────────────────
 # ✅ Startup check: conexión a MongoDB
 # ─────────────────────────────────────────────────────────────
+from pymongo import MongoClient
+
 @app.on_event("startup")
 async def startup_check_mongo():
     mongo_uri = settings.mongo_uri_effective
@@ -229,7 +236,6 @@ async def _shutdown():
     provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
     if provider == "fastapi-limiter":
         await close_redis()
-
 
 # 🔥 Standalone
 if __name__ == "__main__":

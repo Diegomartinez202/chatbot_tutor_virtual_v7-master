@@ -130,35 +130,35 @@ responses:
     - text: |
         Para ver esta información necesitas iniciar sesión en Zajuna.
         Pasos:
-        1) Entra a https://zajuna.edu/login
+        1) Entra a https://zajuna.sena.edu.co/
         2) Inicia sesión con tu usuario y contraseña
         3) Vuelve aquí y presiona «✅ Ya inicié sesión»
       buttons:
         - title: "🔐 Ir a Zajuna"
           type: web_url
-          url: "https://zajuna.edu/login"
+          url: "https://zajuna.sena.edu.co/"
         - title: "✅ Ya inicié sesión"
           payload: /abrir_chat_autenticado
     - text: |
         Esta opción requiere autenticación en Zajuna.
-        1) Abre https://zajuna.edu/login
+        1) Abre https://zajuna.sena.edu.co/
         2) Ingresa tus credenciales
         3) Presiona «✅ Ya inicié sesión» para continuar
       buttons:
         - title: "🔐 Iniciar sesión"
           type: web_url
-          url: "https://zajuna.edu/login"
+          url: "https://zajuna.sena.edu.co/"
         - title: "✅ Ya inicié sesión"
           payload: /abrir_chat_autenticado
 
   utter_necesita_auth:
     - text: |
         Para ver esta información necesitas iniciar sesión en Zajuna.
-        1) Ve a https://zajuna.edu/login, inicia sesión y regresa aquí.
+        1) Ve a https://zajuna.sena.edu.co/, inicia sesión y regresa aquí.
       buttons:
         - title: "🔐 Ir a Zajuna"
           type: web_url
-          url: "https://zajuna.edu/login"
+          url: "https://zajuna.sena.edu.co/"
         - title: "✅ Ya inicié sesión"
           payload: /abrir_chat_autenticado
 
@@ -171,13 +171,13 @@ responses:
   utter_login_steps:
     - text: |
         Para iniciar sesión:
-        1) Abre https://zajuna.edu/login
+        1) Abre https://zajuna.sena.edu.co/
         2) Ingresa tus credenciales
         3) Vuelve y presiona «✅ Ya inicié sesión»
       buttons:
         - title: "🔐 Abrir login"
           type: web_url
-          url: "https://zajuna.edu/login"
+          url: "https://zajuna.sena.edu.co/"
         - title: "✅ Ya inicié sesión"
           payload: /abrir_chat_autenticado
 
@@ -246,7 +246,7 @@ responses:
         - title: "📝 Cómo inscribirse"
           payload: "https://zajuna.example/guias/inscripcion"
         - title: "💬 Soporte"
-          payload: "https://zajuna.example/soporte"
+          payload: "https://zajuna.sena.edu.co/soporte.php"
 
   utter_cursos_recomendados:
     - text: "Cursos recomendados para ti: Programación Básica, Excel Intermedio, Emprendimiento."
@@ -396,11 +396,11 @@ responses:
         3) Busca la tarjeta **Tutor asignado** (nombre y contacto).
 
   utter_link_soporte:
-     - text: "Soporte Zajuna: https://zajuna.edu/soporte"
+     - text: "Soporte Zajuna: https://zajuna.sena.edu.co/soporte.php"
        buttons:
           - title: "🆘 Abrir Soporte"
             type: web_url
-            url: "https://zajuna.edu/soporte"
+            url: "https://zajuna.sena.edu.co/soporte.php"
 
 forms:
   soporte_form:
