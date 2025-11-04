@@ -22,7 +22,6 @@ import { setAccessTokenGetter } from "@/state/tokenProvider";
 
 import { initAuthBridge } from "@/embed/authBridge.js";
 
-
 const APP_CONTEXT =
     (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
 

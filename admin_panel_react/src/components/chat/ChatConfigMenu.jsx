@@ -39,7 +39,7 @@ export default function ChatConfigMenu({ className = "" }) {
     const menuRef = useRef(null);
 
     const { logout } = useAuth();
-    const { t, i18n } = useTranslation("config");   // <-- el hook va DENTRO del componente
+    const { t, i18n } = useTranslation("config");
     const navigate = useNavigate();
 
     const zajunaSSO = useMemo(
@@ -47,7 +47,6 @@ export default function ChatConfigMenu({ className = "" }) {
         []
     );
 
-    // cargar preferencias
     useEffect(() => {
         const savedTheme =
             safeGetLS(THEME_KEY, null) ||
@@ -69,7 +68,6 @@ export default function ChatConfigMenu({ className = "" }) {
         i18n.changeLanguage(savedLang);
     }, [i18n]);
 
-    // click outside
     useEffect(() => {
         if (!open) return;
         const onDocClick = (e) => {
@@ -117,7 +115,6 @@ export default function ChatConfigMenu({ className = "" }) {
         navigate("/", { replace: true });
     };
 
-    // Redirección a Zajuna SSO en top (sirve en web y widget)
     const goZajuna = () => {
         if (!zajunaSSO) return;
         window.top.location.href = zajunaSSO;

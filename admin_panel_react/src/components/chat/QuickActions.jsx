@@ -2,14 +2,6 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/**
- * Panel de acciones rápidas del chatbot (equivalente al viejo widget.html),
- * convertido a React y conectado al pipeline del chat.
- *
- * Props:
- * - onAction: (payload: string, displayTitle?: string) => void
- * - show: boolean (muestra/oculta el panel)
- */
 export default function QuickActions({ onAction, show = true }) {
     const { t } = useTranslation("chat", { useSuspense: false });
     const [active, setActive] = useState("main"); // main | temas | zajuna | cursos | academico | soporte | info
@@ -41,35 +33,6 @@ export default function QuickActions({ onAction, show = true }) {
 
     return (
         <div className="mb-3" aria-label={t("quick_actions.title", "Acciones rápidas")}>
-            {/* Carrusel fijo como en el HTML original */}
-            <div className="bg-gray-50 border rounded-xl p-3 mb-3">
-                <h4 className="text-sm font-semibold mb-2">
-                    {t("quick_actions.recommended_courses", "Cursos recomendados 🎓")}
-                </h4>
-                <div className="flex gap-3 overflow-x-auto pb-2" role="list">
-                    {[
-                        { title: t("topics.excelBasic", "Excel Básico"), meta: "🕒 20h • Virtual" },
-                        { title: t("quick_actions.welding_mig", "Soldadura MIG"), meta: "🛠️ 40h • Presencial" },
-                        { title: t("topics.webProgramming", "Programación Web"), meta: "💻 60h • Virtual" },
-                    ].map((c) => (
-                        <div
-                            key={c.title}
-                            className="min-w-[160px] bg-white border rounded-lg p-2 shadow-sm"
-                            role="listitem"
-                            aria-label={c.title}
-                        >
-                            <div className="w-full h-24 bg-gray-100 rounded mb-2 grid place-items-center text-xs text-gray-500">
-                                {t("quick_actions.image_placeholder", "Imagen")}
-                            </div>
-                            <div className="text-sm font-semibold">{c.title}</div>
-                            <div className="text-xs text-gray-500">{c.meta}</div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Menú principal / submenús */}
-            {active === "main" && (
                 <div className="flex flex-wrap justify-center gap-2">
                     <Btn onClick={() => go("temas")}>📚 {t("inicio.options.explorar", "Temas de aprendizaje")}</Btn>
                     <Btn onClick={() => go("zajuna")}>🔐 {t("inicio.options.ingreso", "Ingreso Zajuna")}</Btn>
@@ -78,7 +41,7 @@ export default function QuickActions({ onAction, show = true }) {
                     <Btn onClick={() => go("soporte")}>🛠️ {t("inicio.options.soporte", "Soporte técnico")}</Btn>
                     <Btn onClick={() => go("info")}>🤖 {t("quick_actions.what_is_chatbot", "¿Qué es este chatbot?")}</Btn>
                 </div>
-            )}
+            )
 
             {active === "temas" && (
                 <Submenu title={t("sections.topicsFeatured", "Temas de aprendizaje")} onBack={back}>

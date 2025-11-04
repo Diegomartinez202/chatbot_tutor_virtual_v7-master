@@ -31,13 +31,11 @@ import IntentosFallidosPage from "@/pages/IntentosFallidosPage";
 import ChatPage from "@/pages/ChatPage";
 import Harness from "@/pages/Harness";
 
-// Bubble embebido
 import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
+import HostChatBubble from "@/embed/HostChatBubble.jsx"; 
 import "@/i18n";
 
-// =========================
-// ✅ Variables de entorno
-// =========================
+
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png";
 const BOT_LOADING = import.meta.env.VITE_BOT_LOADING || "/bot-loading.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
@@ -45,368 +43,344 @@ const SHOW_BUBBLE_DEBUG = import.meta.env.VITE_SHOW_BUBBLE_DEBUG === "true";
 const CTX = (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
 const isHybridContext = CTX === "hybrid";
 
-const location = useLocation(); 
-const params = new URLSearchParams(window.location.search);
-const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
-const isChatRoute = /^\/(chat|widget|iframe\/chat)/.test(location.pathname);
-
-const ENABLE_CHAT_WIDGET =
-    (import.meta.env.VITE_ENABLE_CHAT_WIDGET === "true") &&
-    (typeof window === "undefined" ? true : !window.__DISABLE_CHAT_WIDGET__);
-
-const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
-
-const iframeUrl = `${window.location.origin}/?embed=1&guest=1`;
-const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
-function roleDefaultPath(role) {
-    const r = (role || "").toLowerCase();
-    return r === "admin" || r === "soporte" ? "/dashboard" : "/";
-}
-
-function CatchAllRedirect() {
-    const { isAuthenticated, user } = useAuth();
-    const to = isAuthenticated ? roleDefaultPath(user?.rol || user?.role) : "/";
-    return <Navigate to={to} replace />;
-}
-
-function PublicOnlyRoute({ children }) {
-    const { isAuthenticated, user } = useAuth();
-    if (!isAuthenticated) return children;
-    return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
-}
-
-function PublicOnlyOrToken({ children }) {
-    const { isAuthenticated, user } = useAuth();
-    const location = useLocation();
-
-    const search = new URLSearchParams(location.search || "");
-    const hashParams = new URLSearchParams(String(location.hash || "").replace(/^#/, ""));
-
-    const tokenFromQuery =
-        search.get("access_token") || search.get("token") || search.get("t");
-    const tokenFromHash =
-        hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
-
-    const hasToken = Boolean(tokenFromQuery || tokenFromHash);
-    if (isAuthenticated && !hasToken) {
-        return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
-    }
-    return children;
-}
 function lazyWithFallback(loader, name) {
-    return React.lazy(async () => {
-        try {
-            const mod = await loader();
-            return mod;
-        } catch {
-            return {
-                default: () => (
-                    <div className="p-6 text-sm text-gray-600">
-                        La página <strong>{name}</strong> no está disponible.
-                    </div>
-                ),
-            };
-        }
-    });
+  return React.lazy(async () => {
+    try {
+      const mod = await loader();
+      return mod;
+    } catch {
+      return {
+        default: () => (
+          <div className="p-6 text-sm text-gray-600">
+            La página <strong>{name}</strong> no está disponible.
+          </div>
+        ),
+      };
+    }
+  });
 }
 
 const RegisterPage = lazyWithFallback(() => import("@/pages/RegisterPage"), "Registro");
 const ForgotPasswordPage = lazyWithFallback(
-    () => import("@/pages/ForgotPasswordPage"),
-    "Recuperar contraseña"
+  () => import("@/pages/ForgotPasswordPage"),
+  "Recuperar contraseña"
 );
 
-const ui = {
-    avatar: BOT_AVATAR,
-};
+const ui = { avatar: BOT_AVATAR };
+
+function roleDefaultPath(role) {
+  const r = (role || "").toLowerCase();
+  return r === "admin" || r === "soporte" ? "/dashboard" : "/";
+}
+
+function CatchAllRedirect() {
+  const { isAuthenticated, user } = useAuth();
+  const to = isAuthenticated ? roleDefaultPath(user?.rol || user?.role) : "/";
+  return <Navigate to={to} replace />;
+}
+
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return children;
+  return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
+}
+
+function PublicOnlyOrToken({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  const search = new URLSearchParams(location.search || "");
+  const hashParams = new URLSearchParams(String(location.hash || "").replace(/^#/, ""));
+
+  const tokenFromQuery = search.get("access_token") || search.get("token") || search.get("t");
+  const tokenFromHash = hashParams.get("access_token") || hashParams.get("token") || hashParams.get("t");
+
+  const hasToken = Boolean(tokenFromQuery || tokenFromHash);
+  if (isAuthenticated && !hasToken) {
+    return <Navigate to={roleDefaultPath(user?.rol || user?.role)} replace />;
+  }
+  return children;
+}
 
 export default function App() {
-    const bubbleRef = useRef(null);
-    const { isAuthenticated, accessToken } = useAuth();
+  console.log("✅ App.jsx montó");
 
-    const params = new URLSearchParams(window.location.search);
-    const location = useLocation();
-    const isEmbedded = params.get("embed") === "1" || window.self !== window.top;
+  const bubbleRef = React.useRef(null);
+  const { isAuthenticated, accessToken } = useAuth();
+  const location = useLocation();
 
-    const APP_CONTEXT = (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
-    const isHybridContext = APP_CONTEXT === "hybrid";
+  const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const isEmbedded =
+    params.get("embed") === "1" ||
+    (typeof window !== "undefined" && window.self !== window.top);
 
-    // no mostrar el FAB en rutas de chat (ya hay UI de chat)
-    const isChatRoute = /^\/(chat|widget|iframe\/chat)/.test(location.pathname);
+  const isChatRoute = /^\/(chat|widget|iframe\/chat)/.test(location.pathname);
 
-    // respeta bandera global del panel y la env opcional
-    const ENABLE_CHAT_WIDGET =
-        (import.meta.env.VITE_ENABLE_CHAT_WIDGET === "true") &&
-        !(typeof window !== "undefined" && window.__DISABLE_CHAT_WIDGET__ === true);
+  const ENABLE_CHAT_WIDGET =
+    import.meta.env.VITE_ENABLE_CHAT_WIDGET === "true" &&
+    !(typeof window !== "undefined" && window.__DISABLE_CHAT_WIDGET__ === true);
 
-    const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
+  const CAN_SHOW_BUBBLE = isHybridContext && ENABLE_CHAT_WIDGET && !isEmbedded && !isChatRoute;
 
-    const iframeUrl = `${window.location.origin}/?embed=1&guest=1`;
-    const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
+  const iframeUrl = `${window.location.origin}/hybrid-host.html?embed=1&guest=1`;
+  const allowedOrigin = new URL(iframeUrl, window.location.href).origin;
 
-    const handleSendToken = () => {
-        if (isAuthenticated && accessToken) {
-            bubbleRef.current?.sendAuthToken?.(accessToken);
+  const handleSendToken = () => {
+    if (isAuthenticated && accessToken) {
+      bubbleRef.current?.sendAuthToken?.(accessToken);
+    }
+  };
+
+  const handleLoginDemo = () => {
+    bubbleRef.current?.sendAuthToken?.("FAKE_TOKEN_ZAJUNA");
+    bubbleRef.current?.open?.();
+  };
+
+  return (
+    <TooltipProvider>
+      <Routes>
+        {/* 🌐 Públicas */}
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route
+          path="/auth/callback"
+          element={
+            <PublicOnlyOrToken>
+              <AuthCallback />
+            </PublicOnlyOrToken>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}>
+                <RegisterPage />
+              </React.Suspense>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicOnlyRoute>
+              <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}>
+                <ForgotPasswordPage />
+              </React.Suspense>
+            </PublicOnlyRoute>
+          }
+        />
+
+        {/* 💬 Chat full-screen */}
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
+        <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
+        <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
+        {SHOW_HARNESS && <Route path="/chat-harness" element={<Harness />} />}
+
+        {/* 🔒 Protegidas */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diagnostico"
+          element={
+            <ProtectedRoute>
+              <TestPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔐 admin */}
+        <Route
+          path="/logs"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin", "soporte"]}>
+                <LogsPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/intents"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <IntentsPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stats"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <StatsPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stats-v2"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <StatsPageV2 />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <UserManagementPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assign-roles"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <AssignRoles />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/upload-intents"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <UploadIntentsCSV />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/exportaciones"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <ExportacionesPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/intentos-fallidos"
+          element={
+            <ProtectedRoute>
+              <RequireRole allowedRoles={["admin"]}>
+                <IntentosFallidosPage />
+              </RequireRole>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/register"
+          element={
+            <PublicOnlyRoute>
+              <AdminRegisterPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/admin/login"
+          element={
+            <PublicOnlyRoute>
+              <AdminLoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+
+        {
         }
-    };
+        {
+        }
 
-    const handleLoginDemo = () => {
-        bubbleRef.current?.sendAuthToken?.("FAKE_TOKEN_ZAJUNA");
-        bubbleRef.current?.open?.();
-    };
+        <Route path="*" element={<CatchAllRedirect />} />
+      </Routes>
 
-    return (
-        <TooltipProvider>
-            <Routes>
-                {/* 🌐 Públicas */}
-                <Route path="/" element={<HomePage />} />
-                <Route
-                    path="/login"
-                    element={
-                        <PublicOnlyRoute>
-                            <LoginPage />
-                        </PublicOnlyRoute>
-                    }
-                />
-                <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route
-                    path="/auth/callback"
-                    element={
-                        <PublicOnlyOrToken>
-                            <AuthCallback />
-                        </PublicOnlyOrToken>
-                    }
-                />
-                <Route
-                    path="/register"
-                    element={
-                        <PublicOnlyRoute>
-                            <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}>
-                                <RegisterPage />
-                            </React.Suspense>
-                        </PublicOnlyRoute>
-                    }
-                />
-                <Route
-                    path="/forgot-password"
-                    element={
-                        <PublicOnlyRoute>
-                            <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}>
-                                <ForgotPasswordPage />
-                            </React.Suspense>
-                        </PublicOnlyRoute>
-                    }
-                />
+      {
+      }
+      {CAN_SHOW_BUBBLE && (
+        <HostChatBubbleRef
+          ref={bubbleRef}
+          iframeUrl={iframeUrl}              
+          allowedOrigin={allowedOrigin}
+          title="Tutor Virtual"
+          subtitle="Sustentación"
+          startOpen={false}
+          theme="auto"
+          showDebug={false}
+          avatar={BOT_AVATAR}
+          loadingAvatar={BOT_LOADING}
+          onAuthNeeded={handleSendToken}
+          onTelemetry={(evt) => import.meta.env.DEV && console.log("[telemetry]", evt)}
+        />
+      )}
 
-                {/* 💬 Chat */}
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/chat-embed" element={<ChatPage forceEmbed />} />
-                <Route path="/iframe/chat" element={<ChatPage forceEmbed />} />
-                <Route path="/widget" element={<ChatPage forceEmbed embedHeight="100vh" />} />
-                {SHOW_HARNESS && <Route path="/chat-harness" element={<Harness />} />}
-
-                {/* 🔒 Protegidas */}
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/profile"
-                    element={
-                        <ProtectedRoute>
-                            <ProfilePage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/diagnostico"
-                    element={
-                        <ProtectedRoute>
-                            <TestPage />
-                        </ProtectedRoute>
-                    }
-                />
-
-                {/* 🔐 admin */}
-                <Route
-                    path="/logs"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin", "soporte"]}>
-                                <LogsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/intents"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <IntentsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/stats"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <StatsPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/stats-v2"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <StatsPageV2 />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/users"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <UserManagementPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/assign-roles"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <AssignRoles />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/upload-intents"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <UploadIntentsCSV />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/admin/exportaciones"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <ExportacionesPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/intentos-fallidos"
-                    element={
-                        <ProtectedRoute>
-                            <RequireRole allowedRoles={["admin"]}>
-                                <IntentosFallidosPage />
-                            </RequireRole>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/admin/register"
-                    element={
-                        <PublicOnlyRoute>
-                            <AdminRegisterPage />
-                        </PublicOnlyRoute>
-                    }
-                />
-                <Route
-                    path="/admin/login"
-                    element={
-                        <PublicOnlyRoute>
-                            <AdminLoginPage />
-                        </PublicOnlyRoute>
-                    }
-                />
-                <Route
-                    path="voice"
-                    element={
-                        <ProtectedRoute>
-                            <VoicePage />
-                        </ProtectedRoute>
-                    }
-                /> 
-                <Route
-                    path="/admin"
-                    element={
-                        <ProtectedRoute>
-                            <AdminLayout />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route path="*" element={<CatchAllRedirect />} />
-            </Routes>
-
-            {/* 🫧 Widget embebido */}
-            {CAN_SHOW_BUBBLE && (
-                <HostChatBubbleRef
-                    ref={bubbleRef}
-                    iframeUrl={iframeUrl}
-                    allowedOrigin={allowedOrigin}
-                    title="Tutor Virtual"
-                    subtitle="Sustentación"
-                    startOpen={false}
-                    theme="auto"
-                    showDebug={false}
-                    avatar={BOT_AVATAR}
-                    loadingAvatar={BOT_LOADING}
-                    onAuthNeeded={handleSendToken}
-                    onTelemetry={(evt) => import.meta.env.DEV && console.log("[telemetry]", evt)}
-                />
-            )}
-
-            {/* 🔧 Debug opcional */}
-            {CAN_SHOW_BUBBLE && SHOW_BUBBLE_DEBUG && (
-                <div
-                    style={{
-                        position: "fixed",
-                        right: 10,
-                        bottom: 10,
-                        zIndex: 2147483000,
-                    }}
-                >
-                    <div
-                        style={{
-                            background: "rgba(2,6,23,.75)",
-                            color: "#E5E7EB",
-                            border: "1px solid #334155",
-                            borderRadius: 12,
-                            padding: 10,
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                        }}
-                    >
-                        <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
-                        <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
-                        <button onClick={handleLoginDemo} className="btn">Login & Enviar Token</button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
-                        <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
-                        <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">Idioma: ES</button>
-                    </div>
-                </div>
-            )}
-        </TooltipProvider>
-    );
+      {
+      }
+      {CAN_SHOW_BUBBLE && SHOW_BUBBLE_DEBUG && (
+        <div
+          style={{
+            position: "fixed",
+            right: 10,
+            bottom: 10,
+            zIndex: 2147483000,
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(2,6,23,.75)",
+              color: "#E5E7EB",
+              border: "1px solid #334155",
+              borderRadius: 12,
+              padding: 10,
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <button onClick={() => bubbleRef.current?.open?.()} className="btn">Abrir Chat</button>
+            <button onClick={() => bubbleRef.current?.close?.()} className="btn">Cerrar Chat</button>
+            <button onClick={handleLoginDemo} className="btn">Login & Enviar Token</button>
+            <button onClick={() => bubbleRef.current?.setTheme?.("dark")} className="btn">Tema: Dark</button>
+            <button onClick={() => bubbleRef.current?.setTheme?.("light")} className="btn">Tema: Light</button>
+            <button onClick={() => bubbleRef.current?.setLanguage?.("en")} className="btn">Idioma: EN</button>
+            <button onClick={() => bubbleRef.current?.setLanguage?.("es")} className="btn">Idioma: ES</button>
+          </div>
+        </div>
+      )}
+    </TooltipProvider>
+  );
 }
+

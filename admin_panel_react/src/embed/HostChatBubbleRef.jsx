@@ -8,50 +8,57 @@ import React, {
     useState,
 } from "react";
 
-// ❌ NUNCA JSX suelto aquí (esto rompía el build)
-// <ChatApp avatar={import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png"} />
-
-// IDs únicos para evitar cargas duplicadas
 const JS_ID = "zajuna-bubble-js";
 const CSS_ID = "zajuna-bubble-css";
-
-/** Carga segura del JS del bubble (de-dupe + timeout) */
 function loadBubbleScript(src = "/embed/zajuna-bubble.js", timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
+        // Si ya está disponible la API, listo
         if (window.ZajunaBubble?.create) return resolve(true);
 
         const existing = document.getElementById(JS_ID);
         if (existing) {
-            const done = () => resolve(true);
-            existing.addEventListener("load", done, { once: true });
-            existing.addEventListener("error", reject, { once: true });
-            setTimeout(
-                () =>
-                    window.ZajunaBubble?.create
-                        ? resolve(true)
-                        : reject(new Error("[zajuna-bubble] load timeout (existing)")),
-                timeoutMs
-            );
+            const onLoad = () => {
+                clearTimeout(timer);
+                resolve(true);
+            };
+            const onError = (e) => {
+                clearTimeout(timer);
+                reject(e);
+            };
+            existing.addEventListener("load", onLoad, { once: true });
+            existing.addEventListener("error", onError, { once: true });
+            const timer = setTimeout(() => {
+                if (window.ZajunaBubble?.create) return resolve(true);
+                reject(new Error("[zajuna-bubble] load timeout (existing)"));
+            }, timeoutMs);
             return;
         }
+
         const s = document.createElement("script");
         s.id = JS_ID;
         s.src = src;
         s.async = true;
-        s.onload = () => resolve(true);
-        s.onerror = (e) => reject(e);
+
+        const onLoad = () => {
+            clearTimeout(timer);
+            resolve(true);
+        };
+        const onError = (e) => {
+            clearTimeout(timer);
+            reject(e);
+        };
+
+        s.onload = onLoad;
+        s.onerror = onError;
         document.head.appendChild(s);
-        setTimeout(
-            () =>
-                window.ZajunaBubble?.create
-                    ? resolve(true)
-                    : reject(new Error("[zajuna-bubble] load timeout")),
-            timeoutMs
-        );
+
+        const timer = setTimeout(() => {
+            if (window.ZajunaBubble?.create) return resolve(true);
+            reject(new Error("[zajuna-bubble] load timeout"));
+        }, timeoutMs);
     });
 }
 
-/** Inyecta CSS si falta */
 function ensureBubbleCss(href = "/embed/zajuna-bubble.css") {
     if (document.getElementById(CSS_ID)) return;
     const already = [...document.querySelectorAll('link[rel="stylesheet"]')].some((l) =>
@@ -65,13 +72,6 @@ function ensureBubbleCss(href = "/embed/zajuna-bubble.css") {
     document.head.appendChild(link);
 }
 
-/**
- * NOTA para /public/embed/zajuna-bubble.js:
- * el iframe usa:
- *   allow="microphone; camera; autoplay; clipboard-write; fullscreen"
- *   sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
- */
-
 const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
     {
         iframeUrl = `${window.location.origin}/?embed=1`,
@@ -79,7 +79,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         title = "Tutor Virtual",
         subtitle = "Sustentación",
         position = "bottom-right",
-        startOpen = false, // por defecto cerrado
+        startOpen = false,
         theme = "auto",
         zIndex = 2147483000,
         initialToken,
@@ -89,10 +89,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         },
         injectCss = true,
         showDebug = false,
-        // 🖼️ avatar visible en el FAB del widget (servido desde /public)
+        
         avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/mi-avatar.png",
-
-        // 🆕 añadidos: loadingAvatar opcional + persistencia local
         loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/bot-loading.png",
     },
     ref
@@ -103,7 +101,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
     const [lastEvent, setLastEvent] = useState(null);
     const [error, setError] = useState("");
 
-    // 🆕 Persistencia
+ 
     const LS_OPEN = "zj_bubble_open";
     const LS_MIN = "zj_bubble_min";
     const savedOpen = (typeof window !== "undefined" && localStorage.getItem(LS_OPEN) === "1");
@@ -126,7 +124,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             } catch (e) {
                 console.warn(e);
                 if (!destroyed) setError(String(e?.message || e));
-                // reintento único corto
+               
                 try {
                     await new Promise((r) => setTimeout(r, 400));
                     await ensureBubble();
@@ -146,17 +144,16 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
 
             const bubble = window.ZajunaBubble.create({
                 iframeUrl,
-                // 🔒 origin estricto del iframe
                 allowedOrigin: expectedOrigin,
                 title,
                 subtitle,
                 position,
-                startOpen: (savedOpen ?? startOpen), // 🆕 respeta persistencia si existe
+                startOpen: (savedOpen ?? startOpen), 
                 theme,
                 zIndex,
                 showLabel: false,
                 padding: 20,
-                avatar, // ✅ avatar final
+                avatar, 
             });
 
             bubble.onEvent((evt) => {
@@ -176,13 +173,11 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                     onAuthNeeded?.();
                 }
 
-                // 🆕 Persistencia si el bubble emite estos eventos
                 if (evt?.type === "widget:opened") { try { localStorage.setItem(LS_OPEN, "1"); } catch { } }
                 if (evt?.type === "widget:closed") { try { localStorage.setItem(LS_OPEN, "0"); } catch { } }
                 if (evt?.type === "widget:min") { try { localStorage.setItem(LS_MIN, "1"); } catch { } }
                 if (evt?.type === "widget:restore") { try { localStorage.setItem(LS_MIN, "0"); } catch { } }
 
-                // 🆕 Typing -> avatar loading (si tu bubble expone setAvatar)
                 if (evt?.type === "bot:typing") {
                     const on = !!evt.active;
                     if (typeof bubble.setAvatar === "function") {
@@ -198,8 +193,7 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             setMounted(true);
 
             if (initialToken) bubble.sendAuthToken(initialToken);
-
-            // 🆕 restaurar minimizado si existe API
+         
             if (savedOpen && savedMin && typeof bubble.minimize === "function") {
                 bubble.minimize(true);
             }
@@ -227,8 +221,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         onTelemetry,
         onAuthNeeded,
         avatar,
-        loadingAvatar,      // 🆕
-        savedOpen, savedMin // 🆕
+        loadingAvatar,      
+        savedOpen, savedMin 
     ]);
 
     useImperativeHandle(
@@ -241,9 +235,9 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
                 if (!b) return;
                 b.isOpen?.() ? b.close?.() : b.open?.();
             },
-            // compat con tu código existente
+          
             sendToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
-            // alias explícito
+          
             sendAuthToken: (token) => bubbleRef.current?.sendAuthToken?.(token),
             setTheme: (next) => {
                 bubbleRef.current?.setTheme?.(next);
@@ -259,7 +253,6 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
             getLastEvent: () => lastEvent,
             getLastPrefs: () => lastPrefs,
 
-            // 🆕 expone helpers opcionales (no rompen nada si no se usan)
             setAvatar: (src) => bubbleRef.current?.setAvatar?.(src),
             minimize: (toMin = true) => bubbleRef.current?.minimize?.(toMin),
         }),

@@ -86,7 +86,7 @@ export default function SettingsPanel({
                 return merged;
             });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+      
     }, [loadingServerPrefs, serverPrefs?.language, serverPrefs?.theme, serverPrefs?.fontScale, serverPrefs?.highContrast]);
 
     const toastTimerRef = useRef(null);
@@ -101,26 +101,20 @@ export default function SettingsPanel({
     useEffect(() => {
         const html = document.documentElement;
 
-        // Tema
         html.classList.toggle("dark", !!state.darkMode);
 
-        // Tamaño base
         const scale = Number(state.fontScale || 1);
         html.style.fontSize = `${16 * scale}px`;
 
-        // Alto contraste
         html.classList.toggle("high-contrast", !!state.highContrast);
 
-        // Guardar local
         writeLS(state);
 
-        // Idioma
         if (state.language) {
             i18n.changeLanguage(state.language);
             onLanguageChange?.(state.language);
         }
 
-        // Sync opcional con backend
         (async () => {
             const result = await maybeSyncToBackend(state);
             if (result.ok && !result.skipped) {
@@ -129,7 +123,6 @@ export default function SettingsPanel({
             }
         })();
 
-        // Notificar al host (widget)
         try {
             const parentOrigin = new URL(document.referrer || window.origin).origin;
             window.parent?.postMessage(
@@ -137,9 +130,8 @@ export default function SettingsPanel({
                 parentOrigin
             );
         } catch { }
-    }, [state.darkMode, state.fontScale, state.highContrast, state.language]); // eslint-disable-line
+    }, [state.darkMode, state.fontScale, state.highContrast, state.language]); 
 
-    // Reaplicar al montar
     useEffect(() => {
         const saved = safeReadLS();
         const html = document.documentElement;
@@ -147,7 +139,6 @@ export default function SettingsPanel({
         if (saved?.highContrast) html.classList.add("high-contrast");
     }, []);
 
-    // Escape para cerrar
     useEffect(() => {
         if (!open) return;
         const onEsc = (e) => { if (e.key === "Escape") onClose?.(); };

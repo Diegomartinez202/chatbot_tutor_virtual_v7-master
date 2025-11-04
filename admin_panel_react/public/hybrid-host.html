@@ -4,8 +4,9 @@
     <meta charset="utf-8" />
     <title>Host Híbrido – Tutor Virtual</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <<script>
+    <script>
        window.APP_CONTEXT = "hybrid";
+       window.__DISABLE_CHAT_WIDGET__ = false;
        document.documentElement.setAttribute('data-app-context','hybrid');
     </script>
     <!-- La CSP real la controlas desde Nginx; aquí solo estilos mínimos para la demo -->
@@ -190,30 +191,56 @@
             if (tok) postToIframe({ type: "auth:token", token: tok });
         }
 
-        window.addEventListener("message", (ev) => {
-            const origin = ev.origin || ev.originalEvent?.origin;
-            if (ALLOWED_IFRAME_ORIGINS.length && !ALLOWED_IFRAME_ORIGINS.includes(origin)) return;
+function setMinimized(min) {
+  bubble.style.height = min ? "56px" : "580px";
+  btnMin.textContent = min ? "Expandir" : "Minimizar";
+}
 
-            const data = ev.data || {};
-            if (!data || typeof data !== "object") return;
+function isOpen() {
+  return bubble.classList.contains("open");
+}
 
-            if (data.type === "auth:request") sendAuthToken();
+function isMinimized() {
+  return bubble.style.height === "56px";
+}
 
-            if (data.type === "widget:toggle") {
-                if (data.action === "close") bubble.classList.remove("open");
-                else bubble.classList.toggle("open");
-            }
-        });
+window.addEventListener("message", (ev) => {
+  const origin = ev.origin || ev.originalEvent?.origin;
+  if (ALLOWED_IFRAME_ORIGINS.length && !ALLOWED_IFRAME_ORIGINS.includes(origin)) return;
 
-        launcher.addEventListener("click", () => {
-            bubble.classList.add("open");
-            sendAuthToken(); // al abrir, empuja token si ya hay
-        });
-        btnClose.addEventListener("click", () => bubble.classList.remove("open"));
-        btnMin.addEventListener("click", () => {
-            bubble.style.height = (bubble.style.height === "56px" ? "580px" : "56px");
-        });
+  const data = ev.data || {};
+  if (!data || typeof data !== "object") return;
 
+  if (data.type === "auth:request") sendAuthToken();
+
+  // 🔁 El iframe manda "widget:toggle" sin acción cuando pulsas "✕ Minimizar" en su header.
+  // En vez de cerrar/abrir, interpreta eso como "toggle de minimizado".
+  if (data.type === "widget:toggle") {
+    if (data.action === "close") {
+      bubble.classList.remove("open"); // solo cerrar si lo piden explícito
+      return;
+    }
+    // sin action -> toggle minimizar (no cierres el bubble)
+    if (!isOpen()) bubble.classList.add("open");
+    setMinimized(!isMinimized());
+  }
+});
+
+launcher.addEventListener("click", () => {
+  if (!isOpen()) {
+    bubble.classList.add("open");
+    setMinimized(false); // abrir en grande
+    sendAuthToken();
+  } else {
+    // si ya está abierto, solo enfoca y restaura tamaño
+    setMinimized(false);
+    try { frame.contentWindow?.focus(); } catch {}
+  }
+});
+
+btnClose.addEventListener("click", () => bubble.classList.remove("open"));
+
+btnMin.addEventListener("click", () => setMinimized(!isMinimized()));
         // Simuladores de token (para demo)
         btnSet.addEventListener("click", () => {
             const sample = "demo-token-" + Math.random().toString(36).slice(2, 8);

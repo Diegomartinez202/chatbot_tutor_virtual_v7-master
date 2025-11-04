@@ -16,8 +16,6 @@ import {
 import IconTooltip from "@/components/ui/IconTooltip";
 import { useTranslation } from "react-i18next";
 
-// 🔧 Si en el futuro agregas la ruta /intentos-fallidos,
-// pon esto en true para mostrar el ítem en el menú.
 const ENABLE_INTENTOS_FALLIDOS = true;
 
 const Sidebar = () => {
@@ -25,7 +23,6 @@ const Sidebar = () => {
     const role = user?.rol || "usuario";
     const { t } = useTranslation(); // defaultNS = common
 
-    // Rutas armonizadas con AppRoutes.jsx
     const menuSections = {
         Cuenta: [
             { to: "/dashboard", label: t("dashboard"), icon: LayoutDashboard, roles: ["admin", "soporte", "usuario"] },
