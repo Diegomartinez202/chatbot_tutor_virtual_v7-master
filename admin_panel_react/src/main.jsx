@@ -1,4 +1,4 @@
-// src/main.tsx
+// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -24,8 +24,12 @@ import { initAuthBridge } from "@/embed/authBridge.js";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { setAuthToken } from "@/services/axiosClient";
 
-const APP_CONTEXT =
-    (typeof window !== "undefined" && (window as any).APP_CONTEXT) || "panel";
+// Contexto de ejecución (panel / hybrid) sin TS
+const APP_CONTEXT = (() => {
+    if (typeof window === "undefined") return "panel";
+    const w = window; // 👈 sin ": any"
+    return w.APP_CONTEXT || "panel";
+})();
 
 const IS_EMBEDDED =
     typeof window !== "undefined" && window.self !== window.top;
@@ -47,9 +51,12 @@ setAccessTokenGetter(() => {
 (function initBridgeOnce() {
     if (!(IS_EMBEDDED || APP_CONTEXT === "hybrid")) return;
 
+    // Normaliza orígenes (sin barra final) — JS puro
+    const normalizeOrigin = (s) => String(s || "").trim().replace(/\/+$/, "");
+
     const env = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
         .split(",")
-        .map((s: string) => String(s || "").trim().replace(/\/+$/, ""))
+        .map(normalizeOrigin)
         .filter(Boolean);
 
     let fallbackOrigin = "*";

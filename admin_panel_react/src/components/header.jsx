@@ -26,7 +26,13 @@ import assets from "@/config/assets";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "@/components/LanguageSelector";
 import ThemeToggle from "@/components/ThemeToggle";
+// Mantengo este import para no romper nada que lo referencie en el futuro:
 import { useJwtAuthSnapshot } from "@/hooks/useJwtAuthSnapshot";
+
+// ⬇️ Flag de entorno: solo muestra enlaces dev cuando estás en dev
+const IS_DEV =
+    String(import.meta.env.MODE || import.meta.env.VITE_APP_ENV || "dev")
+        .toLowerCase() === "dev";
 
 const Header = () => {
     const { t } = useTranslation(); // defaultNS=common
@@ -148,14 +154,23 @@ const Header = () => {
             roles: ["admin"],
             tip: t("intents_no_reconocidos"),
         },
+
+        // ⬇️ Enlace temporal solo en dev y para rol admin (no afecta producción)
+        ...(IS_DEV
+            ? [
+                {
+                    to: "/dev/auth-test",
+                    label: "Auth Test (dev)",
+                    icon: Cog,
+                    roles: ["admin"],
+                    tip: "Pruebas de refresh/cookies",
+                },
+            ]
+            : []),
     ];
+
     const canSee = (l) => !l.roles || l.roles.includes(role);
-    <Link
-        to="/dev/auth-test"
-        className="px-2 py-1 text-xs rounded bg-gray-800 text-white hover:bg-gray-700"
-    >
-        Dev Auth Test
-    </Link>
+
     return (
         <>
             <aside className="h-screen w-64 bg-gray-900 text-white flex flex-col justify-between">
@@ -177,9 +192,7 @@ const Header = () => {
                             <Link to="/" className="text-lg font-bold hover:underline">
                                 Chatbot Tutor Virtual
                             </Link>
-                            <div className="text-xs text-white/70">
-                                {t("panel_administracion")}
-                            </div>
+                            <div className="text-xs text-white/70">{t("panel_administracion")}</div>
                         </div>
 
                         <div className="ml-auto flex items-center gap-2">
@@ -193,9 +206,7 @@ const Header = () => {
                         <ol className="flex items-center gap-1 text-xs text-white/80">
                             {crumbs.map((c, i) => (
                                 <li key={c.to} className="flex items-center">
-                                    {i > 0 && (
-                                        <ChevronRight className="w-3 h-3 mx-1 opacity-70" />
-                                    )}
+                                    {i > 0 && <ChevronRight className="w-3 h-3 mx-1 opacity-70" />}
                                     <Link
                                         to={c.to}
                                         className="hover:underline inline-flex items-center gap-1"
@@ -290,6 +301,19 @@ const Header = () => {
                         <LogoutButton confirm className="ml-1" />
                     </div>
                 </div>
+
+                {/* ⬇️ Bloque dev temporal (footer del aside): visible solo en dev y admin */}
+                {IS_DEV && role === "admin" && (
+                    <div className="px-6 pb-5">
+                        <Link
+                            to="/dev/auth-test"
+                            className="px-2 py-1 text-xs rounded bg-gray-800 text-white hover:bg-gray-700 inline-flex items-center gap-2"
+                        >
+                            <Cog className="w-3.5 h-3.5" />
+                            Dev Auth Test
+                        </Link>
+                    </div>
+                )}
             </aside>
 
             {/* Panel de Configuración */}
@@ -298,9 +322,7 @@ const Header = () => {
                 onClose={() => setOpenSettings(false)}
                 isAuthenticated={isAuthenticated}
                 onLogout={logout} // mantiene compat con tu SettingsPanel
-                onCloseChat={() =>
-                    window.dispatchEvent(new CustomEvent("chat:close"))
-                }
+                onCloseChat={() => window.dispatchEvent(new CustomEvent("chat:close"))}
                 onLanguageChange={(lang) =>
                     window.dispatchEvent(new CustomEvent("app:lang", { detail: { lang } }))
                 }

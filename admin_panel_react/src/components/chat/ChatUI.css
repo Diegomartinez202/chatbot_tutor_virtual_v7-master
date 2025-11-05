@@ -372,3 +372,18 @@
     outline: 2px solid rgba(79,70,229,.35);
     outline-offset: 2px;
 }
+/* evita que algo absoluto tape la burbuja */
+.chat-messages .bubble {
+    position: relative;
+    z-index: 10;
+}
+
+.chat-messages img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* los avatares nunca deben superponer */
+.chat-messages img, .chat-messages svg {
+    z-index: 0;
+}

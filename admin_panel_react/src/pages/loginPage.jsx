@@ -63,7 +63,7 @@ export default function LoginPage() {
             // 2) Persistir y fijar Authorization por defecto
             try {
                 localStorage.setItem(STORAGE_KEYS.accessToken, String(access));
-            } catch { }
+            } catch { /* no-op */ }
             setAuthToken(String(access));
 
             // 3) Notificar al contexto (si implementa login)
@@ -71,9 +71,7 @@ export default function LoginPage() {
                 if (typeof ctxLogin === "function") {
                     await ctxLogin(access);
                 }
-            } catch {
-                // opcional
-            }
+            } catch { /* no-op */ }
 
             // 4) Consultar perfil para decidir la redirección
             let role = "usuario";
@@ -86,9 +84,7 @@ export default function LoginPage() {
                     profile = pr?.data;
                 }
                 role = profile?.rol || profile?.role || "usuario";
-            } catch {
-                // si falla /me, continúa con rol "usuario"
-            }
+            } catch { /* si falla /me, continúa con rol "usuario" */ }
 
             if (role === "admin" || role === "soporte") {
                 navigate("/dashboard", { replace: true });
@@ -191,18 +187,21 @@ export default function LoginPage() {
                         <div className="my-5 h-px bg-gray-200" role="separator" />
                         <form onSubmit={handleLogin} aria-describedby="login-error" noValidate>
                             <Input
+                                id="login-email"
                                 label="Email"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                autoComplete="username"
+                                autoComplete="username email"
                                 name="email"
                                 placeholder="correo@ejemplo.com"
                                 data-testid="login-email"
                                 aria-required="true"
+                                aria-invalid={!!error}
                             />
                             <Input
+                                id="login-password"
                                 label="Contraseña"
                                 type="password"
                                 value={password}
@@ -213,9 +212,12 @@ export default function LoginPage() {
                                 placeholder="••••••••"
                                 data-testid="login-password"
                                 aria-required="true"
+                                aria-invalid={!!error}
                             />
 
                             <button
+                                id="login-submit"
+                                name="login-submit"
                                 type="submit"
                                 disabled={loading}
                                 aria-busy={loading}

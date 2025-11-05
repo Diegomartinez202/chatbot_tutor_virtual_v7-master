@@ -61,53 +61,67 @@ export default function RegisterPage() {
                     <IconTooltip label="Crear cuenta" side="top">
                         <UserPlus className="w-6 h-6 text-indigo-600" />
                     </IconTooltip>
-                    <h1 className="text-xl font-semibold">Crear cuenta</h1>
+                    <h1 className="text-xl font-semibold" id="register-title">Crear cuenta</h1>
                 </div>
 
-                <form onSubmit={handleSubmit} aria-describedby="register-error">
+                <form onSubmit={handleSubmit} aria-labelledby="register-title" aria-describedby="register-error" noValidate>
                     <Input
+                        id="register-name"
                         label="Nombre"
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
                         placeholder="Tu nombre"
                         name="name"
+                        autoComplete="name"
                         required
+                        aria-required="true"
                     />
 
                     <Input
+                        id="register-email"
                         label="Email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="correo@ejemplo.com"
                         name="email"
+                        autoComplete="email"
                         required
+                        aria-required="true"
                         leadingIcon={<Mail className="w-4 h-4 text-gray-500" />}
                     />
 
                     <Input
+                        id="register-password"
                         label="Contraseña"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         name="password"
+                        autoComplete="new-password"
                         required
+                        aria-required="true"
                         placeholder="••••••••"
                         leadingIcon={<Lock className="w-4 h-4 text-gray-500" />}
                     />
 
                     <Input
+                        id="register-password2"
                         label="Confirmar contraseña"
                         type="password"
                         value={password2}
                         onChange={(e) => setPassword2(e.target.value)}
                         name="password_confirm"
+                        autoComplete="new-password"
                         required
+                        aria-required="true"
                         placeholder="••••••••"
                         leadingIcon={<Lock className="w-4 h-4 text-gray-500" />}
                     />
 
                     <button
+                        id="register-submit"
+                        name="register-submit"
                         type="submit"
                         disabled={loading}
                         aria-busy={loading}
@@ -118,7 +132,7 @@ export default function RegisterPage() {
                 </form>
 
                 {err && (
-                    <p id="register-error" className="text-red-600 mt-2" role="alert">
+                    <p id="register-error" className="text-red-600 mt-2" role="alert" aria-live="polite">
                         {err}
                     </p>
                 )}

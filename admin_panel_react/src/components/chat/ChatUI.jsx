@@ -12,7 +12,6 @@ import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
 import { uploadVoiceBlob } from "@/services/voice/uploadVoice";
-
 import { sendToRasaREST } from "./rasa/restClient.js";
 
 const SEND_CLIENT_HELLO = true;
@@ -75,6 +74,18 @@ function getInitials(source) {
 }
 
 function UserAvatar({ user, size = 28 }) {
+    // Si NO hay sesión -> icono de persona (no iniciales)
+    if (!user) {
+        return (
+            <div
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center"
+                style={{ width: size, height: size }}
+            >
+                <UserIcon className="w-4 h-4" />
+            </div>
+        );
+    }
+
     const [err, setErr] = useState(false);
     const src =
         user?.avatarUrl ||
@@ -83,17 +94,30 @@ function UserAvatar({ user, size = 28 }) {
         user?.photo ||
         USER_AVATAR_FALLBACK ||
         "";
+
+    // Si hay URL pero falla -> icono de persona
     if (!src || err) {
-        const initials = getInitials(user?.nombre || user?.name || user?.email);
         return (
             <div
-                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center font-semibold"
+                className="shrink-0 rounded-full border border-gray-200 bg-gray-100 text-gray-700 flex items-center justify-center"
                 style={{ width: size, height: size }}
             >
-                {initials?.slice(0, 2) || <UserIcon className="w-4 h-4" />}
+                <UserIcon className="w-4 h-4" />
             </div>
         );
     }
+
+    // Caso feliz: foto del perfil
+    return (
+        <img
+            src={src}
+            alt={user?.nombre || user?.name || user?.email || "Usuario"}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setErr(true)}
+            style={{ width: size, height: size }}
+        />
+    );
+
     return (
         <img
             src={src}
@@ -396,7 +420,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         <div className="h-full flex flex-col chat-container">
             {/* Header simple con Config a la derecha */}
             <div className="chat-header">
-                <div className="chat-title">Asistente</div>
+                <div className="chat-title">Zajuna</div>
 
                 {/* 👇 botón de cerrar/minimizar SOLO en embed */}
                 {embed && (

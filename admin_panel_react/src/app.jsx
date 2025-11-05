@@ -34,8 +34,8 @@ import Harness from "@/pages/Harness";
 import HostChatBubbleRef from "@/embed/HostChatBubbleRef.jsx";
 import HostChatBubble from "@/embed/HostChatBubble.jsx"; 
 import "@/i18n";
-import DevAuthTest from "@/pages/DevAuthTest";
 
+const DevAuthTest = React.lazy(() => import("@/pages/DevAuthTest"));
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/mi-avatar.png";
 const BOT_LOADING = import.meta.env.VITE_BOT_LOADING || "/bot-loading.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
@@ -324,19 +324,14 @@ export default function App() {
             element={
                 <ProtectedRoute>
                     <RequireRole allowedRoles={["admin"]}>
-                        {/* Si usaste lazy, envuélvelo aquí: */}
-                        {/* <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}> */}
-                        <DevAuthTest />
-                        {/* </React.Suspense> */}
+                        <React.Suspense fallback={<div className="p-6 text-sm">Cargando…</div>}>
+                            <DevAuthTest />
+                        </React.Suspense>
                     </RequireRole>
                 </ProtectedRoute>
             }
         />
-        {
-        }
-        {
-        }
-
+        
         <Route path="*" element={<CatchAllRedirect />} />
       </Routes>
 
