@@ -26,13 +26,16 @@ def _effective_alg() -> str:
 def _jwt_leeway_seconds() -> int:
     """
     Leeway de validación temporal para PyJWT (drift de reloj).
-    Si tu settings define jwt_leeway (segundos), úsalo; si no, 0.
+    Si tu settings define jwt_leeway_seconds o jwt_leeway, lo usamos; si no, 0.
     """
-    try:
-        v = int(getattr(settings, "jwt_leeway", 0) or 0)
-        return max(0, v)
-    except Exception:
-        return 0
+    for attr in ("jwt_leeway_seconds", "jwt_leeway"):
+        try:
+            v = int(getattr(settings, attr, 0) or 0)
+            if v > 0:
+                return v
+        except Exception:
+            pass
+    return 0
 
 def _access_exp_delta() -> timedelta:
     """
@@ -92,10 +95,8 @@ def _jwt_decode_kwargs() -> Dict[str, Any]:
     leeway = _jwt_leeway_seconds()
     kwargs: Dict[str, Any] = {
         "algorithms": [_effective_alg()],
-        "options": {
-            # PyJWT valida exp/iat/nbf por defecto; no ampliamos opciones aquí.
-            # Si necesitas inhabilitar algunas validaciones, se puede parametrizar luego.
-        },
+        # PyJWT valida exp/iat/nbf por defecto
+        # Si en el futuro usas iss/aud, agrégalo aquí (issuer=..., audience=...)
     }
     if leeway > 0:
         kwargs["leeway"] = leeway
@@ -139,7 +140,7 @@ def _decode_and_check_typ(
             accept_typeless = (
                 allow_typeless
                 if allow_typeless is not None
-                else getattr(settings, "jwt_accept_typeless", False)
+                else bool(getattr(settings, "jwt_accept_typeless", False))
             )
             return payload if accept_typeless else None
         return payload if typ == expected_typ else None

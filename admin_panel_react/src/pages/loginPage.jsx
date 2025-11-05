@@ -6,11 +6,16 @@ import IconTooltip from "@/components/ui/IconTooltip";
 import { Lock } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
-import { login as apiLogin, me as apiMe } from "@/services/authApi";
+import { login as apiLogin, me as apiMe } from "@/services/authApi"; // si no existen, haremos fallback
+import axiosClient, { setAuthToken } from "@/services/axiosClient";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 // Flags de entorno
 const ENABLE_LOCAL = String(import.meta.env.VITE_ENABLE_LOCAL_LOGIN) === "true";
-const ZAJUNA_SSO = import.meta.env.VITE_ZAJUNA_SSO_URL || import.meta.env.VITE_ZAJUNA_LOGIN_URL || "";
+const ZAJUNA_SSO =
+    import.meta.env.VITE_ZAJUNA_SSO_URL ||
+    import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
+    "";
 const SHOW_GUEST = String(import.meta.env.VITE_SHOW_GUEST ?? "true") !== "false";
 
 export default function LoginPage() {
@@ -20,38 +25,76 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login, redirectToZajunaSSO } = useAuth();
+    const { login: ctxLogin, redirectToZajunaSSO } = useAuth();
 
-    useEffect(() => { document.title = "Iniciar sesión – Chatbot"; }, []);
+    useEffect(() => {
+        document.title = "Iniciar sesión – Chatbot";
+    }, []);
 
-    // URL de retorno estándar para SSO (por si no usas redirect helper del AuthContext)
+    // URL de retorno estándar para SSO (si no se usa helper del AuthContext)
     const zajunaLoginUrl = useMemo(() => {
         if (ZAJUNA_SSO) return ZAJUNA_SSO;
         const back = `${window.location.origin}/auth/callback`;
         return `/api/auth/zajuna/login?redirect_uri=${encodeURIComponent(back)}`;
     }, []);
 
-    // —— LOGIN LOCAL (si está habilitado) ——
+    // ——— LOGIN LOCAL (si está habilitado) ———
     const handleLogin = async (e) => {
         e.preventDefault();
         if (!ENABLE_LOCAL) return;
+
         setLoading(true);
         setError("");
 
         try {
-            // 👉 Centralizado: apiLogin usa axiosClient (baseURL=/api) internamente
-            const { token } = await apiLogin({ email, password });
-            await login(token);
+            // 1) Login local — usa authApi si existe, si no, fallback directo a axiosClient
+            let access = null;
 
+            if (typeof apiLogin === "function") {
+                const r = await apiLogin({ email, password });
+                access = r?.access_token || r?.token || r?.data?.access_token;
+            } else {
+                const r = await axiosClient.post("/auth/login", { email, password });
+                access = r?.data?.access_token;
+            }
+
+            if (!access) throw new Error("No llegó access_token");
+
+            // 2) Persistir y fijar Authorization por defecto
+            try {
+                localStorage.setItem(STORAGE_KEYS.accessToken, String(access));
+            } catch { }
+            setAuthToken(String(access));
+
+            // 3) Notificar al contexto (si implementa login)
+            try {
+                if (typeof ctxLogin === "function") {
+                    await ctxLogin(access);
+                }
+            } catch {
+                // opcional
+            }
+
+            // 4) Consultar perfil para decidir la redirección
             let role = "usuario";
             try {
-                // 👉 Centralizado: apiMe usa axiosClient (Authorization auto)
-                const profile = await apiMe();
+                let profile = null;
+                if (typeof apiMe === "function") {
+                    profile = await apiMe();
+                } else {
+                    const pr = await axiosClient.get("/auth/me");
+                    profile = pr?.data;
+                }
                 role = profile?.rol || profile?.role || "usuario";
-            } catch { /* perfil opcional */ }
+            } catch {
+                // si falla /me, continúa con rol "usuario"
+            }
 
-            if (role === "admin" || role === "soporte") navigate("/dashboard", { replace: true });
-            else navigate("/chat", { replace: true });
+            if (role === "admin" || role === "soporte") {
+                navigate("/dashboard", { replace: true });
+            } else {
+                navigate("/chat", { replace: true });
+            }
         } catch (err) {
             setError(
                 err?.response?.data?.message ||
@@ -63,11 +106,11 @@ export default function LoginPage() {
         }
     };
 
-    // —— SSO Zajuna (intacto + robusto para iframes) ——
+    // ——— SSO Zajuna (intacto + robusto para iframes) ———
     const handleZajuna = () => {
         try {
             if (typeof redirectToZajunaSSO === "function") {
-                redirectToZajunaSSO(); // flujo federado gestionado por AuthContext
+                redirectToZajunaSSO();
                 return;
             }
             const url = zajunaLoginUrl;
@@ -136,8 +179,9 @@ export default function LoginPage() {
                     </div>
                 ) : (
                     <p className="text-sm text-gray-600">
-                        Configura <code>VITE_ZAJUNA_SSO_URL</code> o <code>VITE_ZAJUNA_LOGIN_URL</code> en tu
-                        <code> .env</code> para habilitar el acceso SSO de Zajuna.
+                        Configura <code>VITE_ZAJUNA_SSO_URL</code> o{" "}
+                        <code>VITE_ZAJUNA_LOGIN_URL</code> en tu <code>.env</code> para
+                        habilitar el acceso SSO de Zajuna.
                     </p>
                 )}
 

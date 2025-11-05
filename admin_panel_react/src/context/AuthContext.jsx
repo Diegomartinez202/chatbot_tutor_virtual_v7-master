@@ -1,3 +1,4 @@
+// src/context/AuthContext.jsx
 import React, {
     createContext,
     useContext,
@@ -5,7 +6,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import axiosClient from "@/services/axiosClient";
+import axiosClient, { setAuthToken } from "@/services/axiosClient"; // 👈 usa el helper central
 import { STORAGE_KEYS } from "@/lib/constants";
 import { registerLogout } from "@/services/authHelper";
 
@@ -19,16 +20,6 @@ const AuthContext = createContext({
     logout: async () => { },
     redirectToZajunaSSO: () => { },
 });
-
-function setAxiosAuthHeader(token) {
-    try {
-        if (token) {
-            axiosClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-        } else {
-            delete axiosClient.defaults.headers.common.Authorization;
-        }
-    } catch { }
-}
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => {
@@ -44,11 +35,12 @@ export const AuthProvider = ({ children }) => {
     const role = user?.rol || user?.role || "usuario";
     const isAuthenticated = Boolean(token && user);
 
+    // 👉 un solo punto de verdad para Authorization
     useEffect(() => {
-        setAxiosAuthHeader(token);
+        setAuthToken(token || null);
     }, [token]);
 
-    // 🔄 Mantener sincronizado el token entre pestañas
+    // 🔄 Sincroniza token entre pestañas
     useEffect(() => {
         const onStorage = (e) => {
             if (e.key === STORAGE_KEYS.accessToken) {
@@ -60,19 +52,18 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const logout = useMemo(
-        () =>
-            async () => {
+        () => async () => {
+            try {
+                await axiosClient.post("/auth/logout").catch(() => { });
+            } finally {
                 try {
-                    await axiosClient.post("/auth/logout").catch(() => { });
-                } finally {
-                    try {
-                        localStorage.removeItem(STORAGE_KEYS.accessToken);
-                    } catch { }
-                    setUser(null);
-                    setToken(null);
-                    setAxiosAuthHeader(null);
-                }
-            },
+                    localStorage.removeItem(STORAGE_KEYS.accessToken);
+                } catch { }
+                setUser(null);
+                setToken(null);
+                setAuthToken(null); // limpia Authorization global
+            }
+        },
         []
     );
 
@@ -108,28 +99,27 @@ export const AuthProvider = ({ children }) => {
         };
     }, [token, logout]);
 
-    // ✅ Login manual y reenvío inmediato al chat embebido
+    // ✅ Login manual (guarda token, fija header, trae perfil, avisa al iframe)
     const login = useMemo(
-        () =>
-            async (newToken) => {
-                try {
-                    localStorage.setItem(STORAGE_KEYS.accessToken, newToken);
-                } catch { }
-                setToken(newToken);
-                setAxiosAuthHeader(newToken);
+        () => async (newToken) => {
+            try {
+                localStorage.setItem(STORAGE_KEYS.accessToken, newToken);
+            } catch { }
+            setToken(newToken);
+            setAuthToken(newToken);
 
-                try {
-                    const res = await axiosClient.get("/auth/me");
-                    setUser(res.data);
-                } catch (err) {
-                    console.error("Error al obtener perfil tras login:", err);
-                }
+            try {
+                const res = await axiosClient.get("/auth/me");
+                setUser(res.data);
+            } catch (err) {
+                console.error("Error al obtener perfil tras login:", err);
+            }
 
-                // 🚀 Enviar token al chat embebido si está montado
-                try {
-                    window.__zjBubble?.sendAuthToken?.(newToken);
-                } catch { }
-            },
+            // 🚀 Enviar token al chat embebido si está montado
+            try {
+                window.__zjBubble?.sendAuthToken?.(newToken);
+            } catch { }
+        },
         []
     );
 
@@ -138,13 +128,15 @@ export const AuthProvider = ({ children }) => {
         const ssoUrl = import.meta.env.VITE_ZAJUNA_SSO_URL;
         if (ssoUrl) {
             const redirectUri = `${window.location.origin}/auth/callback`;
-            window.location.href = `${ssoUrl}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+            window.location.href = `${ssoUrl}?redirect_uri=${encodeURIComponent(
+                redirectUri
+            )}`;
         } else {
             console.warn("⚠️ No se configuró VITE_ZAJUNA_SSO_URL");
         }
     };
 
-    // 🔁 Cada vez que cambia el token, reenviarlo al iframe embebido
+    // 🔁 Token → iframe embebido
     useEffect(() => {
         if (!token) return;
         try {

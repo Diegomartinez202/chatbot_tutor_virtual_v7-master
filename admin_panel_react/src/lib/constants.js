@@ -2,23 +2,23 @@
 
 // ====== API & Storage ======
 export const API_BASE_URL = (
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:8000/api"
-).replace(/\/$/, ""); // sin slash final (evita // en requests)
+    import.meta?.env?.VITE_API_BASE_URL ||
+    import.meta?.env?.VITE_API_URL ||
+    // Fallback robusto: usa el origin actual + /api (sirve con Nginx en 8080)
+    (typeof window !== "undefined" ? `${window.location.origin}/api` : "http://localhost:8080/api")
+).replace(/\/$/, ""); // sin slash final
 
 export const STORAGE_KEYS = {
     accessToken: "accessToken",
-    refreshToken: "refreshToken", // por si luego lo usas en localStorage
-    user: "authUser",             // si decides persistir user
+    refreshToken: "refreshToken", // si luego decides guardarlo (hoy NO)
+    user: "authUser",
 };
 
 export const ROLES = {
     admin: "admin",
     soporte: "soporte",
     usuario: "usuario",
-    // opcional/futuro: algunos componentes ya contemplan "tutor"
-    tutor: "tutor",
+    tutor: "tutor", // opcional
 };
 
 export const DATE_FORMATS = {
@@ -40,7 +40,7 @@ export const ROLE_COLORS = {
     admin: "green",
     soporte: "purple",
     usuario: "gray",
-    tutor: "blue", // opcional
+    tutor: "blue",
 };
 
 export const INTENT_COLORS = {
@@ -58,7 +58,7 @@ export const ROLE_STYLES = {
     soporte: "bg-blue-100 text-blue-800",
     usuario: "bg-gray-100 text-gray-800",
     user: "bg-gray-100 text-gray-800", // alias frecuente
-    tutor: "bg-blue-100 text-blue-800", // opcional
+    tutor: "bg-blue-100 text-blue-800",
 };
 
 export const STATUS_STYLES = {

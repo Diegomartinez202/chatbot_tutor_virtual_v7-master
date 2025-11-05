@@ -64,7 +64,6 @@ class Settings(BaseSettings):
     """
 
     # === Configuración general (Pydantic v2) ===
-    # Si estás en v1, más abajo definimos class Config condicionalmente.
     if _V2:
         model_config = SettingsConfigDict(
             env_file=_resolve_env_file(),
@@ -72,18 +71,15 @@ class Settings(BaseSettings):
             extra="ignore",  # ✅ ignora envs no mapeados (e.g., NODE_ENV)
         )
 
-    # === 🔧 MODO DEMO PARA SUSTENTACIÓN ===
-    demo_mode: bool = Field(default=True, alias="DEMO_MODE")
-
-    # 🌱 Entorno (unificado; antes estaba duplicado)
+    # 🌱 Entorno
     app_env: Literal["dev", "test", "prod", "staging"] = Field(default="dev", alias="APP_ENV")
     debug: bool = Field(default=False, alias="DEBUG")
+    demo_mode: bool = Field(default=True, alias="DEMO_MODE")
     base_url: str = Field(default="http://localhost:8000", alias="BASE_URL")
 
-    # 📦 MongoDB (mantenemos TODAS las variantes por compat)
+    # 📦 MongoDB (todas las variantes por compat)
     mongo_uri: Optional[str] = Field(default=None, alias="MONGO_URI")
     mongo_db_name: Optional[str] = Field(default=None, alias="MONGO_DB_NAME")
-
     mongodb_url: Optional[str] = Field(default=None, alias="MONGODB_URL")
     mongodb_db: Optional[str] = Field(default=None, alias="MONGODB_DB")
     mongo_url: Optional[str] = Field(default=None, alias="MONGO_URL")
@@ -102,8 +98,9 @@ class Settings(BaseSettings):
     jwt_leeway_seconds: int = Field(default=0, alias="JWT_LEEWAY_SECONDS")
     jwt_accept_typeless: bool = Field(default=True, alias="JWT_ACCEPT_TYPELESS")
 
-    # ✅ Nombre de la cookie de refresh
+    # ⏳ Refresh cookie (nombre configurable)
     refresh_cookie_name: str = Field(default="rt", alias="REFRESH_COOKIE_NAME")
+    refresh_token_expire_days: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
 
     # 🤖 Rasa Bot (y compat)
     rasa_url: str = Field(default="http://localhost:5005", alias="RASA_URL")
@@ -193,7 +190,6 @@ class Settings(BaseSettings):
     environment_compat: Optional[str] = Field(default=None, alias="ENVIRONMENT")
 
     # 🆕 Política explícita (opcional) para Permissions-Policy.
-    # Ejemplo: "autoplay=(), clipboard-write=(), microphone=(), camera=()"
     permissions_policy: Optional[str] = Field(
         default_factory=lambda: os.getenv("PERMISSIONS_POLICY") or None
     )
@@ -275,7 +271,7 @@ class Settings(BaseSettings):
                 "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
             )
 
-        # JWT coherente con auth.py (HS o RS + clave/jwks)
+        # JWT coherente (HS o RS + clave/jwks)
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
             if not (

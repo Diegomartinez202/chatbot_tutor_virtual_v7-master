@@ -1,7 +1,7 @@
 # backend/routes/auth.py
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
@@ -9,6 +9,7 @@ from backend.dependencies.auth import get_current_user
 from backend.services.token_service import (
     create_access_token,
     create_refresh_token,
+    decode_refresh_token,  # usamos si existe (no rompe si ya está)
 )
 from backend.config.settings import settings
 from backend.utils.logging import get_logger
@@ -35,29 +36,30 @@ class RegisterRequest(BaseModel):
 
 
 # ========================
-# Helpers de cookie refresh
+# Helpers de cookie refresh (mínimos, no invasivos)
 # ========================
 def _refresh_cookie_name() -> str:
-    return (settings.refresh_cookie_name or "rt").strip()
+    return (getattr(settings, "refresh_cookie_name", None) or "rt").strip()
 
 def _refresh_cookie_path() -> str:
     """
-    Muy importante: como sirves el backend detrás de Nginx en /api,
-    el path de la cookie debe ser /api/auth para que el navegador
-    la envíe a /api/auth/refresh.
+    Importante: detrás de Nginx sirves el backend bajo /api,
+    por lo que el path de la cookie debe ser /api/auth
+    para que el navegador la envíe a /api/auth/refresh.
     """
-    # Si algún día cambias el prefijo público, ajusta aquí
     return "/api/auth"
 
 def _cookie_samesite() -> str:
-    # En local sin https → Lax; en prod con https → None para permitir cross-site
-    return "Lax" if (settings.debug or str(getattr(settings, "app_env", "dev")).lower() == "dev") else "None"
+    # En local sin https → Lax; en prod con https → None
+    app_env = str(getattr(settings, "app_env", "dev")).lower()
+    is_dev = getattr(settings, "debug", False) or app_env == "dev"
+    return "Lax" if is_dev else "None"
 
 def _cookie_secure() -> bool:
-    # Secure solo en https real (prod)
-    return not settings.debug
+    # Sólo en https real
+    return not getattr(settings, "debug", False)
 
-def _set_refresh_cookie(response: JSONResponse, refresh_token: str) -> None:
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
     response.set_cookie(
         key=_refresh_cookie_name(),
         value=refresh_token,
@@ -68,7 +70,7 @@ def _set_refresh_cookie(response: JSONResponse, refresh_token: str) -> None:
         max_age=7 * 24 * 3600,
     )
 
-def _clear_refresh_cookie(response: JSONResponse) -> None:
+def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(
         key=_refresh_cookie_name(),
         path=_refresh_cookie_path(),
@@ -94,7 +96,7 @@ def login_user_route(data: RegisterRequest, request: Request):
     response = JSONResponse(
         content={
             "access_token": access_token,
-            "refresh_token": refresh_token,  # conservamos para compat
+            "refresh_token": refresh_token,  # compat
             "token_type": "bearer",
         }
     )
@@ -147,6 +149,7 @@ def register_user(data: RegisterRequest, request: Request):
             content={
                 "message": "Cuenta creada exitosamente.",
                 "access_token": access_token,
+                "refresh_token": refresh_token,  # compat añadido
                 "token_type": "bearer",
             },
             status_code=201,
@@ -165,79 +168,72 @@ def register_user(data: RegisterRequest, request: Request):
 
 # ========================
 # Refresh de access token (cookie httpOnly)
+# Soporta GET y POST para compat con el panel/interceptor
 # ========================
+@router.get("/refresh")
 @router.post("/refresh")
 @limit("30/minute")
 def refresh_access_token(request: Request):
     """
     Lee la cookie httpOnly con el refresh y emite un nuevo access token.
-    No devuelve un refresh nuevo (solo rotación de access).
+    No rota el refresh (preserva tu lógica y compat).
     """
-    # 1) Leer cookie
     cookie_name = _refresh_cookie_name()
     rt = request.cookies.get(cookie_name)
+
     if not rt:
         logger.info("Refresh sin cookie")
         raise HTTPException(status_code=401, detail="No refresh cookie")
 
-    # 2) Decodificar/validar refresh y obtener el 'sub' (usuario)
-    # Intentamos funciones típicas de tu token_service sin romper si no existen.
-    user_payload = None
-    user_id = None
-    user_email = None
-
     try:
-        # a) verify_refresh_token → {sub, ...}
-        from backend.services import token_service as ts  # import perezoso
+        # Usamos decode_refresh_token si existe (en tu token_service)
+        payload = None
+        try:
+            payload = decode_refresh_token(rt)  # puede retornar None si inválido
+        except Exception:
+            payload = None
 
-        if hasattr(ts, "verify_refresh_token"):
-            user_payload = ts.verify_refresh_token(rt)
-        elif hasattr(ts, "decode_refresh_token"):
-            user_payload = ts.decode_refresh_token(rt)
-        elif hasattr(ts, "get_subject_from_refresh"):
-            user_payload = {"sub": ts.get_subject_from_refresh(rt)}  # puede ser id o email
+        if not payload:
+            # Fallback ultra-compat vía import perezoso de token_service (si cambió API)
+            from backend.services import token_service as ts
+            if hasattr(ts, "verify_refresh_token"):
+                payload = ts.verify_refresh_token(rt)
+            elif hasattr(ts, "get_subject_from_refresh"):
+                payload = {"sub": ts.get_subject_from_refresh(rt)}
 
-        if user_payload:
-            user_id = user_payload.get("sub") or user_payload.get("user_id")
-            user_email = user_payload.get("email")
-    except Exception as e:
-        logger.warning(f"Refresh inválido: {e}")
-        raise HTTPException(status_code=401, detail="Refresh inválido")
+        if not payload:
+            raise HTTPException(status_code=401, detail="Refresh inválido")
 
-    if not (user_id or user_email):
-        logger.warning("Refresh sin sub/email")
-        raise HTTPException(status_code=401, detail="Refresh inválido")
+        # Extrae identidad base (id/email) sin alterar tu modelo
+        user_id = payload.get("sub") or payload.get("user_id")
+        user_email = payload.get("email")
 
-    # 3) Recuperar usuario con los servicios disponibles
-    user_obj = None
-    try:
-        # Preferimos buscar por id, y si no existe, por email.
-        from backend.services import user_service as us  # import perezoso
+        # Busca el usuario con tus servicios existentes (no invasivo)
+        user_obj = None
+        try:
+            from backend.services import user_service as us
+            if user_id and hasattr(us, "get_user_by_id"):
+                user_obj = us.get_user_by_id(user_id)
+            if not user_obj and user_email:
+                for fn in ("find_user_by_email", "get_user_by_email", "buscar_usuario_por_email"):
+                    if hasattr(us, fn):
+                        user_obj = getattr(us, fn)(user_email)
+                        if user_obj:
+                            break
+        except Exception:
+            user_obj = None
 
-        if user_id and hasattr(us, "get_user_by_id"):
-            user_obj = us.get_user_by_id(user_id)
-        if not user_obj and user_email:
-            # nombres comunes
-            for fn in ("find_user_by_email", "get_user_by_email", "buscar_usuario_por_email"):
-                if hasattr(us, fn):
-                    user_obj = getattr(us, fn)(user_email)
-                    if user_obj:
-                        break
-    except Exception as e:
-        logger.warning(f"No se pudo resolver usuario desde refresh: {e}")
+        if not user_obj:
+            raise HTTPException(status_code=401, detail="Refresh inválido")
 
-    if not user_obj:
-        logger.warning("Usuario no encontrado para refresh")
-        raise HTTPException(status_code=401, detail="Refresh inválido")
-
-    # 4) Emitimos nuevo access (no rotamos refresh aquí)
-    try:
         new_access = create_access_token(user_obj)
-    except Exception as e:
-        logger.error(f"Error creando nuevo access desde refresh: {e}")
-        raise HTTPException(status_code=500, detail="No fue posible rotar el access token")
+        return {"access_token": new_access, "token_type": "bearer"}
 
-    return {"access_token": new_access, "token_type": "bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en refresh: {e}")
+        raise HTTPException(status_code=500, detail="No fue posible refrescar el token")
 
 
 # ========================

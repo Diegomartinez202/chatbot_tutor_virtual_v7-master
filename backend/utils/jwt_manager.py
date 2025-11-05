@@ -1,7 +1,7 @@
 # backend/utils/jwt_manager.py
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
@@ -36,7 +36,6 @@ __all__ = [
     "try_reissue_access_from_request_cookie",
 ]
 
-
 # ─────────────────────────────────────────────────────────────
 # Helpers para cookie httpOnly de refresh (NO rompen nada)
 # ─────────────────────────────────────────────────────────────
@@ -51,17 +50,16 @@ def refresh_cookie_path() -> str:
     Como expones el backend detrás de Nginx bajo /api, aquí devolvemos '/api/auth'
     para que el navegador SÍ envíe la cookie a /api/auth/refresh.
     """
-    # Si mañana cambias el prefijo público, ajusta aquí de forma centralizada.
     return "/api/auth"
 
 
 def refresh_cookie_samesite() -> str:
     """
     Política SameSite:
-    - En local (debug o APP_ENV=dev): 'Lax' (permite flows normales sin https)
-    - En producción con https real: 'None' (para permitir cross-site) + Secure=True
+    - En local (debug o APP_ENV=dev): 'Lax'
+    - En producción con https real: 'None' (requiere Secure=True)
     """
-    app_env = (getattr(settings, "app_env", None) or "").lower()
+    app_env = (getattr(settings, "app_env", "") or "").lower()
     if settings.debug or app_env == "dev":
         return "Lax"
     return "None"
@@ -70,15 +68,14 @@ def refresh_cookie_samesite() -> str:
 def refresh_cookie_secure() -> bool:
     """
     Flag Secure:
-    - Solo True en producción (https real). En local, False.
+    - True solo en producción (https real). En local, False.
     """
     return not settings.debug
 
 
 def set_refresh_cookie(response: JSONResponse, refresh_token: str) -> None:
     """
-    Fija la cookie httpOnly de refresh en la respuesta, con parámetros correctos
-    para tu reverse proxy (/api) y para desarrollo/producción.
+    Fija la cookie httpOnly de refresh con parámetros correctos.
     """
     response.set_cookie(
         key=refresh_cookie_name(),
@@ -100,18 +97,17 @@ def clear_refresh_cookie(response: JSONResponse) -> None:
         path=refresh_cookie_path(),
     )
 
-
 # ─────────────────────────────────────────────────────────────
 # Helper opcional: reemitir access leyendo refresh de la cookie
-# (útil en /auth/refresh si quieres centralizar la lógica)
+# Compatible con:
+#  - token_service.reissue_tokens_from_refresh → Tuple[str, str]
+#  - o dict {"access_token": "...", "refresh_token": "..."}
+#  - o fallback con decode_refresh_token + create_access_token
 # ─────────────────────────────────────────────────────────────
-def try_reissue_access_from_request_cookie(
-    request: Request,
-) -> Dict[str, Any]:
+def try_reissue_access_from_request_cookie(request: Request) -> Dict[str, Any]:
     """
     Lee el refresh desde la cookie del request y reemite un access token nuevo.
-    - Usa tu función `reissue_tokens_from_refresh` si existe (preferente).
-    - Si no, intenta `decode_refresh_token` + `create_access_token`.
+
     Retorna: {"access_token": "..."} o lanza HTTPException(401/500).
     """
     cookie_key = refresh_cookie_name()
@@ -119,27 +115,52 @@ def try_reissue_access_from_request_cookie(
     if not rt:
         raise HTTPException(status_code=401, detail="No refresh cookie")
 
-    # Camino 1: si tienes una utilidad de reemisión completa, úsala (mantén tu negocio).
+    # Camino 1: usar reissue_tokens_from_refresh si está disponible (tu servicio)
     try:
-        # La firma típica devuelve dict con 'access_token' y opcional 'refresh_token'
-        data = reissue_tokens_from_refresh(rt)  # type: ignore
-        new_access = data.get("access_token")
-        if not new_access:
-            # Si no trajo access, probamos camino 2
-            raise ValueError("No access_token in reissue payload")
+        result = reissue_tokens_from_refresh(rt)  # puede ser Tuple[str,str] o dict
+        if result:
+            # a) Tu implementación actual: Optional[Tuple[str, str]] (access, refresh)
+            if isinstance(result, tuple) and len(result) == 2:
+                new_access, _maybe_new_refresh = result  # no rotamos cookie aquí
+                if not new_access:
+                    raise ValueError("Tuple sin access token")
+                return {"access_token": new_access}
+
+            # b) Alternativa: dict {"access_token": "...", "refresh_token": "..."}
+            if isinstance(result, dict):
+                new_access = result.get("access_token")
+                if new_access:
+                    return {"access_token": new_access}
+                # Si no trae access en el dict, cae a fallback
+    except Exception:
+        # Continuamos al fallback silenciosamente
+        pass
+
+    # Camino 2 (fallback): decodificar refresh y emitir access
+    payload = None
+    try:
+        payload = decode_refresh_token(rt)
+    except Exception:
+        payload = None
+
+    if not payload:
+        raise HTTPException(status_code=401, detail="Refresh inválido")
+
+    # sub puede ser id o email según tu implementación
+    sub = payload.get("sub") or payload.get("user_id") or payload.get("id") or payload.get("email")
+    if not sub:
+        raise HTTPException(status_code=401, detail="Refresh inválido (sin sub)")
+
+    # ⚠️ No asumimos estructura completa del usuario para no romper negocio.
+    # Emitimos access con lo mínimo que usan tus dependencias: id/email/rol (si viene).
+    base_claims: Dict[str, Any] = {"id": sub}
+    if "email" in payload and payload.get("email"):
+        base_claims["email"] = payload["email"]
+    if "rol" in payload and payload.get("rol"):
+        base_claims["rol"] = payload["rol"]
+
+    try:
+        new_access = create_access_token(base_claims)
         return {"access_token": new_access}
     except Exception:
-        # Camino 2 (fallback): decodifica refresh → emite access
-        try:
-            payload = decode_refresh_token(rt)
-            # sub puede ser id o email según tu implementación
-            sub = payload.get("sub") or payload.get("user_id") or payload.get("email")
-            if not sub:
-                raise HTTPException(status_code=401, detail="Refresh inválido (sin sub)")
-            # create_access_token acepta 'user' (objeto/dict) o un identificador según tu servicio
-            new_access = create_access_token({"id": sub, "email": payload.get("email", None)})
-            return {"access_token": new_access}
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(status_code=401, detail="Refresh inválido")
+        raise HTTPException(status_code=500, detail="No fue posible emitir nuevo access")

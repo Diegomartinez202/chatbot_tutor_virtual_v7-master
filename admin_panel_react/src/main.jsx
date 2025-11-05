@@ -21,12 +21,16 @@ import { useAuthStore } from "@/store/authStore";
 import { setAccessTokenGetter } from "@/state/tokenProvider";
 
 import { initAuthBridge } from "@/embed/authBridge.js";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { setAuthToken } from "@/services/axiosClient";
 
 const APP_CONTEXT =
-    (typeof window !== "undefined" && window.APP_CONTEXT) || "panel";
+    (typeof window !== "undefined" && (window as any).APP_CONTEXT) || "panel";
 
-const IS_EMBEDDED = typeof window !== "undefined" && (window.self !== window.top);
+const IS_EMBEDDED =
+    typeof window !== "undefined" && window.self !== window.top;
 
+// Asegura el root
 let rootEl = document.getElementById("root");
 if (!rootEl) {
     rootEl = document.createElement("div");
@@ -34,16 +38,18 @@ if (!rootEl) {
     document.body.appendChild(rootEl);
 }
 
+// 👉 expone el getter de token a axiosClient (tu store sigue intacto)
 setAccessTokenGetter(() => {
     return useAuthStore.getState().accessToken || null;
 });
 
+// 👉 puente de autenticación (solo si embebido/híbrido)
 (function initBridgeOnce() {
-    if (!(IS_EMBEDDED || APP_CONTEXT === "hybrid")) return; 
+    if (!(IS_EMBEDDED || APP_CONTEXT === "hybrid")) return;
 
     const env = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
         .split(",")
-        .map((s) => String(s || "").trim().replace(/\/+$/, ""))    
+        .map((s: string) => String(s || "").trim().replace(/\/+$/, ""))
         .filter(Boolean);
 
     let fallbackOrigin = "*";
@@ -51,11 +57,21 @@ setAccessTokenGetter(() => {
         const ref = document.referrer ? new URL(document.referrer).origin : "";
         if (ref) fallbackOrigin = ref;
     } catch {
-        
+        // no-op
     }
 
     const originToAllow = env[0] || fallbackOrigin || "*";
     initAuthBridge(originToAllow);
+})();
+
+// ✅ Bootstrap del token: el primer /auth/me ya lleva Authorization
+(function bootstrapAuth() {
+    try {
+        const t = localStorage.getItem(STORAGE_KEYS.accessToken);
+        if (t) setAuthToken(t); // deja el header Authorization listo
+    } catch {
+        // no-op
+    }
 })();
 
 ReactDOM.createRoot(rootEl).render(
