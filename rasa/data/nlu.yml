@@ -520,6 +520,27 @@ nlu:
       - no, gracias
       - no me ayudó
       - no, aún tengo dudas
+
+  - intent: continuar_tema_si
+    examples: |
+      - sí quiero seguir
+      - continuar
+      - otro tema
+      - quiero ver otra cosa
+      - volver al menú
+      - regresar al menú principal
+      - sí, otro tema
+
+  - intent: continuar_tema_no
+    examples: |
+      - no, gracias
+      - ya terminé
+      - cerrar chat
+      - finalizar conversación
+      - hasta luego
+      - no quiero seguir
+
+
   # ─────────────────────────────────────────────
   # REGEX FEATURES
   # ─────────────────────────────────────────────

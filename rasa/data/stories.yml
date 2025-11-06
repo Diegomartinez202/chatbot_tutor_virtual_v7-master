@@ -1,41 +1,41 @@
 version: "3.1"
+
 stories:
 
-  # 0) Entrada común (Saludo → Menú principal)
+  ########################################
+  # 0️⃣ ENTRADA Y MENÚ PRINCIPAL
+  ########################################
   - story: Entrada principal (saludo → menú)
     steps:
-     - intent: saludo
-     - action: utter_saludo          
-     - action: utter_saludo_menu     
+      - intent: saludo
+      - action: utter_saludo
+      - action: utter_saludo_menu
 
-  # ==============================
-  # BLOQUE: ADMINISTRATIVAS/ACADÉMICAS
-  # ==============================
-
-  - story: Menú académico jerárquico (secundario)
-    steps:
-    - intent: proceso_academico_secundario
-    - action: utter_menu_proceso_academico
-  
-  - story: Navegación a submenú académico
-    steps:
-    - intent: proceso_academico_secundario
-    - action: utter_menu_proceso_academico
-  
-  - story: Estado estudiante (autenticado)
-    steps:
-    - slot_was_set:
-        - is_authenticated: true
-    - intent: ver_estado_estudiante_info
-    - action: action_estado_estudiante
-    - action: utter_estado_estudiante
-    - action: action_preguntar_resolucion
-
-  # 3) Estado de estudiante (NO AUTENTICADO)
-  - story: Estado estudiante (no autenticado)
+  ########################################
+  # 1️⃣ BLOQUE ACADÉMICO / ADMINISTRATIVO
+  ########################################
+  - story: Mostrar menú académico principal
     steps:
       - intent: proceso_academico
       - action: utter_menu_academico
+
+  - story: Mostrar submenú académico (secundario)
+    steps:
+      - intent: proceso_academico_secundario
+      - action: utter_menu_proceso_academico
+
+  # ---- Estado del estudiante ----
+  - story: Estado del estudiante (autenticado)
+    steps:
+      - slot_was_set:
+          - is_authenticated: true
+      - intent: ver_estado_estudiante_info
+      - action: action_estado_estudiante
+      - action: utter_estado_estudiante
+      - action: action_preguntar_resolucion
+
+  - story: Estado del estudiante (no autenticado)
+    steps:
       - slot_was_set:
           - is_authenticated: false
       - intent: ver_estado_estudiante_info
@@ -43,11 +43,9 @@ stories:
       - action: utter_need_auth
       - action: action_preguntar_resolucion
 
-  # 4) Certificados (AUTENTICADO)
+  # ---- Certificados ----
   - story: Certificados (autenticado)
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_academico
       - slot_was_set:
           - is_authenticated: true
       - intent: ver_certificados_info
@@ -55,11 +53,8 @@ stories:
       - action: utter_ver_certificados
       - action: action_preguntar_resolucion
 
-  # 5) Certificados (NO AUTENTICADO)
   - story: Certificados (no autenticado)
     steps:
-      - intent: proceso_academico
-      - action: utter_menu_academico
       - slot_was_set:
           - is_authenticated: false
       - intent: ver_certificados_info
@@ -67,109 +62,143 @@ stories:
       - action: utter_need_auth
       - action: action_preguntar_resolucion
 
+  # ---- Tutor asignado ----
+  - story: Tutor asignado (autenticado)
+    steps:
+      - slot_was_set:
+          - is_authenticated: true
+      - intent: ver_tutor_asignado_info
+      - action: action_tutor_asignado
+      - action: utter_tutor_asignado
+      - action: action_preguntar_resolucion
+
   - story: Tutor asignado (no autenticado)
     steps:
-    - slot_was_set:
-        - is_authenticated: false
-    - intent: ver_tutor_asignado_info
-    - action: utter_instrucciones_tutor
-    - action: utter_need_auth
-    - action: action_preguntar_resolucion
+      - slot_was_set:
+          - is_authenticated: false
+      - intent: ver_tutor_asignado_info
+      - action: utter_instrucciones_tutor
+      - action: utter_need_auth
+      - action: action_preguntar_resolucion
 
-  # ==============================
-  # BLOQUE: SOPORTE TÉCNICO
-  # ==============================
-
-  # 9) Soporte AVA directo (guía inmediata)
-  - story: Soporte AVA (directo)
+  ########################################
+  # 2️⃣ BLOQUE DE SOPORTE / RECUPERACIÓN
+  ########################################
+  - story: Soporte AVA directo
     steps:
       - intent: soporte_ava_directo
       - action: utter_soporte_ava
       - action: action_preguntar_resolucion
 
-  # ==============================
-  # BLOQUE: EXPLORAR / CATÁLOGO (opcional recomendado)
-  # ==============================
+  - story: Recuperar contraseña
+    steps:
+      - intent: recuperar_contrasena
+      - action: recovery_form
+      - active_loop: recovery_form
 
-  # 10) Explorar cursos (recomendados + carrusel)
-  - story: Explorar temas (recomendados + carrusel)
+  - story: Ver enlace soporte
+    steps:
+      - intent: ver_link_soporte
+      - action: utter_link_soporte
+
+  - story: Confirmar soporte creado
+    steps:
+      - intent: ver_soporte_creado_info
+      - action: utter_soporte_creado
+      - action: action_preguntar_resolucion
+
+  ########################################
+  # 3️⃣ BLOQUE DE EXPLORACIÓN / CURSOS
+  ########################################
+  - story: Explorar cursos recomendados
     steps:
       - intent: explorar_temas
       - action: utter_cursos_recomendados
       - action: utter_cursos_carousel
       - action: action_preguntar_resolucion
- 
-  - story: Cobertura utilitarios y encuesta (no-interferente)
+
+  ########################################
+  # 4️⃣ BLOQUE DE INTERACCIONES / FORMULARIOS
+  ########################################
+  - story: Enviar correo de contacto
     steps:
-     
-      - intent: encuesta_satis_yes
-      - action: action_registrar_encuesta
-      - action: utter_gracias_feedback
-
-      - intent: encuesta_satis_no
-      - action: action_registrar_encuesta
-      - action: utter_gracias_feedback
-
       - intent: enviar_correo
       - action: action_enviar_correo
       - action: utter_enviar_correo
+      - action: action_preguntar_resolucion
 
-      - intent: enviar_telefono
-      - action: utter_enviar_telefono
-
-      - intent: enviar_cedula
-      - action: utter_enviar_cedula
-
-      - intent: enviar_url
-      - action: utter_enviar_url
-
+  - story: Solicitar datos básicos
+    steps:
       - intent: pedir_correo
       - action: utter_ask_email
-
-      - intent: pedir_email
-      - action: utter_ask_email
-
       - intent: pedir_nombre
       - action: utter_ask_nombre
-
       - intent: pedir_mensaje
       - action: utter_ask_mensaje
 
-      - intent: recuperar_contrasena
-      - action: recovery_form
-      - active_loop: recovery_form
+  ########################################
+  # 5️⃣ ENCUESTA Y CIERRE DE CONVERSACIÓN (EXTENDIDO)
+  ########################################
+  - story: Confirmación de resolución (satisfactoria)
+    steps:
+      - intent: problema_resuelto_si
+      - action: utter_encuesta_satisfaccion_feedback
 
-      - intent: ver_link_soporte
-      - action: utter_link_soporte
+  - story: Confirmación de resolución (no satisfactoria)
+    steps:
+      - intent: problema_resuelto_no
+      - action: utter_ofrecer_asistencia_humana
 
-      - intent: ver_soporte_creado_info
-      - action: utter_soporte_creado
+  - story: Encuesta de satisfacción positiva
+    steps:
+      - intent: encuesta_satis_yes
+      - action: action_registrar_encuesta
+      - action: utter_agradecimiento_retroalimentacion
+      - action: utter_continuar_tema
 
+  - story: Encuesta de satisfacción negativa
+    steps:
+      - intent: encuesta_satis_no
+      - action: action_registrar_encuesta
+      - action: utter_ofrecer_asistencia_humana
+      - action: utter_continuar_tema
+
+  - story: Usuario desea continuar
+    steps:
+      - intent: continuar_tema_si
+      - action: utter_saludo_menu
+
+  - story: Usuario no desea continuar
+    steps:
+      - intent: continuar_tema_no
+      - action: utter_despedida_profesional
+
+  ########################################
+  # 6️⃣ UTILITARIOS / NEGACIÓN DE ESCALAMIENTO
+  ########################################
+  - story: Usuario no desea escalar
+    steps:
       - intent: negar_escalar
       - action: utter_gracias_continuar
-  
-  - story: Validación académica — estado
-    steps:
-    - action: utter_instrucciones_estado
-    - action: action_preguntar_resolucion   # o termina aquí si no encadenas
+      - action: utter_despedida_profesional
 
-  - story: Validación académica — tutor
+  ########################################
+  # 7️⃣ FLUJO POST ENCUESTA (CICLO COMPLETO)
+  ########################################
+  - story: Flujo post encuesta - continuar otro tema
     steps:
-    - action: utter_instrucciones_tutor
-    - action: action_preguntar_resolucion
+      - intent: problema_resuelto_si
+      - action: utter_encuesta_satisfaccion_feedback
+      - intent: encuesta_satis_yes
+      - action: utter_continuar_tema
+      - intent: continuar_tema_si
+      - action: utter_saludo_menu
 
-  - story: Validación académica — certificados
+  - story: Flujo post encuesta - finalizar conversación
     steps:
-    - action: utter_instrucciones_certificados
-    - action: action_preguntar_resolucion
-
-  - story: Confirmación de resolución mínima
-    steps:
-    - intent: problema_resuelto_si
-    - action: utter_encuesta_satisfaccion
-    - action: utter_cierre
-  
-  - story: Navegación académica — submenú especializado
-    steps:
-    - intent: proceso_academico_secundario
-    - action: utter_menu_proceso_academico
+      - intent: problema_resuelto_si
+      - action: utter_encuesta_satisfaccion_feedback
+      - intent: encuesta_satis_yes
+      - action: utter_continuar_tema
+      - intent: continuar_tema_no
+      - action: utter_despedida_profesional

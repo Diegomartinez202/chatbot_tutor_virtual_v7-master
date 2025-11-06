@@ -8,38 +8,12 @@ import MicButton from "./MicButton";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
 import { STORAGE_KEYS } from "@/lib/constants";
-import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
-import { uploadVoiceBlob } from "@/services/voice/uploadVoice";
 import { sendToRasaREST } from "./rasa/restClient.js";
-
-const SEND_CLIENT_HELLO = true;
-
-// Helpers
-function getParentOrigin() {
-    try { return new URL(document.referrer || "").origin; }
-    catch { return window.location.origin; }
-}
-
-function normalize(o) {
-    return String(o || "").trim().replace(/\/+$/, "");
-}
-
-const envAllowed = (import.meta.env.VITE_ALLOWED_HOST_ORIGINS || "")
-    .split(",")
-    .map((s) => normalize(s))
-    .filter(Boolean);
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
-
-// (opcional) si lo usas en el render del typing
-function shouldShowTyping(typing, lastMessageTs) {
-    if (!typing) return false;
-    if (!lastMessageTs) return true;
-    return Date.now() - lastMessageTs < 5000;
-}
 
 /* --- Avatares --- */
 function BotAvatar({ size = 28 }) {
@@ -63,18 +37,8 @@ function BotAvatar({ size = 28 }) {
     );
 }
 
-function getInitials(source) {
-    const s = String(source || "").trim();
-    if (!s) return "U";
-    const base = s.includes("@") ? s.split("@")[0] : s;
-    const parts = base.replace(/[_\-\.]+/g, " ").split(" ").filter(Boolean);
-    const a = (parts[0] || "").charAt(0);
-    const b = (parts[1] || "").charAt(0);
-    return (a + b).toUpperCase() || a.toUpperCase() || "U";
-}
-
 function UserAvatar({ user, size = 28 }) {
-    // Si NO hay sesión -> icono de persona (no iniciales)
+    // Si NO hay sesión -> icono de persona
     if (!user) {
         return (
             <div
@@ -95,7 +59,7 @@ function UserAvatar({ user, size = 28 }) {
         USER_AVATAR_FALLBACK ||
         "";
 
-    // Si hay URL pero falla -> icono de persona
+    // Si falla la URL -> icono de persona
     if (!src || err) {
         return (
             <div
@@ -107,7 +71,6 @@ function UserAvatar({ user, size = 28 }) {
         );
     }
 
-    // Caso feliz: foto del perfil
     return (
         <img
             src={src}
@@ -117,21 +80,11 @@ function UserAvatar({ user, size = 28 }) {
             style={{ width: size, height: size }}
         />
     );
-
-    return (
-        <img
-            src={src}
-            alt={user?.nombre || user?.name || user?.email}
-            className="w-full h-full object-cover rounded-full"
-            onError={() => setErr(true)}
-        />
-    );
 }
 
 export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
-    const { t: tConfig } = useTranslation("config");
 
     const [senderId] = useState(() => {
         const k = "rasa:senderId";
@@ -146,7 +99,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         }
     });
 
-    // Intents/acciones que requieren auth (mantiene tu lógica)
     const NEED_AUTH = new Set([
         "/estado_estudiante",
         "/ver_certificados",
@@ -160,15 +112,18 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
     function requiresAuthFor(text) {
         const t = String(text || "").trim();
-        return NEED_AUTH.has(t) || [
-            "/mis_cursos",
-            "/ver_progreso",
-            "/estado_estudiante",
-            "/tutor_asignado",
-            "/ingreso_zajuna",
-            "/faq_ingreso_privado",
-            "/user_panel",
-        ].includes(t);
+        return (
+            NEED_AUTH.has(t) ||
+            [
+                "/mis_cursos",
+                "/ver_progreso",
+                "/estado_estudiante",
+                "/tutor_asignado",
+                "/ingreso_zajuna",
+                "/faq_ingreso_privado",
+                "/user_panel",
+            ].includes(t)
+        );
     }
 
     const storeToken = useAuthStore((s) => s.accessToken);
@@ -178,12 +133,8 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
     const [typing, setTyping] = useState(false);
-
     const [showQuick, setShowQuick] = useState(true);
-
-    const [hasShownSuggestions] = useState(false);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
-    const appendFirstSuggestions = () => { };
 
     useEffect(() => {
         if (storeToken) setAuthToken(storeToken);
@@ -196,34 +147,6 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             } catch { }
         }
     }, [storeToken]);
-
-    const userId = useMemo(() => user?.email || user?._id || null, [user]);
-    const parentOrigin = useMemo(() => normalize(getParentOrigin()), []);
-
-    // Detecta modo invitado en embed: /?embed=1&guest=1
-    const urlParams = new URLSearchParams(window.location.search);
-    const isGuestEmbed = urlParams.get("guest") === "1";
-
-    useEffect(() => {
-        if (!embed) return;
-        const onMsg = (ev) => {
-            try {
-                const origin = normalize(ev.origin || "");
-                if (envAllowed.length && !envAllowed.includes(origin)) return;
-                const data = ev.data || {};
-                if (data?.type === "auth:token" && data?.token) setAuthToken(String(data.token));
-                if (data?.type === "host:open") { /* opcional */ }
-                if (data?.type === "host:close") { /* opcional */ }
-            } catch { }
-        };
-        window.addEventListener("message", onMsg);
-        return () => window.removeEventListener("message", onMsg);
-    }, [embed]);
-
-    useEffect(() => {
-        if (!embed) return;
-        try { window.parent?.postMessage({ type: "auth:request" }, "*"); } catch { }
-    }, [embed]);
 
     const rspToArray = (rsp) => (Array.isArray(rsp) ? rsp : rsp ? [rsp] : []);
 
@@ -301,7 +224,9 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
         if (requiresAuthFor(text) && !authToken) {
             if (embed) {
-                try { window.parent?.postMessage?.({ type: "auth:request" }, "*"); } catch { }
+                try {
+                    window.parent?.postMessage?.({ type: "auth:request" }, "*");
+                } catch { }
                 const loginUrl = import.meta.env.VITE_LOGIN_URL || "https://zajuna.sena.edu.co/";
 
                 setMessages((m) => [
@@ -325,12 +250,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                                 >
                                     🔐 Iniciar sesión
                                 </a>
-                                <a
-                                    href="/chat"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="ml-2 underline"
-                                >
+                                <a href="/chat" target="_blank" rel="noopener noreferrer" className="ml-2 underline">
                                     Abrir chat autenticado
                                 </a>
                             </div>
@@ -373,10 +293,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         }
 
         setSending(true);
-        setMessages((m) => [
-            ...m,
-            { id: `u-${Date.now()}`, role: "user", text: displayAs || text },
-        ]);
+        setMessages((m) => [...m, { id: `u-${Date.now()}`, role: "user", text: displayAs || text }]);
         setInput("");
         setShowQuick(false);
 
@@ -418,32 +335,8 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
     return (
         <div className="h-full flex flex-col chat-container">
-            {/* Header simple con Config a la derecha */}
-            <div className="chat-header">
-                <div className="chat-title">Zajuna</div>
-
-                {/* 👇 botón de cerrar/minimizar SOLO en embed */}
-                {embed && (
-                    <button
-                        type="button"
-                        className="ml-2 inline-flex items-center justify-center rounded px-2 py-1 text-sm border hover:bg-gray-50"
-                        aria-label="Minimizar chat"
-                        onClick={() => {
-                            try { window.parent?.postMessage?.({ type: "widget:toggle" }, "*"); } catch { }
-                        }}
-                    >
-                        ✕
-                    </button>
-                )}
-
-                {/* 👇 Asegura visibilidad del menú de configuración */}
-                <div className="ml-auto relative z-20 flex items-center">
-                    <ChatConfigMenu />
-                </div>
-            </div>
-
+            {/* Mensajes */}
             <div className="chat-messages px-3 py-4">
-                {/* 🔹 QuickActions visible al inicio. Se oculta al primer input */}
                 {showQuick && (
                     <QuickActions
                         show
@@ -470,9 +363,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                         <BotRow key={m.id}>
                             <BotAvatar />
                             <div className="bubble bot">
-                                {m.text && (
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
-                                )}
+                                {m.text && <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>}
                                 {m.render && m.render()}
                             </div>
                         </BotRow>
@@ -490,6 +381,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                 )}
             </div>
 
+            {/* Input */}
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -497,11 +389,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                 }}
                 className="chat-input-container"
             >
-                <MicButton
-                    stt="auto"
-                    onVoice={(text) => sendToRasa({ text })}
-                    disabled={sending}
-                />
+                <MicButton stt="auto" onVoice={(text) => sendToRasa({ text })} disabled={sending} />
                 <input
                     type="text"
                     value={input}
@@ -511,12 +399,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     className="chat-input"
                     disabled={sending}
                 />
-                <button
-                    type="submit"
-                    disabled={sending || !input.trim()}
-                    className="send-button"
-                    aria-label="Enviar"
-                >
+                <button type="submit" disabled={sending || !input.trim()} className="send-button" aria-label="Enviar">
                     <Send className="w-4 h-4" />
                 </button>
             </form>

@@ -57,6 +57,8 @@ intents:
   - confirmacion_escalar_humano
   - negar_escalar
   - proceso_academico_secundario
+  - continuar_tema_si
+  - continuar_tema_no
 entities:
   - nombre
   - email
@@ -401,7 +403,44 @@ responses:
           - title: "🆘 Abrir Soporte"
             type: web_url
             url: "https://zajuna.sena.edu.co/soporte.php"
+  utter_problema_resuelto:
+    - text: "¿Pudiste resolver el problema con la información que te brindé?"
+      buttons:
+        - title: "✅ Sí, ya se resolvió"
+          payload: /problema_resuelto_si
+        - title: "❌ No, aún persiste"
+          payload: /problema_resuelto_no
 
+  utter_encuesta_satisfaccion_feedback:
+   - text: "Muchas gracias por tu respuesta 🙌 ¿Qué tan satisfecho estás con la atención recibida?"
+     buttons:
+      - title: "👍 Satisfecho"
+        payload: /encuesta_satis_yes
+      - title: "👎 Insatisfecho"
+        payload: /encuesta_satis_no
+
+  utter_agradecimiento_retroalimentacion:
+   - text: "¡Gracias por tu retroalimentación! Tu opinión nos ayuda a mejorar continuamente 💚"
+
+  utter_ofrecer_asistencia_humana:
+   - text: "Lamento que tu inconveniente continúe 😟 ¿Deseas que te conecte con un asesor humano?"
+     buttons:
+      - title: "Sí, conectar con un asesor"
+        payload: /confirmacion_escalar_humano
+      - title: "No, gracias"
+        payload: /negar_escalar
+
+utter_continuar_tema:
+  - text: "¿Deseas consultar otro tema o finalizar la conversación?"
+    buttons:
+      - title: "🔁 Consultar otro tema"
+        payload: /continuar_tema_si
+      - title: "👋 Finalizar conversación"
+        payload: /continuar_tema_no
+
+
+utter_despedida_profesional:
+  - text: "Gracias por usar el Tutor Virtual de Zajuna 💬. ¡Que tengas un excelente día!"
 forms:
   soporte_form:
     required_slots:
@@ -433,6 +472,10 @@ actions:
   - action_preguntar_resolucion
   - action_registrar_encuesta
   - action_derivar_y_registrar_humano
+  - action_preguntar_resolucion       
+  - action_registrar_encuesta         
+  - action_derivar_y_registrar_humano 
+  - action_despedida_profesional      
 
 session_config:
   session_expiration_time: 60

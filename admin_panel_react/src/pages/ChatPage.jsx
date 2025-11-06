@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { Bot, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import ChatUI from "@/components/chat/ChatUI";
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
@@ -20,7 +20,6 @@ const RASA_HTTP_URL =
 const RASA_WS_URL =
     import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
 
-const DEFAULT_BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
 const TRANSPORT = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
@@ -28,32 +27,21 @@ const USER_SETTINGS_URL =
     (import.meta.env.VITE_USER_SETTINGS_URL &&
         String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
     "/api/me/settings";
-
 const AUTO_MINIMIZE = import.meta.env.VITE_AUTO_MINIMIZE_WIDGET === "true";
 
-/* ---------- helpers de preferencias ---------- */
 function applyPrefsToDocument(prefs, i18n) {
     try {
         const html = document.documentElement;
         const dark = prefs?.theme === "dark";
         const hc = !!prefs?.highContrast;
         const scale = Number(prefs?.fontScale || 1);
-
         html.classList.toggle("dark", dark);
         html.classList.toggle("high-contrast", hc);
         html.style.fontSize = `${16 * scale}px`;
-
         const lang = prefs?.language === "en" ? "en" : "es";
         i18n?.changeLanguage?.(lang);
-
         const current = JSON.parse(localStorage.getItem("app:settings") || "{}");
-        const merged = {
-            ...current,
-            language: lang,
-            darkMode: dark,
-            fontScale: scale,
-            highContrast: hc,
-        };
+        const merged = { ...current, language: lang, darkMode: dark, fontScale: scale, highContrast: hc };
         localStorage.setItem("app:settings", JSON.stringify(merged));
     } catch { }
 }
@@ -71,47 +59,10 @@ async function fetchUserSettingsIfPossible(token) {
     }
 }
 
-function HeaderAvatar({
-    src = DEFAULT_BOT_AVATAR,
-    size = 72,
-    title = "Asistente Tutor Virtual",
-    subtitle = "", // 👈 NUEVO
-}) {
-    const [err, setErr] = useState(false);
-    return (
-        <div className="flex flex-col items-center text-center">
-            <div
-                className="rounded-full overflow-hidden ring-2 ring-indigo-100 shadow-sm bg-white"
-                style={{ width: size, height: size }}
-                aria-hidden="true"
-            >
-                {err ? (
-                    <div className="w-full h-full grid place-items-center bg-indigo-50">
-                        <Bot className="w-7 h-7 text-indigo-600" />
-                    </div>
-                ) : (
-                    <img
-                        src={src}
-                        alt="Avatar del asistente"
-                        className="w-full h-full object-cover"
-                        onError={() => setErr(true)}
-                    />
-                )}
-            </div>
-
-            <h1 className="mt-2 text-xl font-semibold text-gray-900">{title}</h1>
-            {subtitle ? (
-                <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>
-            ) : null}
-        </div>
-    );
-}
-
 export default function ChatPage({
     forceEmbed = false,
-    avatarSrc = DEFAULT_BOT_AVATAR,
     title = "Asistente Tutor Virtual",
-    subtitle = "Tutor Virtual Zajuna · v7.3", // 👈 NUEVO (puedes cambiar el texto o dejar vacío "")
+    subtitle = "Tutor Virtual Zajuna · v7.3",
     connectFn,
     embedHeight = "560px",
     children,
@@ -154,9 +105,7 @@ export default function ChatPage({
     /* health / conexión */
     const defaultConnect = useMemo(() => {
         if (connectFn) return connectFn;
-        if (TRANSPORT === "ws") {
-            return () => connectWS({ wsUrl: RASA_WS_URL });
-        }
+        if (TRANSPORT === "ws") return () => connectWS({ wsUrl: RASA_WS_URL });
         return () => connectChatHealth({ restUrl: CHAT_REST_URL, rasaHttpUrl: RASA_HTTP_URL });
     }, [connectFn]);
 
@@ -164,10 +113,7 @@ export default function ChatPage({
         setStatus("connecting");
         let done = false;
         const watchdog = setTimeout(() => {
-            if (!done) {
-                console.warn("[ChatPage] watchdog: continúo con UI");
-                setStatus("ready");
-            }
+            if (!done) setStatus("ready");
         }, 2500);
 
         try {
@@ -179,7 +125,6 @@ export default function ChatPage({
         } catch (e) {
             done = true;
             clearTimeout(watchdog);
-            console.warn("[ChatPage] Health check falló:", e?.message || e);
             setStatus("error");
         }
     }, [defaultConnect]);
@@ -277,15 +222,10 @@ export default function ChatPage({
         return null;
     }
 
-    // layout
-    const wrapperClass = wantFullScreen
-        ? "p-0 h-screen flex flex-col"
-        : "p-6 min-h-[70vh] flex flex-col";
-
+    const wrapperClass = wantFullScreen ? "p-0 h-screen flex flex-col" : "p-6 min-h-[70vh] flex flex-col";
     const bodyClass = wantFullScreen
         ? "flex-1 bg-white rounded-none border-0 shadow-none overflow-hidden"
         : "flex-1 bg-white rounded border shadow overflow-hidden";
-
     const wrapperStyle = isEmbed ? { height: embedHeight || "100vh" } : undefined;
 
     const SHOW_EMBED_TOPBAR = true;
@@ -310,23 +250,18 @@ export default function ChatPage({
                 </div>
             )}
 
-            {/* header normal (no embed) con AVATAR CENTRADO, tamaño 72px, y contenedor con max-width */}
+            {/* header sin avatar pequeño: título + subtítulo centrados; a la derecha estado + Configuración */}
             {!isEmbed && (
                 <div className="mb-4">
-                    {/* contenedor responsivo y centrado */}
                     <div className="max-w-4xl mx-auto w-full px-3">
                         <div className="grid grid-cols-3 items-center">
-                            {/* izquierda (espaciador para centrar) */}
-                            <div />
-
-                            {/* centro: avatar + título */}
-                            <div className="flex flex-col items-center justify-center">
-                                <HeaderAvatar src={avatarSrc} size={72} title={title} subtitle={subtitle} />
+                            <div /> {/* espaciador */}
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <h1 className="text-2xl font-semibold text-gray-100">{title}</h1>
+                                {subtitle ? <p className="mt-0.5 text-sm text-gray-400">{subtitle}</p> : null}
                             </div>
-
-                            {/* derecha: estado + menú */}
                             <div className="flex items-center justify-end gap-2">
-                                <ChatbotStatusMini status={status} />
+                                <ChatbotStatusMini status={status} showAvatar={false} />
                                 <ChatConfigMenu />
                             </div>
                         </div>
@@ -334,7 +269,7 @@ export default function ChatPage({
                 </div>
             )}
 
-            {/* cuerpo principal */}
+            {/* cuerpo */}
             <div
                 className={bodyClass}
                 data-testid="chat-root"
@@ -342,9 +277,9 @@ export default function ChatPage({
             >
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
-                        {/* loader con avatar controlado */}
                         <div style={{ maxWidth: 160 }}>
-                            <ChatbotLoading avatarSrc={avatarSrc} label={t("chat.connecting")} />
+                            {/* puedes usar un avatar en el loader si lo deseas; si no, déjalo así */}
+                            <ChatbotLoading label={t("chat.connecting", "Conectando…")} />
                         </div>
                         <ChatbotStatusMini status="connecting" />
                     </div>
@@ -352,23 +287,21 @@ export default function ChatPage({
 
                 {status === "error" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-                        <p className="text-gray-700">{t("chat.errorConnection")}</p>
+                        <p className="text-gray-100">{t("chat.errorConnection", "Error de conexión")}</p>
                         <button
                             onClick={connect}
                             className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-100"
                             type="button"
                         >
                             <RefreshCw className="w-4 h-4" />
-                            {t("chat.retry")}
+                            {t("chat.retry", "Reintentar")}
                         </button>
                     </div>
                 )}
 
-                {status === "ready" && (
-                    <div className="w-full h-full">
-                        {children ?? <ChatUI embed={isEmbed} />}
-                    </div>
-                )}
+                {status === "ready" && <div className="w-full h-full">{children ?? <ChatUI embed={isEmbed} />}</div>}
+
+                {SHOW_HARNESS && !isEmbed && status === "ready" ? <Harness /> : null}
             </div>
         </div>
     );
