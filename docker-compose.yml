@@ -98,6 +98,17 @@ services:
       RASA_PORT: "5005"
       RASA_MODELS_COLLECTION: "trained_models"
       RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+      MONGO_URI: "${MONGO_URI}"
+      MONGO_DB: "${MONGO_DB}"
+      MONGO_AUTOSAVE_COLLECTION: "${MONGO_AUTOSAVE_COLLECTION}"
+      MONGO_SECURITY_LOGS_COLLECTION: "${MONGO_SECURITY_LOGS_COLLECTION}"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_ALG: "${JWT_ALG}"
+      JWT_ISSUER: "${JWT_ISSUER}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE}"
+
+    depends_on:
+      - mongo
     ports:
       - "5055:5055"
     volumes:
@@ -162,7 +173,7 @@ services:
       - ./rasa/data:/app/data
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
-
+      - ./rasa/interactive:/app/interactive
   # ✅ Creamos endpoints.yml en caliente con los envs y arrancamos con --endpoints
     command: >
       bash -lc "
@@ -273,6 +284,52 @@ services:
       RASA_MODELS_COLLECTION: "trained_models"
       ACTIONS_CORS: "*"
       RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+
+   # ------------------------------------------------------------
+  # Rasa Action interactive
+  # ------------------------------------------------------------
+  rasa_interactive:
+      profiles: ["interactive"]   
+      image: ${RASA_IMAGE:-rasa/rasa:3.6.15-full}
+      working_dir: /app
+      command: >
+        bash -lc "
+        rasa interactive
+          --endpoints endpoints.yml
+          --config config.yml
+          --domain domain.yml
+          --debug
+         "
+      ports:
+       - "5005:5005"       
+      volumes:
+        - ./rasa:/app       
+      environment:
+      - TZ=America/Bogota
+      networks:
+        - app-net
+      tty: true          # 👈 ADICIÓN
+      stdin_open: true   # 👈 ADICIÓN
+
+  autosave-guardian:
+    build:
+      context: .
+      dockerfile: rasa/api/Dockerfile.guardian  # (opcional si haces un contenedor aparte)
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB=${MONGO_DB}
+      - MONGO_AUTOSAVE_COLLECTION=${MONGO_AUTOSAVE_COLLECTION}
+      - MONGO_SECURITY_LOGS_COLLECTION=${MONGO_SECURITY_LOGS_COLLECTION}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALG=${JWT_ALG}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+    ports:
+      - "8085:8080"
+    depends_on:
+      - mongo
+
+
   # ============================================================
   # Backend DEV (hot reload)
   # ============================================================
@@ -575,6 +632,54 @@ services:
       - ctv_rasa
     networks:
       - app-net
+
+  # ------------------------------------------------------------
+  # 🔁 Entrenamiento on-demand (job que valida + entrena y sale)
+  # ------------------------------------------------------------
+  rasa_train_once:
+    profiles: ["train"]
+    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    working_dir: /app
+    command: >
+      bash -lc "
+        rasa data validate && rasa train
+      "
+    volumes:
+      - ./rasa:/app
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # 🧪 Pruebas NLU/Core con reportes en ./rasa/results
+  # ------------------------------------------------------------
+  rasa_tests:
+    profiles: ["tests"]
+    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    working_dir: /app
+    command: >
+      bash -lc "
+        mkdir -p results && rasa test --nlu --core --reports results --out results
+      "
+    volumes:
+      - ./rasa:/app
+      - ./rasa/results:/app/results
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # 🧩 Curación de datos: mueve interactive/ → data/ con dedup
+  # ------------------------------------------------------------
+  rasa_merge_interactive:
+    profiles: ["interactive"]
+    image: ${RASA_IMAGE:-python:3.11-slim}
+    working_dir: /app
+    command: >
+      bash -lc "python3 rasa/scripts/merge_interactive.py"
+    volumes:
+      - ./rasa:/app/rasa
+    networks:
+      - app-net
+
 # ============================================================
 # 💾 Volúmenes persistentes del proyecto
 # ============================================================

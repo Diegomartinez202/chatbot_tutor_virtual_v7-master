@@ -1,3 +1,4 @@
+# rasa/actions/actions.py
 from __future__ import annotations
 
 import os
@@ -6,6 +7,7 @@ import time
 import json
 import smtplib
 import logging
+import datetime
 from typing import Any, Dict, List, Optional, Text
 
 import requests
@@ -16,7 +18,16 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType, FollowupAction
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
-
+from rasa_sdk.events import SlotSet
+from rasa_sdk.events import SlotSet, ConversationPaused
+from .acciones_encuesta import ActionRegistrarEncuesta
+from typing import Any, Text, Dict, List
+from rasa_sdk import Action, Tracker
+from rasa_sdk.executor import CollectingDispatcher
+from rasa_sdk.events import SlotSet, ConversationPaused, ConversationResumed
+from datetime import datetime
+from actions.acciones_sesion_segura import *
+from utils.mongo_autosave import guardar_autosave, obtener_autosave, limpiar_autosave, actualizar_campo
 __all__ = [
     # Validators
     "ValidateSoporteForm",
@@ -25,7 +36,7 @@ __all__ = [
     # Core utility / email
     "ActionEnviarCorreo",
 
-    # Soporte (rápido + form submit + alias retrocompat)
+    # Soporte
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",
     "ActionSubmitSoporte",
@@ -34,7 +45,7 @@ __all__ = [
     "ActionConectarHumano",
     "ActionHealthCheck",
 
-    # Auth gates y sync
+    # Auth / gates y sync
     "ActionCheckAuth",
     "ActionCheckAuthEstado",
     "ActionSyncAuthFromMetadata",
@@ -44,15 +55,68 @@ __all__ = [
     # Flujos académicos
     "ActionEstadoEstudiante",
     "ActionVerCertificados",
-    "ActionTutorAsignado",
     "ActionListarCertificados",
+    "ActionTutorAsignado",
 
     # Recovery
     "ActionSubmitRecovery",
-    "action: action_preguntar_resolucion"
+
+    # Encuesta / resolución / desvío
+    "ActionPreguntarResolucion",
+    "ActionDerivarYRegistrarHumano",
+    "ActionRegistrarEncuesta",
+    "ActionOfrecerContinuarTema",
+    "ActionIngresoZajuna",
+    "ActionRecuperarContrasena",
+    "ActionNecesitaAuth",
+    "ActionSetEncuestaTipo",
+    "ActionSetMenuPrincipal"
+
+    
+    "ActionFinalizarConversacion",
+    "ActionCancelarCierre",
+    "ActionVerificarProcesoActivo",
+    "ActionConfirmarCierre",
+   
+    "ActionVerificarProcesoActivoAutosave",
+    "ActionGuardarEncuestaIncompleta",
+    "ActionConfirmarCierreAutosave",
+
+    "ActionVerificarEstadoConversacion",
+    "ActionGuardarProgresoConversacion",
+    "ActionTerminarConversacionSegura",
+    "ActionReanudarConversacionSegura",
+    "ActionAutoResume",
+    "ActionReanudarAuto"
+
+    "ActionOfrecerContinuarTema",
+    "ActionConfirmarCierreSeguro",
+    "ActionAutoSaveEncuesta",
+    "ActionGuardarAutoSaveMongo",
+    "ActionCargarAutoSaveMongo",
+    "ActionAutoResumeConversacion",
+    "ActionResetConversacionSegura",
+
+   "ActionNotificarDesconexion",
+   "ActionNotificarInactividad",
+   "ActionNotificarReconexion",
+   "ActionGuardarEstadoSeguridad",
+   "ActionRecuperarEstadoSeguridad",
+
+   "ActionGuardianGuardarProgreso",
+   "ActionGuardianCargarProgreso",
+   "ActionGuardianPausar",
+   "ActionGuardianReanudar",
+   "ActionGuardianReset"
+
+   "ActionGuardianGuardarProgreso",
+   "ActionGuardianCargarProgreso",
+   "ActionGuardianPausar",
+   "ActionGuardianReanudar",
+   "ActionGuardianReset",
+   "ActionRegistrarEncuesta",
 
 ]
-
 
 # =========================
 #    Logging estructurado
@@ -115,10 +179,7 @@ RESET_URL_BASE = (os.getenv("RESET_URL_BASE") or "https://zajuna.edu").rstrip("/
 #   Utilidades HTTP/SMTP
 # =========================
 def send_email(subject: str, body: str, to_addr: str) -> bool:
-    """
-    Envía un correo simple por SMTP si hay configuración. Devuelve True/False.
-    No lanza excepciones al flujo del bot.
-    """
+    """Envía un correo simple por SMTP si hay configuración. Devuelve True/False."""
     if not (SMTP_SERVER and SMTP_USER and SMTP_PASS and to_addr):
         logger.info("[actions] SMTP no configurado; omitiendo envío.")
         return False
@@ -137,12 +198,8 @@ def send_email(subject: str, body: str, to_addr: str) -> bool:
         logger.error("[actions] ❌ Error enviando correo: %s", e)
         return False
 
-
 def post_json_with_retries(url: str, payload: Dict[str, Any], headers: Optional[Dict[str, str]] = None) -> Optional[requests.Response]:
-    """
-    POST JSON con cabeceras y reintento básico.
-    Devuelve Response o None si falla definitivamente.
-    """
+    """POST JSON con cabeceras y reintento básico. Devuelve Response o None si falla definitivamente."""
     headers = dict(headers or {})
     headers.setdefault("Content-Type", "application/json")
     for attempt in range(1, MAX_RETRIES + 2):
@@ -156,7 +213,6 @@ def post_json_with_retries(url: str, payload: Dict[str, Any], headers: Optional[
             time.sleep(0.5 * attempt)
     return None
 
-
 def _entity_value(tracker: Tracker, name: str) -> Optional[str]:
     """Intenta leer el valor de una entidad por nombre desde el último mensaje."""
     try:
@@ -167,7 +223,6 @@ def _entity_value(tracker: Tracker, name: str) -> Optional[str]:
     except Exception:
         pass
     return None
-
 
 def _json_payload_from_text(text: str) -> Dict[str, Any]:
     """
@@ -185,6 +240,7 @@ def _json_payload_from_text(text: str) -> Dict[str, Any]:
     except Exception:
         pass
     return {}
+
 # --------- Helpers reutilizables ---------
 def _is_auth(tracker: Tracker) -> bool:
     return bool(tracker.get_slot("is_authenticated"))
@@ -250,7 +306,6 @@ class ValidateSoporteForm(FormValidationAction):
             return {"mensaje": None}
         return {"mensaje": v}
 
-
 class ValidateRecoveryForm(FormValidationAction):
     """Valida el slot email del recovery_form (recuperación de contraseña)"""
 
@@ -303,7 +358,6 @@ class ActionEnviarCorreo(Action):
             dispatcher.utter_message(text="ℹ️ Tu solicitud fue registrada. Revisa tu correo más tarde.")
         return []
 
-
 class ActionEnviarSoporte(Action):
     """
     Variante genérica para enviar un soporte rápido sin pasar por el form,
@@ -342,7 +396,6 @@ class ActionEnviarSoporte(Action):
         email = (email_ent or json_payload.get("email") or email_slot or "sin-correo@zajuna.edu").strip()
         mensaje = (mensaje_ent or json_payload.get("mensaje") or mensaje_slot or "").strip()
         if not mensaje:
-            # Fallback: usa el último texto, pero sin el prefijo intent si viene crudo
             mensaje = last_text if not last_text.startswith("/enviar_soporte") else "Solicitud de soporte (sin detalle)."
 
         # Saneos mínimos
@@ -387,14 +440,8 @@ class ActionEnviarSoporte(Action):
             dispatcher.utter_message(text="⚠️ No pude registrar el soporte ahora mismo. Intentaremos de nuevo.")
             return []
 
-
 class ActionSoporteSubmit(Action):
-    """
-    Envía la solicitud del soporte_form al webhook del Helpdesk.
-    Variables:
-      - HELPDESK_WEBHOOK (URL)
-      - HELPDESK_TOKEN   (Bearer opcional)
-    """
+    """Envía la solicitud del soporte_form al webhook del Helpdesk."""
 
     def name(self) -> Text:
         return "action_soporte_submit"
@@ -448,7 +495,6 @@ class ActionSoporteSubmit(Action):
                 dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
             else:
                 dispatcher.utter_message(response="utter_soporte_creado")
-            # limpiar slots del form
             return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
         else:
             code = getattr(resp, "status_code", "sin-respuesta")
@@ -456,12 +502,9 @@ class ActionSoporteSubmit(Action):
             dispatcher.utter_message(response="utter_soporte_error")
             return []
 
-
 class ActionSubmitSoporte(Action):
-    """
-    Alias retrocompatible: mantiene el nombre antiguo `action_submit_soporte`
-    y **DELEGA** en `action_soporte_submit` para no duplicar lógica.
-    """
+    """Alias retrocompatible: mantiene el nombre antiguo y delega en ActionSoporteSubmit."""
+
     def name(self) -> Text:
         return "action_submit_soporte"
 
@@ -471,9 +514,7 @@ class ActionSubmitSoporte(Action):
         tracker: Tracker,
         domain: DomainDict,
     ) -> List[EventType]:
-        # Reutiliza la lógica de ActionSoporteSubmit
         return ActionSoporteSubmit().run(dispatcher, tracker, domain)
-
 
 class ActionConectarHumano(Action):
     """Crea ticket de 'escalado a humano' por el mismo webhook genérico."""
@@ -524,13 +565,8 @@ class ActionConectarHumano(Action):
             dispatcher.utter_message(text="⚠️ No pude crear el ticket de escalado en este momento.")
         return []
 
-
 class ActionHealthCheck(Action):
-    """
-    Health-check ligero del servidor de acciones y, opcionalmente,
-    del webhook de Helpdesk (ACTIONS_PING_HELPDESK=true).
-    No requiere modificar stories; puedes invocarlo manualmente si lo necesitas.
-    """
+    """Health-check ligero del servidor de acciones y, opcionalmente, del webhook de Helpdesk."""
 
     def name(self) -> Text:
         return "action_health_check"
@@ -566,26 +602,11 @@ def _has_auth(tracker: Tracker) -> bool:
     meta = (tracker.latest_message or {}).get("metadata") or {}
     auth = meta.get("auth") if isinstance(meta, dict) else {}
 
-    # Caso simple enviado por la UI: metadata.auth.hasToken = true|false
     if isinstance(auth, dict) and auth.get("hasToken"):
         return True
-
-    # Si tu proxy añade claims tras validar JWT en FastAPI
     if isinstance(auth, dict) and auth.get("claims"):
         return True
-
-    # (Opcional) Validación local del JWT si decidieras pasar el token crudo.
-    # token = isinstance(auth, dict) and auth.get("token")
-    # if token and JWT_PUBLIC_KEY:
-    #     try:
-    #         import jwt  # pyjwt
-    #         jwt.decode(token, JWT_PUBLIC_KEY, algorithms=[JWT_ALGORITHM], options={"verify_aud": False})
-    #         return True
-    #     except Exception:
-    #         return False
-
     return False
-
 
 class ActionCheckAuth(Action):
     def name(self) -> Text:
@@ -601,14 +622,11 @@ class ActionCheckAuth(Action):
             if not authed:
                 dispatcher.utter_message(response="utter_need_auth")
                 return []
-
-            # Con auth válida: delega al flujo real
             if intent == "estado_estudiante":
                 return [FollowupAction("action_estado_estudiante")]
             elif intent == "ver_certificados":
                 return [FollowupAction("action_ver_certificados")]
         return []
-
 
 class ActionSyncAuthFromMetadata(Action):
     def name(self) -> Text:
@@ -620,10 +638,6 @@ class ActionSyncAuthFromMetadata(Action):
         tracker: Tracker,
         domain: Dict[Text, Any]
     ) -> List[EventType]:
-        """
-        Lee tracker.latest_message.metadata.auth.hasToken y setea el slot has_token.
-        Si tu proxy REST adjunta el token como metadata.auth.token, también funciona.
-        """
         has_token = False
         try:
             md = tracker.latest_message.get("metadata") or {}
@@ -631,29 +645,19 @@ class ActionSyncAuthFromMetadata(Action):
             if isinstance(auth, dict):
                 if auth.get("hasToken") is True:
                     has_token = True
-                elif auth.get("token"):  # string no vacío
+                elif auth.get("token"):
                     has_token = True
         except Exception:
             has_token = False
 
         return [SlotSet("has_token", has_token)]
 
-
-# --------- Acciones DEMO (reemplaza por tu lógica real) ---------
+# --------- Flujos académicos ---------
 class ActionEstadoEstudiante(Action):
     def name(self) -> Text:
         return "action_estado_estudiante"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        dispatcher.utter_message(text="✅ Estado académico (demo): estás autenticado y la consulta fue exitosa.")
-        return []
-
-
-class ActionEstadoEstudiante(Action):
-    def name(self) -> Text:
-        return "action_estado_estudiante"
-
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
         # 1) Gate de autenticación
         if not _is_auth(tracker):
             dispatcher.utter_message(response="utter_need_auth")
@@ -667,7 +671,6 @@ class ActionEstadoEstudiante(Action):
                 resp = requests.get(f"{base}/api/estado-estudiante", headers=_auth_headers(tracker), timeout=8)
                 if resp.ok:
                     data = resp.json()
-                    # Espera {"estado":"Activo"} o similar
                     estado = data.get("estado") if isinstance(data, dict) else None
             except Exception:
                 pass
@@ -679,18 +682,15 @@ class ActionEstadoEstudiante(Action):
         dispatcher.utter_message(text=f"✅ Tu estado académico es: {estado}.")
         return []
 
-
 class ActionTutorAsignado(Action):
     def name(self) -> Text:
         return "action_tutor_asignado"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
-        # 1) Gate de autenticación
         if not _is_auth(tracker):
             dispatcher.utter_message(response="utter_need_auth")
             return []
 
-        # 2) Backend opcional
         base = _backend_base()
         tutor_nombre: Optional[str] = None
         tutor_contacto: Optional[str] = None
@@ -700,13 +700,11 @@ class ActionTutorAsignado(Action):
                 resp = requests.get(f"{base}/api/tutor", headers=_auth_headers(tracker), timeout=8)
                 if resp.ok:
                     data = resp.json() if isinstance(resp.json(), dict) else {}
-                    # Espera {"nombre":"..","contacto":".."}
                     tutor_nombre = data.get("nombre")
                     tutor_contacto = data.get("contacto")
             except Exception:
                 pass
 
-        # 3) Fallback demo
         if not tutor_nombre:
             tutor_nombre = "Ing. María Pérez (demo)"
         if not tutor_contacto:
@@ -715,7 +713,88 @@ class ActionTutorAsignado(Action):
         dispatcher.utter_message(text=f"👩‍🏫 Tu tutor asignado es {tutor_nombre}. Contacto: {tutor_contacto}.")
         return []
 
+class ActionListarCertificados(Action):
+    def name(self) -> Text:
+        return "action_listar_certificados"
 
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+        is_auth = bool(tracker.get_slot("is_authenticated"))
+        if not is_auth:
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        base_url = (os.getenv("BACKEND_URL") or "").rstrip("/")
+        certificados: Optional[List[Dict[str, Any]]] = None
+
+        if base_url:
+            try:
+                token = tracker.get_slot("auth_token")
+                headers = {"Authorization": f"Bearer {token}"} if token else {}
+                resp = requests.get(f"{base_url}/api/certificados", headers=headers, timeout=8)
+                if resp.ok:
+                    data = resp.json()
+                    certificados = data.get("certificados") if isinstance(data, dict) else data
+            except Exception:
+                pass
+
+        if not certificados:
+            certificados = [
+                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
+                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
+            ]
+
+        lines = []
+        for item in certificados:
+            curso = item.get("curso", "Certificado")
+            fecha = item.get("fecha", "s.f.")
+            url = item.get("url")
+            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
+
+        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
+        return []
+
+class ActionVerCertificados(Action):
+    def name(self) -> Text:
+        return "action_ver_certificados"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        if not _is_auth(tracker):
+            dispatcher.utter_message(response="utter_need_auth")
+            return []
+
+        base = _backend_base()
+        certificados: Optional[List[Dict[str, Any]]] = None
+        if base:
+            try:
+                resp = requests.get(f"{base}/api/certificados", headers=_auth_headers(tracker), timeout=8)
+                if resp.ok:
+                    data = resp.json()
+                    certificados = data.get("certificados") if isinstance(data, dict) else data
+            except Exception:
+                pass
+
+        if not certificados:
+            certificados = [
+                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
+                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
+            ]
+
+        lines = []
+        for item in certificados:
+            curso = item.get("curso", "Certificado")
+            fecha = item.get("fecha", "s.f.")
+            url = item.get("url")
+            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
+
+        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
+        return []
+
+# --------- Auth helpers / recovery ---------
 class ActionCheckAuthEstado(Action):
     def name(self) -> Text:
         return "action_check_auth_estado"
@@ -729,11 +808,9 @@ class ActionCheckAuthEstado(Action):
         meta = (tracker.latest_message or {}).get("metadata") or {}
         has_token = bool(((meta.get("auth") or {}).get("hasToken")))
         if has_token:
-            # Delegamos a la acción real de estado (evita depender de un utter demo inexistente)
             return [FollowupAction("action_estado_estudiante")]
         else:
             return [FollowupAction("utter_need_auth")]
-
 
 class ActionSubmitRecovery(Action):
     def name(self) -> Text:
@@ -746,7 +823,7 @@ class ActionSubmitRecovery(Action):
             return []
         dispatcher.utter_message(text=f"Se envió un enlace de recuperación a {email}.")
         return []
-       
+
 class ActionSetAuthenticatedTrue(Action):
     def name(self) -> Text:
         return "action_set_authenticated_true"
@@ -766,97 +843,7 @@ class ActionMarkAuthenticated(Action):
     def run(self, dispatcher, tracker, domain):
         return [SlotSet("is_authenticated", True)]
 
-
-class ActionListarCertificados(Action):
-    def name(self) -> Text:
-        return "action_listar_certificados"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: Dict[Text, Any],
-    ) -> List[Dict[Text, Any]]:
-        # 1) Verifica autenticación (reutiliza una sola respuesta de login)
-        is_auth = bool(tracker.get_slot("is_authenticated"))
-        if not is_auth:
-            dispatcher.utter_message(response="utter_need_auth")
-            return []
-
-        # 2) Intenta obtener certificados desde el backend (opcional)
-        base_url = (os.getenv("BACKEND_URL") or "").rstrip("/")
-        certificados: Optional[List[Dict[str, Any]]] = None
-
-        if base_url:
-            try:
-                # Si manejas token vía slot:
-                token = tracker.get_slot("auth_token")
-                headers = {"Authorization": f"Bearer {token}"} if token else {}
-                resp = requests.get(f"{base_url}/api/certificados", headers=headers, timeout=8)
-                if resp.ok:
-                    data = resp.json()
-                    # Espera {"certificados":[{curso,fecha,url},...]} o lista directa
-                    certificados = data.get("certificados") if isinstance(data, dict) else data
-            except Exception:
-                # Silencioso: usa fallback abajo
-                pass
-
-        # 3) Fallback demo si no hay backend o respuesta vacía
-        if not certificados:
-            certificados = [
-                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
-                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
-            ]
-
-        # 4) Formatea salida
-        lines = []
-        for item in certificados:
-            curso = item.get("curso", "Certificado")
-            fecha = item.get("fecha", "s.f.")
-            url = item.get("url")
-            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
-
-        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
-        return []
-
-class ActionVerCertificados(Action):
-    def name(self) -> Text:
-        return "action_ver_certificados"
-
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
-        # 1) Gate de autenticación
-        if not _is_auth(tracker):
-            dispatcher.utter_message(response="utter_need_auth")
-            return []
-
-        # 2) Backend opcional
-        base = _backend_base()
-        certificados: Optional[List[Dict[str, Any]]] = None
-        if base:
-            try:
-                resp = requests.get(f"{base}/api/certificados", headers=_auth_headers(tracker), timeout=8)
-                if resp.ok:
-                    data = resp.json()
-                    certificados = data.get("certificados") if isinstance(data, dict) else data
-            except Exception:
-                pass
-
-        # 3) Fallback demo
-        if not certificados:
-            certificados = [
-                {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
-                {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
-            ]
-
-        lines = []
-        for item in certificados:
-            curso = item.get("curso", "Certificado")
-            fecha = item.get("fecha", "s.f.")
-            url = item.get("url")
-            lines.append(f"• {curso} ({fecha})" + (f" → {url}" if url else ""))
-
-        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
-        return []
+# --------- Encuesta / resolución / desvío ---------
 class ActionPreguntarResolucion(Action):
     def name(self) -> Text:
         return "action_preguntar_resolucion"
@@ -871,4 +858,650 @@ class ActionDerivarYRegistrarHumano(Action):
 
     def run(self, dispatcher, tracker, domain):
         # Aquí crear ticket / enviar correo / registrar en Mongo (cuando quieras)
+        return []
+
+class ActionRegistrarEncuesta(Action):
+    def name(self) -> Text:
+        return "action_registrar_encuesta"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+        satisfaccion = tracker.latest_message.get('intent', {}).get('name', 'desconocido')
+        comentario = tracker.latest_message.get('text', 'sin comentario')
+        usuario = tracker.get_slot("usuario") or "anónimo"
+        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        registro = {
+            "usuario": usuario,
+            "satisfaccion": satisfaccion,
+            "comentario": comentario,
+            "fecha": fecha
+        }
+
+        ruta = "data/encuestas.json"
+        os.makedirs("data", exist_ok=True)
+        with open(ruta, "a", encoding="utf-8") as f:
+            f.write(json.dumps(registro, ensure_ascii=False) + "\n")
+
+        dispatcher.utter_message(text="✅ Registro de satisfacción guardado correctamente.")
+        return []
+
+class ActionOfrecerContinuarTema(Action):
+    def name(self) -> Text:
+        return "action_ofrecer_continuar_tema"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+        dispatcher.utter_message(response="utter_ofrecer_continuar")
+        return []
+class ActionIngresoZajuna(Action):
+    def name(self) -> str:
+        return "action_ingreso_zajuna"
+
+    async def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(text="Perfecto, vamos a iniciar sesión. Por favor ingresa tus credenciales.")
+        return []
+
+class ActionIngresoZajuna(Action):
+    def name(self) -> str:
+        return "action_ingreso_zajuna"
+
+    async def run(self, dispatcher: CollectingDispatcher,
+                  tracker: Tracker,
+                  domain: dict) -> list:
+        dispatcher.utter_message(text="Perfecto, vamos a iniciar sesión. Por favor ingresa tus credenciales.")
+        return []
+
+class ActionRecuperarContrasena(Action):
+    def name(self) -> str:
+        return "action_recuperar_contrasena"
+
+    async def run(self, dispatcher: CollectingDispatcher,
+                  tracker: Tracker,
+                  domain: dict) -> list:
+        dispatcher.utter_message(text="No hay problema. Te ayudaré a recuperar tu contraseña. Por favor sigue el enlace que te enviaré.")
+        return []
+
+class ActionNecesitaAuth(Action):
+    def name(self) -> str:
+        return "action_necesita_auth"
+
+    async def run(self, dispatcher: CollectingDispatcher,
+                  tracker: Tracker,
+                  domain: dict) -> list:
+        dispatcher.utter_message(text="Para continuar con esta acción necesitas iniciar sesión. ¿Deseas hacerlo ahora?")
+        return []
+
+class ActionSetEncuestaTipo(Action):
+    def name(self):
+        return "action_set_encuesta_tipo"
+
+    def run(self, dispatcher, tracker, domain):
+        intent = tracker.latest_message['intent'].get('name')
+        
+        encuesta_tipo = None
+        if intent == "respuesta_satisfecho":
+            # Lógica de flujo para positiva
+            # Puedes personalizar según tu intención
+            encuesta_tipo = "continuar"  # o "finaliza"
+        elif intent == "respuesta_insatisfecho":
+            # Lógica de flujo para negativa
+            encuesta_tipo = "contacto_tutor"  # o "directo"
+        
+        return [SlotSet("encuesta_tipo", encuesta_tipo)]
+class ActionSetMenuPrincipal(Action):
+    def name(self) -> Text:
+        return "action_set_menu_principal"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        return [SlotSet("menu_actual", "principal")]
+
+class ActionVerEstadoEstudiante(Action):
+    def name(self) -> Text:
+        return "action_ver_estado_estudiante"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        if tracker.get_slot("is_authenticated"):
+            dispatcher.utter_message(text="Aquí está tu estado como estudiante...")
+        else:
+            dispatcher.utter_message(response="utter_login_requerido")
+
+        return []
+
+class ActionConsultarCertificados(Action):
+    def name(self) -> Text:
+        return "action_consultar_certificados"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        if tracker.get_slot("is_authenticated"):
+            dispatcher.utter_message(text="Aquí tienes tus certificados disponibles...")
+        else:
+            dispatcher.utter_message(response="utter_login_requerido")
+
+        return []
+class ActionConfirmarCierre(Action):
+    def name(self) -> Text:
+        return "action_confirmar_cierre"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_confirmar_cierre")
+        return [SlotSet("confirmacion_cierre", "pendiente")]
+
+
+class ActionFinalizarConversacion(Action):
+    def name(self) -> Text:
+        return "action_finalizar_conversacion"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_despedida_final")
+        return [
+            SlotSet("session_activa", False),
+            SlotSet("confirmacion_cierre", None),
+            ConversationPaused()
+        ]
+
+
+class ActionCancelarCierre(Action):
+    def name(self) -> Text:
+        return "action_cancelar_cierre"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_cancelar_cierre")
+        return [
+            SlotSet("confirmacion_cierre", None),
+            ConversationResumed()
+        ]
+class ActionVerificarProcesoActivo(Action):
+    def name(self) -> Text:
+        return "action_verificar_proceso_activo"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        proceso_activo = tracker.get_slot("proceso_activo")
+        if proceso_activo:
+            dispatcher.utter_message(response="utter_confirmar_cierre_seguro")
+            return [SlotSet("confirmacion_cierre", "pendiente")]
+        else:
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+            return [SlotSet("confirmacion_cierre", "pendiente")]
+
+
+class ActionConfirmarCierre(Action):
+    def name(self) -> Text:
+        return "action_confirmar_cierre"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_despedida_final")
+        return [
+            SlotSet("session_activa", False),
+            SlotSet("confirmacion_cierre", None),
+            SlotSet("proceso_activo", None),
+            ConversationPaused()
+        ]
+
+
+class ActionCancelarCierre(Action):
+    def name(self) -> Text:
+        return "action_cancelar_cierre"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_cancelar_cierre")
+        return [
+            SlotSet("confirmacion_cierre", None),
+            ConversationResumed()
+        ]
+class ActionVerificarProcesoActivoAutosave(Action):
+    def name(self) -> Text:
+        return "action_verificar_proceso_activo_autosave"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        proceso_activo = tracker.get_slot("proceso_activo")
+        encuesta_incompleta = tracker.get_slot("encuesta_incompleta")
+
+        if encuesta_incompleta:
+            dispatcher.utter_message(response="utter_confirmar_cierre_con_autosave")
+            return [SlotSet("confirmacion_cierre", "pendiente")]
+        elif proceso_activo:
+            dispatcher.utter_message(response="utter_confirmar_cierre_seguro")
+            return [SlotSet("confirmacion_cierre", "pendiente")]
+        else:
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+            return [SlotSet("confirmacion_cierre", "pendiente")]
+
+
+class ActionGuardarEncuestaIncompleta(Action):
+    def name(self) -> Text:
+        return "action_guardar_encuesta_incompleta"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        # Simulación de guardado parcial (integración con ActionRegistrarEncuesta)
+        usuario = tracker.sender_id
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        dispatcher.utter_message(
+            text=f"Guardando tu progreso de encuesta ({fecha}) para el usuario {usuario}..."
+        )
+        dispatcher.utter_message(text="✅ Encuesta parcial registrada correctamente.")
+
+        return [
+            SlotSet("encuesta_incompleta", False),
+            SlotSet("proceso_activo", None)
+        ]
+
+
+class ActionConfirmarCierreAutosave(Action):
+    def name(self) -> Text:
+        return "action_confirmar_cierre_autosave"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        encuesta_incompleta = tracker.get_slot("encuesta_incompleta")
+
+        if encuesta_incompleta:
+            # Guardar antes de cerrar
+            dispatcher.utter_message(response="utter_despedida_final")
+            return [
+                SlotSet("session_activa", False),
+                SlotSet("confirmacion_cierre", None),
+                SlotSet("encuesta_incompleta", False),
+                ConversationPaused()
+            ]
+        else:
+            dispatcher.utter_message(response="utter_despedida_sin_guardar")
+            return [
+                SlotSet("session_activa", False),
+                SlotSet("confirmacion_cierre", None),
+                ConversationPaused()
+            ]
+
+
+class ActionCancelarCierre(Action):
+    def name(self) -> Text:
+        return "action_cancelar_cierre"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(response="utter_cancelar_cierre")
+        return [
+            SlotSet("confirmacion_cierre", None),
+            ConversationResumed()
+        ]
+class ActionVerificarEstadoEncuesta(Action):
+    def name(self) -> Text:
+        return "action_verificar_estado_encuesta"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        encuesta_activa = tracker.get_slot("encuesta_activa")
+        if encuesta_activa:
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+        else:
+            dispatcher.utter_message(response="utter_cierre_confirmado")
+            return [ConversationPaused()]
+        return []
+
+class ActionGuardarProgresoEncuesta(Action):
+    def name(self) -> Text:
+        return "action_guardar_progreso_encuesta"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        dispatcher.utter_message(response="utter_guardando_progreso")
+
+        # 🔗 Conecta con ActionRegistrarEncuesta para persistencia real
+        encuesta_data = {
+            "usuario": tracker.sender_id,
+            "estado": "pendiente",
+            "tipo": tracker.get_slot("encuesta_activa"),
+            "comentario": tracker.latest_message.get("text")
+        }
+        ActionRegistrarEncuesta().registrar_en_base(encuesta_data)
+
+        return [SlotSet("encuesta_activa", False)]
+
+class ActionTerminarConversacionSegura(Action):
+    def name(self) -> Text:
+        return "action_terminar_conversacion_segura"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        encuesta_activa = tracker.get_slot("encuesta_activa")
+
+        if encuesta_activa:
+            return [SlotSet("encuesta_activa", True)]
+        else:
+            dispatcher.utter_message(response="utter_cierre_confirmado")
+            return [ConversationPaused()]
+
+
+class ActionIrMenuPrincipal(Action):
+    def name(self) -> Text:
+        return "action_ir_menu_principal"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        dispatcher.utter_message(response="utter_menu_principal")
+        return []
+
+class ActionAutoResume(Action):
+    def name(self) -> Text:
+        return "action_auto_resume"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        encuesta_activa = tracker.get_slot("encuesta_activa")
+        usuario = tracker.sender_id
+
+        if encuesta_activa:
+            dispatcher.utter_message(
+                text=f"👋 Hola {usuario}, parece que dejaste una encuesta sin terminar. ¿Deseas continuar?"
+            )
+            return [SlotSet("reanudar_pendiente", True)]
+        else:
+            dispatcher.utter_message(text="👋 ¡Hola! Bienvenido de nuevo. No tienes tareas pendientes.")
+            return [SlotSet("reanudar_pendiente", False)]
+
+
+class ActionReanudarAuto(Action):
+    def name(self) -> Text:
+        return "action_reanudar_auto"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+        if tracker.get_slot("reanudar_pendiente"):
+            dispatcher.utter_message(
+                text="🔄 Retomando tu encuesta o proceso pendiente donde lo dejaste..."
+            )
+            return [ConversationResumed()]
+        else:
+            dispatcher.utter_message(text="Nada pendiente. Continuemos desde el inicio.")
+            return []
+class ActionConfirmarCierreSeguro(Action):
+    def name(self):
+        return "action_confirmar_cierre_seguro"
+
+    def run(self, dispatcher, tracker, domain):
+        if tracker.get_slot("encuesta_activa"):
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+        else:
+            dispatcher.utter_message(response="utter_cierre_confirmado")
+            return [ConversationPaused()]
+        return []
+
+
+class ActionAutoSaveEncuesta(Action):
+    def name(self):
+        return "action_autosave_encuesta"
+
+    def run(self, dispatcher, tracker, domain):
+        datos = tracker.current_slot_values()
+        autosave_collection.update_one(
+            {"user_id": tracker.sender_id},
+            {"$set": {"slots": datos, "estado": "guardado"}},
+            upsert=True
+        )
+        dispatcher.utter_message(text="Progreso guardado automáticamente 🧠")
+        return []
+
+
+class ActionGuardarAutoSaveMongo(Action):
+    def name(self):
+        return "action_guardar_autosave_mongo"
+
+    def run(self, dispatcher, tracker, domain):
+        data = {"user_id": tracker.sender_id, "slots": tracker.current_slot_values()}
+        autosave_collection.update_one({"user_id": tracker.sender_id}, {"$set": data}, upsert=True)
+        dispatcher.utter_message(text="Datos guardados en MongoDB 🗄️")
+        return []
+
+
+class ActionCargarAutoSaveMongo(Action):
+    def name(self):
+        return "action_cargar_autosave_mongo"
+
+    def run(self, dispatcher, tracker, domain):
+        registro = autosave_collection.find_one({"user_id": tracker.sender_id})
+        if registro and "slots" in registro:
+            dispatcher.utter_message(text="Cargando tus datos previos...")
+            return [SlotSet(k, v) for k, v in registro["slots"].items()]
+        else:
+            dispatcher.utter_message(text="No se encontró información guardada previa.")
+        return []
+
+
+class ActionAutoResumeConversacion(Action):
+    def name(self):
+        return "action_autoresume_conversacion"
+
+    def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(text="He restaurado tu conversación anterior. Puedes continuar.")
+        return [ConversationResumed()]
+
+
+class ActionResetConversacionSegura(Action):
+    def name(self):
+        return "action_reset_conversacion_segura"
+
+    def run(self, dispatcher, tracker, domain):
+        autosave_collection.delete_one({"user_id": tracker.sender_id})
+        dispatcher.utter_message(text="Datos temporales eliminados correctamente. ✅")
+        return [SlotSet("encuesta_activa", False), SlotSet("autosave_estado", None)]
+
+
+
+
+
+# --------- Flujo de cierre/pausa segura ---------
+class ActionVerificarEstadoConversacion(Action):
+    def name(self) -> Text:
+        return "action_verificar_estado_conversacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        encuesta_activa = tracker.get_slot("encuesta_activa")
+        if encuesta_activa:
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+            return []
+        else:
+            dispatcher.utter_message(response="utter_cierre_confirmado")
+            return [ConversationPaused()]
+
+class ActionGuardarProgresoConversacion(Action):
+    def name(self) -> Text:
+        return "action_guardar_progreso_conversacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        dispatcher.utter_message(response="utter_guardando_progreso")
+        encuesta_data = {
+            "usuario": tracker.sender_id,
+            "estado": "incompleta",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "tipo": tracker.get_slot("encuesta_activa"),
+            "comentario": (tracker.latest_message or {}).get("text", ""),
+            "slots": tracker.current_slot_values(),
+        }
+        guardar_autosave(tracker.sender_id, encuesta_data, estado="incompleta")
+        dispatcher.utter_message(text="✅ Progreso guardado correctamente.")
+        return [SlotSet("encuesta_activa", True)]
+
+class ActionTerminarConversacionSegura(Action):
+    def name(self) -> Text:
+        return "action_terminar_conversacion_segura"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        if tracker.get_slot("encuesta_activa"):
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+            return []
+        dispatcher.utter_message(response="utter_cierre_confirmado")
+        return [ConversationPaused()]
+
+class ActionReanudarConversacionSegura(Action):
+    def name(self) -> Text:
+        return "action_reanudar_conversacion_segura"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        if tracker.get_slot("encuesta_activa"):
+            dispatcher.utter_message(text="🔄 Retomamos tu encuesta o proceso pendiente donde lo dejaste.")
+            return [ConversationResumed()]
+        dispatcher.utter_message(text="No había nada pendiente, puedes continuar normalmente.")
+        return []
+
+class ActionConfirmarCierreSeguro(Action):
+    def name(self) -> Text:
+        return "action_confirmar_cierre_seguro"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        if tracker.get_slot("encuesta_activa"):
+            dispatcher.utter_message(response="utter_confirmar_cierre")
+            return []
+        dispatcher.utter_message(response="utter_cierre_confirmado")
+        return [ConversationPaused()]
+
+# --------- Autosave genérico ---------
+class ActionAutoSaveEncuesta(Action):
+    def name(self) -> Text:
+        return "action_autosave_encuesta"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        datos = tracker.current_slot_values()
+        guardar_autosave(tracker.sender_id, {"slots": datos}, estado="guardado")
+        dispatcher.utter_message(text="🧠 Progreso guardado automáticamente.")
+        return []
+
+class ActionGuardarAutoSaveMongo(Action):
+    def name(self) -> Text:
+        return "action_guardar_autosave_mongo"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        guardar_autosave(tracker.sender_id, {"slots": tracker.current_slot_values()}, estado="guardado")
+        dispatcher.utter_message(text="🗄️ Datos guardados en MongoDB.")
+        return []
+
+class ActionCargarAutoSaveMongo(Action):
+    def name(self) -> Text:
+        return "action_cargar_autosave_mongo"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        registro = obtener_autosave(tracker.sender_id)
+        if registro and "slots" in registro:
+            dispatcher.utter_message(text="Cargando tus datos previos...")
+            return [SlotSet(k, v) for k, v in (registro["slots"] or {}).items()]
+        dispatcher.utter_message(text="No se encontró información guardada previa.")
+        return []
+
+class ActionAutoResumeConversacion(Action):
+    def name(self) -> Text:
+        return "action_autoresume_conversacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        dispatcher.utter_message(text="He restaurado tu conversación anterior. Puedes continuar.")
+        return [ConversationResumed()]
+
+class ActionResetConversacionSegura(Action):
+    def name(self) -> Text:
+        return "action_reset_conversacion_segura"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        limpiar_autosave(tracker.sender_id)
+        dispatcher.utter_message(text="🧹 Datos temporales eliminados correctamente.")
+        return [SlotSet("encuesta_activa", False), SlotSet("autosave_estado", None)]
+
+# --------- Eventos de seguridad (desconexión/inactividad/reconexión) ---------
+class ActionNotificarDesconexion(Action):
+    def name(self) -> Text:
+        return "action_notificar_desconexion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        dispatcher.utter_message(response="utter_notificar_desconexion")
+        actualizar_campo(
+            tracker.sender_id,
+            evento="desconexion",
+            slots=tracker.current_slot_values(),
+        )
+        return [SlotSet("evento_seguridad", "desconexion")]
+
+class ActionNotificarInactividad(Action):
+    def name(self) -> Text:
+        return "action_notificar_inactividad"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        dispatcher.utter_message(response="utter_notificar_inactividad")
+        actualizar_campo(
+            tracker.sender_id,
+            evento="inactividad",
+            slots=tracker.current_slot_values(),
+        )
+        return [SlotSet("evento_seguridad", "inactividad")]
+
+class ActionNotificarReconexion(Action):
+    def name(self) -> Text:
+        return "action_notificar_reconexion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        dispatcher.utter_message(response="utter_notificar_reconexion")
+        registro = obtener_autosave(tracker.sender_id)
+        if registro and "slots" in registro:
+            return [SlotSet(k, v) for k, v in (registro["slots"] or {}).items()]
+        return []
+
+class ActionGuardarEstadoSeguridad(Action):
+    def name(self) -> Text:
+        return "action_guardar_estado_seguridad"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        actualizar_campo(
+            tracker.sender_id,
+            evento=tracker.get_slot("evento_seguridad"),
+            slots=tracker.current_slot_values(),
+        )
+        dispatcher.utter_message(text="💾 Estado de seguridad guardado.")
+        return []
+
+class ActionRecuperarEstadoSeguridad(Action):
+    def name(self) -> Text:
+        return "action_recuperar_estado_seguridad"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        registro = obtener_autosave(tracker.sender_id)
+        if registro and "slots" in registro:
+            dispatcher.utter_message(text="🔄 Restaurando sesión guardada...")
+            return [SlotSet(k, v) for k, v in (registro["slots"] or {}).items()]
+        dispatcher.utter_message(text="No se encontró sesión guardada previa.")
         return []

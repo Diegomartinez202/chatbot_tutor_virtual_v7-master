@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import ChatUI from "@/components/chat/ChatUI";
 import ChatbotLoading from "@/components/ChatbotLoading";
 import ChatbotStatusMini from "@/components/ChatbotStatusMini";
@@ -13,19 +13,15 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import ChatConfigMenu from "@/components/chat/ChatConfigMenu";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
-const CHAT_REST_URL =
-    import.meta.env.VITE_CHAT_REST_URL || `${API_BASE.replace(/\/$/, "")}/chat`;
-const RASA_HTTP_URL =
-    import.meta.env.VITE_RASA_REST_URL || import.meta.env.VITE_RASA_HTTP || "/rasa";
-const RASA_WS_URL =
-    import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
+const CHAT_REST_URL = import.meta.env.VITE_CHAT_REST_URL || `${API_BASE.replace(/\/$/, "")}/chat`;
+const RASA_HTTP_URL = import.meta.env.VITE_RASA_REST_URL || import.meta.env.VITE_RASA_HTTP || "/rasa";
+const RASA_WS_URL = import.meta.env.VITE_RASA_WS_URL || import.meta.env.VITE_RASA_WS || "/ws";
 
 const SHOW_HARNESS = import.meta.env.VITE_SHOW_CHAT_HARNESS === "true";
 const CHAT_REQUIRE_AUTH = import.meta.env.VITE_CHAT_REQUIRE_AUTH === "true";
 const TRANSPORT = (import.meta.env.VITE_CHAT_TRANSPORT || "rest").toLowerCase();
 const USER_SETTINGS_URL =
-    (import.meta.env.VITE_USER_SETTINGS_URL &&
-        String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
+    (import.meta.env.VITE_USER_SETTINGS_URL && String(import.meta.env.VITE_USER_SETTINGS_URL).trim()) ||
     "/api/me/settings";
 const AUTO_MINIMIZE = import.meta.env.VITE_AUTO_MINIMIZE_WIDGET === "true";
 
@@ -77,7 +73,10 @@ export default function ChatPage({
 
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+
+    // Estados: "connecting" | "ready" | "ready-degraded"
     const [status, setStatus] = useState("connecting");
+    const [degraded, setDegraded] = useState(false);
 
     // token invitado
     try {
@@ -102,7 +101,7 @@ export default function ChatPage({
         return () => window.removeEventListener("click", onClick, true);
     }, [isEmbed]);
 
-    /* health / conexión */
+    /* health / conexión (NO bloquea el chat si falla → modo degradado) */
     const defaultConnect = useMemo(() => {
         if (connectFn) return connectFn;
         if (TRANSPORT === "ws") return () => connectWS({ wsUrl: RASA_WS_URL });
@@ -111,21 +110,29 @@ export default function ChatPage({
 
     const connect = useCallback(async () => {
         setStatus("connecting");
-        let done = false;
+        setDegraded(false);
+
+        // watchdog: si se demora, seguimos igual en ready
+        let forced = false;
         const watchdog = setTimeout(() => {
-            if (!done) setStatus("ready");
+            forced = true;
+            setStatus("ready");
+            setDegraded(true);
         }, 2500);
 
         try {
             if (defaultConnect) await defaultConnect();
-            else await new Promise((r) => setTimeout(r, 600));
-            done = true;
-            clearTimeout(watchdog);
-            setStatus("ready");
+            if (!forced) {
+                clearTimeout(watchdog);
+                setStatus("ready");
+                setDegraded(false);
+            }
         } catch (e) {
-            done = true;
             clearTimeout(watchdog);
-            setStatus("error");
+            // 🎯 Cambio clave: antes ponías "error" → ahora seguimos en "ready" (degradado)
+            console.warn("[chat] Health falló, continuando en modo degradado:", e?.message || e);
+            setStatus("ready");
+            setDegraded(true);
         }
     }, [defaultConnect]);
 
@@ -133,7 +140,7 @@ export default function ChatPage({
     useEffect(() => {
         if (isEmbed) {
             try {
-                window.parent?.postMessage({ type: "auth:request" }, "*");
+                window.parent?.postMessage?.({ type: "auth:request" }, "*");
             } catch { }
         }
     }, [isEmbed]);
@@ -151,8 +158,7 @@ export default function ChatPage({
 
     // aplicar preferencias al estar listo
     useEffect(() => {
-        if (status !== "ready") return;
-        if (!isAuthenticated) return;
+        if (status !== "ready" || !isAuthenticated) return;
         let token = null;
         try {
             token = localStorage.getItem(STORAGE_KEYS.accessToken) || null;
@@ -222,10 +228,13 @@ export default function ChatPage({
         return null;
     }
 
-    const wrapperClass = wantFullScreen ? "p-0 h-screen flex flex-col" : "p-6 min-h-[70vh] flex flex-col";
-    const bodyClass = wantFullScreen
-        ? "flex-1 bg-white rounded-none border-0 shadow-none overflow-hidden"
-        : "flex-1 bg-white rounded border shadow overflow-hidden";
+    /* ------- Layout responsivo y alto completo ------- */
+    const wrapperClass = wantFullScreen
+        ? "p-0 min-h-[100dvh] flex flex-col"
+        : "p-4 md:p-6 min-h-[90dvh] flex flex-col";
+    const bodyClass =
+        "flex-1 bg-white rounded border shadow overflow-hidden min-h-[60dvh]";
+
     const wrapperStyle = isEmbed ? { height: embedHeight || "100vh" } : undefined;
 
     const SHOW_EMBED_TOPBAR = true;
@@ -250,26 +259,37 @@ export default function ChatPage({
                 </div>
             )}
 
-            {/* header sin avatar pequeño: título + subtítulo centrados; a la derecha estado + Configuración */}
+            {/* HEADER (sin avatar grande) */}
             {!isEmbed && (
-                <div className="mb-4">
-                    <div className="max-w-4xl mx-auto w-full px-3">
-                        <div className="grid grid-cols-3 items-center">
-                            <div /> {/* espaciador */}
+                <div className="mb-3 md:mb-4">
+                    <div className="max-w-5xl mx-auto w-full px-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-2">
+                            <div />
                             <div className="flex flex-col items-center justify-center text-center">
-                                <h1 className="text-2xl font-semibold text-gray-100">{title}</h1>
-                                {subtitle ? <p className="mt-0.5 text-sm text-gray-400">{subtitle}</p> : null}
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-gray-100 break-words">
+                                    {title}
+                                </h1>
+                                {subtitle ? (
+                                    <p className="mt-0.5 text-xs sm:text-sm text-gray-400">{subtitle}</p>
+                                ) : null}
                             </div>
                             <div className="flex items-center justify-end gap-2">
-                                <ChatbotStatusMini status={status} showAvatar={false} />
+                                <ChatbotStatusMini status={degraded ? "warning" : status} />
                                 <ChatConfigMenu />
                             </div>
                         </div>
+
+                        {degraded && (
+                            <div className="mt-2 flex items-center gap-2 text-amber-300 text-sm">
+                                <AlertTriangle className="w-4 h-4" />
+                                <span>Conexión en modo degradado. Si algo falla, inténtalo de nuevo.</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* cuerpo */}
+            {/* CUERPO */}
             <div
                 className={bodyClass}
                 data-testid="chat-root"
@@ -278,32 +298,20 @@ export default function ChatPage({
                 {status === "connecting" && (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
                         <div style={{ maxWidth: 160 }}>
-                            {/* puedes usar un avatar en el loader si lo deseas; si no, déjalo así */}
                             <ChatbotLoading label={t("chat.connecting", "Conectando…")} />
                         </div>
                         <ChatbotStatusMini status="connecting" />
                     </div>
                 )}
 
-                {status === "error" && (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-                        <p className="text-gray-100">{t("chat.errorConnection", "Error de conexión")}</p>
-                        <button
-                            onClick={connect}
-                            className="inline-flex items-center gap-2 px-3 py-2 border rounded bg-white hover:bg-gray-100"
-                            type="button"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                            {t("chat.retry", "Reintentar")}
-                        </button>
+                {status === "ready" && (
+                    <div className="w-full h-full">
+                        {children ?? <ChatUI embed={isEmbed} />}
                     </div>
                 )}
-
-                {status === "ready" && <div className="w-full h-full">{children ?? <ChatUI embed={isEmbed} />}</div>}
 
                 {SHOW_HARNESS && !isEmbed && status === "ready" ? <Harness /> : null}
             </div>
         </div>
     );
 }
-

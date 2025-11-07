@@ -1,0 +1,150 @@
+version: "3.1"
+stories:
+
+- story: Flujo completo encuesta positiva
+  steps:
+    - intent: iniciar_encuesta
+    - action: utter_preguntar_satisfaccion
+    - intent: respuesta_satisfecho
+    - action: utter_agradecer_satisfaccion
+    - intent: dar_retroalimentacion
+    - action: utter_pedir_retroalimentacion
+    - intent: dar_retroalimentacion
+    - action: utter_gracias_retroalimentacion
+    - intent: continuar_consulta
+    - action: utter_ofrecer_continuar
+
+- story: Encuesta negativa → contacto tutor
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: utter_lamentar_insatisfaccion
+    - intent: contactar_tutor
+    - action: action_enviar_correo_tutor
+    - intent: continuar_consulta
+    - action: utter_ofrecer_continuar
+
+- story: Usuario finaliza conversación después de encuesta
+  steps:
+    - intent: respuesta_satisfecho
+    - action: utter_agradecer_satisfaccion
+    - intent: terminar_conversacion
+    - action: utter_despedida_final
+- story: Encuesta positiva → agradecimiento específico
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+   # esta acción debe setear el slot encuesta_tipo: "positiva"
+- slot_was_set:
+   - encuesta_tipo: "positiva"
+   - action: utter_agradecimiento_satisfaccion
+
+- story: Encuesta positiva → finaliza conversación
+  steps:
+  - intent: respuesta_satisfecho
+  - action: action_set_encuesta_tipo
+  - slot_was_set:
+  - encuesta_tipo: "finaliza"
+  - action: utter_agradecer_satisfaccion
+ 
+  # Encuesta positiva → seguir con tema
+- story: Usuario satisfecho → continuar
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - slot_was_set:
+          - encuesta_tipo: "continuar"
+    - action: utter_agradecimiento_satisfaccion
+
+# Encuesta positiva → finaliza conversación
+- story: Usuario finaliza conversación después de encuesta
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - slot_was_set:
+    - encuesta_tipo: "finaliza"
+    - action: utter_agradecer_satisfaccion
+
+# Encuesta negativa → contacto tutor
+- story: Encuesta negativa → contacto tutor
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: action_set_encuesta_tipo
+    - slot_was_set:
+    - encuesta_tipo: "contacto_tutor"
+    - action: utter_lamentar_insatisfaccion
+
+# Encuesta negativa → usuario quiere contacto directo
+- story: Usuario insatisfecho → contactar tutor
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: action_set_encuesta_tipo
+    - slot_was_set:
+    - encuesta_tipo: "directo"
+    - action: utter_encuesta_insatisfaccion
+  
+- story: Encuesta de satisfacción (positivo)
+  steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - intent: respuesta_satisfecho
+      - slot_was_set:
+          - encuesta_tipo: "satisfaccion"
+      - action: action_registrar_encuesta
+      - action: utter_agradecimiento_satisfaccion
+
+- story: Encuesta de satisfacción (negativo)
+  steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - intent: respuesta_insatisfecho
+      - slot_was_set:
+          - encuesta_tipo: "satisfaccion"
+      - action: action_registrar_encuesta
+      - action: utter_encuesta_insatisfaccion
+
+- story: Problema resuelto (sí)
+  steps:
+      - intent: problema_resuelto_si
+      - slot_was_set:
+          - encuesta_tipo: "resolucion"
+      - action: action_registrar_encuesta
+      - action: utter_agradecimiento_encuesta
+- story: Encuesta de satisfacción (positivo)
+  steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - intent: respuesta_satisfecho
+      - slot_was_set:
+          - encuesta_tipo: "satisfaccion"
+      - action: action_registrar_encuesta
+      - action: utter_agradecimiento_satisfaccion
+
+- story: Encuesta de satisfacción (negativo)
+  steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - intent: respuesta_insatisfecho
+      - slot_was_set:
+          - encuesta_tipo: "satisfaccion"
+      - action: action_registrar_encuesta
+      - action: utter_encuesta_insatisfaccion
+
+- story: Problema resuelto (sí)
+  steps:
+      - intent: problema_resuelto_si
+      - slot_was_set:
+          - encuesta_tipo: "resolucion"
+      - action: action_registrar_encuesta
+      - action: utter_agradecimiento_encuesta
+
+# Opcional: continuar/no continuar después de encuesta
+- story: Usuario quiere continuar tema
+  steps:
+      - intent: continuar_tema_si
+      - action: action_ofrecer_continuar_tema
+      - action: utter_ofrecer_continuar
+
+- story: Usuario no quiere continuar tema
+  steps:
+      - intent: deny
+      - action: utter_gracias_retroalimentacion

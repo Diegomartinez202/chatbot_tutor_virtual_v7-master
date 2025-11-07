@@ -1,0 +1,39 @@
+version: "3.1"
+
+imports:
+  - domain_conversacion_segura.yml
+
+intents:
+  - notificar_desconexion
+  - notificar_reconexion
+  - notificar_inactividad
+  - reanudar_sesion_guardada
+
+entities:
+  - evento_seguridad
+  - tiempo_inactividad
+
+slots:
+  evento_seguridad:
+    type: text
+    influence_conversation: true
+  tiempo_inactividad:
+    type: float
+    influence_conversation: false
+
+responses:
+  utter_notificar_desconexion:
+    - text: "He detectado que la sesión se ha cerrado inesperadamente. Guardaré tu progreso antes de salir."
+  utter_notificar_inactividad:
+    - text: "Parece que llevas un tiempo inactivo. Guardaré tu avance temporalmente."
+  utter_notificar_reconexion:
+    - text: "Bienvenido de nuevo 👋. He restaurado tu conversación previa desde el guardado automático."
+  utter_reanudar_sesion_guardada:
+    - text: "Tu sesión fue recuperada desde el último autosave."
+
+actions:
+  - action_guardar_estado_seguridad
+  - action_recuperar_estado_seguridad
+  - action_notificar_desconexion
+  - action_notificar_inactividad
+  - action_notificar_reconexion

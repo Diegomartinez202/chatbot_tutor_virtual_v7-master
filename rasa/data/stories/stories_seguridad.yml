@@ -1,0 +1,27 @@
+version: "3.1"
+
+stories:
+
+- story: desconexion_detectada
+  steps:
+    - intent: notificar_desconexion
+    - action: action_notificar_desconexion
+    - action: action_guardar_estado_seguridad
+
+- story: inactividad_detectada
+  steps:
+    - intent: notificar_inactividad
+    - action: action_notificar_inactividad
+    - action: action_guardar_estado_seguridad
+
+- story: reconexion_usuario
+  steps:
+    - intent: notificar_reconexion
+    - action: action_notificar_reconexion
+    - action: action_recuperar_estado_seguridad
+
+- story: reanudar_sesion_guardada
+  steps:
+    - intent: reanudar_sesion_guardada
+    - action: action_recuperar_estado_seguridad
+    - action: utter_reanudar_sesion_guardada

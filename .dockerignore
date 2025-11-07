@@ -85,3 +85,22 @@ docker-compose.dev.yml
 **/credentials.json
 **/.env
 **/.env.*
+
+# Rasa caches & artifacts
+models/
+results/
+.rasa/
+.events
+__pycache__/
+*.pyc
+*.pyo
+
+# Node, editor & OS noise
+node_modules/
+.git/
+.gitignore
+.vscode/
+.DS_Store
+
+# Opcional: si no quieres meter lo interactivo en la imagen
+# rasa/interactive/

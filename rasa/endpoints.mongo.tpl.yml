@@ -15,6 +15,3 @@ tracker_store:
   username: "${TRACKER_MONGO_USERNAME}"
   password: "${TRACKER_MONGO_PASSWORD}"
   auth_source: "${TRACKER_MONGO_AUTHSOURCE}"
-
-# ⚠️ Sin event_broker:
-# Eliminar por completo el bloque `event_broker` evita la conexión a RabbitMQ.

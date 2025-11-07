@@ -1,5 +1,5 @@
 // src/components/chat/ChatUI.jsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -374,7 +374,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                     <BotRow>
                         <BotAvatar />
                         <div className="bubble bot">
-                            {tChat("typing")}
+                            {tChat("typing", "Escribiendo")}
                             <span className="typing-dots" />
                         </div>
                     </BotRow>

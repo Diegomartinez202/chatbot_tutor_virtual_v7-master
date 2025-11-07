@@ -1,0 +1,55 @@
+version: "3.1"
+
+nlu:
+
+  - intent: encuesta_satis_yes
+    examples: |
+      - sí me sirvió
+      - fue útil
+      - sí, útil
+      - me ayudó
+      - sí, gracias
+
+  - intent: encuesta_satis_no
+    examples: |
+      - no me sirvió
+      - no fue útil
+      - no, gracias
+      - no me ayudó
+      - no, aún tengo dudas
+
+  - intent: problema_resuelto_si
+    examples: |
+      - sí quedó resuelto
+      - ya quedó
+      - listo, solucionado
+      - todo bien ya
+      - quedó resuelto
+
+  - intent: problema_resuelto_no
+    examples: |
+      - no, necesito ayuda humana
+      - no se resolvió
+      - aún tengo el problema
+      - no quedó claro
+      - requiero un asesor
+      - necesito que me atienda alguien
+
+  - intent: continuar_tema_si
+    examples: |
+      - sí quiero seguir
+      - continuar
+      - otro tema
+      - quiero ver otra cosa
+      - volver al menú
+      - regresar al menú principal
+      - sí, otro tema
+
+  - intent: continuar_tema_no
+    examples: |
+      - no, gracias
+      - ya terminé
+      - cerrar chat
+      - finalizar conversación
+      - hasta luego
+      - no quiero seguir

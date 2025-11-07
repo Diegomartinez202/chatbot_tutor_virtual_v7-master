@@ -66,6 +66,24 @@ RUN echo '#!/usr/bin/env bash' > /entrypoint_with_log.sh && \
     echo 'exec rasa run --enable-api --cors "*" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
     chmod +x /entrypoint_with_log.sh
 
+
+# (opcional) Copiar lo interactivo si YA está curado y quieres que cuente como training data
+# COPY interactive /app/interactive
+# ——— permitir (o no) entrenar en build ———
+ARG ENABLE_BUILD_TRAIN=false
+
+# Valida antes de entrenar (si se habilita)
+RUN if [ "$ENABLE_BUILD_TRAIN" = "true" ]; then \
+      echo "[build] Validando datos Rasa..." && \
+      rasa data validate && \
+      echo "[build] Entrenando modelo..." && \
+      rasa train ; \
+    else \
+      echo "[build] ENABLE_BUILD_TRAIN=false → omitiendo train en build"; \
+    fi
+
+# ✅ ENTRENAR DURANTE EL BUILD (usa lo que esté en data/ + domain + config)
+RUN rasa train
 # 👤 Usuario sin privilegios
 USER 1000
 

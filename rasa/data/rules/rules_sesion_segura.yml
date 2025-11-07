@@ -1,0 +1,20 @@
+version: "3.1"
+rules:
+
+- rule: Guardar estado en desconexión
+  steps:
+    - intent: notificar_desconexion
+    - action: action_notificar_desconexion
+    - action: action_guardar_estado_seguridad
+
+- rule: Guardar estado por inactividad
+  steps:
+    - intent: notificar_inactividad
+    - action: action_notificar_inactividad
+    - action: action_guardar_estado_seguridad
+
+- rule: Restaurar estado en reconexión
+  steps:
+    - intent: notificar_reconexion
+    - action: action_notificar_reconexion
+    - action: action_recuperar_estado_seguridad

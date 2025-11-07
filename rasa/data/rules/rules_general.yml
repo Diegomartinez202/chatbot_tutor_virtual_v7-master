@@ -1,0 +1,142 @@
+version: "3.1"
+
+rules:
+
+  # =====================================
+  #         🔹 REGLAS GENERALES
+  # =====================================
+
+  # --- Fallback NLU ---
+  - rule: Manejar fallback (no entendido)
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback
+
+  # --- Sincronización de autenticación desde metadatos ---
+  - rule: Sincronizar auth desde metadata
+    steps:
+      - action: action_sync_auth_from_metadata
+
+  # --- Inicio de sesión (ayuda) ---
+  - rule: Login por comando
+    steps:
+      - intent: auth_login_cmd
+      - action: utter_login_steps
+
+  # --- Marcar autenticado tras login exitoso ---
+  - rule: Marcar autenticado
+    steps:
+      - intent: abrir_chat_autenticado
+      - action: action_mark_authenticated
+      - action: utter_login_hint
+
+  # --- Saludo inicial y menú principal ---
+  - rule: Saludo inicial → mostrar menú
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+      - action: utter_saludo_menu
+
+  # --- Cambiar idioma a español ---
+  - rule: Cambiar idioma a español
+    steps:
+      - intent: cambiar_idioma_espanol
+      - action: utter_cambiar_idioma_espanol
+
+  # --- Cambiar idioma a inglés ---
+  - rule: Cambiar idioma a inglés
+    steps:
+      - intent: cambiar_idioma_ingles
+      - action: utter_cambiar_idioma_ingles
+
+  # --- Intents de afirmación ---
+  - rule: Afirmación genérica
+    steps:
+      - intent: affirm
+      - action: utter_affirm
+
+  # --- Intents de negación ---
+  - rule: Negación genérica
+    steps:
+      - intent: deny
+      - action: utter_deny
+
+  # --- Intents de números o contacto ---
+  - rule: Enviar número de contacto
+    steps:
+      - intent: enviar_numero
+      - action: utter_enviar_numero
+
+  # --- Ingreso a plataforma (ej. Zajuna) ---
+  - rule: Instrucciones de ingreso
+    steps:
+      - intent: ingreso_zajuna
+      - action: utter_ingreso_zajuna_instrucciones
+      - action: action_preguntar_resolucion
+
+  # --- Ver catálogo general de cursos ---
+  - rule: Mostrar catálogo
+    steps:
+      - intent: ver_catalogo
+      - action: utter_catalogo_cursos
+      - action: action_preguntar_resolucion
+
+  # --- Mostrar tarjeta demo (card ejemplo) ---
+  - rule: Mostrar tarjeta demo
+    steps:
+      - intent: ver_card_demo
+      - action: utter_card_ejemplo
+      - action: action_preguntar_resolucion
+
+  # --- Ver ayuda o hint de login ---
+  - rule: Ver login hint
+    steps:
+      - intent: ver_login_hint
+      - action: utter_login_hint
+
+  # --- Ver confirmación de recuperación ---
+  - rule: Ver confirmación de recuperación
+    steps:
+      - intent: ver_confirmar_recuperacion_info
+      - action: utter_confirmar_recuperacion
+
+  # --- Ver enlace de soporte ---
+  - rule: Ver enlace de soporte
+    steps:
+      - intent: ver_link_soporte
+      - action: utter_link_soporte
+
+  # --- Ver confirmación de ticket ---
+  - rule: Ver ticket de soporte creado
+    steps:
+      - intent: ver_soporte_creado_info
+      - action: utter_soporte_creado
+
+  # --- Escalar a humano ---
+  - rule: Escalar a humano (pregunta)
+    steps:
+      - intent: escalar_humano
+      - action: utter_escalar_humano
+
+  - rule: Escalar a humano (confirmar)
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: action_conectar_humano
+      - action: utter_confirmar_escalado
+      - action: action_preguntar_resolucion
+
+  - rule: Escalar a humano (rechazado)
+    steps:
+      - intent: negar_escalar
+      - action: utter_gracias_continuar
+
+  # --- Flujo de cierre general (sin encuesta) ---
+  - rule: Cierre simple
+    steps:
+      - intent: cerrar_chat
+      - action: utter_cierre
+
+  # --- Flujo genérico post-respuesta ---
+  - rule: Después de una acción → preguntar resolución
+    steps:
+      - action: action_preguntar_resolucion

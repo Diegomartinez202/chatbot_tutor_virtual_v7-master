@@ -1,0 +1,191 @@
+Tutor Virtual — Rasa (Entrenamiento clásico e Interactivo)
+1) Estructura del proyecto
+rasa/
+  config.yml
+  domain.yml
+  domain_parts/              # partes importadas por domain.yml
+  data/
+    nlu/                     # nlu_*.yml (intents, entidades, sinónimos)
+    stories/                 # stories_*.yml
+    rules/                   # rules_*.yml
+  interactive/               # resultados del modo interactivo (bandeja de entrada)
+  models/
+  scripts/
+    merge_interactive.py     # mueve/merguea interactive → data/ (con deduplicación)
+  endpoints.yml              # local, si trabajas fuera de docker
+  credentials.yml
+
+
+Los legacy rasa/data/nlu.yml, rules.yml, stories.yml y rasa/domain.yml pueden quedar renombrados (*.disabled) si ya migraste a la estructura modular. El domain.yml principal importa partes desde domain_parts/ con:
+
+version: "3.1"
+imports:
+  - domain_parts/domain_general.yml
+  - domain_parts/domain_academico.yml
+  - domain_parts/domain_soporte.yml
+  - domain_parts/domain_encuesta.yml
+
+2) Entrenamiento clásico (local)
+cd rasa
+rasa data validate
+rasa train
+
+
+Salida del modelo: rasa/models/<timestamp>.tar.gz
+
+Levantar servidor HTTP:
+
+rasa run --enable-api --cors "*" --port 5005 --endpoints endpoints.yml
+
+
+REST (ejemplo):
+
+curl -X POST http://localhost:5005/webhooks/rest/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"sender":"test","message":"hola"}'
+
+Endpoints útiles
+
+GET /status → estado del servidor y modelo cargado.
+
+GET /version → versión de Rasa.
+
+3) Entrenamiento Interactivo (curación guiada)
+cd rasa
+rasa interactive --endpoints endpoints.yml --config config.yml --domain domain.yml
+
+
+Corrige intents/entidades/historias conversando.
+
+Al exportar, se guardan archivos en:
+
+interactive/nlu_interactive.yml
+
+interactive/stories_interactive.yml
+
+interactive/rules_interactive.yml
+
+3.1 Mover/merguear interactivo → data/ + re-entrenar
+# Python local
+python rasa/scripts/merge_interactive.py
+
+# o con Docker (si tienes perfiles integrados)
+docker compose --profile interactive run --rm rasa_merge_interactive
+
+
+El script:
+
+Copia los ficheros de interactive/ a data/nlu|stories|rules/ con timestamp para no sobrescribir.
+
+Deduplica bloques por hash.
+
+Ejecuta rasa data validate y rasa train automáticamente.
+
+Diferencia:
+rasa train solo entrena con lo que ya está en data/.
+rasa interactive te ayuda a crear/corregir datos conversando; luego debes curarlos y moverlos a data/.
+
+4) Docker / Compose
+4.1 Subir servicios
+docker compose up --build
+# Rasa API: http://localhost:5005
+# Action Server: http://localhost:5055/health
+
+
+En Docker, el action_endpoint.url debe apuntar al nombre del servicio:
+
+action_endpoint:
+  url: "http://action-server:5055/webhook"
+
+
+Si usas Mongo tracker en producción, tu compose ya genera endpoints.yml con:
+
+tracker_store:
+  type: rasa.core.tracker_store.MongoTrackerStore
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
+
+4.2 Perfiles útiles (aditivos)
+
+Entrenar una vez:
+
+docker compose --profile train run --rm rasa_train_once
+
+
+Pruebas (NLU/Core) → reportes en rasa/results/:
+
+docker compose --profile tests run --rm rasa_tests
+
+
+Modo interactivo (TTY habilitado):
+
+docker compose --profile interactive run --rm rasa_interactive
+# luego mover/merguear:
+docker compose --profile interactive run --rm rasa_merge_interactive
+
+5) Capturas recomendadas (para informes)
+
+Terminal con rasa data validate sin errores.
+
+Terminal con rasa train mostrando el .tar.gz generado.
+
+GET http://localhost:5005/status en el navegador con model_file.
+
+Pantalla del TTY de rasa interactive corrigiendo un intent.
+
+Log del merge_interactive.py mostrando deduplicación/copia con timestamp.
+
+docker compose ps con servicios healthy.
+
+6) Troubleshooting
+
+502 al llamar /api/health detrás de Nginx
+Verifica que proxy_pass apunte al host/puerto correctos (dentro de la red del compose) y que Rasa esté con --enable-api. Prueba desde dentro del reverse proxy:
+curl http://rasa:5005/status
+
+Action server “not found”
+Revisa endpoints.yml (action_endpoint.url) según contexto (local vs Docker), que el puerto 5055 esté arriba y que la imagen tenga rasa_sdk correcto.
+
+Conflicting rules/stories
+El mensaje “Contradicting rules…” indica historias y reglas que predicen cosas distintas en el mismo estado. Solución: unifica o separa los flujos; el Modo Interactivo ayuda a generar reglas consistentes.
+
+Redis tracker en local
+Si tracker_store: redis y no tienes Redis corriendo, tendrás errores de conexión. Usa InMemory (comenta el tracker_store) o levanta un Redis de apoyo.
+
+7) Buenas prácticas
+
+Añade version: "3.1" en cada *.yml.
+
+Mantén domain.yml sincronizado con intents, slots, utterances y acciones (y/o actualiza domain_parts/).
+
+Usa rasa data validate antes de entrenar.
+
+Haz commit de interactive/ si quieres auditoría; si no, muévelo pronto a data/.
+
+8) Apéndice: Endpoints locales típicos
+
+rasa/endpoints.yml (desarrollo local con REST + acciones en localhost:5055):
+
+action_endpoint:
+  url: "http://localhost:5055/webhook"
+
+# Sin tracker_store → InMemory (por defecto)
+# o usa Redis si lo tienes corriendo:
+# tracker_store:
+#   type: redis
+#   url: localhost
+#   port: 6379
+#   db: 0
+#   password: null
+
+9) Contacto entre UI y Rasa (REST)
+
+Ejemplo de payload desde tu widget:
+
+POST /webhooks/rest/webhook
+{
+  "sender": "web-abc123",
+  "message": "hola",
+  "metadata": { "auth": { "hasToken": true } }
+}K).

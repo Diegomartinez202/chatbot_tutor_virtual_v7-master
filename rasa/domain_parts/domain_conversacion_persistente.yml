@@ -1,0 +1,38 @@
+version: "3.1"
+
+intents:
+  - saludo
+  - reanudar_auto_si
+  - reanudar_auto_no
+
+slots:
+  encuesta_activa:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+  reanudar_pendiente:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+
+responses:
+  utter_bienvenida_auto:
+    - text: "👋 ¡Hola! Bienvenido de nuevo al chat."
+
+  utter_reanudar_auto:
+    - text: "Parece que tienes una encuesta pendiente. ¿Deseas retomarla?"
+      buttons:
+        - title: "Sí, continuar"
+          payload: "/reanudar_auto_si"
+        - title: "No, empezar nuevo chat"
+          payload: "/reanudar_auto_no"
+
+  utter_reanudar_confirmado:
+    - text: "Perfecto, retomamos tu encuesta donde la dejaste. 🔄"
+
+  utter_reanudar_cancelado:
+    - text: "De acuerdo, comenzaremos desde cero. 🆕"
+
+actions:
+  - action_auto_resume
+  - action_reanudar_auto

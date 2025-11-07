@@ -1,0 +1,31 @@
+version: "3.1"
+stories:
+
+- story: Usuario insatisfecho → contactar tutor
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: utter_encuesta_insatisfaccion
+    - action: utter_ofrecer_contacto_tutor
+
+- story: Usuario decide contactar tutor
+  steps:
+    - intent: confirmar_contacto_tutor
+    - action: action_enviar_correo_tutor
+    - action: utter_confirmar_envio_correo
+    - action: utter_preguntar_continuar_menu
+
+- story: Usuario satisfecho → continuar
+  steps:
+    - intent: respuesta_satisfecho
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_preguntar_continuar_menu
+
+- story: Continuar con otra consulta
+  steps:
+    - intent: ir_menu_principal
+    - action: utter_menu_general
+
+- story: Terminar conversación tras soporte
+  steps:
+    - intent: terminar_conversacion
+    - action: utter_despedida_profesional

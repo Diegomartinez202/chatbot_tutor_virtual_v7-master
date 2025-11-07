@@ -1,0 +1,272 @@
+# ============================================
+# 🎓 DOMAIN ACADÉMICO - Tutor Virtual Zajuna
+# ============================================
+version: "3.1"
+
+# ============================================
+# 📌 INTENCIONES RELACIONADAS
+# ============================================
+intents:
+  - consultar_academico
+  - consultar_certificados
+  - consultar_estado_estudiante
+  - tutor_asignado
+  - confirmar_autenticacion
+  - negar_autenticacion
+  - volver_menu
+  - respuesta_satisfecho
+  - respuesta_insatisfecho
+  - ir_menu_principal
+  - terminar_conversacion
+  - estado_estudiante
+  - ver_estado_estudiante
+  - ver_estado_estudiante_info
+  - ver_certificados_info
+  - proceso_academico_secundario
+  - ver_certificados
+  - iniciar_sesion
+  - enviar_credenciales
+  - deny
+  - affirm
+  - fallback
+  - cerrar_chat
+
+
+# ============================================
+# 📦 ENTIDADES Y SLOTS ESPECÍFICOS
+# ============================================
+entities:
+  - curso
+  - certificado
+  - tutor
+  - nombre_usuario
+  - tipo_certificado
+  - email
+  - tipo_estado
+slots:
+  curso:
+    type: text
+    influence_conversation: true
+    initial_value: null
+
+  certificado:
+    type: text
+    influence_conversation: false
+    initial_value: null
+
+  tutor:
+    type: text
+    influence_conversation: false
+    initial_value: null
+
+  # 🧠 Estado de autenticación
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+
+  # 🔑 Token real (para backend)
+  auth_token:
+    type: text
+    influence_conversation: false
+    initial_value: null
+
+  encuesta_tipo:
+    type: text
+    influence_conversation: true
+
+  tipo_certificado:
+    type: text
+    influence_conversation: true
+
+  nombre_usuario:
+    type: text
+    influence_conversation: true
+
+  tipo_estado:
+    type: text
+    influence_conversation: true
+# ============================================
+# 💬 RESPUESTAS ACADÉMICAS
+# ============================================
+responses:
+
+  # 🔹 Menú principal académico
+  utter_menu_academico:
+    - text: "📚 Menú académico de Zajuna:"
+      buttons:
+        - title: "📜 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "🧾 Estado de estudiante"
+          payload: "/consultar_estado_estudiante"
+        - title: "👨‍🏫 Tutor asignado"
+          payload: "/tutor_asignado"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/volver_menu"
+
+  # 🔐 Solicitud de autenticación
+  utter_necesita_autenticacion:
+    - text: "⚠️ Para acceder a esta función, primero debes iniciar sesión en Zajuna."
+      buttons:
+        - title: "🔑 Iniciar sesión"
+          payload: "/autenticarse"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/volver_menu"
+
+  # 📜 Instrucciones paso a paso para certificados
+  utter_pasos_descargar_certificados:
+    - text: |
+        🧾 **Cómo descargar tus certificados:**
+        1️⃣ Inicia sesión en Zajuna: https://zajuna.edu/login  
+        2️⃣ En tu panel, abre **Certificados**.  
+        3️⃣ Selecciona el curso y pulsa **Descargar**.  
+        4️⃣ Si ya estás autenticado, puedo mostrarte tus certificados disponibles.
+      buttons:
+        - title: "✅ Ya inicié sesión"
+          payload: "/confirmar_autenticacion"
+        - title: "⬅️ Volver al menú académico"
+          payload: "/consultar_academico"
+
+  # 📊 Instrucciones de estado académico
+  utter_estado_estudiante_instrucciones:
+    - text: |
+        📖 **Para ver tu estado de estudiante:**
+        1️⃣ Ingresa a tu cuenta en Zajuna.  
+        2️⃣ Abre el menú **Perfil > Estado académico**.  
+        3️⃣ Verás tu progreso, cursos activos y calificaciones.  
+        4️⃣ Si ya iniciaste sesión, puedo consultarlo directamente.
+      buttons:
+        - title: "✅ Ya inicié sesión"
+          payload: "/confirmar_autenticacion"
+        - title: "⬅️ Volver al menú académico"
+          payload: "/consultar_academico"
+
+  # 👩‍🏫 Información de tutor asignado
+  utter_tutor_info:
+    - text: |
+        👩‍🏫 Tu tutor asignado aparecerá en el panel principal de Zajuna, sección *Mis cursos*.
+        ¿Deseas que intente consultarlo por ti?
+      buttons:
+        - title: "Sí, consultar tutor"
+          payload: "/confirmar_autenticacion"
+        - title: "No, volver"
+          payload: "/consultar_academico"
+
+  # 📄 Resultados académicos autenticados
+  utter_autenticacion_requerida_certificados:
+    - text: "🔒 Necesitas estar autenticado para ver certificados. Por favor, inicia sesión primero."
+
+  utter_certificados_listado:
+    - text: "🎓 Aquí tienes tus certificados disponibles:\n{certificado}"
+      buttons:
+        - title: "Volver al menú académico"
+          payload: "/consultar_academico"
+        - title: "Ir al menú principal"
+          payload: "/ir_menu_principal"
+
+  utter_estado_estudiante_detalle:
+    - text: "📊 Estado actual del estudiante: {curso}"
+      buttons:
+        - title: "Volver al menú académico"
+          payload: "/consultar_academico"
+        - title: "Ir al menú principal"
+          payload: "/ir_menu_principal"
+
+  utter_tutor_detalle:
+    - text: "👨‍🏫 Tu tutor asignado es: {tutor}"
+      buttons:
+        - title: "Volver al menú académico"
+          payload: "/consultar_academico"
+        - title: "Ir al menú principal"
+          payload: "/ir_menu_principal"
+
+  # 💬 Encuesta de satisfacción
+  utter_preguntar_satisfaccion:
+    - text: "¿Quedaste satisfecho con la atención recibida?"
+      buttons:
+        - title: "Sí, satisfecho 😄"
+          payload: "/respuesta_satisfecho"
+        - title: "No, insatisfecho 😔"
+          payload: "/respuesta_insatisfecho"
+
+  utter_agradecimiento_satisfaccion:
+    - text: "¡Gracias por tu valoración! 😊 Me alegra haber podido ayudarte."
+
+  utter_encuesta_insatisfaccion:
+    - text: "Lamento que no hayas quedado satisfecho 😔. Puedes dejar tu opinión o contactar a tu tutor asignado para mayor soporte."
+
+  utter_preguntar_continuar_menu:
+    - text: "¿Deseas realizar otra consulta?"
+      buttons:
+        - title: "Sí, volver al menú principal"
+          payload: "/ir_menu_principal"
+        - title: "No, terminar conversación"
+          payload: "/terminar_conversacion"
+
+  utter_despedida_profesional:
+    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
+  
+  utter_estado_mostrado:
+    - text: "Aquí tienes tu estado académico."
+  
+
+  utter_pedir_autenticacion:
+    - text: "Para consultar tus certificados, necesito que inicies sesión. ¿Deseas iniciar sesión ahora?"
+    
+  utter_certificado_no_autenticado:
+    - text: "No has iniciado sesión, por favor autentícate para consultar tus certificados."
+
+  utter_certificado_listado:
+    - text: "Estos son tus certificados disponibles: {certificados}."
+
+  utter_confirmacion_consulta:
+    - text: "He enviado tus certificados al correo registrado."
+
+  utter_fallback:
+    - text: "Lo siento, no entendí eso. ¿Podrías reformularlo?"
+
+  utter_menu_principal:
+    - text: "Volvemos al menú principal. ¿Qué deseas hacer ahora?"
+  
+  utter_estado_estudiante:
+    - text: "Tu estado académico actual es: {estado}."
+
+  utter_estado_no_autenticado:
+    - text: "No has iniciado sesión, no puedo mostrar tu estado. Por favor autentícate."
+
+
+# ============================================
+# ⚙️ ACCIONES PERSONALIZADAS ZAJUNA ACADÉMICAS
+# ============================================
+actions:
+  - zajuna_get_certificados
+  - zajuna_get_estado_estudiante
+  - zajuna_get_tutor
+  - zajuna_check_auth
+  - zajuna_menu_principal
+  - action_guardar_encuesta
+  - action_registrar_feedback
+  - action_finalizar_conversacion
+  - action_estado_estudiante
+  - action_ver_certificados
+  - action_listar_certificados
+  - action_tutor_asignado
+  - action_set_encuesta_tipo
+  - action_check_auth
+  - action_registrar_encuesta
+  - action_guardar_feedback
+  - action_ofrecer_continuar_tema
+  - action_preguntar_resolucion
+  - action_ver_estado_estudiante
+ 
+# ============================================
+# 🧱 FORMAS DE NAVEGACIÓN (no usadas por ahora)
+# ============================================
+forms:
+  login_form:
+    required_slots:
+      nombre_usuario:
+        - type: from_text
+      email:
+        - type: from_text
+    

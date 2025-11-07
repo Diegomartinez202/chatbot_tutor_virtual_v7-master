@@ -1,0 +1,148 @@
+version: "3.1"
+
+intents:
+  - solicitar_soporte
+  - recuperar_contrasena
+  - provide_email
+  - affirm
+  - deny
+  - iniciar_encuesta
+  - necesita_humano
+  - fallback
+  - iniciar_sesion
+  - estado_estudiante
+  - ver_certificados
+  - confirmar_autenticacion
+  - enviar_email_recuperacion
+  - ingreso_zajuna
+  - confirmar_autenticacion
+  - enviar_numero
+  - provide_email
+  - pedir_correo
+  - pedir_email
+  - enviar_telefono
+  - abrir_chat_autenticado
+  - auth_login_cmd
+  - necesita_humano
+  - ver_login_hint
+  - cambiar_idioma_espanol
+  - cambiar_idioma_ingles
+  - enviar_credenciales
+  - confirmar_autenticacion
+
+entities:
+  - email
+  - nombre
+  - mensaje
+
+slots:
+  email:
+    type: text
+    influence_conversation: false
+  nombre:
+    type: text
+    influence_conversation: false
+  mensaje:
+    type: text
+    influence_conversation: false
+  encuesta_respuesta:
+    type: text
+    influence_conversation: false
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+  has_token:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+  auth_token:
+    type: text
+    influence_conversation: false
+  usuario:
+    type: text
+    influence_conversation: false
+
+responses:
+  utter_saludo:
+    - text: "¡Hola! 👋 ¿En qué puedo ayudarte hoy?"
+
+  utter_ofrecer_continuar:
+    - text: "¿Deseas continuar con este tema o enviar un soporte?"
+      buttons:
+        - title: "Sí, continuar"
+          payload: "/affirm"
+        - title: "No, enviar soporte"
+          payload: "/deny"
+
+  utter_confirmacion_recuperacion:
+    - text: "📬 Te envié un enlace de recuperación a tu correo."
+
+  utter_espera_agente:
+    - text: "🧑‍💻 Te conecto con un agente humano, por favor espera..."
+
+  utter_agradecimiento_encuesta:
+    - text: "✅ Gracias por completar la encuesta, tu opinión es muy valiosa."
+
+  utter_preguntar_resolucion:
+    - text: "¿Se resolvió tu problema con el soporte recibido?"
+      buttons:
+        - title: "Sí"
+          payload: "/affirm"
+        - title: "No"
+          payload: "/deny"
+
+  utter_need_auth:
+    - text: "⚠️ Para realizar esta acción necesitas iniciar sesión."
+      buttons:
+        - title: "Iniciar sesión"
+          payload: "/ingreso_zajuna"
+        - title: "Cancelar"
+          payload: "/deny"
+
+  utter_bienvenida:
+    - text: "Bienvenido/a, has iniciado sesión correctamente. 😃"
+
+  utter_fallback:
+    - text: "Lo siento, no entendí tu mensaje. Por favor intenta de nuevo o escribe 'ayuda'."
+
+  utter_confirmar_envio_correo:
+    - text: "Listo, he enviado el correo de recuperación."
+  utter_ask_email:
+    - text: "¿Cuál es tu correo electrónico?"
+
+
+actions:
+  - action_ofrecer_continuar_tema
+  - action_enviar_soporte
+  - action_soporte_submit
+  - action_ingreso_zajuna
+  - action_enviar_correo
+  - action_derivar_y_registrar_humano
+  - action_conectar_humano
+  - action_preguntar_resolucion
+  - action_registrar_encuesta
+  - action_check_auth
+  - action_set_authenticated_true
+  - action_estado_estudiante
+  - action_ver_certificados
+  - action_recuperar_contrasena
+  - action_sync_auth_from_metadata
+  - action_check_auth_estado
+  - action_mark_authenticated
+  - action_necesita_auth
+  - action_submit_recovery
+  - action_set_encuesta_tipo
+  - iniciar_sesion
+  - enviar_credenciales
+  - confirmar_autenticacion
+  - estado_estudiante
+  - recuperar_contrasena
+  - enviar_email_recuperacion
+  - auth_login_cmd
+  - abrir_chat_autenticado
+  - ver_login_hint
+forms:
+  recovery_form:
+    required_slots:
+      - email

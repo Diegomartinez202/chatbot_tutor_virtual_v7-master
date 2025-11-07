@@ -1,0 +1,10 @@
+version: "3.1"
+stories:
+- story: Usuario pausa y luego reanuda
+  steps:
+    - intent: guardian_guardar_progreso
+    - action: action_guardian_guardar_progreso
+    - intent: guardian_pausar_conversacion
+    - action: action_guardian_pausar
+    - intent: guardian_reanudar_conversacion
+    - action: action_guardian_reanudar

@@ -1,0 +1,85 @@
+version: "3.3"
+
+intents:
+  - terminar_conversacion
+  - despedida
+  - cancelar
+  - confirmar_cierre
+  - negar_cierre
+  - ir_menu_principal
+  - fallback
+
+slots:
+  session_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: true
+
+  proceso_activo:
+    type: text
+    influence_conversation: true
+    initial_value: null
+    mappings:
+      - type: custom
+
+  encuesta_incompleta:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+
+  confirmacion_cierre:
+    type: text
+    influence_conversation: true
+    initial_value: null
+
+responses:
+  utter_confirmar_cierre_seguro:
+    - text: >
+        Parece que aún tienes un proceso activo: **{proceso_activo}**.  
+        ¿Deseas cerrar la conversación de todos modos?
+      buttons:
+        - title: "Sí, cerrar de todas formas"
+          payload: "/confirmar_cierre"
+        - title: "No, continuar"
+          payload: "/negar_cierre"
+
+  utter_confirmar_cierre_con_autosave:
+    - text: >
+        Detecté que tienes una **encuesta sin completar**.  
+        Puedo guardarla automáticamente antes de cerrar. ¿Quieres hacerlo?
+      buttons:
+        - title: "Sí, guardar y cerrar"
+          payload: "/confirmar_cierre"
+        - title: "No, descartar encuesta"
+          payload: "/negar_cierre"
+
+  utter_confirmar_cierre:
+    - text: "¿Estás seguro que deseas terminar la conversación?"
+      buttons:
+        - title: "Sí, terminar"
+          payload: "/confirmar_cierre"
+        - title: "No, continuar"
+          payload: "/negar_cierre"
+
+  utter_despedida_final:
+    - text: "Gracias por conversar conmigo. Tus datos se han guardado correctamente. ¡Hasta pronto! 👋"
+
+  utter_despedida_sin_guardar:
+    - text: "Ok, se descartaron los datos pendientes. ¡Hasta pronto! 👋"
+
+  utter_cancelar_cierre:
+    - text: "Perfecto 😊, continuemos. ¿En qué más puedo ayudarte?"
+
+  utter_fallback:
+    - text: "Disculpa, no entendí eso. ¿Deseas salir del chat o volver al menú principal?"
+      buttons:
+        - title: "Salir del chat"
+          payload: "/terminar_conversacion"
+        - title: "Menú principal"
+          payload: "/ir_menu_principal"
+
+actions:
+  - action_verificar_proceso_activo_autosave
+  - action_guardar_encuesta_incompleta
+  - action_confirmar_cierre_autosave
+  - action_cancelar_cierre

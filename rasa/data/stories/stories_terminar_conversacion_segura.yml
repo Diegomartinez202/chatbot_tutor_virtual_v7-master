@@ -1,0 +1,28 @@
+version: "3.3"
+
+stories:
+  - story: Usuario intenta cerrar sin procesos
+    steps:
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+      - intent: confirmar_cierre
+      - action: action_confirmar_cierre_autosave
+
+  - story: Usuario tiene encuesta incompleta y confirma cierre
+    steps:
+      - slot_was_set:
+          - encuesta_incompleta: true
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+      - intent: confirmar_cierre
+      - action: action_guardar_encuesta_incompleta
+      - action: action_confirmar_cierre_autosave
+
+  - story: Usuario tiene proceso activo pero decide no cerrar
+    steps:
+      - slot_was_set:
+          - proceso_activo: "encuesta de satisfacción"
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+      - intent: negar_cierre
+      - action: action_cancelar_cierre

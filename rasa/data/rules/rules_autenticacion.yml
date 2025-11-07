@@ -1,0 +1,56 @@
+version: "3.1"
+rules:
+  - rule: Redirigir si no está autenticado
+    condition:
+      - active_loop: null
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth
+      - action: utter_need_auth
+
+  - rule: Redirigir a login y setear autenticación
+    steps:
+      - intent: confirmar_autenticacion
+      - action: action_ingreso_zajuna
+      - intent: enviar_credenciales
+      - action: action_set_authenticated_true
+
+  - rule: Recuperación de contraseña
+    steps:
+      - intent: recuperar_contrasena
+      - action: action_recuperar_contrasena
+      - intent: enviar_email_recuperacion
+      - action: action_enviar_correo
+      - action: utter_check_email
+
+  - rule: Confirmación de soporte
+    steps:
+    - intent: solicitar_soporte
+    - action: action_ofrecer_continuar_tema
+    - intent: affirm
+    - action: action_enviar_soporte
+
+  - rule: Denegación de soporte
+    steps:
+    - intent: solicitar_soporte
+    - action: action_ofrecer_continuar_tema
+    - intent: deny
+    - action: utter_saludo
+
+  - rule: Enviar correo siempre
+    steps:
+    - intent: recuperar_contrasena
+    - action: action_enviar_correo
+
+  - rule: Escalar siempre a humano
+    steps:
+    - intent: necesita_humano
+    - action: action_derivar_y_registrar_humano
+    - action: action_conectar_humano
+
+  - rule: Registro de encuesta
+    steps:
+    - intent: iniciar_encuesta
+    - action: action_preguntar_resolucion
+    - intent: affirm
+    - action: action_registrar_encuesta

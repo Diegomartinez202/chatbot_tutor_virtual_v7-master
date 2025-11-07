@@ -1,0 +1,63 @@
+version: "3.1"
+
+nlu:
+
+  # ————— PROCESO ACADÉMICO / ADMIN
+  - intent: proceso_academico
+    examples: |
+      - quiero ver mi proceso académico
+      - temas administrativos
+      - proceso estudiantil
+      - información académica
+      - trámites académicos
+      - ayuda con el proceso académico
+      - procesos administrativos
+
+  - intent: proceso_academico_secundario
+    examples: |
+      - submenú académico
+      - menú académico secundario
+      - ver submenú de académico
+      - abrir submenú académico
+
+  - intent: ver_certificados_info
+    examples: |
+      - muéstrame certificados sin login
+      - ver certificados de ejemplo
+      - listar certificados rápidos
+      - quiero ver mis certificados
+      - certificados que tengo
+      - ver diplomas
+      - ver mis constancias
+      - descargar certificados
+      - certificados disponibles
+      - qué certificados tengo
+      - ver mis diplomas emitidos
+      - dónde descargo mis certificados
+      - lista de certificados
+      - necesito mi constancia
+      - quiero mis certificados en PDF
+      - descargar mis diplomas
+      - ver certificados
+      - mis certificados
+
+  - intent: horarios_calendario
+    examples: |
+      - ver horario
+      - calendario de clases
+      - fechas académicas
+      - cuándo son mis clases
+      - calendario del curso
+      - plan académico
+      - horarios del semestre
+
+  - intent: ver_estado_estudiante_info
+    examples: |
+      - status académico
+      - cuál es mi estado académico
+      - ver mi estado académico
+      - estado del aprendiz
+      - cuál es mi estado como estudiante
+      - estado del estudiante
+      - estoy activo este periodo
+      - dime mi estado académico

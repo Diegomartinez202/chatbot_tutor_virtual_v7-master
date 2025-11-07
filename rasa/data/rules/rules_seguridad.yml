@@ -1,0 +1,21 @@
+version: "3.1"
+
+rules:
+
+- rule: Guardar autosave al detectar desconexión
+  steps:
+    - intent: notificar_desconexion
+    - action: action_notificar_desconexion
+    - action: action_guardar_estado_seguridad
+
+- rule: Guardar autosave al detectar inactividad
+  steps:
+    - intent: notificar_inactividad
+    - action: action_notificar_inactividad
+    - action: action_guardar_estado_seguridad
+
+- rule: Recuperar sesión al reconectarse
+  steps:
+    - intent: notificar_reconexion
+    - action: action_notificar_reconexion
+    - action: action_recuperar_estado_seguridad

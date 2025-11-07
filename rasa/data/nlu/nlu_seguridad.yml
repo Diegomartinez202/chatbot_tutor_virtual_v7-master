@@ -1,0 +1,28 @@
+version: "3.1"
+
+nlu:
+- intent: notificar_desconexion
+  examples: |
+    - el usuario cerró la ventana
+    - desconexión detectada
+    - cerró el navegador
+    - perdió conexión
+
+- intent: notificar_reconexion
+  examples: |
+    - usuario reconectado
+    - reanudó sesión
+    - volvió al chat
+    - regresó después de desconexión
+
+- intent: notificar_inactividad
+  examples: |
+    - usuario inactivo
+    - lleva tiempo sin responder
+    - inactividad detectada
+
+- intent: reanudar_sesion_guardada
+  examples: |
+    - restaurar sesión
+    - cargar sesión anterior
+    - reanudar autosave

@@ -1,0 +1,16 @@
+version: "3.1"
+rules:
+- rule: Guardar progreso explícito
+  steps:
+    - intent: guardian_guardar_progreso
+    - action: action_guardian_guardar_progreso
+
+- rule: Pausar conversación segura
+  steps:
+    - intent: guardian_pausar_conversacion
+    - action: action_guardian_pausar
+
+- rule: Reanudar conversación segura
+  steps:
+    - intent: guardian_reanudar_conversacion
+    - action: action_guardian_reanudar

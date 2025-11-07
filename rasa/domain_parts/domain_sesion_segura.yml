@@ -1,0 +1,23 @@
+intents:
+  - notificar_desconexion
+  - notificar_inactividad
+  - notificar_reconexion
+  - guardar_estado_seguridad
+  - recuperar_estado_seguridad
+
+actions:
+  - action_notificar_desconexion
+  - action_notificar_inactividad
+  - action_notificar_reconexion
+  - action_guardar_estado_seguridad
+  - action_recuperar_estado_seguridad
+
+responses:
+  utter_notificar_desconexion:
+    - text: "⚠️ Se detectó una desconexión. Guardando tu progreso..."
+
+  utter_notificar_inactividad:
+    - text: "😴 Has estado inactivo por un tiempo. Guardando el estado actual..."
+
+  utter_notificar_reconexion:
+    - text: "🔄 Bienvenido de nuevo, restaurando tu sesión previa..."

@@ -1,0 +1,20 @@
+version: "3.1"
+rules:
+  - rule: Auto Resume al iniciar
+    steps:
+      - intent: saludo
+      - action: action_auto_resume
+
+  - rule: Reanudar encuesta
+    condition:
+      - slot_was_set:
+          - reanudar_pendiente: true
+    steps:
+      - intent: reanudar_auto_si
+      - action: action_reanudar_auto
+      - action: utter_reanudar_confirmado
+
+  - rule: No reanudar
+    steps:
+      - intent: reanudar_auto_no
+      - action: utter_reanudar_cancelado

@@ -1,0 +1,52 @@
+version: "3.1"
+
+# =========================================================
+# 🧩 REGLAS DEL DOMINIO DE SOPORTE Y SATISFACCIÓN - ZAJUNA BOT
+# =========================================================
+# Controla el flujo de contacto humano, encuesta de satisfacción,
+# retorno al menú o cierre de conversación.
+# =========================================================
+
+rules:
+
+  - rule: Iniciar formulario de soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_formulario_soporte_intro
+      - action: utter_formulario_soporte_campos
+      - action: zajuna_guardar_ticket_soporte
+      - action: utter_soporte_registrado
+      - action: utter_preguntar_satisfaccion
+
+  # --- Flujo de satisfacción positiva ---
+  - rule: Usuario satisfecho
+    steps:
+      - intent: respuesta_satisfecho
+      - action: utter_encuesta_positiva
+      - action: utter_preguntar_continuar_menu
+
+  # --- Flujo de satisfacción negativa ---
+  - rule: Usuario insatisfecho → ofrecer contacto con tutor
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: utter_encuesta_negativa
+      - action: utter_ofrecer_contacto_tutor
+
+  - rule: Enviar correo a tutor
+    steps:
+      - intent: enviar_correo_tutor
+      - action: zajuna_enviar_correo_tutor
+      - action: utter_correo_enviado
+      - action: utter_preguntar_continuar_menu
+
+  # --- Flujo común después de encuesta ---
+  - rule: Continuar desde encuesta → menú o cierre
+    steps:
+      - intent: continuar_consulta
+      - action: utter_menu_general
+
+  - rule: Terminar conversación desde encuesta
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_despedida_profesional
+

@@ -1,0 +1,33 @@
+version: "3.1"
+rules:
+
+  # === Encuesta de satisfacción ===
+  - rule: Problema resuelto → Mostrar encuesta
+    steps:
+      - intent: problema_resuelto_si
+      - action: utter_encuesta_satisfaccion
+
+  - rule: Encuesta satisfacción (Sí)
+    steps:
+      - intent: encuesta_satis_yes
+      - action: action_registrar_encuesta
+      - action: utter_gracias_feedback
+      - action: action_ofrecer_continuar_tema
+
+  - rule: Encuesta satisfacción (No)
+    steps:
+      - intent: encuesta_satis_no
+      - action: action_registrar_encuesta
+      - action: utter_gracias_feedback
+      - action: action_ofrecer_continuar_tema
+
+  # === Decisión del usuario tras encuesta ===
+  - rule: Usuario quiere continuar con otro tema
+    steps:
+      - intent: affirm
+      - action: utter_volver_menu
+
+  - rule: Usuario no quiere continuar (cierre amable)
+    steps:
+      - intent: deny
+      - action: utter_despedida_final

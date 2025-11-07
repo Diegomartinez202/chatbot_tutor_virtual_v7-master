@@ -1,0 +1,53 @@
+version: "3.3"
+
+nlu:
+  - intent: terminar_conversacion
+    examples: |
+      - cerrar chat
+      - quiero salir
+      - salir del asistente
+      - finalizar conversación
+      - terminar chat
+      - ya no necesito ayuda
+      - puedes cerrar la conversación
+      - deseo salir del sistema
+      - cerrar sesión
+      - apagar chat
+      - terminar sesión
+      - salir del flujo
+
+  - intent: confirmar_cierre
+    examples: |
+      - sí
+      - claro
+      - correcto
+      - cerrar
+      - confirmar cierre
+      - sí, terminar
+      - ok, termina
+      - guarda y cierra
+      - sí, guardar antes
+      - está bien, cierra
+
+  - intent: negar_cierre
+    examples: |
+      - no
+      - mejor no
+      - no todavía
+      - espera
+      - quiero seguir
+      - no cierres
+      - continuar hablando
+      - no cierres aún
+      - seguir conversando
+
+  - intent: despedida
+    examples: |
+      - adiós
+      - hasta luego
+      - gracias, chao
+      - cuídate
+      - hablamos luego
+      - nos vemos pronto
+      - bye
+      - que estés bien

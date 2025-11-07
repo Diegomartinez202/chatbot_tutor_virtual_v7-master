@@ -88,3 +88,17 @@ scripts/backup/
 # ARCHIVOS ESPECÍFICOS DEL PROYECTO
 # ========================
 backend/.venv310/
+
+# Rasa
+models/
+results/
+.rasa/
+.events
+__pycache__/
+
+# Interactive outputs (si NO quieres versionarlos)
+# rasa/interactive/
+
+# Python
+*.pyc
+*.pyo

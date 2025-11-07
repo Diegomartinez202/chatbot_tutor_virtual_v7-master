@@ -1,0 +1,49 @@
+version: "3.3"
+
+intents:
+  - terminar_conversacion
+  - despedida
+  - cancelar
+  - confirmar_cierre
+  - negar_cierre
+  - ir_menu_principal
+  - fallback
+
+slots:
+  session_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: true
+
+  confirmacion_cierre:
+    type: text
+    influence_conversation: true
+    initial_value: null
+
+responses:
+  utter_confirmar_cierre:
+    - text: "¿Estás seguro que deseas terminar la conversación?"
+      buttons:
+        - title: "Sí, terminar"
+          payload: "/confirmar_cierre"
+        - title: "No, continuar"
+          payload: "/negar_cierre"
+
+  utter_despedida_final:
+    - text: "Gracias por conversar conmigo. Espero haberte ayudado. ¡Hasta pronto! 👋"
+
+  utter_cancelar_cierre:
+    - text: "Perfecto 😊, continuemos. ¿En qué más puedo ayudarte?"
+
+  utter_fallback:
+    - text: "Disculpa, no entendí eso. ¿Deseas salir del chat o volver al menú principal?"
+      buttons:
+        - title: "Salir del chat"
+          payload: "/terminar_conversacion"
+        - title: "Menú principal"
+          payload: "/ir_menu_principal"
+
+actions:
+  - action_confirmar_cierre
+  - action_finalizar_conversacion
+  - action_cancelar_cierre

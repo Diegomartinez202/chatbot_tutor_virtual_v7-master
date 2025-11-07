@@ -1,0 +1,87 @@
+version: "3.1"
+
+nlu:
+
+  # ————— SOPORTE TÉCNICO / INCIDENTES
+  - intent: soporte_tecnico
+    examples: |
+      - necesito soporte técnico
+      - ayuda con la plataforma
+      - problemas técnicos
+      - soporte por favor
+      - tengo un problema con el campus
+      - asistencia técnica
+      - me puedes ayudar con un error
+      - abrir ticket de soporte
+      - comunicarme con soporte
+      - soporte
+      - quiero reportar un incidente
+
+  - intent: problema_no_ingreso
+    examples: |
+      - no puedo ingresar
+      - la plataforma no me deja entrar
+      - no logro iniciar sesión
+      - no puedo acceder
+      - no me deja entrar al sistema
+      - al entrar me da error
+      - no puedo loguearme
+
+  - intent: pantalla_blanca
+    examples: |
+      - pantalla en blanco
+      - no se carga nada
+      - veo todo blanco
+      - la página queda en blanco
+      - el curso no carga y queda en blanco
+      - white screen
+      - se queda congelado en blanco
+
+  - intent: error_actividad
+    examples: |
+      - error al abrir una actividad
+      - me sale error al acceder a contenido
+      - no puedo abrir la actividad
+      - actividad no abre
+      - error en el cuestionario
+      - se bloquea al abrir la actividad
+      - no deja entregar la actividad
+
+  - intent: otro_problema_tecnico
+    examples: |
+      - otro tipo de error técnico
+      - diferente problema técnico
+      - es otro fallo
+      - tengo un problema distinto
+      - error raro en el sistema
+      - no sé qué error es
+      - un problema diferente
+
+  # ————— ESCALAR A HUMANO
+  - intent: escalar_humano
+    examples: |
+      - quiero hablar con alguien
+      - pasar con un agente humano
+      - escalar a humano
+      - hablar con asesor
+      - necesito un humano
+      - atención humana por favor
+      - conéctame con un agente
+
+  - intent: confirmacion_escalar_humano
+    examples: |
+      - sí, quiero hablar con humano
+      - sí por favor
+      - de acuerdo
+      - confirmo
+      - adelante
+      - ok, pásame con humano
+
+  - intent: negar_escalar
+    examples: |
+      - no gracias, sigo con el bot
+      - mejor no
+      - prefiero continuar aquí
+      - no necesito humano
+      - sigamos con el chat
+      - no, continuemos aquí

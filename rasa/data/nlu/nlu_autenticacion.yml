@@ -1,0 +1,54 @@
+version: "3.1"
+
+nlu:
+- intent: solicitar_soporte
+  examples: |
+    - Necesito soporte
+    - Quiero reportar un problema
+    - Ayuda, por favor
+    - Tengo un inconveniente
+
+- intent: recuperar_contrasena
+  examples: |
+    - Olvidé mi contraseña
+    - Necesito recuperar mi password
+    - No puedo entrar a mi cuenta
+    - Restablecer contraseña
+
+- intent: provide_email
+  examples: |
+    - mi correo es [usuario@ejemplo.com](email)
+    - mi email es [test@gmail.com](email)
+    - es [prueba@correo.com](email)
+
+- intent: affirm
+  examples: |
+    - sí
+    - correcto
+    - claro
+    - por supuesto
+
+- intent: deny
+  examples: |
+    - no
+    - incorrecto
+    - no quiero
+    - cancelado
+
+- intent: iniciar_encuesta
+  examples: |
+    - Quiero hacer una encuesta
+    - Me gustaría dar feedback
+    - Deseo evaluar el soporte
+
+- intent: necesita_humano
+  examples: |
+    - Necesito hablar con alguien
+    - Quiero un agente humano
+    - No entiendo, tráiganme un humano
+
+- intent: fallback
+  examples: |
+    - No entiendo
+    - Repite, por favor
+    - No sé cómo responder

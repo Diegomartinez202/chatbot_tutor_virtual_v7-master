@@ -1,0 +1,16 @@
+version: "3.1"
+stories:
+  - story: flujo_auto_resume_si
+    steps:
+      - intent: saludo
+      - action: action_auto_resume
+      - intent: reanudar_auto_si
+      - action: action_reanudar_auto
+      - action: utter_reanudar_confirmado
+
+  - story: flujo_auto_resume_no
+    steps:
+      - intent: saludo
+      - action: action_auto_resume
+      - intent: reanudar_auto_no
+      - action: utter_reanudar_cancelado
