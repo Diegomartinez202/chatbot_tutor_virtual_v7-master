@@ -20,7 +20,8 @@ nlu:
       - no, sigamos aquí
       - no gracias
       - prefiero seguir con el bot
-
+      - no es necesario
+      - sigamos aquí
   - intent: affirm
     examples: |
       - sí
@@ -32,3 +33,23 @@ nlu:
       - no
       - prefiero que no
       - negativo
+  - intent: necesita_humano
+    examples: |
+      - me atiende una persona
+      - quiero hablar con un asesor
+      - pasar a un humano
+      - necesito agente humano
+
+  - intent: confirmar_derivacion
+    examples: |
+      - sí, por favor
+      - claro que sí
+      - adelante
+      - ok, con humano
+
+  - intent: negar_derivacion
+    examples: |
+      - no, gracias
+      - sigo con el bot
+      - mejor no
+      - prefiero continuar aquí

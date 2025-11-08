@@ -1,48 +1,65 @@
 version: "3.1"
 rules:
 
-  # Ver estado (autenticado)
-  - rule: Ver estado estudiante autenticado
+  # ============ ESTADO ACADÉMICO ============
+
+  - rule: Ver estado estudiante (autenticado) - intent ver_estado_estudiante
     steps:
       - intent: ver_estado_estudiante
       - slot_was_set:
           - is_authenticated: true
       - action: action_ver_estado_estudiante
 
-  - rule: Ver estado estudiante autenticado (sinónimo intent)
+  - rule: Ver estado estudiante (no autenticado) - intent ver_estado_estudiante
+    steps:
+      - intent: ver_estado_estudiante
+      - slot_was_set:
+          - is_authenticated: false
+      - action: utter_login_requerido
+
+  - rule: Ver estado estudiante (autenticado) - intent estado_estudiante
     steps:
       - intent: estado_estudiante
       - slot_was_set:
           - is_authenticated: true
       - action: action_ver_estado_estudiante
 
-  # Ver estado (NO autenticado)
-  - rule: Ver estado estudiante no autenticado
-    steps:
-      - intent: ver_estado_estudiante
-      - slot_was_set:
-          - is_authenticated: false
-      - action: utter_pedir_autenticacion
-
-  - rule: Ver estado estudiante no autenticado (sinónimo intent)
+  - rule: Ver estado estudiante (no autenticado) - intent estado_estudiante
     steps:
       - intent: estado_estudiante
       - slot_was_set:
           - is_authenticated: false
-      - action: utter_pedir_autenticacion
+      - action: utter_login_requerido
 
-  # Certificados (autenticado)
-  - rule: Consultar certificados autenticado
+  # ============ CERTIFICADOS ============
+
+  - rule: Consultar certificados (autenticado)
     steps:
       - intent: consultar_certificados
       - slot_was_set:
           - is_authenticated: true
       - action: action_consultar_certificados
 
-  # Certificados (NO autenticado)
-  - rule: Consultar certificados no autenticado
+  - rule: Consultar certificados (no autenticado)
     steps:
       - intent: consultar_certificados
       - slot_was_set:
           - is_authenticated: false
-      - action: utter_pedir_autenticacion
+      - action: utter_login_requerido
+
+  # ============ MENÚ PRINCIPAL ============
+
+  - rule: Mostrar menú principal al saludo
+    steps:
+      - intent: saludo
+      - action: utter_menu_principal
+   # === Helpers de login / recuperación ===
+  - rule: Mostrar guía de login (deep-links)
+    steps:
+      - intent: ver_login_hint
+      - action: utter_login_hint
+
+  - rule: Mostrar CTA de recuperación de contraseña
+    steps:
+      - intent: recuperar_contrasena
+      - action: utter_recuperar_acceso_cta

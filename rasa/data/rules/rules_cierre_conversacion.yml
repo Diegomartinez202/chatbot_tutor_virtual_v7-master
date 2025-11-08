@@ -21,3 +21,8 @@ rules:
     steps:
       - intent: nlu_fallback
       - action: utter_fallback
+  
+  - rule: Despedida directa
+    steps:
+      - intent: despedida
+      - action: action_finalizar_conversacion

@@ -42,3 +42,35 @@ rules:
       - action: action_submit_soporte
       - action: action_derivar_y_registrar_humano
       - action: utter_handoff_en_cola
+  - rule: Terminar conversación durante form de soporte
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_confirmar_cierre
+  
+  - rule: Confirmar derivación a humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: action_derivar_y_registrar_humano
+
+  - rule: Cancelar derivación a humano
+    steps:
+      - intent: negar_escalar
+      - action: action_handoff_cancelar
+  - rule: Ofrecer derivación a humano
+    steps:
+      - intent: necesita_humano
+      - action: utter_pedir_derivacion
+
+  - rule: Usuario confirma derivación
+    steps:
+      - intent: confirmar_derivacion
+      - action: action_derivar_humano_confirmada
+
+  - rule: Usuario niega derivación
+    steps:
+      - intent: negar_derivacion
+      - action: action_cancelar_derivacion

@@ -168,26 +168,25 @@ services:
     networks:
       - app-net
     volumes:
-      - ./rasa:/app/rasa
-      - ./rasa/models:/app/models
-      - ./rasa/data:/app/data
-      - ./rasa/domain.yml:/app/domain.yml:ro
-      - ./rasa/config.yml:/app/config.yml:ro
-      - ./rasa/interactive:/app/interactive
-    command: >
-      bash -lc "
-       cat > /app/endpoints.yml << 'YML'
-       action_endpoint:
-        url: ${ACTION_SERVER_URL}
-       tracker_store:
-         type: rasa.core.tracker_store.MongoTrackerStore
-         url: ${TRACKER_MONGO_URL}
-         db: ${TRACKER_MONGO_DB}
-         collection: ${TRACKER_MONGO_COLLECTION}
-      YML
-      echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
-      echo '[🚀] Iniciando Rasa con registro automático de modelos...';
-      exec /entrypoint_with_log.sh
+      - ./rasa:/app
+    entrypoint: ["/bin/sh","-lc"]
+    command:
+      - >
+        printf '%s\n' \
+          'action_endpoint:' \
+          "  url: ${ACTION_SERVER_URL}" \
+          '' \
+          'tracker_store:' \
+          '  type: rasa.core.tracker_store.MongoTrackerStore' \
+          "  url: ${TRACKER_MONGO_URL}" \
+          "  db: ${TRACKER_MONGO_DB}" \
+          "  collection: ${TRACKER_MONGO_COLLECTION}" \
+          '' \
+          'assistant_id: "tutorbot-local"' \
+        > /app/endpoints.yml
+        && echo '[rasa] endpoints.yml generado:' && cat /app/endpoints.yml && echo
+        && echo '[🚀] Iniciando Rasa con registro automático de modelos...'
+        && exec /entrypoint_with_log.sh
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
       interval: 30s
@@ -195,8 +194,9 @@ services:
       start_period: 600s
       retries: 5
 
-# ------------------------------------------------------------
-  # Rasa dev
+
+  # ------------------------------------------------------------
+  # Rasa dev (Redis) — puerto distinto para no chocar con prod
   # ------------------------------------------------------------
   rasa_dev:
     image: rasa/rasa:3.6.20-full
@@ -210,25 +210,29 @@ services:
     working_dir: /app
     volumes:
       - ./rasa:/app
-    entrypoint: ["/bin/sh","-c"]
-    command: >
-      cat > /app/endpoints.yml << 'YML'
-      action_endpoint:
-        url: http://action-server:5055/webhook
-      tracker_store:
-        type: redis
-        url: redis
-        port: 6379
-        db: 0
-        password: null
-      assistant_id: tutorbot-local
-      YML
-      echo '[rasa_dev] endpoints.yml (Redis) generado:'; cat /app/endpoints.yml; echo;
-      rasa run --enable-api --cors "*"
+    entrypoint: ["/bin/sh","-lc"]
+    command:
+      - >
+        printf '%s\n' \
+          'action_endpoint:' \
+          '  url: http://action-server:5055/webhook' \
+          '' \
+          'tracker_store:' \
+          '  type: redis' \
+          '  url: redis' \
+          '  port: 6379' \
+          '  db: 0' \
+          '  password: null' \
+          '' \
+          'assistant_id: "tutorbot-local"' \
+        > /app/endpoints.yml
+        && echo '[rasa_dev] endpoints.yml (Redis) generado:' && cat /app/endpoints.yml && echo
+        && exec rasa run --enable-api --cors "*" --port 5005
     ports:
-      - "5006:5005"   # ← para no chocar con prod en 5005
+      - "5006:5005"   # ← prod usa 5005, dev expone 5006
     networks:
       - app-net
+
 
   # ------------------------------------------------------------
   # Rasa (perfil: vanilla)
@@ -342,7 +346,7 @@ services:
       stdin_open: true   
 
   # ------------------------------------------------------------
-  # Rasa Action guardian
+  # Rasa Action guardian (Flask API JWT + Mongo)
   # ------------------------------------------------------------
   autosave-guardian:
     build:
@@ -361,8 +365,17 @@ services:
     networks:
       - app-net
     restart: unless-stopped
-
-
+    expose:
+      - "8080"          # ← visible dentro de app-net (Nginx lo ve)
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:8080/ping | grep -q 'ok'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # ============================================================
   # Backend DEV (hot reload)

@@ -9,7 +9,15 @@ nlu:
       - hasta aquí, gracias
       - cerrar conversación
       - me despido, gracias
-
+      - cerrar chat
+      - ya no necesito más
+      - terminar conversación
+      - podemos terminar
+      - termina la conversación
+      - quiero cerrar el chat
+      - gracias, hasta luego
+      - podemos dejarlo así
+      - no tengo más preguntas
   - intent: confirmar_cierre
     examples: |
       - sí, finalizar
@@ -18,7 +26,16 @@ nlu:
       - termina por favor
       - confirma
       - cerrar ya
-
+      - sí, terminar
+      - ok, termina
+      - sí por favor
+      - sí, cerrar
+      - correcto, finaliza
+      - adelante, cierra
+      - no, seguir
+      - mejor continuemos
+      - cancela el cierre
+      - aún quiero continuar
   - intent: cancelar_cierre
     examples: |
       - no, continuar
@@ -27,8 +44,11 @@ nlu:
       - sigamos
       - quiero seguir
       - no cierres
+      - no, continuar
+      - mejor sigamos
+      - cancelar
+      - no quiero terminar
 
-  # Opcional: si quieres usar el intent despedida en otros flujos
   - intent: despedida
     examples: |
       - adiós
@@ -36,3 +56,6 @@ nlu:
       - nos vemos
       - hasta luego
       - muchas gracias, adiós
+      - gracias, hasta luego
+      - gracias, bye
+      - hasta pronto

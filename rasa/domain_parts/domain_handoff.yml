@@ -7,7 +7,9 @@ intents:
   - solicitar_soporte
   - affirm
   - deny
-
+  - necesita_humano
+  - confirmar_derivacion   
+  - negar_derivacion  
 forms:
   soporte_form:
     required_slots:
@@ -25,7 +27,10 @@ slots:
   email_contacto:
     type: text
     influence_conversation: true
-
+  soporte_intentos:
+    type: any
+    influence_conversation: false
+    initial_value: 0
 responses:
   utter_ofrecer_humano:
     - text: "¿Deseas que te contacte un asesor humano?"
@@ -49,6 +54,31 @@ responses:
 
   utter_handoff_en_cola:
     - text: "✅ He registrado tu caso y te contactar&aacute; un asesor. Te avisaré por este canal y por correo."
+
+  utter_pedir_derivacion:
+    - text: "¿Deseas que te ponga en contacto con un asesor humano?"
+      buttons:
+        - title: "Sí, con gusto"
+          payload: "/confirmar_derivacion"
+        - title: "No, sigo con el bot"
+          payload: "/negar_derivacion"
+
+  utter_derivar_humano_en_progreso:
+    - text: "Conectándote con un asesor... ⌛ Por favor espera un momento."
+
+  utter_derivacion_cancelada:
+    - text: "Sin problema. Continuamos por aquí. ¿Qué deseas hacer?"
+      buttons:
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+
+  # Mensaje cuando el usuario falla dentro del form y vamos a derivar
+  utter_handoff_por_fallos:
+    - text: "Veo que hubo varias dificultades. Te conectaré con un asesor humano para ayudarte mejor."
+
+  # Mensaje de intento fallido dentro del form (1 y 2)
+  utter_intento_form_fallido:
+    - text: "No logré entender del todo. ¿Podrías intentarlo de otra forma?"
 
 actions:
   - validate_soporte_form

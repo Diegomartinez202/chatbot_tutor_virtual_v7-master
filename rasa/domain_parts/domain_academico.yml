@@ -384,17 +384,23 @@ responses:
 
   # ====== MENÚ PRINCIPAL ======
   utter_menu_principal:
-    - text: >
-        📚 ¡Estoy listo para ayudarte! Elige una opción para continuar:
+    - text: |
+        👋 ¡Aquí tienes el menú principal de Tutor Virtual Zajuna!
+
+        Selecciona una opción para continuar:
       buttons:
         - title: "🎓 Ver estado académico"
-          payload: /ver_estado_estudiante
-        - title: "📄 Consultar certificados"
-          payload: /consultar_certificados
-        - title: "🏠 Menú principal"
-          payload: /ir_menu_principal
-        - title: "👋 Terminar conversación"
-          payload: /terminar_conversacion
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Consultar certificados"
+          payload: "/consultar_certificados"
+        - title: "🛠️ Soporte técnico"
+          payload: "/solicitar_soporte"
+        - title: "🔐 Iniciar sesión Zajuna"
+          payload: "/auth_login_cmd"
+        - title: "🌐 Cambiar a inglés"
+          payload: "/cambiar_idioma_ingles"
+        - title: "❌ Terminar conversación"
+          payload: "/terminar_conversacion"
 
   # ====== GATE DE AUTENTICACIÓN ======
   utter_login_requerido:
@@ -462,15 +468,17 @@ responses:
         - title: "👋 Terminar conversación"
           payload: /terminar_conversacion
 
-  # ====== TERMINAR CONVERSACIÓN (confirmación segura) ======
+
+  # ===== Confirmación de cierre =====
   utter_confirmar_cierre:
-    - text: >
-        ¿Seguro que deseas cerrar la conversación? Si tienes algo en progreso, puedo guardarlo.
+    - text: |
+        🛑 ¿Deseas terminar la conversación?
+        Puedo guardar tu progreso y retomarlo luego.
       buttons:
         - title: "✅ Sí, terminar"
-          payload: /affirm
-        - title: "❌ No, continuar"
-          payload: /deny
+          payload: "/confirmar_cierre"
+        - title: "↩️ No, continuar"
+          payload: "/cancelar_cierre"
 
   utter_cierre_confirmado:
     - text: "👋 Conversación finalizada. ¡Gracias por usar el Tutor Virtual!"
@@ -491,6 +499,49 @@ responses:
           payload: /ir_menu_principal
         - title: "👋 Terminar conversación"
           payload: /terminar_conversacion
+
+  # =========================================
+  # 🔹 Consultar certificados
+  # =========================================
+  utter_consultar_certificados:
+    - text: |
+        🎓 Aquí puedes consultar tus **certificados académicos** emitidos por Zajuna.
+        Para continuar, necesito saber si ya iniciaste sesión.
+      buttons:
+        - title: "🔐 Iniciar sesión en Zajuna"
+          payload: "/auth_login_cmd"
+        - title: "🔁 Recuperar acceso"
+          payload: "/recuperar_contrasena"
+        - title: "❌ No ahora"
+          payload: "/deny"
+
+  # =========================================
+  # 🔹 Ver estado académico del estudiante
+  # =========================================
+  utter_ver_estado_estudiante:
+    - text: |
+        📚 Puedo mostrarte tu **estado académico actual** (por ejemplo, si estás activo o en pausa).
+        ¿Deseas que lo consulte ahora?
+      buttons:
+        - title: "✅ Sí, consultar estado"
+          payload: "/estado_estudiante"
+        - title: "🔒 Iniciar sesión primero"
+          payload: "/auth_login_cmd"
+        - title: "🔙 Volver al menú principal"
+          payload: "/ir_menu_principal"
+
+
+  utter_cancelar_cierre:
+    - text: |
+        👍 Perfecto, continuemos con la conversación.  
+        ¿En qué más puedo ayudarte?
+      buttons:
+        - title: "📄 Consultar certificados"
+          payload: "/consultar_certificados"
+        - title: "🎓 Ver estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "🏫 Menú principal"
+          payload: "/ir_menu_principal"
 
 forms:
   certificado_form:

@@ -1,20 +1,120 @@
 version: "3.1"
+
 intents:
   - ver_estado_estudiante
   - estado_estudiante
   - consultar_certificados
-
+  - auth_login_cmd
+  - deny
+  - saludo
+  - auth_login_cmd
+  - deny
+  - saludo
+  - ver_login_hint          
+  - recuperar_contrasena
 slots:
   is_authenticated:
     type: bool
     influence_conversation: true
     initial_value: false
-
+  zajuna_base_url:
+    type: text
+    influence_conversation: false
+    initial_value: "https://zajuna.edu"
 responses:
+  # ✅ Menú principal con botones
+  utter_menu_principal:
+    - text: "¡Hola! Soy tu asistente Zajuna 👋. ¿Qué deseas hacer?"
+      buttons:
+        - title: "🎓 Ver estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Consultar certificados"
+          payload: "/consultar_certificados"
+        - title: "🔐 Iniciar sesión"
+          payload: "/auth_login_cmd"
+        - title: "❌ Terminar conversación"
+          payload: "/terminar_conversacion"
+
+  # 🔒 Petición de autenticación (con CTA)
   utter_pedir_autenticacion:
     - text: "🔒 Para continuar necesito que inicies sesión. ¿Quieres autenticarte ahora?"
       buttons:
-        - title: "🔑 Iniciar sesión"
+        - title: "🔑 Iniciar sesión Zajuna"
           payload: "/auth_login_cmd"
         - title: "❌ No, luego"
           payload: "/deny"
+
+  # Variante explícita de login requerido (usada en reglas)
+  utter_login_requerido:
+    - text: "Para ver esta información debes iniciar sesión en Zajuna."
+      buttons:
+        - title: "🔑 Iniciar sesión ahora"
+          payload: "/auth_login_cmd"
+        - title: "📋 Ver guía de login"
+          payload: "/ver_login_hint"
+        - title: "↩️ Volver al menú"
+          payload: "/saludo"
+
+  # 🧾 Estado mostrado (si ya estás autenticado y la action resuelve)
+  utter_estado_mostrado:
+    - text: "📊 Tu estado académico actual es: {estado}."
+      buttons:
+        - title: "📜 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "🏠 Menú principal"
+          payload: "/saludo"
+
+  utter_certificado_listado:
+    - text: |
+        📑 **Tus certificados**
+        {certificados_md}
+
+        ¿Qué deseas hacer ahora?
+      buttons:
+        - title: "⬇️ Descargar certificados"
+          payload: "/ver_certificados_info"
+        - title: "🏠 Menú principal"
+          payload: "/saludo"
+
+  # 🧩 Confirmación de envío (si tu action envía por email)
+  utter_confirmacion_consulta:
+    - text: "✅ He enviado tus certificados al correo registrado."
+
+  # 🧸 Despedida profesional (por si no estaba en otro domain part)
+  utter_despedida_profesional:
+    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
+  # 👉 NUEVO: guía con deep-links
+  utter_login_hint:
+    - text: |
+        🔐 **Cómo iniciar sesión en Zajuna**
+        1) Abre el portal: {zajuna_base_url}/login  
+        2) Ingresa tu usuario/correo y contraseña.  
+        3) Si olvidaste la clave, usa **“¿Olvidé mi contraseña?”**.
+
+        Atajos:
+        • Inicio de sesión: {zajuna_base_url}/login  
+        • Registro: {zajuna_base_url}/register  
+        • Recuperar contraseña: {zajuna_base_url}/password/reset
+      buttons:
+        - title: "🔑 Ir a Iniciar sesión"
+          payload: "/auth_login_cmd"
+        - title: "🆘 Recuperar contraseña"
+          payload: "/recuperar_contrasena"
+        - title: "🏠 Menú"
+          payload: "/saludo"
+
+  # 👉 NUEVO: CTA de recuperación
+  utter_recuperar_acceso_cta:
+    - text: |
+        🆘 **Recuperación de acceso**
+        1) Ve a: {zajuna_base_url}/password/reset  
+        2) Ingresa tu correo registrado y confirma.  
+        3) Revisa tu bandeja de entrada (y spam).  
+        4) Sigue el enlace para crear una nueva contraseña.
+
+        ¿Listo para continuar luego?
+      buttons:
+        - title: "✅ Ya recuperé mi acceso"
+          payload: "/auth_login_cmd"
+        - title: "🏠 Menú"
+          payload: "/saludo"

@@ -13,3 +13,16 @@ stories:
       - action: action_submit_soporte
       - action: action_derivar_y_registrar_humano
       - action: utter_handoff_en_cola
+  - story: pedir humano y confirmar
+    steps:
+      - intent: escalar_humano
+      - action: action_ofrecer_humano
+      - intent: confirmacion_escalar_humano
+      - action: action_derivar_y_registrar_humano
+
+  - story: pedir humano y negar
+    steps:
+      - intent: escalar_humano
+      - action: action_ofrecer_humano
+      - intent: negar_escalar
+      - action: action_handoff_cancelar

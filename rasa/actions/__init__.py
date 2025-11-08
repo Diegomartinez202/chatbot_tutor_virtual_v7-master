@@ -135,7 +135,13 @@ from .acciones_cierre_conversacion import (
 from .acciones_handoff import (
     ActionRegistrarIntentoForm,
     ActionVerificarMaxIntentosForm,
+    ActionOfrecerHumano,
+    ActionDerivarYRegistrarHumano as ActionDerivarYRegistrarHumano_HandoffAlias,
+    ActionHandoffCancelar,
+    ActionDerivarHumanoConfirmada,
+    ActionCancelarDerivacion,
 )
+
 __all__ = [
     # Validators
     "ValidateSoporteForm",
@@ -231,9 +237,20 @@ __all__ = [
     "ActionRegistrarIntentoForm",
     "ActionVerificarMaxIntentosForm",
 
+    "ActionOfrecerHumano",
+    "ActionHandoffCancelar",
+
     "ActionConfirmarCierre",
     "ActionFinalizarConversacion",
     "ActionCancelarCierre",
-    "ActionRegistrarIntentoForm",
-    "ActionVerificarMaxIntentosForm",
+    
+ 
+    "ActionDerivarHumanoConfirmada",
+    "ActionCancelarDerivacion",
+
+  
+   
+
+    
+   
 ]

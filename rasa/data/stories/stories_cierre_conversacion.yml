@@ -15,3 +15,17 @@ stories:
       - intent: cancelar_cierre
       - action: action_cancelar_cierre
       - action: utter_cierre_cancelado
+ 
+  - story: cierre confirmado
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+
+  - story: cierre cancelado
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+      - intent: cancelar_cierre
+      - action: action_cancelar_cierre

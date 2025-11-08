@@ -5,8 +5,8 @@ intents:
   - terminar_conversacion
   - confirmar_cierre
   - cancelar_cierre
-  - despedida        # opcional; si no la usas, puedes omitirla
-  - nlu_fallback     # usado por las rules de fallback
+  - despedida       
+  - nlu_fallback     
 
 slots:
   # Estos slots ya los vienes usando en otros parts; si ya existen, NO los dupliques.
@@ -49,7 +49,8 @@ responses:
       buttons:
         - title: "🔁 Reabrir menú"
           payload: "/ir_menu_principal"
-
+        - title: "🔁 Reanudar más tarde"
+          payload: "/terminar_conversacion"
   utter_fallback:
     - text: "🤔 No entendí bien. ¿Quieres intentarlo con otra frase o volver al menú?"
       buttons:
@@ -58,6 +59,8 @@ responses:
         - title: "🆘 Hablar con soporte"
           payload: "/solicitar_soporte"
 
+  utter_cerrar_chat:
+    - text: "✅ Conversación finalizada. Cuando quieras, vuelve a escribirme."
 actions:
   # Reutilizamos tus acciones existentes
   - action_confirmar_cierre

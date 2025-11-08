@@ -1,0 +1,65 @@
+version: "3.1"
+
+intents:
+  # Cierre
+  - terminar_conversacion
+  - confirmar_cierre
+  - cancelar_cierre
+  - despedida
+  # Handoff
+  - escalar_humano
+  - confirmacion_escalar_humano
+  - negar_escalar
+
+slots:
+  derivacion_humano:
+    type: bool
+    influence_conversation: false
+    initial_value: false
+
+responses:
+  # --- CIERRE ---
+  utter_confirmar_cierre:
+    - text: "¿Deseas terminar la conversación?"
+      buttons:
+        - title: "Sí, terminar"
+          payload: "/confirmar_cierre"
+        - title: "No, continuar"
+          payload: "/cancelar_cierre"
+
+  utter_despedida_profesional:
+    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
+
+  utter_cierre_cancelado:
+    - text: "Perfecto, seguimos aquí para ayudarte."
+
+  utter_volver_menu:
+    - text: "¿Quieres volver al menú principal?"
+      buttons:
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+
+  # --- HANDOFF ---
+  utter_ofrecer_humano:
+    - text: "¿Quieres que te contacte un asesor humano?"
+      buttons:
+        - title: "Sí, por favor"
+          payload: "/confirmacion_escalar_humano"
+        - title: "No, gracias"
+          payload: "/negar_escalar"
+
+  utter_derivando_humano:
+    - text: "Te conecto con un asesor humano. ⏳ Por favor, espera un momento."
+
+  utter_derivacion_cancelada:
+    - text: "Sin problema. Continuemos por aquí. ¿En qué más te ayudo?"
+
+actions:
+  # Cierre
+  - action_confirmar_cierre
+  - action_finalizar_conversacion
+  - action_cancelar_cierre
+  # Handoff
+  - action_ofrecer_humano
+  - action_derivar_y_registrar_humano
+  - action_handoff_cancelar

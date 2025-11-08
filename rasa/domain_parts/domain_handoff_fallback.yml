@@ -5,10 +5,22 @@ slots:
     type: any
     influence_conversation: false
     initial_value: 0
-
+soporte_intentos:
+    type: float
+    influence_conversation: false
+    initial_value: 0
 responses:
   utter_form_entendido_dificultad:
     - text: "Parece que hubo dificultad para completar el formulario. Intentemos de nuevo con una pregunta a la vez."
 
   utter_form_max_intentos:
     - text: "Veo que ha sido difícil continuar. Te voy a derivar con un asesor humano para ayudarte mejor."
+
+
+  # Aviso al usuario cuando falla dentro del form
+  utter_form_fallback_warn:
+    - text: "No logré entenderte del todo. ¿Puedes intentar con otras palabras? (Intento {soporte_intentos}/3)"
+
+  # Lo usamos al escalar tras agotar intentos
+  utter_derivando_humano:
+    - text: "Veo que hubo dificultades. Te conecto con un asesor humano. ⏳ Por favor, espera…"

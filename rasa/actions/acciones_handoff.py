@@ -36,3 +36,47 @@ class ActionVerificarMaxIntentosForm(Action):
         if intentos >= MAX_INTENTOS_FORM:
             return [SlotSet("soporte_intentos", 0)]
         return []
+class ActionOfrecerHumano(Action):
+    def name(self) -> Text:
+        return "action_ofrecer_humano"
+
+    def run(self, dispatcher, tracker, domain) -> List[EventType]:
+        dispatcher.utter_message(response="utter_ofrecer_humano")
+        return []
+
+class ActionDerivarYRegistrarHumano(Action):
+    def name(self) -> Text:
+        return "action_derivar_y_registrar_humano"
+
+    def run(self, dispatcher, tracker, domain) -> List[EventType]:
+        # Aquí puedes registrar ticket / enviar correo / llamar API
+        dispatcher.utter_message(response="utter_derivando_humano")
+        return [SlotSet("derivacion_humano", True)]
+
+class ActionHandoffCancelar(Action):
+    def name(self) -> Text:
+        return "action_handoff_cancelar"
+
+    def run(self, dispatcher, tracker, domain) -> List[EventType]:
+        dispatcher.utter_message(response="utter_derivacion_cancelada")
+        return [SlotSet("derivacion_humano", False)]
+
+class ActionDerivarHumanoConfirmada(Action):
+    """Se ejecuta tras el 'affirm' del usuario para derivar a humano."""
+    def name(self) -> Text:
+        return "action_derivar_humano_confirmada"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[EventType]:
+        # Aquí puedes dejar tu lógica de registro/ticket (si ya la tienes en otra acción, llama esa).
+        # Compatibilidad con tu flujo actual:
+        dispatcher.utter_message(response="utter_derivar_humano_en_progreso")
+        return []
+
+class ActionCancelarDerivacion(Action):
+    """Responde cuando el usuario niega la derivación a humano."""
+    def name(self) -> Text:
+        return "action_cancelar_derivacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[EventType]:
+        dispatcher.utter_message(response="utter_derivacion_cancelada")
+        return []

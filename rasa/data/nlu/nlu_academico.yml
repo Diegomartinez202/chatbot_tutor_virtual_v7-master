@@ -62,3 +62,65 @@ nlu:
       - estado del estudiante
       - estoy activo este periodo
       - dime mi estado académico
+  - intent: consultar_certificados
+    examples: |
+      - quiero ver mis certificados
+      - consultar certificados
+      - ver certificados
+      - mis certificados disponibles
+      - ¿qué certificados tengo?
+      - descargar mis certificados
+      - muéstrame los certificados
+      - lista de certificados
+      - ver diplomas emitidos
+      - necesito mi constancia
+      - certificados en PDF
+      - ¿dónde descargo mis certificados?
+      - certificados del curso
+      - ver mis diplomas
+      - consultar constancias
+
+  - intent: ver_estado_estudiante
+    examples: |
+      - ver mi estado académico
+      - ¿cuál es mi estado?
+      - estado del estudiante
+      - cómo voy en el curso
+      - muéstrame mi estado de estudiante
+      - ver estado del aprendiz
+      - estoy activo este periodo
+      - dime mi estado académico
+      - consultar estado académico
+      - estado académico actual
+      - revisar mi progreso académico
+      - cómo va mi matrícula
+
+  - intent: ir_menu_principal
+    examples: |
+      - ir al menú principal
+      - volver al menú
+      - regresar al inicio
+      - muéstrame el menú
+      - abrir menú principal
+      - menú principal
+      - ver opciones
+      - quiero el menú
+      - volver a las opciones
+      - ir al inicio
+      - mostrar menú
+      - regresar al menú
+
+  - intent: terminar_conversacion
+    examples: |
+      - terminar conversación
+      - finalizar chat
+      - cerrar chat
+      - ya no necesito más ayuda
+      - gracias, eso es todo
+      - podemos terminar
+      - salir del chat
+      - hasta aquí está bien
+      - quiero finalizar
+      - terminar aquí
+      - acabar conversación
+      - listo, gracias
