@@ -1,0 +1,23 @@
+version: "3.1"
+rules:
+  - rule: Solicitar confirmación para terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+      - action: utter_cierre_confirmado
+
+  - rule: Usuario niega cierre
+    steps:
+      - intent: cancelar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+
+  - rule: Fallback en cierre
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback

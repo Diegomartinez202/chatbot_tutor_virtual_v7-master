@@ -1,0 +1,65 @@
+version: "3.1"
+
+intents:
+  # Si ya tienes algunos, no pasa nada por volverlos a declarar en este part.
+  - terminar_conversacion
+  - confirmar_cierre
+  - cancelar_cierre
+  - despedida        # opcional; si no la usas, puedes omitirla
+  - nlu_fallback     # usado por las rules de fallback
+
+slots:
+  # Estos slots ya los vienes usando en otros parts; si ya existen, NO los dupliques.
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+  encuesta_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+
+responses:
+  utter_confirmar_cierre:
+    - text: "¿Deseas finalizar la conversación ahora?"
+      buttons:
+        - title: "✅ Sí, finalizar"
+          payload: "/confirmar_cierre"
+        - title: "↩️ No, continuar"
+          payload: "/cancelar_cierre"
+
+  utter_cierre_confirmado:
+    - text: "✅ Conversación finalizada. ¡Gracias por usar el asistente Zajuna! 🌟"
+      buttons:
+        - title: "🔁 Volver al menú"
+          payload: "/ir_menu_principal"
+
+  utter_cierre_cancelado:
+    - text: "👌 Perfecto, seguimos aquí. ¿Qué más puedo ayudarte?"
+      buttons:
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+        - title: "📄 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "📊 Estado académico"
+          payload: "/ver_estado_estudiante"
+
+  utter_despedida_profesional:
+    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
+      buttons:
+        - title: "🔁 Reabrir menú"
+          payload: "/ir_menu_principal"
+
+  utter_fallback:
+    - text: "🤔 No entendí bien. ¿Quieres intentarlo con otra frase o volver al menú?"
+      buttons:
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+        - title: "🆘 Hablar con soporte"
+          payload: "/solicitar_soporte"
+
+actions:
+  # Reutilizamos tus acciones existentes
+  - action_confirmar_cierre
+  - action_finalizar_conversacion
+  - action_cancelar_cierre

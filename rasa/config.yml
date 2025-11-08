@@ -1,5 +1,5 @@
 # ============================================
-# ⚙️ CONFIGURACIÓN RASA - Tutor Virtual
+# ⚙️ CONFIGURACIÓN RASA - Tutor Virtual (Rasa 3.1)
 # ============================================
 assistant_id: "tutorbot-local"
 recipe: default.v1
@@ -7,7 +7,7 @@ version: "3.1"
 language: "es"
 
 # ============================================
-# 🧩 PIPELINE NLP (Español + Interactivo)
+# 🧩 PIPELINE NLP (Español + robusto)
 # ============================================
 pipeline:
   - name: WhitespaceTokenizer
@@ -18,7 +18,7 @@ pipeline:
   - name: LexicalSyntacticFeaturizer
   - name: CountVectorsFeaturizer
     lowercase: true
-    token_pattern: '(?u)\b\w+\b'
+    token_pattern: "(?u)\\b\\w+\\b"
   - name: CountVectorsFeaturizer
     analyzer: "char_wb"
     min_ngram: 1
@@ -34,25 +34,26 @@ pipeline:
     epochs: 80
     constrain_similarities: true
   - name: FallbackClassifier
-    threshold: 0.55
-    ambiguity_threshold: 0.1
+    # Umbral más permisivo para reducir “no entendí”
+    threshold: 0.40
+    ambiguity_threshold: 0.05
 
 # ============================================
 # 🧠 POLÍTICAS DE DECISIÓN (CORE)
 # ============================================
 policies:
-  # 1️⃣ Reglas deterministas
+  # 1) Reglas deterministas (forms, auth, menús, fallback Core)
   - name: RulePolicy
-    core_fallback_threshold: 0.3
+    core_fallback_threshold: 0.30
     core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
     check_for_contradictions: true
 
-  # 2️⃣ Memorización de historias recientes
+  # 2) Memorización
   - name: MemoizationPolicy
     max_history: 5
 
-  # 3️⃣ Política de aprendizaje conversacional (TED)
+  # 3) Política de aprendizaje (TED)
   - name: TEDPolicy
     max_history: 10
     epochs: 120
@@ -60,19 +61,11 @@ policies:
     batch_size:
       text: 32
 
-  # 4️⃣ Política de fallback en dos etapas (NLU + Core)
-  - name: TwoStageFallbackPolicy
-    nlu_threshold: 0.35
-    core_threshold: 0.3
-    fallback_action_name: "action_default_fallback"
-    ambiguity_threshold: 0.1
-
 # ============================================
-# 🧩 Configuración adicional para modo interactivo
+# 🧩 Modo interactivo (opcional)
 # ============================================
 interactive:
   enable_entity_suggestions: true
   confirm_intent_threshold: 0.7
   auto_save_stories: true
   show_confidence_scores: true
-

@@ -2,17 +2,13 @@
 from __future__ import annotations
 import os, datetime
 from typing import Any, Dict, List, Text
-
 from pymongo import MongoClient
 from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet, ConversationPaused, ConversationResumed, EventType
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
+from utils.mongo_autosave import guardar_autosave, log_event  # ← tus utilidades
 
-# Utilidad de autosave y logs
-from utils.mongo_autosave import guardar_autosave, log_event
-
-# === Conexión Mongo base para guardar/cargar slots directamente ===
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB  = os.getenv("MONGO_DB", "chatbot_tutor_virtual")
 AUTOSAVE_COLLECTION = os.getenv("MONGO_AUTOSAVE_COLLECTION", "autosaves")
@@ -22,33 +18,22 @@ _db     = _client[MONGO_DB]
 _autos  = _db[AUTOSAVE_COLLECTION]
 
 def _log(usuario: str, evento: str, estado: str, detalle: Dict[str, Any] | None = None):
-    # delegamos a la utilidad central (así todos los logs van al mismo collection)
     log_event(usuario, evento, estado, detalle)
 
-# ========== Acciones ==========
-
 class ActionGuardianGuardarProgreso(Action):
-    def name(self) -> Text:
-        return "action_guardian_guardar_progreso"
-
+    def name(self) -> Text: return "action_guardian_guardar_progreso"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         dispatcher.utter_message(response="utter_guardando_progreso")
         usuario = tracker.sender_id
-        payload = {
-            "user_id": usuario,
-            "slots": tracker.current_slot_values(),
-            "estado": "guardado",
-            "updated_at": datetime.datetime.utcnow(),
-        }
+        payload = {"user_id": usuario, "slots": tracker.current_slot_values(), "estado": "guardado",
+                   "updated_at": datetime.datetime.utcnow()}
         _autos.update_one({"user_id": usuario}, {"$set": payload}, upsert=True)
         _log(usuario, "guardian_guardar_progreso", "ok", {"slots": len(payload["slots"] or {})})
         dispatcher.utter_message(text="✅ Progreso guardado correctamente.")
         return [SlotSet("encuesta_activa", True)]
 
 class ActionGuardianCargarProgreso(Action):
-    def name(self) -> Text:
-        return "action_guardian_cargar_progreso"
-
+    def name(self) -> Text: return "action_guardian_cargar_progreso"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         usuario = tracker.sender_id
         doc = _autos.find_one({"user_id": usuario})
@@ -61,9 +46,7 @@ class ActionGuardianCargarProgreso(Action):
         return []
 
 class ActionGuardianPausar(Action):
-    def name(self) -> Text:
-        return "action_guardian_pausar"
-
+    def name(self) -> Text: return "action_guardian_pausar"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         usuario = tracker.sender_id
         if tracker.get_slot("encuesta_activa"):
@@ -75,9 +58,7 @@ class ActionGuardianPausar(Action):
         return [ConversationPaused()]
 
 class ActionGuardianReanudar(Action):
-    def name(self) -> Text:
-        return "action_guardian_reanudar"
-
+    def name(self) -> Text: return "action_guardian_reanudar"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         usuario = tracker.sender_id
         if tracker.get_slot("encuesta_activa"):
@@ -89,9 +70,7 @@ class ActionGuardianReanudar(Action):
         return []
 
 class ActionGuardianReset(Action):
-    def name(self) -> Text:
-        return "action_guardian_reset"
-
+    def name(self) -> Text: return "action_guardian_reset"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         usuario = tracker.sender_id
         _autos.delete_one({"user_id": usuario})
@@ -99,11 +78,8 @@ class ActionGuardianReset(Action):
         dispatcher.utter_message(text="🧹 Datos temporales eliminados.")
         return [SlotSet("encuesta_activa", False), SlotSet("autosave_estado", None)]
 
-# === Tu acción de negocio integrando guardar_autosave ===
 class ActionRegistrarEncuesta(Action):
-    def name(self) -> str:
-        return "action_registrar_encuesta"
-
+    def name(self) -> str: return "action_registrar_encuesta"
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         data = {
             "usuario": tracker.sender_id,

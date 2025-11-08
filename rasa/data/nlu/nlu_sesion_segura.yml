@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_sesion_segura.yml
 version: "3.1"
 nlu:
   - intent: notificar_desconexion

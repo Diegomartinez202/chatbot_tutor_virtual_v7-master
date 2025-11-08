@@ -1,3 +1,4 @@
+#\rasa\data\rules\rules_conversacion_persistente.yml
 version: "3.1"
 rules:
   - rule: Auto Resume al iniciar

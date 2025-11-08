@@ -1,0 +1,22 @@
+version: "3.1"
+rules:
+  # Captura nlu_fallback mientras el form está activo → incrementa intentos y re-pregunta
+  - rule: Fallback dentro de soporte_form (incrementa intentos)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: nlu_fallback
+      - action: action_registrar_intento_form
+      - action: utter_form_entendido_dificultad
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # Si supera el máximo de intentos (>=3) → cancelar form y derivar a humano
+  - rule: Max intentos en form → derivar a humano
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: action_verificar_max_intentos_form
+      - active_loop: null
+      - action: action_derivar_y_registrar_humano
+      - action: utter_handoff_en_cola

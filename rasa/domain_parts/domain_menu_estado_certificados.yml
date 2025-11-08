@@ -1,0 +1,20 @@
+version: "3.1"
+intents:
+  - ver_estado_estudiante
+  - estado_estudiante
+  - consultar_certificados
+
+slots:
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+
+responses:
+  utter_pedir_autenticacion:
+    - text: "🔒 Para continuar necesito que inicies sesión. ¿Quieres autenticarte ahora?"
+      buttons:
+        - title: "🔑 Iniciar sesión"
+          payload: "/auth_login_cmd"
+        - title: "❌ No, luego"
+          payload: "/deny"

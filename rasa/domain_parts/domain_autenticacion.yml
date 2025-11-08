@@ -15,7 +15,6 @@ intents:
   - confirmar_autenticacion
   - enviar_email_recuperacion
   - ingreso_zajuna
-  - confirmar_autenticacion
   - enviar_numero
   - provide_email
   - pedir_correo
@@ -28,17 +27,23 @@ intents:
   - cambiar_idioma_espanol
   - cambiar_idioma_ingles
   - enviar_credenciales
-  - confirmar_autenticacion
+  - estado_estudiante
+  - enviar_credenciales
+  
 
 entities:
   - email
   - nombre
   - mensaje
+  - password
+  - phone
+  - motivo_soporte
+  - prefer_contacto
+  - necesita_humano
+  - encuesta_tipo
 
 slots:
-  email:
-    type: text
-    influence_conversation: false
+
   nombre:
     type: text
     influence_conversation: false
@@ -48,10 +53,7 @@ slots:
   encuesta_respuesta:
     type: text
     influence_conversation: false
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    initial_value: false
+
   has_token:
     type: bool
     influence_conversation: true
@@ -62,6 +64,149 @@ slots:
   usuario:
     type: text
     influence_conversation: false
+
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: from_intent
+        intent: confirmar_autenticacion
+        value: true
+      - type: from_intent
+        intent: deny
+        value: false
+
+  email:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+      - type: from_text
+        conditions:
+          - active_loop: auth_login_form
+            requested_slot: email
+          - active_loop: password_recovery_form
+            requested_slot: email
+
+  password:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: password
+      - type: from_text
+        conditions:
+          - active_loop: auth_login_form
+            requested_slot: password
+
+  phone:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: phone
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: phone
+
+  motivo_soporte:
+    type: categorical
+    values: ["acceso", "calificaciones", "certificados", "tecnico", "otro"]
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: motivo_soporte
+      - type: from_intent
+        intent: solicitar_soporte
+        value: "otro"
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: motivo_soporte
+
+  prefer_contacto:
+    type: categorical
+    values: ["email", "whatsapp", "ninguno"]
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: prefer_contacto
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: prefer_contacto
+
+  soporte_mensaje:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: soporte_mensaje
+
+  necesita_humano:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: from_intent
+        intent: necesita_humano
+        value: true
+      - type: from_intent
+        intent: deny
+        value: false
+      - type: from_entity
+        entity: necesita_humano
+
+  encuesta_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: from_intent
+        intent: iniciar_encuesta
+        value: true
+
+  encuesta_tipo:
+    type: categorical
+    values: ["satisfaccion", "soporte", "otro"]
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: encuesta_tipo
+      - type: from_text
+        conditions:
+          - active_loop: encuesta_satisfaccion_form
+            requested_slot: encuesta_tipo
+
+forms:
+  auth_login_form:
+    required_slots:
+      - email
+      - password
+
+  password_recovery_form:
+    required_slots:
+      - email
+
+  soporte_form:
+    required_slots:
+      - motivo_soporte
+      - soporte_mensaje
+      - prefer_contacto
+      - phone
+
+  encuesta_satisfaccion_form:
+    required_slots:
+      - encuesta_tipo
+
+  recovery_form:
+    required_slots:
+      - email
 
 responses:
   utter_saludo:
@@ -108,9 +253,147 @@ responses:
 
   utter_confirmar_envio_correo:
     - text: "Listo, he enviado el correo de recuperación."
-  utter_ask_email:
-    - text: "¿Cuál es tu correo electrónico?"
 
+  # ====== AUTENTICACIÓN ======
+  utter_pedir_autenticacion:
+    - text: "🔐 Para continuar necesito que te autentiques. ¿Deseas iniciar sesión?"
+      buttons:
+        - title: "✅ Sí, iniciar sesión"
+          payload: /confirmar_autenticacion
+        - title: "🔑 Ya tengo cuenta"
+          payload: /enviar_credenciales
+        - title: "❓ ¿Cómo me autentico?"
+          payload: /ver_login_hint
+        - title: "⬅️ Menú"
+          payload: /ir_menu_principal
+
+  utter_ask_email:
+    - text: "📧 Escribe tu correo institucional (ej. nombre@zajuna.edu.co)."
+      buttons:
+        - title: "Usar correo guardado"
+          payload: /enviar_credenciales{"email":"{email}"}
+    - text: "Por favor indícame el correo con el que estás registrado."
+
+  utter_ask_password:
+    - text: "🔒 Ingresa tu contraseña (no la compartiré)."
+    - text: "Escribe tu contraseña para continuar."
+
+  utter_auth_ok:
+    - text: "✅ Autenticación correcta. ¿Qué deseas consultar?"
+      buttons:
+        - title: "🎓 Estado académico"
+          payload: /estado_estudiante
+        - title: "📄 Certificados"
+          payload: /consultar_certificados
+        - title: "🏠 Menú"
+          payload: /ir_menu_principal
+
+  utter_auth_fail:
+    - text: "⚠️ No pude iniciar sesión con esos datos. ¿Intentamos de nuevo o recuperamos tu contraseña?"
+      buttons:
+        - title: "🔁 Reintentar"
+          payload: /enviar_credenciales
+        - title: "🧷 Recuperar contraseña"
+          payload: /recuperar_contrasena
+        - title: "👤 Hablar con humano"
+          payload: /necesita_humano
+
+  # ====== RECUPERAR CONTRASEÑA ======
+  utter_ask_password_recovery_form_email:
+    - text: "📧 Indica el correo al que te envío el enlace de recuperación."
+  utter_recuperacion_enviada:
+    - text: "📬 Te envié un enlace de recuperación a {email}. Revisa bandeja de entrada y spam."
+      buttons:
+        - title: "✅ Ya recuperé"
+          payload: /confirmar_autenticacion
+        - title: "❌ No llegó el correo"
+          payload: /deny
+        - title: "🏠 Menú"
+          payload: /ir_menu_principal
+
+  # ====== SOPORTE ======
+  utter_solicitar_soporte_intro:
+    - text: "🛠️ Cuéntame tu caso y te ayudo o te conecto con un agente."
+      buttons:
+        - title: "🔓 Acceso / Login"
+          payload: /solicitar_soporte{"motivo_soporte":"acceso"}
+        - title: "🧾 Certificados"
+          payload: /solicitar_soporte{"motivo_soporte":"certificados"}
+        - title: "📊 Calificaciones"
+          payload: /solicitar_soporte{"motivo_soporte":"calificaciones"}
+        - title: "💻 Problema técnico"
+          payload: /solicitar_soporte{"motivo_soporte":"tecnico"}
+        - title: "📝 Otro"
+          payload: /solicitar_soporte{"motivo_soporte":"otro"}
+
+  utter_ask_motivo_soporte:
+    - text: "¿Cuál es el motivo principal de tu solicitud?"
+      buttons:
+        - title: "🔓 Acceso"
+          payload: /informar_slot{"motivo_soporte":"acceso"}
+        - title: "🧾 Certificados"
+          payload: /informar_slot{"motivo_soporte":"certificados"}
+        - title: "📊 Calificaciones"
+          payload: /informar_slot{"motivo_soporte":"calificaciones"}
+        - title: "💻 Técnico"
+          payload: /informar_slot{"motivo_soporte":"tecnico"}
+        - title: "📝 Otro"
+          payload: /informar_slot{"motivo_soporte":"otro"}
+
+  utter_ask_soporte_mensaje:
+    - text: "📣 Describe brevemente el problema (máx. 250 caracteres)."
+
+  utter_ask_prefer_contacto:
+    - text: "¿Cómo prefieres que te contactemos?"
+      buttons:
+        - title: "📧 Correo"
+          payload: /informar_slot{"prefer_contacto":"email"}
+        - title: "💬 WhatsApp"
+          payload: /informar_slot{"prefer_contacto":"whatsapp"}
+        - title: "🚫 Ninguno"
+          payload: /informar_slot{"prefer_contacto":"ninguno"}
+
+  utter_ask_phone:
+    - text: "📱 Déjame un número de WhatsApp con indicativo (ej. +57 3xx xxx xxxx)."
+
+  utter_soporte_registrado:
+    - text: "📝 Tu caso fue registrado. Te contactaremos por {prefer_contacto}. ¿Deseas hablar con un agente ahora?"
+      buttons:
+        - title: "👤 Sí, un agente"
+          payload: /necesita_humano
+        - title: "No, gracias"
+          payload: /ir_menu_principal
+
+  # ====== DERIVACIÓN A HUMANO / CONTROL AFFIRM/DENY ======
+  utter_ofrecer_humano:
+    - text: "¿Te conecto con un agente humano?"
+      buttons:
+        - title: "✅ Sí"
+          payload: /affirm
+        - title: "❌ No"
+          payload: /deny
+
+  utter_derivando_humano:
+    - text: "👤 Te conectaré con un agente. Por favor, espera un momento…"
+
+  utter_derivacion_cancelada:
+    - text: "👌 Perfecto, seguimos aquí. ¿Qué más deseas hacer?"
+      buttons:
+        - title: "🏠 Menú"
+          payload: /ir_menu_principal
+        - title: "🛠️ Soporte"
+          payload: /solicitar_soporte
+
+  # ====== ENCUESTA / INICIO ======
+  utter_encuesta_inicio:
+    - text: "📝 Iniciemos una breve encuesta. ¿Sobre qué tema?"
+      buttons:
+        - title: "🙂 Satisfacción"
+          payload: /iniciar_encuesta{"encuesta_tipo":"satisfaccion"}
+        - title: "🛠️ Soporte"
+          payload: /iniciar_encuesta{"encuesta_tipo":"soporte"}
+        - title: "Otro"
+          payload: /iniciar_encuesta{"encuesta_tipo":"otro"}
 
 actions:
   - action_ofrecer_continuar_tema
@@ -122,7 +405,6 @@ actions:
   - action_conectar_humano
   - action_preguntar_resolucion
   - action_registrar_encuesta
-  - action_check_auth
   - action_set_authenticated_true
   - action_estado_estudiante
   - action_ver_certificados
@@ -142,7 +424,9 @@ actions:
   - auth_login_cmd
   - abrir_chat_autenticado
   - ver_login_hint
-forms:
-  recovery_form:
-    required_slots:
-      - email
+  - action_set_authenticated_true
+  - action_enviar_correo_recuperacion
+ 
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

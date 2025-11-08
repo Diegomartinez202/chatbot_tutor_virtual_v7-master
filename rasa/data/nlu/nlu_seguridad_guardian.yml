@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_seguridad_guardian.yml
 version: "3.1"
 nlu:
 - intent: guardian_pausar_conversacion

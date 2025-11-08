@@ -1,0 +1,22 @@
+version: "3.1"
+stories:
+  - story: Soporte con dos fallbacks y completar
+    steps:
+      - intent: escalar_humano
+      - action: utter_ofrecer_humano
+      - intent: affirm
+      - action: utter_handoff_iniciado
+      - action: soporte_form
+      - active_loop: soporte_form
+      # Usuario confuso → baja confianza → tu pipeline puede disparar nlu_fallback
+      - intent: nlu_fallback
+      - action: action_registrar_intento_form
+      - action: utter_form_entendido_dificultad
+      - action: soporte_form
+      - active_loop: soporte_form
+      - intent: nlu_fallback
+      - action: action_registrar_intento_form
+      - action: utter_form_entendido_dificultad
+      - action: soporte_form
+      - active_loop: soporte_form
+      # (El 3er fallback lo maneja la rule que verifica el máximo y corta el form)

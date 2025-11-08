@@ -1,3 +1,4 @@
+#\rasa\data\rules\rules_general.yml
 version: "3.1"
 
 rules:

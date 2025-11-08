@@ -1,0 +1,34 @@
+version: "3.1"
+nlu:
+  - intent: escalar_humano
+    examples: |
+      - quiero hablar con un asesor
+      - necesito humano
+      - me comunicas con alguien
+      - atención humana
+      - soporte con persona
+
+  - intent: confirmacion_escalar_humano
+    examples: |
+      - sí, por favor
+      - confirmo
+      - quiero que me contacten
+      - si quiero humano
+
+  - intent: negar_escalar
+    examples: |
+      - no, sigamos aquí
+      - no gracias
+      - prefiero seguir con el bot
+
+  - intent: affirm
+    examples: |
+      - sí
+      - claro
+      - de acuerdo
+
+  - intent: deny
+    examples: |
+      - no
+      - prefiero que no
+      - negativo

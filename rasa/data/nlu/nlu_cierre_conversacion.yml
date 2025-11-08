@@ -1,0 +1,38 @@
+version: "3.1"
+nlu:
+  - intent: terminar_conversacion
+    examples: |
+      - quiero terminar
+      - ya no necesito más
+      - gracias, terminemos
+      - finalicemos el chat
+      - hasta aquí, gracias
+      - cerrar conversación
+      - me despido, gracias
+
+  - intent: confirmar_cierre
+    examples: |
+      - sí, finalizar
+      - confirmar cierre
+      - listo, termina
+      - termina por favor
+      - confirma
+      - cerrar ya
+
+  - intent: cancelar_cierre
+    examples: |
+      - no, continuar
+      - aún no
+      - cancelar
+      - sigamos
+      - quiero seguir
+      - no cierres
+
+  # Opcional: si quieres usar el intent despedida en otros flujos
+  - intent: despedida
+    examples: |
+      - adiós
+      - chao
+      - nos vemos
+      - hasta luego
+      - muchas gracias, adiós

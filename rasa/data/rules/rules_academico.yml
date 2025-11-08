@@ -1,12 +1,5 @@
+#\rasa\data\rules\rules_academico.yml
 version: "3.1"
-
-# =========================================================
-# 🧠 REGLAS DEL DOMINIO ACADÉMICO - ZAJUNA BOT
-# =========================================================
-# Controla el flujo de autenticación, consulta de certificados,
-# estado del estudiante y retorno al menú principal.
-# =========================================================
-
 rules:
 
   - rule: Solicitud de autenticación si no está autenticado
@@ -39,6 +32,15 @@ rules:
       - action: utter_estado_encontrado
       - action: utter_preguntar_continuar_menu
 
+  - rule: Ver estado estudiante (no autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: ver_estado_estudiante
+      - action: utter_pedir_autenticacion
+      - active_loop: login_form
+
   - rule: Volver al menú general
     steps:
       - intent: ir_menu_principal
@@ -48,47 +50,9 @@ rules:
     steps:
       - intent: terminar_conversacion
       - action: utter_despedida_profesional
-  
-  - rule: Consultar certificados autenticado
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: consultar_certificados
-      - action: action_ver_certificados
-      - action: utter_confirmacion_consulta
 
-  - rule: Consultar certificados no autenticado
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: consultar_certificados
-      - action: utter_pedir_autenticacion
-      - active_loop: login_form
-
+  # Fallback (NLU)
   - rule: Fallback general
     steps:
-      - intent: fallback
+      - intent: nlu_fallback
       - action: utter_fallback
-  
-  - rule: Ver estado estudiante autenticado
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: ver_estado_estudiante
-      - action: action_ver_estado_estudiante
-      - action: utter_estado_estudiante
-
-  - rule: Ver estado estudiante no autenticado
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: ver_estado_estudiante
-      - action: utter_pedir_autenticacion
-      - active_loop: login_form
-
-
-

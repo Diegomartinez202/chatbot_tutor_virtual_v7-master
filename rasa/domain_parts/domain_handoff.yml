@@ -1,0 +1,56 @@
+version: "3.1"
+
+intents:
+  - escalar_humano
+  - confirmacion_escalar_humano
+  - negar_escalar
+  - solicitar_soporte
+  - affirm
+  - deny
+
+forms:
+  soporte_form:
+    required_slots:
+      - motivo_soporte
+      - detalle_soporte
+      - email_contacto
+
+slots:
+  motivo_soporte:
+    type: text
+    influence_conversation: true
+  detalle_soporte:
+    type: text
+    influence_conversation: true
+  email_contacto:
+    type: text
+    influence_conversation: true
+
+responses:
+  utter_ofrecer_humano:
+    - text: "¿Deseas que te contacte un asesor humano?"
+      buttons:
+        - title: "Sí, por favor"
+          payload: "/confirmacion_escalar_humano"
+        - title: "No, continuar con el bot"
+          payload: "/negar_escalar"
+
+  utter_handoff_iniciado:
+    - text: "Perfecto. Para derivarte con un asesor humano necesito algunos datos."
+
+  utter_ask_motivo_soporte:
+    - text: "Cuéntame brevemente el motivo de tu solicitud de soporte."
+
+  utter_ask_detalle_soporte:
+    - text: "¿Puedes darme más detalle para ayudar al asesor a contextualizar?"
+
+  utter_ask_email_contacto:
+    - text: "¿Cuál es tu correo de contacto?"
+
+  utter_handoff_en_cola:
+    - text: "✅ He registrado tu caso y te contactar&aacute; un asesor. Te avisaré por este canal y por correo."
+
+actions:
+  - validate_soporte_form
+  - action_submit_soporte
+  - action_derivar_y_registrar_humano

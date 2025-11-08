@@ -1,0 +1,15 @@
+# ============================================
+# 📡 ENDPOINTS RASA - DEV con Redis
+# ============================================
+
+action_endpoint:
+  url: "http://action-server:5055/webhook"
+
+tracker_store:
+  type: redis
+  url: "redis"        # nombre del servicio en docker-compose
+  port: 6379
+  db: 0
+  password: null
+
+assistant_id: "tutorbot-local"

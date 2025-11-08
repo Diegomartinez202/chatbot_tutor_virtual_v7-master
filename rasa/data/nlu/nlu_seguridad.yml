@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_seguridad.yml
 version: "3.1"
 
 nlu:

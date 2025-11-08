@@ -174,31 +174,61 @@ services:
       - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
       - ./rasa/interactive:/app/interactive
-  # ✅ Creamos endpoints.yml en caliente con los envs y arrancamos con --endpoints
     command: >
       bash -lc "
        cat > /app/endpoints.yml << 'YML'
        action_endpoint:
-         url: ${ACTION_SERVER_URL}
-
-      tracker_store:
-        type: mongod
-        url: ${TRACKER_MONGO_URL}
-        db: ${TRACKER_MONGO_DB}
-        collection: ${TRACKER_MONGO_COLLECTION}
-        YML
-
-        echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
-        echo '[🚀] Iniciando Rasa con registro automático de modelos...';
-
-        exec /entrypoint_with_log.sh
-      "
+        url: ${ACTION_SERVER_URL}
+       tracker_store:
+         type: rasa.core.tracker_store.MongoTrackerStore
+         url: ${TRACKER_MONGO_URL}
+         db: ${TRACKER_MONGO_DB}
+         collection: ${TRACKER_MONGO_COLLECTION}
+      YML
+      echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+      echo '[🚀] Iniciando Rasa con registro automático de modelos...';
+      exec /entrypoint_with_log.sh
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
       interval: 30s
       timeout: 5s
       start_period: 600s
       retries: 5
+
+# ------------------------------------------------------------
+  # Rasa dev
+  # ------------------------------------------------------------
+  rasa_dev:
+    image: rasa/rasa:3.6.20-full
+    container_name: rasa_dev
+    profiles: ["dev"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      action-server:
+        condition: service_healthy
+    working_dir: /app
+    volumes:
+      - ./rasa:/app
+    entrypoint: ["/bin/sh","-c"]
+    command: >
+      cat > /app/endpoints.yml << 'YML'
+      action_endpoint:
+        url: http://action-server:5055/webhook
+      tracker_store:
+        type: redis
+        url: redis
+        port: 6379
+        db: 0
+        password: null
+      assistant_id: tutorbot-local
+      YML
+      echo '[rasa_dev] endpoints.yml (Redis) generado:'; cat /app/endpoints.yml; echo;
+      rasa run --enable-api --cors "*"
+    ports:
+      - "5006:5005"   # ← para no chocar con prod en 5005
+    networks:
+      - app-net
 
   # ------------------------------------------------------------
   # Rasa (perfil: vanilla)
@@ -285,7 +315,7 @@ services:
       ACTIONS_CORS: "*"
       RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
 
-   # ------------------------------------------------------------
+  # ------------------------------------------------------------
   # Rasa Action interactive
   # ------------------------------------------------------------
   rasa_interactive:
@@ -308,26 +338,30 @@ services:
       - TZ=America/Bogota
       networks:
         - app-net
-      tty: true          # 👈 ADICIÓN
-      stdin_open: true   # 👈 ADICIÓN
+      tty: true          
+      stdin_open: true   
 
+  # ------------------------------------------------------------
+  # Rasa Action guardian
+  # ------------------------------------------------------------
   autosave-guardian:
     build:
       context: .
-      dockerfile: rasa/api/Dockerfile.guardian  # (opcional si haces un contenedor aparte)
+      dockerfile: autosave_guardian/Dockerfile.guardian
+    container_name: autosave-guardian
     environment:
-      - MONGO_URI=${MONGO_URI}
-      - MONGO_DB=${MONGO_DB}
-      - MONGO_AUTOSAVE_COLLECTION=${MONGO_AUTOSAVE_COLLECTION}
-      - MONGO_SECURITY_LOGS_COLLECTION=${MONGO_SECURITY_LOGS_COLLECTION}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_ALG=${JWT_ALG}
-      - JWT_ISSUER=${JWT_ISSUER}
-      - JWT_AUDIENCE=${JWT_AUDIENCE}
-    ports:
-      - "8085:8080"
-    depends_on:
-      - mongo
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    restart: unless-stopped
+
 
 
   # ============================================================
@@ -526,6 +560,22 @@ services:
       - redis-data:/data
     networks:
       - app-net
+
+  # ------------------------------------------------------------
+  # Redis dev(rate-limit/cache)
+  # ------------------------------------------------------------
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis
+    profiles: ["dev"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-net
+
   # ============================================================
   # Frontend (solo BUILD) — sirve dist con "serve"
   # ============================================================
@@ -700,3 +750,5 @@ volumes:
   # 🛠️ Logs del Action Server (opcional)
   action-logs:
   
+  volumes:
+  mongo_data: 

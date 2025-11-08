@@ -1,4 +1,6 @@
 # rasa/actions/__init__.py
+
+# ======= General =======
 from .acciones_general import (
     ActionEnviarCorreo,
     ActionConectarHumano,
@@ -6,6 +8,7 @@ from .acciones_general import (
     ActionOfrecerContinuarTema,
 )
 
+# ======= Soporte =======
 from .acciones_soporte import (
     ValidateSoporteForm,
     ActionEnviarSoporte,
@@ -14,6 +17,7 @@ from .acciones_soporte import (
     ActionDerivarYRegistrarHumano,
 )
 
+# ======= Autenticación =======
 from .acciones_autenticacion import (
     ValidateRecoveryForm,
     ActionCheckAuth,
@@ -25,6 +29,7 @@ from .acciones_autenticacion import (
     ActionSubmitRecovery,
 )
 
+# ======= Académico =======
 from .acciones_academico import (
     ActionEstadoEstudiante,
     ActionVerCertificados,
@@ -34,45 +39,57 @@ from .acciones_academico import (
     ActionRecuperarContrasena,
 )
 
+# ======= Encuesta =======
 from .acciones_encuesta import (
     ActionRegistrarEncuesta,
     ActionPreguntarResolucion,
     ActionSetEncuestaTipo,
 )
 
-# Alias por compatibilidad con nombre con typo
-from .accines_encuesta import (
+# Alias de compatibilidad por typo en nombre de archivo
+from .accines_encuesta import (  # noqa: F401
     ActionRegistrarEncuesta as _AliasActionRegistrarEncuesta,
     ActionPreguntarResolucion as _AliasActionPreguntarResolucion,
 )
-from .actions_menu import (
+
+# ======= Menú / Acciones de acceso rápido =======
+from .acciones_menu import (
     ActionSetMenuPrincipal,
     ActionVerEstadoEstudiante,
     ActionConsultarCertificados,
 )
-from .actions_terminar_conversacion import (
-    ActionConfirmarCierre,
+
+# ======= Cierre conversación (versión estándar) =======
+from .acciones_terminar_conversacion import (
+    ActionConfirmarCierre as ActionConfirmarCierreStd,
     ActionFinalizarConversacion,
-    ActionCancelarCierre,
+    ActionCancelarCierre as ActionCancelarCierreStd,
 )
-from .actions_terminar_conversacion_segura import (
+
+# ======= Cierre segura (otra variante) =======
+from .acciones_terminar_conversacion_segura import (
     ActionVerificarProcesoActivo,
-    ActionConfirmarCierre,
-    ActionCancelarCierre,
+    ActionConfirmarCierre as ActionConfirmarCierreSegura,
+    ActionCancelarCierre as ActionCancelarCierreSegura,
 )
-from .actions_terminar_conversacion_segura_autosave import (
+
+# ======= Cierre segura + autosave =======
+from .acciones_terminar_conversacion_segura_autosave import (
     ActionVerificarProcesoActivoAutosave,
     ActionGuardarEncuestaIncompleta,
     ActionConfirmarCierreAutosave,
-    ActionCancelarCierre,
+    ActionCancelarCierre as ActionCancelarCierreAutosave,
 )
+
+# ======= Conversación segura (guardian/autosave) =======
 from .acciones_conversacion_segura import (
     ActionVerificarEstadoConversacion,
     ActionGuardarProgresoConversacion,
     ActionTerminarConversacionSegura,
     ActionReanudarConversacionSegura,
 )
-from .conversacion_segura import (
+
+from .acciones_conversacion_segura import (
     ActionConfirmarCierreSeguro,
     ActionAutoSaveEncuesta,
     ActionGuardarAutoSaveMongo,
@@ -81,6 +98,7 @@ from .conversacion_segura import (
     ActionResetConversacionSegura,
 )
 
+# ======= Sesión segura (eventos) =======
 from .acciones_sesion_segura import (
     ActionNotificarDesconexion,
     ActionNotificarInactividad,
@@ -88,17 +106,35 @@ from .acciones_sesion_segura import (
     ActionGuardarEstadoSeguridad,
     ActionRecuperarEstadoSeguridad,
 )
+
+# ======= Guardian (Mongo autosave) =======
 from .acciones_seguridad_guardian import (
     ActionGuardianGuardarProgreso,
     ActionGuardianCargarProgreso,
     ActionGuardianPausar,
     ActionGuardianReanudar,
     ActionGuardianReset,
-    ActionRegistrarEncuesta,
+    ActionRegistrarEncuesta as ActionRegistrarEncuestaGuardian,  # no pisa el otro
 )
+
+# ======= Conversación persistente =======
 from .acciones_conversacion_persistente import (
     ActionAutoResume,
     ActionReanudarAuto,
+)
+from .acciones_handoff_fallback import (
+    ActionRegistrarIntentoForm,
+    ActionVerificarMaxIntentosForm,
+)
+from .acciones_cierre_conversacion import (
+    ActionConfirmarCierre,
+    ActionFinalizarConversacion,
+    ActionCancelarCierre,
+)
+
+from .acciones_handoff import (
+    ActionRegistrarIntentoForm,
+    ActionVerificarMaxIntentosForm,
 )
 __all__ = [
     # Validators
@@ -134,33 +170,38 @@ __all__ = [
     "ActionIngresoZajuna",
     "ActionRecuperarContrasena",
 
-    # Encuesta / resolución
+    # Encuesta / resolución (ambas referencias válidas)
     "ActionRegistrarEncuesta",
     "ActionPreguntarResolucion",
     "ActionSetEncuestaTipo",
+
+    # Menú / accesos
     "ActionSetMenuPrincipal",
     "ActionVerEstadoEstudiante",
     "ActionConsultarCertificados",
 
-    "ActionConfirmarCierre",
+    # Cierre conversación (usa explícitamente la estándar por defecto)
+    "ActionConfirmarCierreStd",
     "ActionFinalizarConversacion",
-    "ActionCancelarCierre",
+    "ActionCancelarCierreStd",
+
+    # Cierre conversación segura
     "ActionVerificarProcesoActivo",
-    "ActionConfirmarCierre",
-   
+    "ActionConfirmarCierreSegura",
+    "ActionCancelarCierreSegura",
+
+    # Cierre segura + autosave
     "ActionVerificarProcesoActivoAutosave",
     "ActionGuardarEncuestaIncompleta",
     "ActionConfirmarCierreAutosave",
+    "ActionCancelarCierreAutosave",
 
-     "ActionVerificarEstadoConversacion",
+    # Conversación segura (guardian/autosave)
+    "ActionVerificarEstadoConversacion",
     "ActionGuardarProgresoConversacion",
     "ActionTerminarConversacionSegura",
     "ActionReanudarConversacionSegura",
-    "ActionAutoResume",
-    "ActionReanudarAuto"
 
-   
-    "ActionOfrecerContinuarTema",
     "ActionConfirmarCierreSeguro",
     "ActionAutoSaveEncuesta",
     "ActionGuardarAutoSaveMongo",
@@ -168,25 +209,31 @@ __all__ = [
     "ActionAutoResumeConversacion",
     "ActionResetConversacionSegura",
 
-   "ActionNotificarDesconexion",
-   "ActionNotificarInactividad",
-   "ActionNotificarReconexion",
-   "ActionGuardarEstadoSeguridad",
-   "ActionRecuperarEstadoSeguridad",
+    # Sesión segura
+    "ActionNotificarDesconexion",
+    "ActionNotificarInactividad",
+    "ActionNotificarReconexion",
+    "ActionGuardarEstadoSeguridad",
+    "ActionRecuperarEstadoSeguridad",
 
-   "ActionGuardianGuardarProgreso",
-   "ActionGuardianCargarProgreso",
-   "ActionGuardianPausar",
-   "ActionGuardianReanudar",
-   "ActionGuardianReset"
+    # Guardian
+    "ActionGuardianGuardarProgreso",
+    "ActionGuardianCargarProgreso",
+    "ActionGuardianPausar",
+    "ActionGuardianReanudar",
+    "ActionGuardianReset",
+    "ActionRegistrarEncuestaGuardian",
 
-   "ActionGuardianGuardarProgreso",
-   "ActionGuardianCargarProgreso",
-   "ActionGuardianPausar",
-   "ActionGuardianReanudar",
-   "ActionGuardianReset",
-   "ActionRegistrarEncuesta",
+    # Conversación persistente
+    "ActionAutoResume",
+    "ActionReanudarAuto",
+
+    "ActionRegistrarIntentoForm",
+    "ActionVerificarMaxIntentosForm",
+
+    "ActionConfirmarCierre",
+    "ActionFinalizarConversacion",
+    "ActionCancelarCierre",
+    "ActionRegistrarIntentoForm",
+    "ActionVerificarMaxIntentosForm",
 ]
-    
-
-

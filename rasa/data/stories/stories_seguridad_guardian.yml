@@ -1,3 +1,4 @@
+#\rasa\data\stories\stories_seguridad_guardian.yml
 version: "3.1"
 stories:
 - story: Usuario pausa y luego reanuda

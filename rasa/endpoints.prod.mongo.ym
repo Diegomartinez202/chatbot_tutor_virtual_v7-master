@@ -1,0 +1,17 @@
+# ============================================
+# 📡 ENDPOINTS RASA - PROD con MongoDB
+# ============================================
+
+action_endpoint:
+  url: "http://action-server:5055/webhook"
+
+tracker_store:
+  type: rasa.core.tracker_store.MongoTrackerStore
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
+  username: "${TRACKER_MONGO_USERNAME}"
+  password: "${TRACKER_MONGO_PASSWORD}"
+  auth_source: "${TRACKER_MONGO_AUTHSOURCE}"
+
+assistant_id: "tutorbot-local"

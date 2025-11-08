@@ -1,0 +1,48 @@
+version: "3.1"
+nlu:
+  - intent: terminar_conversacion
+    examples: |
+      - termina
+      - quiero terminar
+      - salir
+      - finalizar chat
+      - hasta aquí
+      - cerrar conversación
+
+  - intent: affirm
+    examples: |
+      - sí
+      - correcto
+      - de acuerdo
+      - claro que sí
+      - afirmativo
+      - por favor continúa
+
+  - intent: deny
+    examples: |
+      - no
+      - mejor no
+      - todavía no
+      - negativo
+      - prefiero que no
+
+  - intent: escalar_humano
+    examples: |
+      - quiero hablar con un asesor
+      - pásame con una persona
+      - con humano por favor
+      - soporte humano
+      - necesito un agente
+
+  - intent: confirmacion_escalar_humano
+    examples: |
+      - sí, con humano
+      - confirma por favor
+      - sí, escálalo
+      - adelante con el asesor
+
+  - intent: negar_escalar
+    examples: |
+      - no, sigo contigo
+      - no quiero humano
+      - mejor continúo con el bot

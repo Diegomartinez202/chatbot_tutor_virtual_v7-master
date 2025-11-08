@@ -1,3 +1,4 @@
+#\rasa\data\rules\rules_soporte.yml
 version: "3.1"
 
 # =========================================================
@@ -39,7 +40,7 @@ rules:
       - action: utter_correo_enviado
       - action: utter_preguntar_continuar_menu
 
-  # --- Flujo común después de encuesta ---
+
   - rule: Continuar desde encuesta → menú o cierre
     steps:
       - intent: continuar_consulta
@@ -49,4 +50,39 @@ rules:
     steps:
       - intent: terminar_conversacion
       - action: utter_despedida_profesional
+  
+  - rule: Abrir flujo de soporte
+    steps:
+    - intent: solicitar_soporte
+    - action: utter_solicitar_soporte_intro
+    - action: soporte_form
+    - active_loop: soporte_form
 
+  # --- Submit soporte_form ---
+  - rule: Submit soporte_form
+    condition:
+    - active_loop: soporte_form
+    steps:
+    - action: soporte_form
+    - active_loop: null
+    - action: action_enviar_soporte
+    - action: utter_soporte_registrado
+
+  # --- Ofrecer humano (genérico) ---
+  - rule: Ofrecer agente humano explícito
+    steps:
+    - intent: necesita_humano
+    - action: utter_ofrecer_humano
+
+  # --- Confirmar derivación a humano ---
+  - rule: Derivar a humano (affirm)
+    steps:
+    - intent: affirm
+    - action: action_derivar_y_registrar_humano
+    - action: utter_derivando_humano
+
+  # --- Cancelar derivación ---
+  - rule: Cancelar derivación (deny)
+    steps:
+    - intent: deny
+    - action: utter_derivacion_cancelada

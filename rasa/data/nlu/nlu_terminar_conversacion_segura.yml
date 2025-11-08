@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_terminar_conversacion_segura.yml
 version: "3.3"
 
 nlu:

@@ -1,0 +1,9 @@
+version: "3.1"
+rules:
+  - rule: Usuario pide terminar mientras está el soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - active_loop: null
+      - action: action_confirmar_cierre

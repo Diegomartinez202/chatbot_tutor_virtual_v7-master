@@ -1,3 +1,4 @@
+#\rasa\data\rules\rules_sesion_segura.yml
 version: "3.1"
 rules:
 

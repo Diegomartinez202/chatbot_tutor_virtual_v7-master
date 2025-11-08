@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_enviar_soporte.yml
 version: "3.1"
 
 nlu:

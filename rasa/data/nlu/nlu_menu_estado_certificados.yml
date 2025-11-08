@@ -1,0 +1,22 @@
+version: "3.1"
+nlu:
+  - intent: ver_estado_estudiante
+    examples: |
+      - ver mi estado
+      - quiero saber mi estado académico
+      - cómo voy en el curso
+      - muéstrame mi estado de estudiante
+
+  - intent: estado_estudiante
+    examples: |
+      - estado del estudiante
+      - estado académico
+      - mi progreso académico
+      - cuál es mi estado
+
+  - intent: consultar_certificados
+    examples: |
+      - ver mis certificados
+      - consultar certificados
+      - descargar certificados
+      - qué certificados tengo

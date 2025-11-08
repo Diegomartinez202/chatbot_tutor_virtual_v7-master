@@ -15,3 +15,7 @@ imports:
   - domain_parts/acciones_seguridad.yml
   - domain_parts/acciones_sesion_segura.py
   - domain_parts/domain_seguridad_guardian.yml
+  - domain_parts/domain_cierre_conversacion.yml 
+  - domain_parts/domain_handoff.yml
+  - domain_parts/domain_handoff_fallback.yml
+  - domain_parts/domain_menu_estado_certificados.yml

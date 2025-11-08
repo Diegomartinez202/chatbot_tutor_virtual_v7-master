@@ -1,56 +1,94 @@
+#\rasa\data\rules\rules_autenticacion.yml
 version: "3.1"
 rules:
-  - rule: Redirigir si no está autenticado
-    condition:
-      - active_loop: null
+
+  - rule: Redirigir a login si no está autenticado (estado_estudiante)
     steps:
       - intent: estado_estudiante
       - action: action_check_auth
       - action: utter_need_auth
 
-  - rule: Redirigir a login y setear autenticación
+  - rule: Iniciar login por enviar_credenciales
+    steps:
+      - intent: enviar_credenciales
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  # Submit OK del auth_login_form
+  - rule: Submit auth_login_form OK
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: auth_login_form
+      - active_loop: null
+      - action: action_ingreso_zajuna
+      - action: action_check_auth
+      - slot_was_set:
+          - is_authenticated: true
+      - action: utter_auth_ok
+
+  # Submit FAIL del auth_login_form
+  - rule: Submit auth_login_form FAIL
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: auth_login_form
+      - active_loop: null
+      - action: action_check_auth
+      - slot_was_set:
+          - is_authenticated: false
+      - action: utter_auth_fail
+
+  # Confirmación de autenticación directa por botón
+  - rule: Confirmar autenticación directa (botón)
     steps:
       - intent: confirmar_autenticacion
-      - action: action_ingreso_zajuna
-      - intent: enviar_credenciales
       - action: action_set_authenticated_true
+      - action: utter_auth_ok
 
-  - rule: Recuperación de contraseña
+  # Recuperación de contraseña (form + submit)
+  - rule: Iniciar recuperación por recuperar_contrasena
     steps:
       - intent: recuperar_contrasena
+      - action: password_recovery_form
+      - active_loop: password_recovery_form
+
+  - rule: Submit password_recovery_form
+    condition:
+      - active_loop: password_recovery_form
+    steps:
+      - action: password_recovery_form
+      - active_loop: null
       - action: action_recuperar_contrasena
-      - intent: enviar_email_recuperacion
-      - action: action_enviar_correo
-      - action: utter_check_email
+      - action: action_enviar_correo_recuperacion
+      - action: utter_recuperacion_enviada
 
-  - rule: Confirmación de soporte
+  # Soporte rápido
+  - rule: Confirmación de soporte (affirm)
     steps:
-    - intent: solicitar_soporte
-    - action: action_ofrecer_continuar_tema
-    - intent: affirm
-    - action: action_enviar_soporte
+      - intent: solicitar_soporte
+      - action: action_ofrecer_continuar_tema
+      - intent: affirm
+      - action: action_enviar_soporte
 
-  - rule: Denegación de soporte
+  - rule: Denegación de soporte (deny)
     steps:
-    - intent: solicitar_soporte
-    - action: action_ofrecer_continuar_tema
-    - intent: deny
-    - action: utter_saludo
+      - intent: solicitar_soporte
+      - action: action_ofrecer_continuar_tema
+      - intent: deny
+      - action: utter_saludo
 
-  - rule: Enviar correo siempre
-    steps:
-    - intent: recuperar_contrasena
-    - action: action_enviar_correo
-
+  # Derivación a humano directa
   - rule: Escalar siempre a humano
     steps:
-    - intent: necesita_humano
-    - action: action_derivar_y_registrar_humano
-    - action: action_conectar_humano
+      - intent: necesita_humano
+      - action: action_derivar_y_registrar_humano
+      - action: action_conectar_humano
 
-  - rule: Registro de encuesta
+  # Encuesta desde intención
+  - rule: Registro de encuesta desde iniciar_encuesta
     steps:
-    - intent: iniciar_encuesta
-    - action: action_preguntar_resolucion
-    - intent: affirm
-    - action: action_registrar_encuesta
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - intent: affirm
+      - action: action_registrar_encuesta

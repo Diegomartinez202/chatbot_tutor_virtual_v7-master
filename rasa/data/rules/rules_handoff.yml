@@ -1,0 +1,44 @@
+version: "3.1"
+rules:
+  - rule: Ofrecer derivación a humano
+    steps:
+      - intent: escalar_humano
+      - action: utter_ofrecer_humano
+
+  - rule: Usuario confirma handoff (intent dedicado)
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: utter_handoff_iniciado
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Usuario niega handoff (intent dedicado)
+    steps:
+      - intent: negar_escalar
+      - action: utter_cierre_cancelado
+
+  - rule: Usuario responde afirmativo tras oferta
+    condition:
+      - active_loop: null
+    steps:
+      - intent: affirm
+      - action: utter_handoff_iniciado
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Usuario responde negativo tras oferta
+    condition:
+      - active_loop: null
+    steps:
+      - intent: deny
+      - action: utter_cierre_cancelado
+
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_submit_soporte
+      - action: action_derivar_y_registrar_humano
+      - action: utter_handoff_en_cola
