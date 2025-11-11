@@ -37,6 +37,8 @@ from .acciones_academico import (
     ActionTutorAsignado,
     ActionIngresoZajuna,
     ActionRecuperarContrasena,
+    ZajunaGetCertificados,
+    ZajunaGetEstadoEstudiante,
 )
 
 # ======= Encuesta =======
@@ -141,7 +143,9 @@ from .acciones_handoff import (
     ActionDerivarHumanoConfirmada,
     ActionCancelarDerivacion,
 )
-
+from .acciones_certificados import (
+    ActionConsultarCertificados,  # ← NUEVA
+)
 __all__ = [
     # Validators
     "ValidateSoporteForm",
@@ -247,10 +251,7 @@ __all__ = [
  
     "ActionDerivarHumanoConfirmada",
     "ActionCancelarDerivacion",
-
-  
-   
-
-    
-   
+    "ActionConsultarCertificados",   
+    "ZajunaGetCertificados",
+    "ZajunaGetEstadoEstudiante",
 ]

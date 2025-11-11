@@ -1,28 +1,18 @@
 version: "3.1"
 stories:
-  - story: Derivar a humano con confirmación dedicada
-    steps:
-      - intent: escalar_humano
-      - action: utter_ofrecer_humano
-      - intent: confirmacion_escalar_humano
-      - action: utter_handoff_iniciado
-      - action: soporte_form
-      - active_loop: soporte_form
-      - action: soporte_form
-      - active_loop: null
-      - action: action_submit_soporte
-      - action: action_derivar_y_registrar_humano
-      - action: utter_handoff_en_cola
-  - story: pedir humano y confirmar
-    steps:
-      - intent: escalar_humano
-      - action: action_ofrecer_humano
-      - intent: confirmacion_escalar_humano
-      - action: action_derivar_y_registrar_humano
 
-  - story: pedir humano y negar
-    steps:
-      - intent: escalar_humano
-      - action: action_ofrecer_humano
-      - intent: negar_escalar
-      - action: action_handoff_cancelar
+- story: Derivar a humano confirmado (intento dedicado)
+  steps:
+    - intent: necesita_humano
+    - action: utter_ofrecer_humano
+    - intent: confirmacion_escalar_humano
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- story: Derivar a humano con affirm
+  steps:
+    - intent: necesita_humano
+    - action: utter_ofrecer_humano
+    - intent: affirm
+    - action: soporte_form
+    - active_loop: soporte_form

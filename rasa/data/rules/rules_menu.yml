@@ -60,3 +60,7 @@ rules:
     steps:
       - intent: terminar_conversacion
       - action: action_guardian_pausar
+  - rule: Mostrar menú quick
+    steps:
+      - intent: ir_menu_principal
+      - action: utter_menu_principal_quick

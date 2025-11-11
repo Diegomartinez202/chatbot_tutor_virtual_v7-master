@@ -1,0 +1,54 @@
+version: "3.1"
+responses:
+
+  utter_ofrecer_humano:
+    # Fallback universal
+    - text: "🤝 Puedo pasarte con un asesor humano. ¿Deseas continuar?"
+      buttons:
+        - title: "Sí, conectar"
+          payload: "/confirmacion_escalar_humano"
+        - title: "No, gracias"
+          payload: "/negar_escalar"
+
+    # Variante Socket.IO
+    - channel: "socketio"
+      text: "¿Quieres que te conecte con un asesor humano ahora?"
+      buttons:
+        - title: "Conectar ahora"
+          payload: "/confirmacion_escalar_humano"
+        - title: "Seguir aquí"
+          payload: "/negar_escalar"
+
+    # Variante Facebook (Quick replies)
+    - channel: "facebook"
+      custom:
+        text: "¿Deseas hablar con un asesor humano?"
+        quick_replies:
+          - content_type: "text"
+            title: "Sí, conectar"
+            payload: "/confirmacion_escalar_humano"
+          - content_type: "text"
+            title: "No, gracias"
+            payload: "/negar_escalar"
+
+  utter_handoff_iniciado:
+    - text: "🧑‍💼 Derivando tu caso a un asesor… Mantén abierto este chat. Te avisaré en cuanto esté listo."
+
+    - channel: "socketio"
+      text: "Conectándote con un asesor… ⏳ Por favor, mantén esta ventana abierta."
+
+    - channel: "facebook"
+      custom:
+        text: "Derivando a humano… Te avisaremos aquí cuando el asesor esté listo. ⏳"
+  utter_handoff_en_cola:
+    - text: "Te he puesto en cola con un asesor humano. Te notificaremos en breve."
+  
+  utter_cierre_cancelado:
+    - text: "Entendido, no derivaré la conversación. ¿Deseas hacer algo más?"
+      buttons:
+        - title: "🏠 Menú"
+          payload: "/ir_menu_principal"
+        - title: "🎓 Estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Certificados"
+          payload: "/consultar_certificados"

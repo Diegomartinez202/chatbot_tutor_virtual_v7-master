@@ -31,7 +31,8 @@ intents:
   - fallback
   - cerrar_chat
   - is_authenticated
-
+  - escalar_humano
+  - nlu_fallback
 # ============================================
 # 📦 ENTIDADES Y SLOTS ESPECÍFICOS
 # ============================================
@@ -543,6 +544,21 @@ responses:
         - title: "🏫 Menú principal"
           payload: "/ir_menu_principal"
 
+  utter_mostrar_pasos_autenticacion:
+    - text: "Puedes autenticarte desde el portal académico."
+
+  utter_boton_autenticacion:
+    - text: "Haz clic aquí para autenticarte."
+
+  utter_certificados_encontrados:
+    - text: "Estos son tus certificados disponibles."
+
+  utter_estado_encontrado:
+    - text: "Aquí está tu estado académico."
+
+  utter_menu_general:
+    - text: "Menú principal: ¿qué deseas hacer?"
+
 forms:
   certificado_form:
     required_slots:
@@ -573,10 +589,21 @@ actions:
   - action_ofrecer_continuar_tema
   - action_preguntar_resolucion
   - action_ver_estado_estudiante
-  - consultar_certificados
-  - ver_estado_estudiante
-  - ir_menu_principal
-  - terminar_conversacion
-  - fallback
-
+  - action_consultar_certificados
+  - action_ir_menu_principal
+  - action_terminar_conversacion
+  - action_fallback
+  - utter_pedir_autenticacion
+  - utter_mostrar_pasos_autenticacion
+  - utter_boton_autenticacion
+  - zajuna_get_certificados
+  - utter_certificados_encontrados
+  - utter_preguntar_continuar_menu
+  - zajuna_get_estado_estudiante
+  - utter_estado_encontrado
+  - utter_menu_general
+  - utter_despedida_profesional
+  - utter_fallback
+  - action_cancelar_cierre
+  - action_confirmar_cierre
     

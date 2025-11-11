@@ -1,0 +1,17 @@
+[
+  {
+    "usuario": "andres_garcia",
+    "nivel_satisfaccion": "satisfecho",
+    "comentario": "Excelente atención, muy clara la explicación del bot."
+  },
+  {
+    "usuario": "laura_perez",
+    "nivel_satisfaccion": "neutral",
+    "comentario": "Me ayudó, pero fue un poco lento."
+  },
+  {
+    "usuario": "carlos_ramos",
+    "nivel_satisfaccion": "insatisfecho",
+    "comentario": "No entendió bien mi pregunta."
+  }
+]

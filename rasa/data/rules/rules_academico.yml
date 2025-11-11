@@ -1,58 +1,50 @@
-#\rasa\data\rules\rules_academico.yml
 version: "3.1"
 rules:
 
-  - rule: Solicitud de autenticación si no está autenticado
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: consultar_certificados
-      - action: utter_pedir_autenticacion
-      - action: utter_mostrar_pasos_autenticacion
-      - action: utter_boton_autenticacion
-
+  # ===== CERTIFICADOS =====
   - rule: Consultar certificados (autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: true
     steps:
       - intent: consultar_certificados
-      - action: zajuna_get_certificados
-      - action: utter_certificados_encontrados
+      - action: action_consultar_certificados
       - action: utter_preguntar_continuar_menu
 
-  - rule: Consultar estado académico (autenticado)
+  - rule: Consultar certificados (no autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: consultar_certificados
+      - action: utter_pedir_autenticacion
+
+  # ===== ESTADO ACADÉMICO =====
+  - rule: Ver estado (autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: true
     steps:
       - intent: ver_estado_estudiante
-      - action: zajuna_get_estado_estudiante
-      - action: utter_estado_encontrado
+      - action: action_ver_estado_estudiante
       - action: utter_preguntar_continuar_menu
 
-  - rule: Ver estado estudiante (no autenticado)
+  - rule: Ver estado (no autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: false
     steps:
       - intent: ver_estado_estudiante
       - action: utter_pedir_autenticacion
-      - active_loop: login_form
 
-  - rule: Volver al menú general
+  # ===== MENÚ =====
+  - rule: Volver al menú principal
     steps:
       - intent: ir_menu_principal
-      - action: utter_menu_general
+      - action: utter_menu_principal
 
-  - rule: Cierre profesional desde dominio académico
+  # ===== CIERRE CANÓNICO =====
+  - rule: Confirmar y finalizar conversación
     steps:
       - intent: terminar_conversacion
-      - action: utter_despedida_profesional
-
-  # Fallback (NLU)
-  - rule: Fallback general
-    steps:
-      - intent: nlu_fallback
-      - action: utter_fallback
+      - action: action_confirmar_cierre

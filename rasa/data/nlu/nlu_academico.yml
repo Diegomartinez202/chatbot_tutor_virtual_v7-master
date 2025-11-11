@@ -79,7 +79,11 @@ nlu:
       - certificados del curso
       - ver mis diplomas
       - consultar constancias
-
+      - ver mis certificados
+      - consultar certificados
+      - descargar certificados
+      - qué certificados tengo
+      - mostrar certificados
   - intent: ver_estado_estudiante
     examples: |
       - ver mi estado académico
@@ -124,3 +128,4 @@ nlu:
       - terminar aquí
       - acabar conversación
       - listo, gracias
+ 

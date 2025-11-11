@@ -34,18 +34,25 @@ rules:
   # ============ CERTIFICADOS ============
 
   - rule: Consultar certificados (autenticado)
-    steps:
-      - intent: consultar_certificados
+    condition:
       - slot_was_set:
           - is_authenticated: true
+    steps:
+      - intent: consultar_certificados
       - action: action_consultar_certificados
 
   - rule: Consultar certificados (no autenticado)
-    steps:
-      - intent: consultar_certificados
+    condition:
       - slot_was_set:
           - is_authenticated: false
-      - action: utter_login_requerido
+    steps:
+      - intent: consultar_certificados
+      - action: utter_login_hint
+  
+  - rule: Consultar certificados (autenticado)
+    steps:
+      - intent: consultar_certificados
+      - action: utter_certificados_carousel
 
   # ============ MENÚ PRINCIPAL ============
 
@@ -63,3 +70,4 @@ rules:
     steps:
       - intent: recuperar_contrasena
       - action: utter_recuperar_acceso_cta
+  

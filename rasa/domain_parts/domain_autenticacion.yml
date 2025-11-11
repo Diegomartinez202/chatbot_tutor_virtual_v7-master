@@ -22,12 +22,9 @@ intents:
   - enviar_telefono
   - abrir_chat_autenticado
   - auth_login_cmd
-  - necesita_humano
   - ver_login_hint
   - cambiar_idioma_espanol
   - cambiar_idioma_ingles
-  - enviar_credenciales
-  - estado_estudiante
   - enviar_credenciales
   
 
@@ -76,6 +73,37 @@ slots:
       - type: from_intent
         intent: deny
         value: false
+
+  auth_email:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+      - type: from_text
+        conditions:
+          - active_loop: auth_login_form
+            requested_slot: auth_email
+
+  auth_password:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: auth_login_form
+            requested_slot: auth_password
+
+  recovery_email:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+      - type: from_text
+        conditions:
+          - active_loop: password_recovery_form
+            requested_slot: recovery_email
 
   email:
     type: text
@@ -298,18 +326,6 @@ responses:
         - title: "👤 Hablar con humano"
           payload: /necesita_humano
 
-  # ====== RECUPERAR CONTRASEÑA ======
-  utter_ask_password_recovery_form_email:
-    - text: "📧 Indica el correo al que te envío el enlace de recuperación."
-  utter_recuperacion_enviada:
-    - text: "📬 Te envié un enlace de recuperación a {email}. Revisa bandeja de entrada y spam."
-      buttons:
-        - title: "✅ Ya recuperé"
-          payload: /confirmar_autenticacion
-        - title: "❌ No llegó el correo"
-          payload: /deny
-        - title: "🏠 Menú"
-          payload: /ir_menu_principal
 
   # ====== SOPORTE ======
   utter_solicitar_soporte_intro:
@@ -395,6 +411,41 @@ responses:
         - title: "Otro"
           payload: /iniciar_encuesta{"encuesta_tipo":"otro"}
 
+
+  # === Envío de recuperación ===
+  utter_recuperacion_enviada:
+    - text: "📧 Te envié un correo con instrucciones para restablecer tu contraseña. Revisa tu bandeja de entrada (y spam)."
+      buttons:
+        - title: "🔐 Volver a iniciar sesión"
+          payload: "/auth_login_cmd"
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+        - title: "✅ Ya recuperé"
+          payload: /confirmar_autenticacion
+        - title: "❌ No llegó el correo"
+          payload: /deny
+        - title: "🏠 Menú"
+          payload: /ir_menu_principal
+  # === Ofrecer soporte rápido (confirmación) ===
+  utter_soporte_confirmar:
+    - text: "🛠️ ¿Deseas que abra un caso de soporte con un asesor?"
+      buttons:
+        - title: "Sí, por favor"
+          payload: "/affirm"
+        - title: "No, gracias"
+          payload: "/deny"
+
+  # === Handoff (opcional visual) ===
+  utter_handoff_iniciado:
+    - text: "🤝 Te conecto con un asesor humano. Este chat seguirá disponible para actualizarte."
+
+  # === Pedidos de slots para forms (Rasa 3.1) ===
+  utter_ask_auth_email:
+    - text: "📧 Indícame tu correo de Zajuna."
+  utter_ask_auth_password:
+    - text: "🔑 Ahora tu contraseña."
+  utter_ask_recovery_email:
+    - text: "📧 ¿Cuál es el correo asociado a tu cuenta para enviarte el enlace de recuperación?"
 actions:
   - action_ofrecer_continuar_tema
   - action_enviar_soporte
@@ -415,16 +466,16 @@ actions:
   - action_necesita_auth
   - action_submit_recovery
   - action_set_encuesta_tipo
-  - iniciar_sesion
-  - enviar_credenciales
-  - confirmar_autenticacion
+  - action_iniciar_sesion
+  - action_enviar_credenciales
+  - action_confirmar_autenticacion
   - estado_estudiante
-  - recuperar_contrasena
-  - enviar_email_recuperacion
-  - auth_login_cmd
-  - abrir_chat_autenticado
-  - ver_login_hint
-  - action_set_authenticated_true
+  - action_recuperar_contrasena
+  - action_enviar_email_recuperacion
+  - action_auth_login_cmd
+  - action_abrir_chat_autenticado
+  - action_ver_login_hint
+  - action_action_set_authenticated_true
   - action_enviar_correo_recuperacion
  
 session_config:

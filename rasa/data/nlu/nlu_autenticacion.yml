@@ -53,3 +53,73 @@ nlu:
     - No entiendo
     - Repite, por favor
     - No sé cómo responder
+ 
+- intent: estado_estudiante
+  examples: |
+    - ver mi estado académico
+    - estado del estudiante
+    - cómo voy en el curso
+    - dime mi estado
+    - quiero saber mi estado
+
+- intent: enviar_credenciales
+  examples: |
+    - quiero iniciar sesión
+    - voy a iniciar sesión
+    - iniciar sesión ahora
+    - ingresar mis credenciales
+    - /auth_login_cmd
+
+- intent: confirmar_autenticacion
+  examples: |
+    - ya inicié sesión
+    - listo, ya me autenticqué
+    - ya me logueé
+    - ya entré a la plataforma
+
+- intent: recuperar_contrasena
+  examples: |
+    - olvidé mi contraseña
+    - recuperar contraseña
+    - no recuerdo mi clave
+    - restablecer mi contraseña
+    - necesito recuperar el acceso
+
+- intent: solicitar_soporte
+  examples: |
+    - necesito soporte
+    - ayuda con un problema
+    - contactar a soporte
+    - abrir un ticket
+    - hablar con soporte
+
+- intent: affirm
+  examples: |
+    - sí
+    - correcto
+    - de acuerdo
+    - claro que sí
+    - afirmativo
+
+- intent: deny
+  examples: |
+    - no
+    - mejor no
+    - no gracias
+    - negativo
+    - ahora no
+
+- intent: necesita_humano
+  examples: |
+    - quiero hablar con un humano
+    - necesito un asesor
+    - pásame con una persona
+    - escalar a humano
+    - atención personalizada
+
+- intent: iniciar_encuesta
+  examples: |
+    - iniciar encuesta
+    - quiero responder la encuesta
+    - empezar encuesta de satisfacción
+    - abrir encuesta

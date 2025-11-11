@@ -1,35 +1,14 @@
-#\rasa\data\stories\stories_academico.yml
 version: "3.1"
 stories:
 
-- story: Consultar certificados autenticado
-  steps:
-    - intent: consultar_certificados
-    - slot_was_set:
-        - is_authenticated: true
-    - action: zajuna_get_certificados
-    - action: utter_certificados_encontrados
-    - action: utter_preguntar_satisfaccion
+# Historias neutras (no deciden autenticación / encuesta / handoff)
 
-- story: Consultar certificados no autenticado
+- story: Ir al menú
   steps:
-    - intent: consultar_certificados
-    - slot_was_set:
-        - is_authenticated: false
-    - action: utter_pedir_autenticacion
+    - intent: ir_menu_principal
+    - action: utter_menu_principal
 
-- story: Consultar estado académico autenticado
+- story: Cierre (solicitar confirmación)
   steps:
-    - intent: consultar_estado_estudiante
-    - slot_was_set:
-        - is_authenticated: true
-    - action: zajuna_get_estado_estudiante
-    - action: utter_estado_mostrado
-    - action: utter_preguntar_satisfaccion
-
-- story: Consultar estado académico no autenticado
-  steps:
-    - intent: consultar_estado_estudiante
-    - slot_was_set:
-        - is_authenticated: false
-    - action: utter_pedir_autenticacion
+    - intent: terminar_conversacion
+    - action: action_confirmar_cierre

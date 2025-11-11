@@ -53,3 +53,41 @@ nlu:
       - sigo con el bot
       - mejor no
       - prefiero continuar aquí
+  - intent: necesita_humano
+    examples: |
+      - quiero hablar con un asesor
+      - pásame con un humano
+      - necesito ayuda de una persona
+      - soporte con un agente humano
+      - deseo derivación a humano
+
+  - intent: confirmacion_escalar_humano
+    examples: |
+      - sí, conéctame por favor
+      - confirmar derivación
+      - sí, quiero hablar con humano
+      - continuar con agente
+      - aceptar derivación
+      - sí, pásame con humano
+      - por favor con un asesor
+      - quiero hablar con un agente
+      - sí, con un humano
+      - confimo derivación a humano
+      - adelante, escálalo
+      - sí, necesito asistencia humana
+  - intent: negar_escalar
+    examples: |
+      - no, gracias
+      - prefiero seguir contigo
+      - no quiero derivación
+      - no conectar con humano
+      - cancelar derivación
+      - no, así está bien
+      - no necesito humano
+      - no, no escales
+      - prefiero continuar contigo
+      - no por ahora
+    
+
+
+

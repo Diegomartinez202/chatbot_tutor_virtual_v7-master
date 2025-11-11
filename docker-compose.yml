@@ -133,9 +133,6 @@ services:
       retries: 10
       start_period: 5s
 
-# ------------------------------------------------------------
-# Rasa (build/prod) — Tracker en Mongo y arranque robusto
-# ------------------------------------------------------------
   rasa:
     profiles: ["build","prod"]
     build:
@@ -170,23 +167,22 @@ services:
     volumes:
       - ./rasa:/app
     entrypoint: ["/bin/sh","-lc"]
-    command:
-      - >
-        printf '%s\n' \
-          'action_endpoint:' \
-          "  url: ${ACTION_SERVER_URL}" \
-          '' \
-          'tracker_store:' \
-          '  type: rasa.core.tracker_store.MongoTrackerStore' \
-          "  url: ${TRACKER_MONGO_URL}" \
-          "  db: ${TRACKER_MONGO_DB}" \
-          "  collection: ${TRACKER_MONGO_COLLECTION}" \
-          '' \
-          'assistant_id: "tutorbot-local"' \
-        > /app/endpoints.yml
-        && echo '[rasa] endpoints.yml generado:' && cat /app/endpoints.yml && echo
-        && echo '[🚀] Iniciando Rasa con registro automático de modelos...'
-        && exec /entrypoint_with_log.sh
+    command: >-
+      printf '%s\n'
+      'action_endpoint:'
+      "  url: ${ACTION_SERVER_URL}"
+      ''
+      'tracker_store:'
+      '  type: rasa.core.tracker_store.MongoTrackerStore'
+      "  url: ${TRACKER_MONGO_URL}"
+      "  db: ${TRACKER_MONGO_DB}"
+      "  collection: ${TRACKER_MONGO_COLLECTION}"
+      ''
+      'assistant_id: "tutorbot-local"'
+      > /app/endpoints.yml
+      && echo '[rasa] endpoints.yml generado:' && cat /app/endpoints.yml && echo
+      && echo '[🚀] Iniciando Rasa con registro automático de modelos...'
+      && exec /entrypoint_with_log.sh
     healthcheck:
       test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
       interval: 30s

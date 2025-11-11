@@ -34,7 +34,6 @@ slots:
   comentario:
     type: text
     influence_conversation: false
-    initial_value: null
 
   feedback_texto:
     type: text
@@ -44,13 +43,17 @@ slots:
   nivel_satisfaccion:
     type: text
     influence_conversation: true
-    initial_value: null
-
+  
   encuesta_tipo:
     type: text
     influence_conversation: true
-    initial_value: null
+    mappings:
+      - type: from_text
+  usuario:
+    type: text
+    influence_conversation: false
 
+ 
 responses:
 
   # --- Inicio de encuesta ---
@@ -109,13 +112,53 @@ responses:
 
   utter_despedida_final:
     - text: "✨ Gracias por usar el Asistente Virtual Zajuna. ¡Hasta pronto! 👋"
-  utter_agradecimiento_satisfaccion:
-    - text: "¡Gracias por tu respuesta! Me alegra que haya sido útil!."
-  utter_encuesta_insatisfaccion:
-    - text: "Gracias por comentarlo. ¿Deseas que te contacte un tutor?"
+  
   utter_agradecimiento_encuesta:
     - text: "¡Gracias por completar la encuesta!"
-  
+
+
+  utter_encuesta_insatisfaccion:
+    - text: "Gracias por contarnos. Puedo derivarte a un tutor o dejar registro. ¿Qué prefieres?"
+      buttons:
+        - title: "Derivar a tutor"
+          payload: "/contactar_tutor"
+        - title: "Registrar y seguir"
+          payload: "/continuar_consulta"
+
+  utter_preguntar_continuar_menu:
+    - text: "¿Deseas continuar con otro tema o finalizar la conversación?"
+  utter_volver_menu:
+    - text: "Perfecto, aquí tienes nuevamente el menú principal:"
+  utter_cerrar_chat:
+    - text: "[Fin de la conversación]"
+
+  utter_ofrecer_soporte:
+    - text: "Lamento que no se haya resuelto tu solicitud. 😞\n¿Deseas que te contacte un asesor humano para ayudarte?"
+
+
+  utter_encuesta_inicio:
+    - text: "Vamos a realizar una breve encuesta de satisfacción. ¡Tu opinión es importante!"
+
+
+  utter_esta_resuelto:
+    - text: "¿Pudimos resolver tu problema? (Sí / No)"
+
+
+  utter_encuesta_satisfaccion:
+    - text: "¿Cómo calificarías la atención recibida hoy? 😊\nOpciones: satisfecho / neutral / insatisfecho"
+
+  utter_pedir_comentario:
+    - text: "¿Deseas dejar un comentario adicional sobre tu experiencia?"
+
+  utter_gracias_feedback:
+    - text: "¡Gracias por compartir tu opinión! 💬 Valoramos mucho tus comentarios."
+
+  utter_agradecimiento_satisfaccion:
+    - text: "Gracias por completar la encuesta 🙏 Tu opinión nos ayuda a mejorar cada día."
+
+  utter_agradecimiento_final:
+    - text: "✨ Agradecemos tu tiempo y confianza. Si más adelante necesitas asistencia, estaremos encantados de ayudarte nuevamente. ¡Hasta pronto!"
+
 actions:
   - action_registrar_encuesta
   - action_guardar_feedback
@@ -124,12 +167,19 @@ actions:
   - action_set_encuesta_tipo
   - action_estado_estudiante
   - action_ver_certificados
-  - action_set_encuesta_tipo
+  - action_ofrecer_continuar_tema   - action_guardar_encuesta
+  - validate_encuesta_satisfaccion_form
 
 forms:
   feedback_form:
     required_slots:
       - feedback_texto
+
+  encuesta_satisfaccion_form:
+    required_slots:
+      - nivel_satisfaccion
+      - comentario
+
 
 imports:
   - domain_general.yml

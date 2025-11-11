@@ -1,0 +1,136 @@
+version: "3.1"
+
+# Declaramos los intents que se invocan desde los botones de este menú
+intents:
+  - ver_estado_estudiante
+  - consultar_certificados
+  - solicitar_soporte
+  - auth_login_cmd
+  - terminar_conversacion
+  - ir_menu_principal
+  - recuperar_contrasena
+
+responses:
+  # ===== Menú principal (QUICK REPLIES) =====
+  utter_menu_principal_quick:
+    # Fallback universal (botones estándar)
+    - text: "Elige una opción para continuar:"
+      buttons:
+        - title: "🎓 Estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Certificados"
+          payload: "/consultar_certificados"
+        - title: "🛠️ Soporte"
+          payload: "/solicitar_soporte"
+        - title: "🔐 Iniciar sesión"
+          payload: "/auth_login_cmd"
+        - title: "❌ Terminar"
+          payload: "/terminar_conversacion"
+
+    # Variante Socket.IO
+    - channel: "socketio"
+      text: "👇 Opciones rápidas:"
+      buttons:
+        - title: "🎓 Estado"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Certificados"
+          payload: "/consultar_certificados"
+        - title: "🔐 Login"
+          payload: "/auth_login_cmd"
+        - title: "❌ Terminar"
+          payload: "/terminar_conversacion"
+
+    # Variante Facebook Messenger (quick_replies nativos)
+    - channel: "facebook"
+      custom:
+        text: "Selecciona una opción:"
+        quick_replies:
+          - content_type: "text"
+            title: "🎓 Estado"
+            payload: "/ver_estado_estudiante"
+          - content_type: "text"
+            title: "📜 Certificados"
+            payload: "/consultar_certificados"
+          - content_type: "text"
+            title: "🔐 Login"
+            payload: "/auth_login_cmd"
+          - content_type: "text"
+            title: "❌ Terminar"
+            payload: "/terminar_conversacion"
+
+  # ===== Listado de certificados (CAROUSEL / Fallback) =====
+  utter_certificados_carousel:
+    # Fallback universal (Markdown + botones)
+    - text: |
+        📜 **Tus certificados disponibles**
+        1) *Introducción a Programación* — 2024-06-10  
+           • [Ver PDF](https://zajuna.sena.edu.co/cert/123)  
+           • [Descargar](https://zajuna.sena.edu.co/cert/123/download)
+
+        2) *Bases de Datos* — 2025-03-15  
+           • [Ver PDF](https://zajuna.sena.edu.co/cert/456)  
+           • [Descargar](https://zajuna.sena.edu.co/cert/456/download)
+      buttons:
+        - title: "🔐 Iniciar sesión Zajuna"
+          payload: "/auth_login_cmd"
+        - title: "🏠 Menú principal"
+          payload: "/ir_menu_principal"
+
+    # Variante Socket.IO
+    - channel: "socketio"
+      text: |
+        📜 Certificados:
+        • Introducción a Programación (2024-06-10)  
+          Ver: https://zajuna.sena.edu.co/cert/123  
+          Descargar: https://zajuna.sena.edu.co/cert/123/download
+
+        • Bases de Datos (2025-03-15)  
+          Ver: https://zajuna.sena.edu.co/cert/456  
+          Descargar: https://zajuna.sena.edu.co/cert/456/download
+      buttons:
+        - title: "🔐 Login"
+          payload: "/auth_login_cmd"
+        - title: "🏠 Menú"
+          payload: "/ir_menu_principal"
+
+    # Facebook Messenger: carrusel nativo (generic template)
+    - channel: "facebook"
+      custom:
+        attachment:
+          type: "template"
+          payload:
+            template_type: "generic"
+            elements:
+              - title: "Introducción a Programación"
+                subtitle: "Emitido: 2024-06-10"
+                image_url: "https://tu-cdn/certificados/programacion.png"
+                buttons:
+                  - type: "web_url"
+                    url: "https://zajuna.sena.edu.co/cert/123"
+                    title: "Ver PDF"
+                  - type: "web_url"
+                    url: "https://zajuna.sena.edu.co/cert/123/download"
+                    title: "Descargar"
+              - title: "Bases de Datos"
+                subtitle: "Emitido: 2025-03-15"
+                image_url: "https://tu-cdn/certificados/bd.png"
+                buttons:
+                  - type: "web_url"
+                    url: "https://zajuna.sena.edu.co/cert/456"
+                    title: "Ver PDF"
+                  - type: "web_url"
+                    url: "https://zajuna.sena.edu.co/cert/456/download"
+                    title: "Descargar"
+
+  # ===== Hint de Login (CTA) =====
+  utter_login_hint:
+    - text: |
+        🔐 Para ver tus datos en tiempo real, inicia sesión en Zajuna:
+        1) 📲 Abre: https://zajuna.sena.edu.co/login
+        2) ▶️ Ingresa tus credenciales
+        3) 🔁 Vuelve aquí (el bot detectará tu sesión)
+      buttons:
+        - title: "Abrir Zajuna"
+          payload: "/auth_login_cmd"
+        - title: "¿Olvidé mi contraseña?"
+          payload: "/recuperar_contrasena"

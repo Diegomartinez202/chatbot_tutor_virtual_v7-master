@@ -79,3 +79,17 @@ class ActionRecuperarContrasena(Action):
     async def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: dict) -> list:
         dispatcher.utter_message(text="No hay problema. Te ayudaré a recuperar tu contraseña. Te enviaré un enlace.")
         return []
+class ZajunaGetCertificados(Action):
+    def name(self) -> Text:
+        return "zajuna_get_certificados"
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        # Reusar la lógica existente
+        from .acciones_academico import ActionListarCertificados
+        return ActionListarCertificados().run(dispatcher, tracker, domain)
+
+class ZajunaGetEstadoEstudiante(Action):
+    def name(self) -> Text:
+        return "zajuna_get_estado_estudiante"
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+        from .acciones_academico import ActionEstadoEstudiante
+        return ActionEstadoEstudiante().run(dispatcher, tracker, domain)

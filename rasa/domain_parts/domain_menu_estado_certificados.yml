@@ -118,3 +118,7 @@ responses:
           payload: "/auth_login_cmd"
         - title: "🏠 Menú"
           payload: "/saludo"
+
+
+actions:
+  - action_consultar_certificados 

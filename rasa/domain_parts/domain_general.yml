@@ -9,8 +9,8 @@ version: "3.1"
 intents:
   - saludar
   - despedir
-  - afirmar
-  - negar
+  - affirm
+  - deny
   - ayuda
   - volver_menu
   - autenticarse
@@ -24,8 +24,6 @@ intents:
   - ir_menu_principal
   - terminar_conversacion
   - saludo
-  - affirm
-  - deny
   - pantalla_blanca
   - ver_card_demo
   - ver_catalogo
@@ -42,8 +40,7 @@ intents:
   - problema_no_ingreso
   - continuar_tema_si
   - ingreso_zajuna
-  
-  
+
 # ============================================
 # 📦 ENTIDADES Y SLOTS
 # ============================================
@@ -57,10 +54,12 @@ slots:
     influence_conversation: false
     initial_value: null
 
-is_authenticated:
-   type: bool
-   influence_conversation: true
-   initial_value: false
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: custom
 
 # ============================================
 # 💬 RESPUESTAS GENERALES
@@ -96,9 +95,9 @@ responses:
         - title: "🛠️ Soporte técnico"
           payload: "/consultar_soporte"
 
-# ============================================
-# 🔐 BLOQUE DE AUTENTICACIÓN
-# ============================================
+  # ============================================
+  # 🔐 BLOQUE DE AUTENTICACIÓN
+  # ============================================
   utter_pedir_autenticacion:
     - text: "🔐 Para continuar, necesitas iniciar sesión en la plataforma Zajuna."
       buttons:
@@ -119,9 +118,9 @@ responses:
   utter_cerrar_sesion:
     - text: "Sesión cerrada correctamente. 🔒 ¡Hasta pronto!"
 
-# ============================================
-# 💬 SATISFACCIÓN Y CONTINUIDAD
-# ============================================
+  # ============================================
+  # 💬 SATISFACCIÓN Y CONTINUIDAD
+  # ============================================
   utter_preguntar_satisfaccion:
     - text: "¿Quedaste satisfecho con la atención recibida?"
       buttons:
@@ -143,16 +142,28 @@ responses:
         🙋‍♂️ Gracias por contactarte con **Zajuna Tutor Virtual**.  
         ¡Te deseamos mucho éxito en tu aprendizaje! 🌟  
         — Equipo Zajuna 💙
+
   utter_bienvenida:
     - text: "¡Hola! Soy tu Tutor Virtual. ¿En qué puedo ayudarte hoy?"
+
   utter_saludo_general:
     - text: "¡Hola! ¿Cómo te puedo ayudar?"
 
-  utter_cerrar_chat:
-    - text: "Entendido. Cierro el chat. ¡Hasta pronto! 👋"
-
   utter_menu_principal:
     - text: "Volvemos al menú principal. ¿Qué deseas hacer ahora?"
+
+  utter_cerrar_chat:
+    - text: "🔒 Chat cerrado. Puedes volver cuando quieras."
+
+  utter_cierre_cancelado:
+    - text: "Perfecto, seguimos por aquí. ¿Qué más deseas hacer?"
+      buttons:
+        - title: "🏠 Menú"
+          payload: "/ir_menu_principal"
+        - title: "🎓 Estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Certificados"
+          payload: "/consultar_certificados"
 
 # ============================================
 # ⚙️ ACCIONES PERSONALIZADAS (Zajuna)
@@ -163,14 +174,8 @@ actions:
   - zajuna_logout_user
   - zajuna_menu_principal
   - action_health_check
+
 # ============================================
 # 🧱 FORMAS DE NAVEGACIÓN (opcional)
 # ============================================
 forms: {}
-
-# ============================================
-# 📂 IMPORTACIÓN DE DOMINIOS COMPLEMENTARIOS
-# ============================================
-imports:
-  - domain_academico.yml
-  - domain_soporte.yml

@@ -1,50 +1,16 @@
-#\rasa\data\rules\rules_encuesta.yml
 version: "3.1"
 rules:
 
-  - rule: Problema resuelto → Mostrar encuesta
+  - rule: Encuesta positiva → pedir comentario
     steps:
-      - intent: problema_resuelto_si
-      - action: utter_encuesta_satisfaccion
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "positivo"
+      - action: utter_pedir_comentario
 
-  - rule: Encuesta satisfacción (Sí)
+  - rule: Encuesta negativa → lamentar y ofrecer ayuda
     steps:
-      - intent: encuesta_satis_yes
-      - action: action_registrar_encuesta
-      - action: utter_gracias_feedback
-      - action: action_ofrecer_continuar_tema
-
-  - rule: Encuesta satisfacción (No)
-    steps:
-      - intent: encuesta_satis_no
-      - action: action_registrar_encuesta
-      - action: utter_gracias_feedback
-      - action: action_ofrecer_continuar_tema
-
-  - rule: Usuario quiere continuar con otro tema
-    steps:
-      - intent: affirm
-      - action: utter_volver_menu
-
-  - rule: Usuario no quiere continuar (cierre amable)
-    steps:
-      - intent: deny
-      - action: utter_despedida_final
-
-  # --- Iniciar encuesta por intent ---
-  - rule: Iniciar encuesta
-    steps:
-      - intent: iniciar_encuesta
-      - action: utter_encuesta_inicio
-      - action: encuesta_satisfaccion_form
-      - active_loop: encuesta_satisfaccion_form
-
-  # --- Submit encuesta_satisfaccion_form ---
-  - rule: Submit encuesta_satisfaccion_form
-    condition:
-      - active_loop: encuesta_satisfaccion_form
-    steps:
-      - action: encuesta_satisfaccion_form
-      - active_loop: null
-      - action: action_registrar_encuesta
-      - action: utter_agradecimiento_satisfaccion
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativo"
+      - action: utter_encuesta_insatisfaccion

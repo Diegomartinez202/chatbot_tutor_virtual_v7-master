@@ -24,3 +24,19 @@ responses:
   # Lo usamos al escalar tras agotar intentos
   utter_derivando_humano:
     - text: "Veo que hubo dificultades. Te conecto con un asesor humano. ⏳ Por favor, espera…"
+  utter_ofrecer_humano:
+    - text: "🤝 Puedo pasarte con un asesor humano. ¿Deseas continuar?"
+      buttons:
+        - title: "Sí, conectar"
+          payload: "/confirmacion_escalar_humano"
+        - title: "No, gracias"
+          payload: "/negar_escalar"
+
+  utter_handoff_iniciado:
+    - text: "Conectándote con un asesor… Mantén abierto este chat, te avisaré en cuanto esté listo."
+
+  utter_handoff_en_cola:
+    - text: "🕓 Tu solicitud quedó en cola. Un asesor te contactará pronto por este mismo chat."
+
+  utter_cierre_cancelado:
+    - text: "Perfecto, seguimos por aquí. ¿En qué más te ayudo?"
