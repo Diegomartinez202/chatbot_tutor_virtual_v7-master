@@ -1,4 +1,5 @@
 version: "3.1"
+
 stories:
 
 - story: Derivar a humano confirmado (intento dedicado)
@@ -9,10 +10,10 @@ stories:
     - action: soporte_form
     - active_loop: soporte_form
 
-- story: Derivar a humano con affirm
+- story: Derivar a humano (usuario pide humano directo)
   steps:
-    - intent: necesita_humano
+    - intent: escalar_humano
     - action: utter_ofrecer_humano
-    - intent: affirm
+    - intent: confirmacion_escalar_humano
     - action: soporte_form
     - active_loop: soporte_form

@@ -1,170 +1,152 @@
-# ============================================
-# 💬 DOMAIN DE SOPORTE Y ENCUESTA - Zajuna
-# ============================================
+# ruta: rasa/domain_parts/domain_soporte.yml
 version: "3.1"
 
-# ============================================
-# 📌 INTENCIONES RELACIONADAS
-# ============================================
 intents:
- 
-  - describir_problema
-  - encuesta_satisfaccion
-  - encuesta_satis_yes
-  - encuesta_satis_no
-  - contactar_tutor
-  - enviar_correo_tutor
-  - continuar_consulta
-  - terminar_conversacion
   - solicitar_soporte
-  - soporte_error
-  - otro_problema_tecnico
-  - enviar_soporte_directo
+  - soporte_tecnico
   - problema_no_ingreso
+  - pantalla_blanca
   - error_actividad
+  - otro_problema_tecnico
+  - necesita_humano
   - escalar_humano
   - confirmacion_escalar_humano
   - negar_escalar
-  - enviar_correo
   - respuesta_satisfecho
   - respuesta_insatisfecho
+  - enviar_correo_tutor
+  - continuar_consulta
+  - terminar_conversacion
   - ver_link_soporte
   - ver_soporte_creado_info
-  - pedir_email
-  - pedir_mensaje
-  - enviar_telefono
 
-
-# ============================================
-# 📦 ENTIDADES Y SLOTS
-# ============================================
 entities:
+  - nombre
+  - email
+  - mensaje
   - problema
-  - correo_tutor
 
 slots:
-  problema:
-    type: text
-    influence_conversation: true
-    initial_value: null
-
-  correo_tutor:
+  nombre:
     type: text
     influence_conversation: false
-    initial_value: null
+    mappings:
+      - type: from_entity
+        entity: nombre
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: nombre
+
+  email:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: email
+
   mensaje:
     type: text
     influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: mensaje
+      - type: from_text
+        conditions:
+          - active_loop: soporte_form
+            requested_slot: mensaje
+
+  problema:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: problema
+      - type: from_text
+
+responses:
+
+  # Menú/arranque de soporte
+  utter_solicitar_soporte_intro:
+    - text: "🛠️ Vamos a crear un ticket de soporte. Te haré 3 preguntas rápidas."
+
+  utter_menu_soporte:
+    - text: "🛠️ Menú de soporte:"
+      buttons:
+        - title: "📝 Reportar un problema"
+          payload: "/solicitar_soporte"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/ir_menu_principal"
+
+  # Preguntas del form (utter_ask_<slot>)
+  utter_ask_nombre:
+    - text: "¿Cuál es tu nombre?"
+
+  utter_ask_email:
+    - text: "¿Cuál es tu correo electrónico?"
+
+  utter_ask_mensaje:
+    - text: "Cuéntame brevemente tu problema o solicitud."
+
+  # Confirmaciones / errores de soporte
+  utter_soporte_registrado:
+    - text: "🎫 Tu ticket de soporte fue creado correctamente."
+
+  utter_soporte_error:
+    - text: "⚠️ No pude registrar el soporte. Intentaremos de nuevo."
+
+  # Encuesta
+  utter_preguntar_satisfaccion:
+    - text: "¿Quedaste satisfecho con la atención recibida?"
+      buttons:
+        - title: "Sí, satisfecho 😄"
+          payload: "/respuesta_satisfecho"
+        - title: "No, insatisfecho 😔"
+          payload: "/respuesta_insatisfecho"
+
+  utter_encuesta_positiva:
+    - text: "¡Nos alegra que estés satisfecho! ✅"
+
+  utter_encuesta_negativa:
+    - text: "Lamentamos que tu experiencia no haya sido la mejor. Podemos contactar a tu tutor para ayudarte."
+
+  utter_ofrecer_contacto_tutor:
+    - text: "¿Deseas contactar a tu tutor?"
+      buttons:
+        - title: "✉️ Enviar correo al tutor"
+          payload: "/enviar_correo_tutor"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/ir_menu_principal"
+
+  # Derivación a humano
+  utter_ofrecer_humano:
+    - text: "¿Quieres que te conecte con un agente humano?"
+
+  utter_derivando_humano:
+    - text: "Te estoy conectando con un agente humano…"
+
+  utter_derivacion_cancelada:
+    - text: "Perfecto, continuamos por aquí. ¿En qué más te ayudo?"
+
+  # Correo a tutor
+  utter_correo_enviado:
+    - text: "📬 Envié un mensaje a tu tutor. Te responderá al correo registrado."
+
+actions:
+  - validate_soporte_form
+  - action_enviar_soporte
+  - action_soporte_submit
+  - action_derivar_y_registrar_humano
+  - action_conectar_humano
+  - action_enviar_correo_tutor
+
+forms:
   soporte_form:
     required_slots:
       - nombre
       - email
       - mensaje
-
-# ============================================
-# 💬 RESPUESTAS DEL BOT
-# ============================================
-responses:
-
-  utter_menu_soporte:
-    - text: "🛠️ Menú de soporte Zajuna:"
-      buttons:
-        - title: "📝 Reportar un problema"
-          payload: "/solicitar_soporte"
-        - title: "💬 Contactar a mi tutor"
-          payload: "/contactar_tutor"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/volver_menu"
-
-  utter_solicitar_descripcion:
-    - text: "Por favor, cuéntame brevemente cuál es el inconveniente que estás experimentando 👇"
-
-  utter_gracias_problema:
-    - text: "Gracias por la información 🙏 Nuestro equipo la revisará a la brevedad."
-    - text: "En un momento te haré una pequeña pregunta de satisfacción."
-
-  utter_encuesta_satisfaccion:
-    - text: "🙌 Muchas gracias por tu respuesta. ¿Qué tan satisfecho estás con la atención recibida?"
-      buttons:
-        - title: "👍 Satisfecho"
-          payload: "/encuesta_satis_yes"
-        - title: "👎 Insatisfecho"
-          payload: "/encuesta_satis_no"
-
-  utter_gracias_feedback:
-    - text: "¡Gracias por tu feedback! 💚 Tu opinión nos ayuda a mejorar continuamente."
-
-  utter_encuesta_satis_yes:
-    - text: |
-        Nos alegra que estés satisfecho 😊  
-        ¿Deseas consultar algo más o terminar la conversación?
-      buttons:
-        - title: "🔍 Consultar otro tema"
-          payload: "/continuar_consulta"
-        - title: "👋 Terminar conversación"
-          payload: "/terminar_conversacion"
-
-  utter_encuesta_satis_no:
-    - text: |
-        Lamentamos que tu experiencia no haya sido la mejor 😞  
-        ¿Deseas contactar a tu tutor para recibir ayuda adicional?
-      buttons:
-        - title: "✉️ Enviar correo al tutor"
-          payload: "/enviar_correo_tutor"
-        - title: "⬅️ Volver al menú de soporte"
-          payload: "/solicitar_soporte"
-
-  utter_enviar_correo_tutor:
-    - text: |
-        Por favor confirma tu correo o escribe uno al cual el tutor pueda responder.
-        (Ejemplo: nombre@zajuna.edu)
-  
-  utter_correo_confirmado:
-    - text: |
-        📬 ¡Perfecto! Se ha enviado un mensaje a tu tutor asignado.  
-        ¿Deseas continuar con otra consulta o finalizar?
-      buttons:
-        - title: "📚 Volver al menú principal"
-          payload: "/continuar_consulta"
-        - title: "👋 Terminar conversación"
-          payload: "/terminar_conversacion"
-
-  utter_continuar_consulta:
-    - text: "Perfecto ✅, regresando al menú principal..."
-  
-  utter_despedida_profesional:
-    - text: |
-        🙋‍♂️ Gracias por contactarte con Zajuna Tutor Virtual.  
-        ¡Te deseamos mucho éxito en tu aprendizaje! 🌟  
-        — Equipo Zajuna 💙
-  utter_espera_agente:
-    - text: "Te conecto con un agente humano, por favor espera…"
-  utter_soporte_creado:
-    - text: "🎫 Tu ticket de soporte fue creado correctamente."
-  utter_soporte_error:
-    - text: "⚠️ No pude registrar el soporte. Intentaré nuevamente en breve."
-  utter_ask_nombre:
-    - text: "¿Cuál es tu nombre?"
-  utter_ask_mensaje:
-    - text: "Cuéntame brevemente tu problema o solicitud."
-
-# ============================================
-# ⚙️ ACCIONES PERSONALIZADAS DE SOPORTE
-# ============================================
-actions:
-  - zajuna_registrar_problema
-  - zajuna_enviar_correo_tutor
-  - zajuna_menu_principal
-  - action_enviar_soporte
-  - action_soporte_submit
-  - action_submit_soporte
-  - action_derivar_y_registrar_humano
-  - action_conectar_humano
-# ============================================
-# 🧱 FORMAS (FORMS)
-# ============================================
-forms:
-  soporte_form:
-    required_slots:
-      - problema
-

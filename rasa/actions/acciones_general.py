@@ -1,11 +1,13 @@
-# rasa/actions/acciones_general.py
+# ruta: rasa/actions/acciones_general.py
 from __future__ import annotations
 from typing import List, Dict, Any
 import json
+import logging
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 
+# Asegúrate de que estos imports existan en tu repo (archivo common.py)
 from .common import jlog, logger, ACTIONS_PING_HELPDESK, HELPDESK_WEBHOOK, send_email, RESET_URL_BASE
 
 class ActionEnviarCorreo(Action):
@@ -23,8 +25,10 @@ class ActionEnviarCorreo(Action):
                 "Si no fuiste tú, ignora este mensaje.")
         sent = send_email("Recuperación de contraseña", body, email)
         jlog(logging.INFO, "action_enviar_correo", email=email, sent=bool(sent))
-        dispatcher.utter_message(text="📬 Te envié un enlace de recuperación a tu correo." if sent
-                                      else "ℹ️ Tu solicitud fue registrada. Revisa tu correo más tarde.")
+        dispatcher.utter_message(
+            text="📬 Te envié un enlace de recuperación a tu correo." if sent
+                 else "ℹ️ Tu solicitud fue registrada. Revisa tu correo más tarde."
+        )
         return []
 
 class ActionConectarHumano(Action):

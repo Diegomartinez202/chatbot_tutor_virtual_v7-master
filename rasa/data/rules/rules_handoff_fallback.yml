@@ -1,82 +1,32 @@
 version: "3.1"
+
 rules:
-  # Captura nlu_fallback mientras el form está activo → incrementa intentos y re-pregunta
-  - rule: Fallback dentro de soporte_form (incrementa intentos)
+
+  # 1) Fallback dentro de soporte_form: contar intentos y reintentar
+  - rule: Fallback dentro de soporte_form (contar intentos)
     condition:
       - active_loop: soporte_form
     steps:
       - intent: nlu_fallback
       - action: action_registrar_intento_form
-      - action: utter_form_entendido_dificultad
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Max intentos en form → derivar a humano
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: action_verificar_max_intentos_form
-      - active_loop: null
-      - action: action_derivar_y_registrar_humano
-      - action: utter_handoff_en_cola
-  
-  - rule: Fallback dentro del form → contar intentos y ofrecer humano
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: nlu_fallback
-      - action: utter_fallback
-      - action: action_ofrecer_humano
-  
-  - rule: Fallback dentro de soporte_form → contar intento
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: nlu_fallback
-      - action: action_registrar_intento_form
-      - action: action_verificar_max_intentos_form
-
-  - rule: Fallback dentro del form → advertir y continuar (si no alcanzó límite)
-    condition:
-      - active_loop: soporte_form
-    steps:
       - action: action_verificar_max_intentos_form
       - action: utter_form_fallback_warn
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Fallback dentro del form → cancelar y derivar (si alcanzó límite)
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: action_verificar_max_intentos_form
-      - action: action_deactivate_loop
-      - active_loop: null
-      - action: utter_derivando_humano
-      - action: action_derivar_y_registrar_humano
-  
-  - rule: Fallback en soporte_form (incrementar intentos)
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: nlu_fallback
-      - action: action_registrar_intento_form
-      - action: action_verificar_max_intentos_form
-      - action: utter_intento_form_fallido
-
-  # 2) Cerrar el loop y derivar si alcanzó el máximo
-  - rule: Derivar a humano tras 3 fallos en form
+  # 2) Si el contador se reseteó a 0 (>=3 fallos) → cerrar form y derivar a humano
+  - rule: Derivar a humano tras 3 fallos en soporte_form
     condition:
       - active_loop: soporte_form
     steps:
       - slot_was_set:
-          - soporte_intentos: 0    # ← se resetea a 0 en la acción cuando supera el máximo
+          - soporte_intentos: 0    # se pone a 0 cuando supera MAX_INTENTOS_FORM
       - action: action_deactivate_loop
       - active_loop: null
       - action: utter_handoff_por_fallos
       - action: action_derivar_humano_confirmada
 
-  # 3) Si el usuario dice "terminar" dentro del form → vamos a cierre
+  # 3) Si el usuario dice terminar dentro del form → salir del form y lanzar flujo de cierre
   - rule: Terminar conversación dentro de soporte_form
     condition:
       - active_loop: soporte_form

@@ -1,4 +1,6 @@
+# ruta: rasa/data/stories/stories_cierre_conversacion.yml
 version: "3.1"
+
 stories:
   - story: Cierre confirmado por el usuario
     steps:

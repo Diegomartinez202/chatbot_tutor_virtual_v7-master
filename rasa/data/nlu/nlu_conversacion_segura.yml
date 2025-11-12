@@ -1,38 +1,38 @@
-#\rasa\data\nlu\nlu_conversacion_segura.yml
+# ruta: rasa/data/nlu/nlu_conversacion_segura.yml
 version: "3.1"
 
 nlu:
-- intent: terminar_conversacion_segura
-  examples: |
-    - quiero cerrar el chat
-    - salir del asistente
-    - cerrar conversación
-    - terminar chat
-    - cerrar sesión
+  - intent: terminar_conversacion_segura
+    examples: |
+      - quiero cerrar el chat
+      - salir del asistente
+      - cerrar conversación
+      - terminar chat
+      - cerrar sesión
 
-- intent: confirmar_cierre
-  examples: |
-    - sí, ciérralo
-    - guarda y cierra
-    - termina todo
-    - sí deseo salir
+  - intent: confirmar_cierre
+    examples: |
+      - sí, ciérralo
+      - guarda y cierra
+      - termina todo
+      - sí deseo salir
 
-- intent: cancelar_cierre
-  examples: |
-    - no, mejor sigo
-    - cancela el cierre
-    - aún no
-    - no quiero cerrar
+  - intent: cancelar_cierre
+    examples: |
+      - no, mejor sigo
+      - cancela el cierre
+      - aún no
+      - no quiero cerrar
 
-- intent: reanudar_conversacion
-  examples: |
-    - continuar encuesta
-    - seguir donde estaba
-    - retomar conversación
-    - reanudar chat
+  - intent: reanudar_conversacion
+    examples: |
+      - continuar encuesta
+      - seguir donde estaba
+      - retomar conversación
+      - reanudar chat
 
-- intent: limpiar_autosave
-  examples: |
-    - limpia autosave
-    - borra datos guardados
-    - reinicia la sesión
+  - intent: limpiar_autosave
+    examples: |
+      - limpia autosave
+      - borra datos guardados
+      - reinicia la sesión

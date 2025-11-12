@@ -18,11 +18,6 @@ slots:
     influence_conversation: true
     initial_value: "principal"
 
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    initial_value: false
-
 responses:
   utter_menu_principal:
     - text: "Bienvenido al menú principal. ¿Qué deseas hacer ahora?"

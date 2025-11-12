@@ -1,88 +1,76 @@
-#\rasa\data\rules\rules_soporte.yml
+# ruta: rasa/data/rules/rules_soporte.yml
 version: "3.1"
-
-# =========================================================
-# 🧩 REGLAS DEL DOMINIO DE SOPORTE Y SATISFACCIÓN - ZAJUNA BOT
-# =========================================================
-# Controla el flujo de contacto humano, encuesta de satisfacción,
-# retorno al menú o cierre de conversación.
-# =========================================================
 
 rules:
 
-  - rule: Iniciar formulario de soporte
+  # Abrir flujo de soporte → activar form
+  - rule: Abrir flujo de soporte
     steps:
       - intent: solicitar_soporte
-      - action: utter_formulario_soporte_intro
-      - action: utter_formulario_soporte_campos
-      - action: zajuna_guardar_ticket_soporte
+      - action: utter_solicitar_soporte_intro
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  # Submit del formulario de soporte
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_soporte_submit
       - action: utter_soporte_registrado
       - action: utter_preguntar_satisfaccion
 
-  # --- Flujo de satisfacción positiva ---
+  # Usuario satisfecho → preguntar si continúa
   - rule: Usuario satisfecho
     steps:
       - intent: respuesta_satisfecho
       - action: utter_encuesta_positiva
       - action: utter_preguntar_continuar_menu
 
-  # --- Flujo de satisfacción negativa ---
-  - rule: Usuario insatisfecho → ofrecer contacto con tutor
+  # Usuario insatisfecho → ofrecer contacto tutor
+  - rule: Usuario insatisfecho
     steps:
       - intent: respuesta_insatisfecho
       - action: utter_encuesta_negativa
       - action: utter_ofrecer_contacto_tutor
 
+  # Enviar correo a tutor
   - rule: Enviar correo a tutor
     steps:
       - intent: enviar_correo_tutor
-      - action: zajuna_enviar_correo_tutor
+      - action: action_enviar_correo_tutor
       - action: utter_correo_enviado
       - action: utter_preguntar_continuar_menu
 
-
-  - rule: Continuar desde encuesta → menú o cierre
+  # Continuar consulta → menú principal
+  - rule: Continuar desde encuesta
     steps:
       - intent: continuar_consulta
-      - action: utter_menu_general
+      - action: utter_menu_principal
 
-  - rule: Terminar conversación desde encuesta
+  # Terminar conversación desde encuesta
+  - rule: Terminar conversación (soporte)
     steps:
       - intent: terminar_conversacion
       - action: utter_despedida_profesional
-  
-  - rule: Abrir flujo de soporte
-    steps:
-    - intent: solicitar_soporte
-    - action: utter_solicitar_soporte_intro
-    - action: soporte_form
-    - active_loop: soporte_form
 
-  # --- Submit soporte_form ---
-  - rule: Submit soporte_form
-    condition:
-    - active_loop: soporte_form
+  # Ofrecer humano explícito
+  - rule: Ofrecer agente humano
     steps:
-    - action: soporte_form
-    - active_loop: null
-    - action: action_enviar_soporte
-    - action: utter_soporte_registrado
+      - intent: necesita_humano
+      - action: utter_ofrecer_humano
 
-  # --- Ofrecer humano (genérico) ---
-  - rule: Ofrecer agente humano explícito
-    steps:
-    - intent: necesita_humano
-    - action: utter_ofrecer_humano
-
-  # --- Confirmar derivación a humano ---
+  # Confirmar derivación a humano
   - rule: Derivar a humano (affirm)
     steps:
-    - intent: affirm
-    - action: action_derivar_y_registrar_humano
-    - action: utter_derivando_humano
+      - intent: affirm
+      - action: action_derivar_y_registrar_humano
+      - action: utter_derivando_humano
 
-  # --- Cancelar derivación ---
+  # Cancelar derivación
   - rule: Cancelar derivación (deny)
     steps:
-    - intent: deny
-    - action: utter_derivacion_cancelada
+      - intent: deny
+      - action: utter_derivacion_cancelada

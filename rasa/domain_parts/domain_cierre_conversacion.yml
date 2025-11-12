@@ -1,19 +1,14 @@
+# ruta: rasa/domain_parts/domain_cierre_conversacion.yml
 version: "3.1"
 
 intents:
-  # Si ya tienes algunos, no pasa nada por volverlos a declarar en este part.
   - terminar_conversacion
   - confirmar_cierre
   - cancelar_cierre
-  - despedida       
-  - nlu_fallback     
+  - despedida
+  - nlu_fallback
 
 slots:
-  # Estos slots ya los vienes usando en otros parts; si ya existen, NO los dupliques.
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    initial_value: false
   encuesta_activa:
     type: bool
     influence_conversation: true
@@ -35,7 +30,7 @@ responses:
           payload: "/ir_menu_principal"
 
   utter_cierre_cancelado:
-    - text: "👌 Perfecto, seguimos aquí. ¿Qué más puedo ayudarte?"
+    - text: "👌 Perfecto, seguimos aquí. ¿En qué más puedo ayudarte?"
       buttons:
         - title: "🏠 Menú principal"
           payload: "/ir_menu_principal"
@@ -51,6 +46,7 @@ responses:
           payload: "/ir_menu_principal"
         - title: "🔁 Reanudar más tarde"
           payload: "/terminar_conversacion"
+
   utter_fallback:
     - text: "🤔 No entendí bien. ¿Quieres intentarlo con otra frase o volver al menú?"
       buttons:
@@ -61,8 +57,19 @@ responses:
 
   utter_cerrar_chat:
     - text: "✅ Conversación finalizada. Cuando quieras, vuelve a escribirme."
+
+  # Agregada para evitar warnings cuando las acciones la llaman
+  utter_volver_menu:
+    - text: "📋 Este es el menú principal. ¿Qué deseas hacer?"
+      buttons:
+        - title: "📊 Estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📄 Certificados"
+          payload: "/consultar_certificados"
+        - title: "🛠️ Soporte"
+          payload: "/solicitar_soporte"
+
 actions:
-  # Reutilizamos tus acciones existentes
   - action_confirmar_cierre
   - action_finalizar_conversacion
   - action_cancelar_cierre

@@ -1,49 +1,16 @@
-# ============================================
-# 🧠 DOMAIN GENERAL - TUTOR VIRTUAL ZAJUNA
-# ============================================
+# ruta: rasa/domain_parts/domain_general.yml
 version: "3.1"
 
-# ============================================
-# 📌 INTENCIONES PRINCIPALES
-# ============================================
 intents:
-  - saludar
-  - despedir
+  - saludo
   - affirm
   - deny
-  - ayuda
-  - volver_menu
-  - autenticarse
-  - cerrar_sesion
-  - confirmar_autenticacion
-  - negar_autenticacion
-  - out_of_scope
-  - fallback
-  - respuesta_satisfecho
-  - respuesta_insatisfecho
-  - ir_menu_principal
-  - terminar_conversacion
-  - saludo
-  - pantalla_blanca
-  - ver_card_demo
-  - ver_catalogo
+  - explorar_temas
   - cambiar_idioma_espanol
   - cambiar_idioma_ingles
-  - ver_confirmar_recuperacion_info
-  - cerrar_chat
-  - proceso_academico_secundario
-  - error_actividad
-  - ver_certificados_info
-  - ver_estado_estudiante_info
-  - provide_email
-  - enviar_numero
-  - problema_no_ingreso
-  - continuar_tema_si
-  - ingreso_zajuna
+  - ir_menu_principal
+  - terminar_conversacion
 
-# ============================================
-# 📦 ENTIDADES Y SLOTS
-# ============================================
 entities:
   - token
   - usuario
@@ -53,19 +20,10 @@ slots:
     type: text
     influence_conversation: false
     initial_value: null
-
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    initial_value: false
     mappings:
-      - type: custom
+      - type: from_text
 
-# ============================================
-# 💬 RESPUESTAS GENERALES
-# ============================================
 responses:
-
   utter_saludar:
     - text: "¡Hola! 👋 Soy tu asistente virtual de **Zajuna**. ¿En qué puedo ayudarte hoy?"
       buttons:
@@ -76,17 +34,14 @@ responses:
         - title: "🛠️ Soporte técnico"
           payload: "/consultar_soporte"
 
-  utter_despedir:
-    - text: "¡Hasta pronto! 👋 Recuerda que puedes volver cuando necesites asistencia."
-
   utter_fallback:
     - text: "No entendí muy bien eso 😅. ¿Podrías reformularlo o seleccionar una opción del menú principal?"
       buttons:
         - title: "🏠 Ir al menú principal"
-          payload: "/volver_menu"
+          payload: "/ir_menu_principal"
 
-  utter_volver_menu:
-    - text: "📋 Este es el menú principal de Zajuna:"
+  utter_menu_principal:
+    - text: "📋 Menú principal de Zajuna. ¿Qué deseas hacer?"
       buttons:
         - title: "🔑 Autenticarse"
           payload: "/autenticarse"
@@ -95,87 +50,32 @@ responses:
         - title: "🛠️ Soporte técnico"
           payload: "/consultar_soporte"
 
-  # ============================================
-  # 🔐 BLOQUE DE AUTENTICACIÓN
-  # ============================================
-  utter_pedir_autenticacion:
-    - text: "🔐 Para continuar, necesitas iniciar sesión en la plataforma Zajuna."
-      buttons:
-        - title: "Ir a Zajuna"
-          payload: "https://zajuna.edu/login"
-        - title: "✅ Ya inicié sesión"
-          payload: "/confirmar_autenticacion"
-
-  utter_confirmar_autenticacion:
-    - text: "Perfecto 👍. ¿Podrías confirmar si ya puedes ver tu panel académico?"
-
-  utter_autenticacion_exitosa:
-    - text: "✅ Autenticación verificada. ¡Ahora tienes acceso a todas las funciones académicas!"
-
-  utter_autenticacion_fallida:
-    - text: "❌ No se encontró un inicio de sesión activo. Por favor, accede a Zajuna antes de continuar."
-
-  utter_cerrar_sesion:
-    - text: "Sesión cerrada correctamente. 🔒 ¡Hasta pronto!"
-
-  # ============================================
-  # 💬 SATISFACCIÓN Y CONTINUIDAD
-  # ============================================
-  utter_preguntar_satisfaccion:
-    - text: "¿Quedaste satisfecho con la atención recibida?"
-      buttons:
-        - title: "Sí, satisfecho 😄"
-          payload: "/respuesta_satisfecho"
-        - title: "No, insatisfecho 😔"
-          payload: "/respuesta_insatisfecho"
-
-  utter_preguntar_continuar_menu:
-    - text: "¿Deseas realizar otra consulta?"
-      buttons:
-        - title: "Sí, volver al menú principal"
-          payload: "/ir_menu_principal"
-        - title: "No, terminar conversación"
-          payload: "/terminar_conversacion"
-
   utter_despedida_profesional:
     - text: |
-        🙋‍♂️ Gracias por contactarte con **Zajuna Tutor Virtual**.  
-        ¡Te deseamos mucho éxito en tu aprendizaje! 🌟  
+        🙋‍♂️ Gracias por contactarte con **Zajuna Tutor Virtual**.
+        ¡Te deseamos mucho éxito en tu aprendizaje! 🌟
         — Equipo Zajuna 💙
-
-  utter_bienvenida:
-    - text: "¡Hola! Soy tu Tutor Virtual. ¿En qué puedo ayudarte hoy?"
-
-  utter_saludo_general:
-    - text: "¡Hola! ¿Cómo te puedo ayudar?"
-
-  utter_menu_principal:
-    - text: "Volvemos al menú principal. ¿Qué deseas hacer ahora?"
 
   utter_cerrar_chat:
     - text: "🔒 Chat cerrado. Puedes volver cuando quieras."
 
-  utter_cierre_cancelado:
-    - text: "Perfecto, seguimos por aquí. ¿Qué más deseas hacer?"
-      buttons:
-        - title: "🏠 Menú"
-          payload: "/ir_menu_principal"
-        - title: "🎓 Estado académico"
-          payload: "/ver_estado_estudiante"
-        - title: "📜 Certificados"
-          payload: "/consultar_certificados"
+  # Respuestas mínimas para evitar warnings
+  utter_affirm:
+    - text: "¡Perfecto! 👍 ¿Deseas hacer algo más?"
 
-# ============================================
-# ⚙️ ACCIONES PERSONALIZADAS (Zajuna)
-# ============================================
+  utter_deny:
+    - text: "Entendido. Si necesitas algo más, me dices. 🙂"
+
+  utter_cambiar_idioma_espanol:
+    - text: "Idioma configurado a **Español**. ¿Cómo te ayudo ahora?"
+
+  utter_cambiar_idioma_ingles:
+    - text: "Language switched to **English**. How can I help you now?"
+
+  utter_catalogo_cursos:
+    - text: "Estos son los cursos disponibles (demo). Si buscas algo específico, dime el área. 📚"
+
 actions:
-  - zajuna_check_auth
-  - zajuna_login_user
-  - zajuna_logout_user
-  - zajuna_menu_principal
   - action_health_check
 
-# ============================================
-# 🧱 FORMAS DE NAVEGACIÓN (opcional)
-# ============================================
 forms: {}

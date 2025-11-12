@@ -1,6 +1,4 @@
-# ============================================
-# 🧠 DOMAIN ENCUESTA - TUTOR VIRTUAL ZAJUNA
-# ============================================
+# ruta: rasa/domain_parts/domain_encuesta.yml
 version: "3.1"
 
 intents:
@@ -16,6 +14,7 @@ intents:
   - ir_menu_principal
   - contactar_tutor
   - continuar_tema_si
+  - continue
   - affirm
   - deny
 
@@ -47,13 +46,11 @@ slots:
   encuesta_tipo:
     type: text
     influence_conversation: true
-    mappings:
-      - type: from_text
+
   usuario:
     type: text
     influence_conversation: false
 
- 
 responses:
 
   # --- Inicio de encuesta ---
@@ -101,6 +98,18 @@ responses:
         - title: "🏠 Volver al menú principal"
           payload: "/ir_menu_principal"
 
+  # Alias usados por reglas/historias
+  utter_agradecimiento_satisfaccion:
+    - text: "Gracias por completar la encuesta 🙏 Tu opinión nos ayuda a mejorar cada día."
+
+  utter_encuesta_insatisfaccion:
+    - text: "Gracias por contarnos. Puedo derivarte a un tutor o dejar registro. ¿Qué prefieres?"
+      buttons:
+        - title: "Derivar a tutor"
+          payload: "/contactar_tutor"
+        - title: "Registrar y seguir"
+          payload: "/continuar_consulta"
+
   # --- Continuar o finalizar ---
   utter_ofrecer_continuar:
     - text: "¿Deseas realizar otra consulta o volver al menú principal?"
@@ -112,37 +121,12 @@ responses:
 
   utter_despedida_final:
     - text: "✨ Gracias por usar el Asistente Virtual Zajuna. ¡Hasta pronto! 👋"
-  
-  utter_agradecimiento_encuesta:
-    - text: "¡Gracias por completar la encuesta!"
-
-
-  utter_encuesta_insatisfaccion:
-    - text: "Gracias por contarnos. Puedo derivarte a un tutor o dejar registro. ¿Qué prefieres?"
-      buttons:
-        - title: "Derivar a tutor"
-          payload: "/contactar_tutor"
-        - title: "Registrar y seguir"
-          payload: "/continuar_consulta"
-
-  utter_preguntar_continuar_menu:
-    - text: "¿Deseas continuar con otro tema o finalizar la conversación?"
-  utter_volver_menu:
-    - text: "Perfecto, aquí tienes nuevamente el menú principal:"
-  utter_cerrar_chat:
-    - text: "[Fin de la conversación]"
 
   utter_ofrecer_soporte:
-    - text: "Lamento que no se haya resuelto tu solicitud. 😞\n¿Deseas que te contacte un asesor humano para ayudarte?"
-
-
-  utter_encuesta_inicio:
-    - text: "Vamos a realizar una breve encuesta de satisfacción. ¡Tu opinión es importante!"
-
+    - text: "Lamento que no se haya resuelto tu solicitud. 😞 ¿Deseas que te contacte un asesor humano para ayudarte?"
 
   utter_esta_resuelto:
     - text: "¿Pudimos resolver tu problema? (Sí / No)"
-
 
   utter_encuesta_satisfaccion:
     - text: "¿Cómo calificarías la atención recibida hoy? 😊\nOpciones: satisfecho / neutral / insatisfecho"
@@ -153,21 +137,12 @@ responses:
   utter_gracias_feedback:
     - text: "¡Gracias por compartir tu opinión! 💬 Valoramos mucho tus comentarios."
 
-  utter_agradecimiento_satisfaccion:
-    - text: "Gracias por completar la encuesta 🙏 Tu opinión nos ayuda a mejorar cada día."
-
-  utter_agradecimiento_final:
-    - text: "✨ Agradecemos tu tiempo y confianza. Si más adelante necesitas asistencia, estaremos encantados de ayudarte nuevamente. ¡Hasta pronto!"
-
 actions:
   - action_registrar_encuesta
   - action_guardar_feedback
   - action_ofrecer_continuar_tema
   - action_preguntar_resolucion
   - action_set_encuesta_tipo
-  - action_estado_estudiante
-  - action_ver_certificados
-  - action_ofrecer_continuar_tema   - action_guardar_encuesta
   - validate_encuesta_satisfaccion_form
 
 forms:
@@ -179,8 +154,3 @@ forms:
     required_slots:
       - nivel_satisfaccion
       - comentario
-
-
-imports:
-  - domain_general.yml
-  - domain_soporte.yml

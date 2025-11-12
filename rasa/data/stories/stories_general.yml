@@ -1,28 +1,24 @@
-#\rasa\data\stories\stories_general.yml
+# ruta: rasa/data/stories/stories_general.yml
 version: "3.1"
+
 stories:
+  - story: Inicio y saludo general
+    steps:
+      - intent: saludo
+      - action: utter_saludar
+      - action: utter_menu_principal
 
-- story: Inicio y saludo general
-  steps:
-    - intent: saludar
-    - action: utter_saludo_general
-    - action: utter_menu_general
+  - story: Volver al menú principal
+    steps:
+      - intent: ir_menu_principal
+      - action: utter_menu_principal
 
-- story: Volver al menú principal
-  steps:
-    - intent: ir_menu_principal
-    - action: utter_menu_general
+  - story: Terminar conversación (despedida)
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_despedida_profesional
 
-- story: Terminar conversación
-  steps:
-    - intent: terminar_conversacion
-    - action: utter_despedida_profesional
-- story: usuario finaliza chat
-  steps:
-  - intent: terminar_conversacion
-  - action: utter_cerrar_chat
-
-- story: volver al menu principal
-  steps:
-  - intent: ir_menu_principal
-  - action: utter_menu_principal
+  - story: Usuario cierra chat
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_cerrar_chat

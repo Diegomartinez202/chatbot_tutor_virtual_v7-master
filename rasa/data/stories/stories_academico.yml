@@ -1,9 +1,14 @@
+# ruta: rasa/data/stories/stories_academico.yml
 version: "3.1"
+
 stories:
 
-# Historias neutras (no deciden autenticación / encuesta / handoff)
+- story: Ir al menú académico desde consulta
+  steps:
+    - intent: consultar_academico
+    - action: utter_menu_academico
 
-- story: Ir al menú
+- story: Ir al menú principal
   steps:
     - intent: ir_menu_principal
     - action: utter_menu_principal
@@ -11,4 +16,4 @@ stories:
 - story: Cierre (solicitar confirmación)
   steps:
     - intent: terminar_conversacion
-    - action: action_confirmar_cierre
+    - action: utter_confirmar_cierre

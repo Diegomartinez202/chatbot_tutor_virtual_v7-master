@@ -1,4 +1,6 @@
+# ruta: rasa/data/nlu/nlu_cierre_conversacion.yml
 version: "3.1"
+
 nlu:
   - intent: terminar_conversacion
     examples: |
@@ -10,7 +12,6 @@ nlu:
       - cerrar conversación
       - me despido, gracias
       - cerrar chat
-      - ya no necesito más
       - terminar conversación
       - podemos terminar
       - termina la conversación
@@ -18,6 +19,7 @@ nlu:
       - gracias, hasta luego
       - podemos dejarlo así
       - no tengo más preguntas
+
   - intent: confirmar_cierre
     examples: |
       - sí, finalizar
@@ -32,10 +34,7 @@ nlu:
       - sí, cerrar
       - correcto, finaliza
       - adelante, cierra
-      - no, seguir
-      - mejor continuemos
-      - cancela el cierre
-      - aún quiero continuar
+
   - intent: cancelar_cierre
     examples: |
       - no, continuar
@@ -44,10 +43,9 @@ nlu:
       - sigamos
       - quiero seguir
       - no cierres
-      - no, continuar
-      - mejor sigamos
-      - cancelar
-      - no quiero terminar
+      - mejor continuemos
+      - cancela el cierre
+      - aún quiero continuar
 
   - intent: despedida
     examples: |

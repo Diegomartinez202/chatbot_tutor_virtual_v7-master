@@ -2,41 +2,19 @@ version: "3.1"
 
 slots:
   soporte_intentos:
-    type: any
-    influence_conversation: false
-    initial_value: 0
-soporte_intentos:
     type: float
     influence_conversation: false
     initial_value: 0
+
 responses:
-  utter_form_entendido_dificultad:
-    - text: "Parece que hubo dificultad para completar el formulario. Intentemos de nuevo con una pregunta a la vez."
-
-  utter_form_max_intentos:
-    - text: "Veo que ha sido difícil continuar. Te voy a derivar con un asesor humano para ayudarte mejor."
-
-
-  # Aviso al usuario cuando falla dentro del form
+  # Aviso genérico cuando hay problemas entendiendo dentro del form
   utter_form_fallback_warn:
     - text: "No logré entenderte del todo. ¿Puedes intentar con otras palabras? (Intento {soporte_intentos}/3)"
 
-  # Lo usamos al escalar tras agotar intentos
-  utter_derivando_humano:
-    - text: "Veo que hubo dificultades. Te conecto con un asesor humano. ⏳ Por favor, espera…"
-  utter_ofrecer_humano:
-    - text: "🤝 Puedo pasarte con un asesor humano. ¿Deseas continuar?"
-      buttons:
-        - title: "Sí, conectar"
-          payload: "/confirmacion_escalar_humano"
-        - title: "No, gracias"
-          payload: "/negar_escalar"
+  # Mensaje cuando se decide derivar por demasiados fallos
+  utter_handoff_por_fallos:
+    - text: "Veo que hubo varias dificultades para completar el formulario. Te pasaré con un asesor humano para ayudarte mejor."
 
-  utter_handoff_iniciado:
-    - text: "Conectándote con un asesor… Mantén abierto este chat, te avisaré en cuanto esté listo."
-
-  utter_handoff_en_cola:
-    - text: "🕓 Tu solicitud quedó en cola. Un asesor te contactará pronto por este mismo chat."
-
-  utter_cierre_cancelado:
-    - text: "Perfecto, seguimos por aquí. ¿En qué más te ayudo?"
+actions:
+  - action_registrar_intento_form
+  - action_verificar_max_intentos_form

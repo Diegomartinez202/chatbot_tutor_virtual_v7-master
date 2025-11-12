@@ -1,4 +1,4 @@
-#\rasa\data\nlu\nlu_encuesta.yml
+# ruta: rasa/data/nlu/nlu_encuesta.yml
 version: "3.1"
 
 nlu:

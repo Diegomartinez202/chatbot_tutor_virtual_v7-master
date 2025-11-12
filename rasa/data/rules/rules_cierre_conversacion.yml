@@ -1,4 +1,6 @@
+# ruta: rasa/data/rules/rules_cierre_conversacion.yml
 version: "3.1"
+
 rules:
   - rule: Solicitar confirmación para terminar conversación
     steps:

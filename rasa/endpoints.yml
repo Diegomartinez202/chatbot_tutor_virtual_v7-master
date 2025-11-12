@@ -1,37 +1,7 @@
-# ============================================
-# 📡 ENDPOINTS DE RASA - Tutor Virtual
-# ============================================
-
-# 🔹 Servidor de acciones personalizadas
 action_endpoint:
-  url: "http://localhost:5055/webhook"
-
-# ============================================
-# 🗄️ TRACKER STORES
-# ============================================
-
-# 1️⃣ MODO DESARROLLO / PRUEBAS LOCALES
-#    Usa Redis para persistencia temporal.
+  url: http://action-server:5055/webhook
 tracker_store:
-  type: redis
-  url: localhost
-  port: 6379
-  db: 0
-  password: null
-
-# 2️⃣ MODO PRODUCCIÓN (ACTIVAR MEDIANTE ENV)
-#    Persistencia en MongoDB para auditoría e histórico.
-#    Usa autenticación por variables de entorno.
-# tracker_store:
-#   type: rasa.core.tracker_store.MongoTrackerStore
-#   url: "mongodb://mongo:27017"
-#   db: "rasa"
-#   collection: "conversations"
-#   username: "${TRACKER_MONGO_USERNAME}"
-#   password: "${TRACKER_MONGO_PASSWORD}"
-#   auth_source: "${TRACKER_MONGO_AUTHSOURCE}"
-
-# ============================================
-# 🧠 ASISTENTE LOCAL ID (para Dashboards, etc.)
-# ============================================
-assistant_id: "tutorbot-local"
+  type: rasa.core.tracker_store.MongoTrackerStore
+  url: mongodb://mongo:27017
+  db: rasa
+  collection: conversations

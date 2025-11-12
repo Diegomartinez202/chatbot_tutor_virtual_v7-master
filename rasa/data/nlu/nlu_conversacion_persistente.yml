@@ -1,4 +1,4 @@
-#\rasa\data\nlu\nlu_conversacion_persistente.yml
+# ruta: rasa/data/nlu/nlu_conversacion_persistente.yml
 version: "3.1"
 nlu:
   - intent: saludo

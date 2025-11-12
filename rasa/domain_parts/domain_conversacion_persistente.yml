@@ -1,3 +1,4 @@
+# ruta: rasa/domain_parts/domain_conversacion_persistente.yml
 version: "3.1"
 
 intents:

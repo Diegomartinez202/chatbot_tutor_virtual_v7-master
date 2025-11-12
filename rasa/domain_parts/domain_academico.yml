@@ -1,122 +1,105 @@
-# ============================================
-# 🎓 DOMAIN ACADÉMICO - Tutor Virtual Zajuna
-# ============================================
+# ruta: rasa/domain_parts/domain_academico.yml
 version: "3.1"
 
-# ============================================
-# 📌 INTENCIONES RELACIONADAS
-# ============================================
 intents:
   - consultar_academico
   - consultar_certificados
-  - consultar_estado_estudiante
-  - tutor_asignado
-  - confirmar_autenticacion
-  - negar_autenticacion
-  - volver_menu
-  - respuesta_satisfecho
-  - respuesta_insatisfecho
-  - ir_menu_principal
-  - terminar_conversacion
-  - estado_estudiante
+  - ver_certificados_info
   - ver_estado_estudiante
   - ver_estado_estudiante_info
-  - ver_certificados_info
+  - horarios_calendario
+  - proceso_academico
   - proceso_academico_secundario
-  - ver_certificados
-  - iniciar_sesion
-  - enviar_credenciales
-  - deny
+  - ir_menu_principal
+  - terminar_conversacion
+  - confirmar_autenticacion
+  - negar_autenticacion
+  - auth_login_cmd
+  - ver_login_hint
   - affirm
-  - fallback
-  - cerrar_chat
-  - is_authenticated
-  - escalar_humano
+  - deny
   - nlu_fallback
-# ============================================
-# 📦 ENTIDADES Y SLOTS ESPECÍFICOS
-# ============================================
+
 entities:
   - curso
   - certificado
   - tutor
-  - nombre_usuario
-  - tipo_certificado
-  - email
+  - encuesta_tipo
+  - nombre
   - tipo_estado
+  - email
+
 slots:
+
+  # 🔐 Estado de autenticación (usado por rules)
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: from_trigger_intent
+        value: true
+        intent: confirmar_autenticacion
+      - type: from_trigger_intent
+        value: false
+        intent: negar_autenticacion
+
   curso:
     type: text
     influence_conversation: true
-    initial_value: null
+    mappings:
+      - type: from_entity
+        entity: curso
+      - type: from_text
 
   certificado:
     type: text
-    influence_conversation: false
-    initial_value: null
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: certificado
+      - type: from_text
 
   tutor:
     type: text
-    influence_conversation: false
-    initial_value: null
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: tutor
+      - type: from_text
 
-  # 🔑 Token real (para backend)
   auth_token:
     type: text
     influence_conversation: false
-    initial_value: null
+    mappings:
+      - type: from_text
 
   encuesta_tipo:
-    type: text
+    type: categorical
+    values: ["positiva", "negativa", "neutra"]
     influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: encuesta_tipo
+      - type: from_text
 
   nombre_usuario:
     type: text
     influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: nombre
+      - type: from_text
 
   tipo_estado:
-    type: text
-    influence_conversation: true
-
-
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    mappings:
-      - type: custom
-  estudiante_id:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: custom
-  tipo_certificado:
     type: categorical
-    values:
-      - certificado
-      - constancia
-      - historial
+    values: ["inscrito", "en_curso", "aprobado", "reprobado", "certificado", "pendiente"]
     influence_conversation: true
     mappings:
       - type: from_entity
-        entity: tipo_certificado
+        entity: tipo_estado
       - type: from_text
-        conditions:
-          - active_loop: certificado_form
-            requested_slot: tipo_certificado
-  confirm_terminar:
-    type: bool
-    influence_conversation: true
-    mappings:
-      - type: from_intent
-        value: true
-        intent: affirm
-      - type: from_intent
-        value: false
-        intent: deny
 
-# ============================================
-# 💬 RESPUESTAS ACADÉMICAS
-# ============================================
 responses:
 
   # 🔹 Menú principal académico
@@ -126,268 +109,14 @@ responses:
         - title: "📜 Ver certificados"
           payload: "/consultar_certificados"
         - title: "🧾 Estado de estudiante"
-          payload: "/consultar_estado_estudiante"
-        - title: "👨‍🏫 Tutor asignado"
-          payload: "/tutor_asignado"
+          payload: "/ver_estado_estudiante"
         - title: "⬅️ Volver al menú principal"
-          payload: "/volver_menu"
-
-  # 🔐 Solicitud de autenticación
-  utter_necesita_autenticacion:
-    - text: "⚠️ Para acceder a esta función, primero debes iniciar sesión en Zajuna."
-      buttons:
-        - title: "🔑 Iniciar sesión"
-          payload: "/autenticarse"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/volver_menu"
-
-  # 📜 Instrucciones paso a paso para certificados
-  utter_pasos_descargar_certificados:
-    - text: |
-        🧾 **Cómo descargar tus certificados:**
-        1️⃣ Inicia sesión en Zajuna: https://zajuna.edu/login  
-        2️⃣ En tu panel, abre **Certificados**.  
-        3️⃣ Selecciona el curso y pulsa **Descargar**.  
-        4️⃣ Si ya estás autenticado, puedo mostrarte tus certificados disponibles.
-      buttons:
-        - title: "✅ Ya inicié sesión"
-          payload: "/confirmar_autenticacion"
-        - title: "⬅️ Volver al menú académico"
-          payload: "/consultar_academico"
-
-  # 📊 Instrucciones de estado académico
-  utter_estado_estudiante_instrucciones:
-    - text: |
-        📖 **Para ver tu estado de estudiante:**
-        1️⃣ Ingresa a tu cuenta en Zajuna.  
-        2️⃣ Abre el menú **Perfil > Estado académico**.  
-        3️⃣ Verás tu progreso, cursos activos y calificaciones.  
-        4️⃣ Si ya iniciaste sesión, puedo consultarlo directamente.
-      buttons:
-        - title: "✅ Ya inicié sesión"
-          payload: "/confirmar_autenticacion"
-        - title: "⬅️ Volver al menú académico"
-          payload: "/consultar_academico"
-
-  # 👩‍🏫 Información de tutor asignado
-  utter_tutor_info:
-    - text: |
-        👩‍🏫 Tu tutor asignado aparecerá en el panel principal de Zajuna, sección *Mis cursos*.
-        ¿Deseas que intente consultarlo por ti?
-      buttons:
-        - title: "Sí, consultar tutor"
-          payload: "/confirmar_autenticacion"
-        - title: "No, volver"
-          payload: "/consultar_academico"
-
-  # 📄 Resultados académicos autenticados
-  utter_autenticacion_requerida_certificados:
-    - text: "🔒 Necesitas estar autenticado para ver certificados. Por favor, inicia sesión primero."
-
-  utter_certificados_listado:
-    - text: "🎓 Aquí tienes tus certificados disponibles:\n{certificado}"
-      buttons:
-        - title: "Volver al menú académico"
-          payload: "/consultar_academico"
-        - title: "Ir al menú principal"
           payload: "/ir_menu_principal"
 
-  utter_estado_estudiante_detalle:
-    - text: "📊 Estado actual del estudiante: {curso}"
-      buttons:
-        - title: "Volver al menú académico"
-          payload: "/consultar_academico"
-        - title: "Ir al menú principal"
-          payload: "/ir_menu_principal"
-
-  utter_tutor_detalle:
-    - text: "👨‍🏫 Tu tutor asignado es: {tutor}"
-      buttons:
-        - title: "Volver al menú académico"
-          payload: "/consultar_academico"
-        - title: "Ir al menú principal"
-          payload: "/ir_menu_principal"
-
-  # 💬 Encuesta de satisfacción
-  utter_preguntar_satisfaccion:
-    - text: "¿Quedaste satisfecho con la atención recibida?"
-      buttons:
-        - title: "Sí, satisfecho 😄"
-          payload: "/respuesta_satisfecho"
-        - title: "No, insatisfecho 😔"
-          payload: "/respuesta_insatisfecho"
-
-  utter_agradecimiento_satisfaccion:
-    - text: "¡Gracias por tu valoración! 😊 Me alegra haber podido ayudarte."
-
-  utter_encuesta_insatisfaccion:
-    - text: "Lamento que no hayas quedado satisfecho 😔. Puedes dejar tu opinión o contactar a tu tutor asignado para mayor soporte."
-
-  utter_preguntar_continuar_menu:
-    - text: "¿Deseas realizar otra consulta?"
-      buttons:
-        - title: "Sí, volver al menú principal"
-          payload: "/ir_menu_principal"
-        - title: "No, terminar conversación"
-          payload: "/terminar_conversacion"
-  # ===============================
-  # ✅ Despedida profesional
-  # ===============================
-  utter_despedida_profesional:
-    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
-      buttons:
-        - title: "🏠 Volver al menú"
-          payload: /ir_menu_principal
-        - title: "📝 Enviar comentario"
-          payload: /iniciar_encuesta
-        - title: "🔐 Cerrar sesión"
-          payload: /terminar_conversacion
-    - text: "✨ Fue un gusto ayudarte hoy. Si necesitas algo más, aquí estaré."
-      buttons:
-        - title: "📄 Certificados"
-          payload: /consultar_certificados
-        - title: "🎓 Estado académico"
-          payload: /ver_estado_estudiante
-        - title: "👋 Finalizar"
-          payload: /terminar_conversacion
-
-  # ===============================
-  # 📊 Estado académico mostrado
-  # ===============================
-  utter_estado_mostrado:
-    - text: |
-        📊 Aquí tienes tu estado académico:
-        {estado}
-
-        ¿Qué deseas hacer ahora?
-      buttons:
-        - title: "📚 Ver detalle por módulos"
-          payload: /ver_estado_estudiante{"detalle":"modulos"}
-        - title: "⬇️ Descargar PDF"
-          payload: /ver_estado_estudiante{"accion":"descargar"}
-        - title: "🏠 Menú principal"
-          payload: /ir_menu_principal
-    - text: "✅ Estado cargado correctamente. ¿Te muestro avances por competencia o prefieres el resumen general?"
-      buttons:
-        - title: "📌 Por competencia"
-          payload: /ver_estado_estudiante{"detalle":"competencias"}
-        - title: "🧾 Resumen general"
-          payload: /ver_estado_estudiante{"detalle":"resumen"}
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
-
-  # ===============================
-  # 🔐 Solicitar autenticación
-  # ===============================
-  utter_pedir_autenticacion:
-    - text: >
-        🔐 Para consultar tus certificados o ver tu estado académico, necesito que inicies sesión.
-        ¿Deseas iniciar ahora?
-      buttons:
-        - title: "✅ Sí, iniciar sesión"
-          payload: /iniciar_sesion
-        - title: "❓ ¿Cómo me autentico?"
-          payload: /ver_login_hint
-        - title: "⬅️ Volver al menú"
-          payload: /ir_menu_principal
-    - text: "Para continuar, autentícate por favor. Puedo guiarte en el proceso."
-      buttons:
-        - title: "🔑 Iniciar sesión"
-          payload: /iniciar_sesion
-        - title: "📘 Ver guía rápida"
-          payload: /ver_login_hint
-
-  # ===============================
-  # 📄 Certificados - usuario NO autenticado
-  # ===============================
-  utter_certificado_no_autenticado:
-    - text: >
-        🚫 Aún no has iniciado sesión. Para listar o descargar certificados es necesario autenticarse.
-      buttons:
-        - title: "🔑 Iniciar sesión"
-          payload: /iniciar_sesion
-        - title: "ℹ️ ¿Cómo iniciar?"
-          payload: /ver_login_hint
-        - title: "🏠 Menú"
-          payload: /ir_menu_principal
-
-  # ===============================
-  # 📄 Certificados - listado
-  # ===============================
-  utter_certificado_listado:
-    - text: |
-        📎 Estos son tus certificados disponibles:
-        {certificados}
-
-        ¿Qué deseas hacer?
-      buttons:
-        - title: "🎖️ Descargar Certificado"
-          payload: /consultar_certificados{"accion":"descargar","tipo_certificado":"certificado"}
-        - title: "🧾 Descargar Constancia"
-          payload: /consultar_certificados{"accion":"descargar","tipo_certificado":"constancia"}
-        - title: "📜 Descargar Historial"
-          payload: /consultar_certificados{"accion":"descargar","tipo_certificado":"historial"}
-        - title: "📧 Enviar al correo"
-          payload: /consultar_certificados{"accion":"enviar_email"}
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
-    - text: "¿Quieres que los envíe al correo registrado o prefieres descargarlos aquí?"
-      buttons:
-        - title: "📧 Enviar al correo"
-          payload: /consultar_certificados{"accion":"enviar_email"}
-        - title: "⬇️ Descargar aquí"
-          payload: /consultar_certificados{"accion":"descargar"}
-
-  # ===============================
-  # ✉️ Confirmación de envío de certificados
-  # ===============================
-  utter_confirmacion_consulta:
-    - text: "✅ He enviado tus certificados al correo registrado. Revisa tu bandeja de entrada (y spam)."
-      buttons:
-        - title: "📄 Ver otras opciones"
-          payload: /consultar_certificados
-        - title: "🏠 Menú"
-          payload: /ir_menu_principal
-    - text: "📬 Envío completado. ¿Deseas descargar una copia local en PDF?"
-      buttons:
-        - title: "⬇️ Sí, descargar"
-          payload: /consultar_certificados{"accion":"descargar"}
-        - title: "No, gracias"
-          payload: /ir_menu_principal
-
-  # ===============================
-  # 📊 Estado académico (texto simple + acciones)
-  # ===============================
-  utter_estado_estudiante:
-    - text: |
-        📊 Tu estado académico actual:
-        {estado}
-      buttons:
-        - title: "📚 Ver detalle"
-          payload: /ver_estado_estudiante{"detalle":"modulos"}
-        - title: "⬇️ Descargar PDF"
-          payload: /ver_estado_estudiante{"accion":"descargar"}
-        - title: "🏠 Menú"
-          payload: /ir_menu_principal
-
-  # ===============================
-  # 🚫 Estado NO autenticado
-  # ===============================
-  utter_estado_no_autenticado:
-    - text: "🚫 No has iniciado sesión, no puedo mostrar tu estado. ¿Deseas autenticarte?"
-      buttons:
-        - title: "🔑 Iniciar sesión"
-          payload: /iniciar_sesion
-        - title: "ℹ️ Ver instrucciones"
-          payload: /ver_login_hint
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
-
-  # ====== MENÚ PRINCIPAL ======
+  # 🔹 Menú principal general (ya existente en domain general; lo dejamos por si se importa aislado)
   utter_menu_principal:
     - text: |
         👋 ¡Aquí tienes el menú principal de Tutor Virtual Zajuna!
-
         Selecciona una opción para continuar:
       buttons:
         - title: "🎓 Ver estado académico"
@@ -398,212 +127,65 @@ responses:
           payload: "/solicitar_soporte"
         - title: "🔐 Iniciar sesión Zajuna"
           payload: "/auth_login_cmd"
-        - title: "🌐 Cambiar a inglés"
-          payload: "/cambiar_idioma_ingles"
         - title: "❌ Terminar conversación"
           payload: "/terminar_conversacion"
 
-  # ====== GATE DE AUTENTICACIÓN ======
-  utter_login_requerido:
+  # 🔐 Solicitud de autenticación
+  utter_pedir_autenticacion:
     - text: >
-        🔐 Para continuar con esta acción necesito que inicies sesión.
+        🔐 Para consultar tus certificados o ver tu estado académico, necesito que inicies sesión.
         ¿Deseas iniciar ahora?
       buttons:
         - title: "✅ Sí, iniciar sesión"
-          payload: /ir_menu_principal  # cámbialo por tu intent real de login si lo tienes (p. ej. /iniciar_sesion)
+          payload: "/auth_login_cmd"
+        - title: "❓ ¿Cómo me autentico?"
+          payload: "/ver_login_hint"
         - title: "⬅️ Volver al menú"
-          payload: /ir_menu_principal
+          payload: "/ir_menu_principal"
 
-  # ====== CONSULTAR CERTIFICADOS ======
-  # Si ya viene el slot 'tipo_certificado', el form lo tomará y seguirá; si no, pregunta.
-  utter_ask_tipo_certificado:
-    - text: >
-        ¿Qué documento necesitas? Selecciona una opción:
+  # 📄 Certificados
+  utter_certificados_listado:
+    - text: "🎓 Aquí tienes tus certificados disponibles:\n{certificado}"
       buttons:
-        - title: "🎖️ Certificado"
-          payload: /consultar_certificados{"tipo_certificado":"certificado"}
-        - title: "🧾 Constancia"
-          payload: /consultar_certificados{"tipo_certificado":"constancia"}
-        - title: "📜 Historial"
-          payload: /consultar_certificados{"tipo_certificado":"historial"}
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
+        - title: "Volver al menú académico"
+          payload: "/consultar_academico"
+        - title: "Ir al menú principal"
+          payload: "/ir_menu_principal"
 
-  utter_procesando_certificado:
-    - text: >
-        ✅ Perfecto, estoy generando tu **{tipo_certificado}**. Esto puede tardar unos segundos…
-
-  utter_certificado_listo:
-    - text: >
-        📎 Tu **{tipo_certificado}** está listo. ¿Deseas que lo envíe al correo registrado o prefieres descargarlo aquí?
+  # 📊 Estado
+  utter_estado_estudiante_detalle:
+    - text: "📊 Estado actual del estudiante: {curso}"
       buttons:
-        - title: "📧 Enviar al correo"
-          payload: /consultar_certificados{"accion":"enviar_email"}
-        - title: "⬇️ Descargar aquí"
-          payload: /consultar_certificados{"accion":"descargar"}
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
+        - title: "Volver al menú académico"
+          payload: "/consultar_academico"
+        - title: "Ir al menú principal"
+          payload: "/ir_menu_principal"
 
-  # ====== VER ESTADO ESTUDIANTE ======
-  utter_mostrando_estado:
-    - text: >
-        📊 Aquí tienes tu estado académico actualizado.  
-        ¿Deseas ver el detalle por módulo o descargar un resumen?
+  # 💬 Encuesta y cierre
+  utter_preguntar_continuar_menu:
+    - text: "¿Deseas realizar otra consulta?"
       buttons:
-        - title: "📚 Ver detalle por módulo"
-          payload: /ver_estado_estudiante{"detalle":"modulos"}
-        - title: "⬇️ Descargar PDF"
-          payload: /ver_estado_estudiante{"accion":"descargar"}
-        - title: "⬅️ Menú"
-          payload: /ir_menu_principal
+        - title: "Sí, volver al menú principal"
+          payload: "/ir_menu_principal"
+        - title: "No, terminar conversación"
+          payload: "/terminar_conversacion"
 
-  # ====== IR MENÚ PRINCIPAL ======
-  utter_yendo_menu:
-    - text: "🏠 Volviendo al menú principal…"
-    - text: "¿Qué deseas hacer?"
-      buttons:
-        - title: "🎓 Ver estado académico"
-          payload: /ver_estado_estudiante
-        - title: "📄 Consultar certificados"
-          payload: /consultar_certificados
-        - title: "👋 Terminar conversación"
-          payload: /terminar_conversacion
-
-
-  # ===== Confirmación de cierre =====
   utter_confirmar_cierre:
     - text: |
         🛑 ¿Deseas terminar la conversación?
         Puedo guardar tu progreso y retomarlo luego.
       buttons:
         - title: "✅ Sí, terminar"
-          payload: "/confirmar_cierre"
+          payload: "/terminar_conversacion"
         - title: "↩️ No, continuar"
-          payload: "/cancelar_cierre"
-
-  utter_cierre_confirmado:
-    - text: "👋 Conversación finalizada. ¡Gracias por usar el Tutor Virtual!"
-
-  utter_guardando_progreso:
-    - text: "💾 Guardando tu progreso…"
-
-  # ====== FALLBACK / DESAMBIGUACIÓN ======
-  utter_fallback:
-    - text: >
-        😅 No estoy seguro de haber entendido. ¿Te refieres a alguna de estas opciones?
-      buttons:
-        - title: "🎓 Ver estado académico"
-          payload: /ver_estado_estudiante
-        - title: "📄 Consultar certificados"
-          payload: /consultar_certificados
-        - title: "🏠 Menú principal"
-          payload: /ir_menu_principal
-        - title: "👋 Terminar conversación"
-          payload: /terminar_conversacion
-
-  # =========================================
-  # 🔹 Consultar certificados
-  # =========================================
-  utter_consultar_certificados:
-    - text: |
-        🎓 Aquí puedes consultar tus **certificados académicos** emitidos por Zajuna.
-        Para continuar, necesito saber si ya iniciaste sesión.
-      buttons:
-        - title: "🔐 Iniciar sesión en Zajuna"
-          payload: "/auth_login_cmd"
-        - title: "🔁 Recuperar acceso"
-          payload: "/recuperar_contrasena"
-        - title: "❌ No ahora"
-          payload: "/deny"
-
-  # =========================================
-  # 🔹 Ver estado académico del estudiante
-  # =========================================
-  utter_ver_estado_estudiante:
-    - text: |
-        📚 Puedo mostrarte tu **estado académico actual** (por ejemplo, si estás activo o en pausa).
-        ¿Deseas que lo consulte ahora?
-      buttons:
-        - title: "✅ Sí, consultar estado"
-          payload: "/estado_estudiante"
-        - title: "🔒 Iniciar sesión primero"
-          payload: "/auth_login_cmd"
-        - title: "🔙 Volver al menú principal"
           payload: "/ir_menu_principal"
 
-
-  utter_cancelar_cierre:
-    - text: |
-        👍 Perfecto, continuemos con la conversación.  
-        ¿En qué más puedo ayudarte?
-      buttons:
-        - title: "📄 Consultar certificados"
-          payload: "/consultar_certificados"
-        - title: "🎓 Ver estado académico"
-          payload: "/ver_estado_estudiante"
-        - title: "🏫 Menú principal"
-          payload: "/ir_menu_principal"
-
-  utter_mostrar_pasos_autenticacion:
-    - text: "Puedes autenticarte desde el portal académico."
-
-  utter_boton_autenticacion:
-    - text: "Haz clic aquí para autenticarte."
-
-  utter_certificados_encontrados:
-    - text: "Estos son tus certificados disponibles."
-
-  utter_estado_encontrado:
-    - text: "Aquí está tu estado académico."
-
-  utter_menu_general:
-    - text: "Menú principal: ¿qué deseas hacer?"
-
-forms:
-  certificado_form:
-    required_slots:
-      - tipo_certificado
-    ignored_intents: [] 
-login_form:
-    required_slots:
-    nombre_usuario:
-      - type: from_text
-        email:
-      - type: from_text
-
-# ============================================
-# ⚙️ ACCIONES PERSONALIZADAS ZAJUNA ACADÉMICAS
-# ============================================
 actions:
-  - action_guardar_encuesta
-  - action_registrar_feedback
-  - action_finalizar_conversacion
   - action_estado_estudiante
-  - action_ver_certificados
-  - action_listar_certificados
   - action_tutor_asignado
-  - action_set_encuesta_tipo
-  - action_check_auth
-  - action_registrar_encuesta
-  - action_guardar_feedback
-  - action_ofrecer_continuar_tema
-  - action_preguntar_resolucion
-  - action_ver_estado_estudiante
-  - action_consultar_certificados
-  - action_ir_menu_principal
-  - action_terminar_conversacion
-  - action_fallback
-  - utter_pedir_autenticacion
-  - utter_mostrar_pasos_autenticacion
-  - utter_boton_autenticacion
+  - action_listar_certificados
+  - action_ver_certificados
+  - action_ingreso_zajuna
+  - action_recuperar_contrasena
   - zajuna_get_certificados
-  - utter_certificados_encontrados
-  - utter_preguntar_continuar_menu
   - zajuna_get_estado_estudiante
-  - utter_estado_encontrado
-  - utter_menu_general
-  - utter_despedida_profesional
-  - utter_fallback
-  - action_cancelar_cierre
-  - action_confirmar_cierre
-    

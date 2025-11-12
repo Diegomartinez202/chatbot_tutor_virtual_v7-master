@@ -1,12 +1,17 @@
+# ruta: rasa/data/stories/stories_encuesta.yml
 version: "3.1"
+
 stories:
 
 - story: Encuesta positiva (set tipo)
   steps:
     - intent: respuesta_satisfecho
     - action: action_set_encuesta_tipo
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_ofrecer_continuar
 
 - story: Encuesta negativa (set tipo)
   steps:
     - intent: respuesta_insatisfecho
     - action: action_set_encuesta_tipo
+    - action: utter_encuesta_insatisfaccion

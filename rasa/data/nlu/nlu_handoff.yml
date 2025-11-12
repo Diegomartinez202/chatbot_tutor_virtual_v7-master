@@ -1,64 +1,21 @@
 version: "3.1"
+
 nlu:
   - intent: escalar_humano
     examples: |
       - quiero hablar con un asesor
-      - necesito humano
-      - me comunicas con alguien
       - atención humana
       - soporte con persona
+      - pasar con un humano
+      - escalar a humano
+      - necesito hablar con alguien
 
-  - intent: confirmacion_escalar_humano
-    examples: |
-      - sí, por favor
-      - confirmo
-      - quiero que me contacten
-      - si quiero humano
-
-  - intent: negar_escalar
-    examples: |
-      - no, sigamos aquí
-      - no gracias
-      - prefiero seguir con el bot
-      - no es necesario
-      - sigamos aquí
-  - intent: affirm
-    examples: |
-      - sí
-      - claro
-      - de acuerdo
-
-  - intent: deny
-    examples: |
-      - no
-      - prefiero que no
-      - negativo
   - intent: necesita_humano
     examples: |
       - me atiende una persona
       - quiero hablar con un asesor
       - pasar a un humano
       - necesito agente humano
-
-  - intent: confirmar_derivacion
-    examples: |
-      - sí, por favor
-      - claro que sí
-      - adelante
-      - ok, con humano
-
-  - intent: negar_derivacion
-    examples: |
-      - no, gracias
-      - sigo con el bot
-      - mejor no
-      - prefiero continuar aquí
-  - intent: necesita_humano
-    examples: |
-      - quiero hablar con un asesor
-      - pásame con un humano
-      - necesito ayuda de una persona
-      - soporte con un agente humano
       - deseo derivación a humano
 
   - intent: confirmacion_escalar_humano
@@ -72,9 +29,10 @@ nlu:
       - por favor con un asesor
       - quiero hablar con un agente
       - sí, con un humano
-      - confimo derivación a humano
+      - confirmo derivación a humano
       - adelante, escálalo
       - sí, necesito asistencia humana
+
   - intent: negar_escalar
     examples: |
       - no, gracias
@@ -87,7 +45,3 @@ nlu:
       - no, no escales
       - prefiero continuar contigo
       - no por ahora
-    
-
-
-

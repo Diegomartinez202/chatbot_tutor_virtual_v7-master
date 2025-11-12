@@ -1,18 +1,25 @@
-#\rasa\data\nlu\nlu_academico.yml
+# ruta: rasa/data/nlu/nlu_academico.yml
 version: "3.1"
 
 nlu:
 
   # ————— PROCESO ACADÉMICO / ADMIN
+  - intent: consultar_academico
+    examples: |
+      - quiero ver el menú académico
+      - menú académico
+      - abrir sección académica
+      - área académica
+      - proceso académico
+      - procesos administrativos
+      - información académica
+
   - intent: proceso_academico
     examples: |
       - quiero ver mi proceso académico
-      - temas administrativos
       - proceso estudiantil
-      - información académica
       - trámites académicos
       - ayuda con el proceso académico
-      - procesos administrativos
 
   - intent: proceso_academico_secundario
     examples: |
@@ -21,47 +28,7 @@ nlu:
       - ver submenú de académico
       - abrir submenú académico
 
-  - intent: ver_certificados_info
-    examples: |
-      - muéstrame certificados sin login
-      - ver certificados de ejemplo
-      - listar certificados rápidos
-      - quiero ver mis certificados
-      - certificados que tengo
-      - ver diplomas
-      - ver mis constancias
-      - descargar certificados
-      - certificados disponibles
-      - qué certificados tengo
-      - ver mis diplomas emitidos
-      - dónde descargo mis certificados
-      - lista de certificados
-      - necesito mi constancia
-      - quiero mis certificados en PDF
-      - descargar mis diplomas
-      - ver certificados
-      - mis certificados
-
-  - intent: horarios_calendario
-    examples: |
-      - ver horario
-      - calendario de clases
-      - fechas académicas
-      - cuándo son mis clases
-      - calendario del curso
-      - plan académico
-      - horarios del semestre
-
-  - intent: ver_estado_estudiante_info
-    examples: |
-      - status académico
-      - cuál es mi estado académico
-      - ver mi estado académico
-      - estado del aprendiz
-      - cuál es mi estado como estudiante
-      - estado del estudiante
-      - estoy activo este periodo
-      - dime mi estado académico
+  # ————— CERTIFICADOS
   - intent: consultar_certificados
     examples: |
       - quiero ver mis certificados
@@ -71,19 +38,22 @@ nlu:
       - ¿qué certificados tengo?
       - descargar mis certificados
       - muéstrame los certificados
-      - lista de certificados
       - ver diplomas emitidos
       - necesito mi constancia
       - certificados en PDF
       - ¿dónde descargo mis certificados?
       - certificados del curso
-      - ver mis diplomas
       - consultar constancias
-      - ver mis certificados
-      - consultar certificados
-      - descargar certificados
-      - qué certificados tengo
       - mostrar certificados
+
+  - intent: ver_certificados_info
+    examples: |
+      - muéstrame certificados sin login
+      - ver certificados de ejemplo
+      - listar certificados rápidos
+      - ver certificados demo
+
+  # ————— ESTADO DEL ESTUDIANTE
   - intent: ver_estado_estudiante
     examples: |
       - ver mi estado académico
@@ -99,6 +69,24 @@ nlu:
       - revisar mi progreso académico
       - cómo va mi matrícula
 
+  - intent: ver_estado_estudiante_info
+    examples: |
+      - status académico
+      - cuál es mi estado académico
+      - estado del aprendiz
+      - estado del estudiante
+
+  # ————— HORARIOS / CALENDARIO (opcional)
+  - intent: horarios_calendario
+    examples: |
+      - ver horario
+      - calendario de clases
+      - fechas académicas
+      - cuándo son mis clases
+      - calendario del curso
+      - horarios del semestre
+
+  # ————— MENÚ / CIERRE
   - intent: ir_menu_principal
     examples: |
       - ir al menú principal
@@ -106,7 +94,6 @@ nlu:
       - regresar al inicio
       - muéstrame el menú
       - abrir menú principal
-      - menú principal
       - ver opciones
       - quiero el menú
       - volver a las opciones
@@ -128,4 +115,29 @@ nlu:
       - terminar aquí
       - acabar conversación
       - listo, gracias
- 
+
+  # ————— AUTENTICACIÓN / AYUDAS
+  - intent: confirmar_autenticacion
+    examples: |
+      - ya inicié sesión
+      - listo, ya me conecté
+      - ya estoy autenticado
+
+  - intent: negar_autenticacion
+    examples: |
+      - no he iniciado sesión
+      - todavía no me conecto
+      - no estoy autenticado
+
+  - intent: auth_login_cmd
+    examples: |
+      - iniciar sesión
+      - login
+      - abrir login
+      - quiero autenticarme
+
+  - intent: ver_login_hint
+    examples: |
+      - ¿cómo me autentico?
+      - ver guía de inicio de sesión
+      - ayuda con el login

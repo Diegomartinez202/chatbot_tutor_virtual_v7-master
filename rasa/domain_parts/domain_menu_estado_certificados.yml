@@ -13,10 +13,6 @@ intents:
   - ver_login_hint          
   - recuperar_contrasena
 slots:
-  is_authenticated:
-    type: bool
-    influence_conversation: true
-    initial_value: false
   zajuna_base_url:
     type: text
     influence_conversation: false

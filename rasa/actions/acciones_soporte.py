@@ -1,38 +1,67 @@
-# rasa/actions/acciones_soporte.py
+# ruta: rasa/actions/acciones_soporte.py
 from __future__ import annotations
 import logging, time
-from typing import Any, Dict, List, Text
-from rasa_sdk import Action, Tracker
+from typing import Any, Dict, List, Text, Optional
+
+from rasa_sdk import Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
 from rasa_sdk.types import DomainDict
+from rasa_sdk.forms import FormValidationAction
+from rasa_sdk import Action
+
 from .common import (
     logger, jlog, EMAIL_RE, HELPDESK_WEBHOOK, HELPDESK_TOKEN,
     _entity_value, _json_payload_from_text, post_json_with_retries
 )
 
-class ValidateSoporteForm(Action):
-    def name(self) -> Text: return "validate_soporte_form"
+# -------------------------------
+# ✅ Validación de soporte_form
+# -------------------------------
+class ValidateSoporteForm(FormValidationAction):
+    def name(self) -> Text:
+        return "validate_soporte_form"
 
-    def validate_nombre(self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> Dict[Text, Any]:
+    def validate_nombre(
+        self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict
+    ) -> Dict[Text, Any]:
         v = (value or "").strip()
-        if len(v) < 3: dispatcher.utter_message(text="⚠️ El nombre debe tener al menos 3 caracteres."); return {"nombre": None}
-        if len(v) > 120: dispatcher.utter_message(text="⚠️ El nombre es muy largo. ¿Puedes abreviarlo un poco?"); return {"nombre": None}
+        if len(v) < 3:
+            dispatcher.utter_message(text="⚠️ El nombre debe tener al menos 3 caracteres.")
+            return {"nombre": None}
+        if len(v) > 120:
+            dispatcher.utter_message(text="⚠️ El nombre es muy largo. ¿Puedes abreviarlo un poco?")
+            return {"nombre": None}
         return {"nombre": v}
 
-    def validate_email(self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> Dict[Text, Any]:
+    def validate_email(
+        self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict
+    ) -> Dict[Text, Any]:
         v = (value or "").strip()
-        if not EMAIL_RE.match(v): dispatcher.utter_message(text="📧 Ese email no parece válido. Escribe algo como usuario@dominio.com"); return {"email": None}
+        if not EMAIL_RE.match(v):
+            dispatcher.utter_message(text="📧 Ese email no parece válido. Escribe algo como usuario@dominio.com")
+            return {"email": None}
         return {"email": v}
 
-    def validate_mensaje(self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> Dict[Text, Any]:
+    def validate_mensaje(
+        self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict
+    ) -> Dict[Text, Any]:
         v = (value or "").strip()
-        if len(v) < 8: dispatcher.utter_message(text="📝 Dame un poco más de detalle del problema (mínimo 8 caracteres)."); return {"mensaje": None}
-        if len(v) > 5000: dispatcher.utter_message(text="📝 El mensaje es muy largo. Intenta resumirlo (máx. 5000)."); return {"mensaje": None}
+        if len(v) < 8:
+            dispatcher.utter_message(text="📝 Dame un poco más de detalle del problema (mínimo 8 caracteres).")
+            return {"mensaje": None}
+        if len(v) > 5000:
+            dispatcher.utter_message(text="📝 El mensaje es muy largo. Intenta resumirlo (máx. 5000).")
+            return {"mensaje": None}
         return {"mensaje": v}
 
+
+# -------------------------------
+# 🚀 Envío rápido de soporte (sin form)
+# -------------------------------
 class ActionEnviarSoporte(Action):
-    def name(self) -> Text: return "action_enviar_soporte"
+    def name(self) -> Text:
+        return "action_enviar_soporte"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         nombre_ent = _entity_value(tracker, "nombre")
@@ -47,7 +76,7 @@ class ActionEnviarSoporte(Action):
         if not mensaje:
             mensaje = last_text if not last_text.startswith("/enviar_soporte") else "Solicitud de soporte (sin detalle)."
 
-        if len(nombre) > 120: nombre  = nombre[:120].rstrip() + "…"
+        if len(nombre) > 120: nombre = nombre[:120].rstrip() + "…"
         if len(mensaje) > 5000: mensaje = mensaje[:5000].rstrip() + "…"
         if not EMAIL_RE.match(email):
             logger.warning("[actions] Email inválido en action_enviar_soporte: %r, usando fallback.", email)
@@ -67,17 +96,25 @@ class ActionEnviarSoporte(Action):
         }
 
         headers = {"Content-Type": "application/json"}
-        if HELPDESK_TOKEN: headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
 
         resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
-        ok = bool(resp and 200 <= resp.status_code < 300)
+        ok = bool(resp and 200 <= getattr(resp, "status_code", 0) < 300)
         jlog(logging.INFO, "action_enviar_soporte", ok=ok, status_code=getattr(resp, "status_code", None))
-        dispatcher.utter_message(text="✅ He enviado tu solicitud de soporte. Un agente te contactará." if ok
-                                      else "⚠️ No pude registrar el soporte ahora mismo. Intentaremos de nuevo.")
+        dispatcher.utter_message(
+            text="✅ He enviado tu solicitud de soporte. Un agente te contactará." if ok
+                 else "⚠️ No pude registrar el soporte ahora mismo. Intentaremos de nuevo."
+        )
         return []
 
+
+# -------------------------------
+# 📨 Submit del formulario
+# -------------------------------
 class ActionSoporteSubmit(Action):
-    def name(self) -> Text: return "action_soporte_submit"
+    def name(self) -> Text:
+        return "action_soporte_submit"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         nombre  = (tracker.get_slot("nombre")  or "").strip()
@@ -98,24 +135,65 @@ class ActionSoporteSubmit(Action):
                    "message": mensaje, "conversation_id": tracker.sender_id, "metadata": meta}
 
         headers = {"Content-Type": "application/json"}
-        if HELPDESK_TOKEN: headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
 
         resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
-        ok = bool(resp and 200 <= resp.status_code < 300)
+        ok = bool(resp and 200 <= getattr(resp, "status_code", 0) < 300)
         jlog(logging.INFO, "action_soporte_submit", ok=ok, status_code=getattr(resp, "status_code", None))
         if ok:
-            tid = None
             try:
-                data = resp.json(); tid = (data or {}).get("ticket_id") or (data or {}).get("id")
-            except Exception: pass
-            if tid: dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
-            else:   dispatcher.utter_message(response="utter_soporte_creado")
+                data = resp.json()
+                tid = (data or {}).get("ticket_id") or (data or {}).get("id")
+            except Exception:
+                tid = None
+            if tid:
+                dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
+            else:
+                dispatcher.utter_message(response="utter_soporte_registrado")
+            # Limpiar slots del form
             return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
         dispatcher.utter_message(response="utter_soporte_error")
         return []
 
+
+# -------------------------------
+# 👨‍🏫 Enviar correo al tutor
+# -------------------------------
+class ActionEnviarCorreoTutor(Action):
+    def name(self) -> Text:
+        return "action_enviar_correo_tutor"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        email = (tracker.get_slot("email") or "").strip()
+        if not email or not EMAIL_RE.match(email):
+            dispatcher.utter_message(text="Necesito un correo válido para escribirle al tutor. Por favor, indícalo.")
+            return []
+        # Aquí podrías reutilizar HELPDESK_WEBHOOK o un webhook diferente para tutores.
+        payload = {
+            "to": "tutor@zajuna.edu",
+            "from": email,
+            "subject": "Contacto con tutor (Rasa)",
+            "message": f"El estudiante con correo {email} solicita apoyo adicional."
+        }
+        headers = {"Content-Type": "application/json"}
+        if HELPDESK_TOKEN:
+            headers["Authorization"] = f"Bearer {HELPDESK_TOKEN}"
+        resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
+        ok = bool(resp and 200 <= getattr(resp, "status_code", 0) < 300)
+        jlog(logging.INFO, "action_enviar_correo_tutor", ok=ok, status_code=getattr(resp, "status_code", None))
+        dispatcher.utter_message(response="utter_correo_enviado" if ok else "utter_soporte_error")
+        return []
+
+
+# -------------------------------
+# 🧑‍💻 Derivar a humano (registro simple)
+# -------------------------------
 class ActionDerivarYRegistrarHumano(Action):
-    def name(self) -> Text: return "action_derivar_y_registrar_humano"
-    def run(self, dispatcher, tracker, domain):
+    def name(self) -> Text:
+        return "action_derivar_y_registrar_humano"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         dispatcher.utter_message(text="Te conecto con un agente humano en breve.")
+        # Aquí podrías registrar el traspaso en tu backend si lo deseas.
         return []

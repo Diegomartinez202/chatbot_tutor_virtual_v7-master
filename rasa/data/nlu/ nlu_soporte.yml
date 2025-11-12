@@ -1,10 +1,10 @@
-#\rasa\data\nlu\ nlu_soporte.yml
+# ruta: rasa/data/nlu/nlu_soporte.yml
 version: "3.1"
 
 nlu:
 
   # ————— SOPORTE TÉCNICO / INCIDENTES
-  - intent: soporte_tecnico
+  - intent: solicitar_soporte
     examples: |
       - necesito soporte técnico
       - ayuda con la plataforma
@@ -18,13 +18,19 @@ nlu:
       - soporte
       - quiero reportar un incidente
 
+  # (opcional: alias semántico del anterior; puedes mantenerlo si ya existe en historias)
+  - intent: soporte_tecnico
+    examples: |
+      - requiero soporte técnico
+      - soporte técnico por favor
+      - necesito ayuda técnica
+
   - intent: problema_no_ingreso
     examples: |
       - no puedo ingresar
       - la plataforma no me deja entrar
       - no logro iniciar sesión
       - no puedo acceder
-      - no me deja entrar al sistema
       - al entrar me da error
       - no puedo loguearme
 
@@ -59,15 +65,20 @@ nlu:
       - un problema diferente
 
   # ————— ESCALAR A HUMANO
-  - intent: escalar_humano
+  - intent: necesita_humano
     examples: |
       - quiero hablar con alguien
       - pasar con un agente humano
-      - escalar a humano
-      - hablar con asesor
+      - hablar con un asesor
       - necesito un humano
       - atención humana por favor
       - conéctame con un agente
+
+  - intent: escalar_humano
+    examples: |
+      - escalar a humano
+      - hablar con humano
+      - pasar a humano
 
   - intent: confirmacion_escalar_humano
     examples: |
@@ -86,3 +97,50 @@ nlu:
       - no necesito humano
       - sigamos con el chat
       - no, continuemos aquí
+
+  # ————— ENCUESTA / CONTINUIDAD
+  - intent: respuesta_satisfecho
+    examples: |
+      - sí, quedé satisfecho
+      - todo bien, gracias
+      - estoy satisfecho
+      - me sirvió, gracias
+
+  - intent: respuesta_insatisfecho
+    examples: |
+      - no quedé satisfecho
+      - no me ayudó
+      - sigo con el problema
+      - no funcionó
+
+  - intent: enviar_correo_tutor
+    examples: |
+      - enviar correo al tutor
+      - escribir a mi tutor
+      - contactar a mi tutor por correo
+      - mandar email al tutor
+
+  - intent: continuar_consulta
+    examples: |
+      - consultar otro tema
+      - seguir con otra consulta
+      - volver al menú
+      - regresar al menú
+
+  - intent: terminar_conversacion
+    examples: |
+      - terminar conversación
+      - cerrar chat
+      - eso es todo gracias
+      - no necesito nada más
+
+  # ————— UTILIDADES MÍNIMAS
+  - intent: ver_link_soporte
+    examples: |
+      - ver enlace de soporte
+      - link de soporte
+
+  - intent: ver_soporte_creado_info
+    examples: |
+      - ver ticket creado
+      - ver confirmación de soporte

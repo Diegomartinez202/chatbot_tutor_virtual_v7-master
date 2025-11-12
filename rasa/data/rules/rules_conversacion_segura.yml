@@ -1,13 +1,13 @@
-#\rasa\data\rules\rules_conversacion_segura.yml
+# ruta: rasa/data/rules/rules_conversacion_segura.yml
 version: "3.1"
-rules:
 
+rules:
   - rule: Cierre seguro detectado
     steps:
       - intent: terminar_conversacion_segura
       - action: action_confirmar_cierre_seguro
 
-  - rule: Confirmar cierre con autosave
+  - rule: Confirmar cierre con autosave (si hay encuesta activa)
     condition:
       - slot_was_set:
           - encuesta_activa: true
@@ -15,6 +15,15 @@ rules:
       - intent: confirmar_cierre
       - action: action_autosave_encuesta
       - action: action_guardar_autosave_mongo
+      - action: utter_cierre_confirmado
+      - action: action_reset_conversacion_segura
+
+  - rule: Confirmar cierre sin encuesta activa
+    condition:
+      - slot_was_set:
+          - encuesta_activa: false
+    steps:
+      - intent: confirmar_cierre
       - action: utter_cierre_confirmado
       - action: action_reset_conversacion_segura
 
@@ -28,3 +37,9 @@ rules:
       - intent: reanudar_conversacion
       - action: action_cargar_autosave_mongo
       - action: action_autoresume_conversacion
+
+  - rule: Limpiar autosave
+    steps:
+      - intent: limpiar_autosave
+      - action: action_reset_conversacion_segura
+      - action: utter_limpiar_autosave

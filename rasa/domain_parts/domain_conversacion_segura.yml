@@ -1,9 +1,5 @@
+# ruta: rasa/domain_parts/domain_conversacion_segura.yml
 version: "3.1"
-
-imports:
-  - domain_general.yml
-  - domain_soporte.yml
-  - domain_encuesta.yml
 
 intents:
   - terminar_conversacion_segura
@@ -22,6 +18,7 @@ slots:
   encuesta_activa:
     type: bool
     initial_value: false
+    influence_conversation: true
   encuesta_tipo:
     type: text
     influence_conversation: true
@@ -29,19 +26,28 @@ slots:
 responses:
   utter_confirmar_cierre:
     - text: "Parece que tienes una encuesta activa o información sin guardar. ¿Deseas cerrar de todas formas?"
+      buttons:
+        - title: "✅ Sí, cerrar y guardar"
+          payload: "/confirmar_cierre"
+        - title: "↩️ No, continuar"
+          payload: "/cancelar_cierre"
+
   utter_cierre_confirmado:
     - text: "Perfecto. Se cerrará la sesión y se guardará tu progreso actual."
+
   utter_cierre_cancelado:
     - text: "Entendido, seguimos donde estabas. 😊"
+
   utter_reanudar_conversacion:
     - text: "Parece que tenías una encuesta pendiente. ¿Deseas continuarla?"
+
   utter_limpiar_autosave:
     - text: "Los datos temporales fueron limpiados correctamente."
 
 actions:
-  - action_autosave_encuesta
-  - action_autoresume_conversacion
-  - action_reset_conversacion_segura
   - action_confirmar_cierre_seguro
+  - action_autosave_encuesta
   - action_guardar_autosave_mongo
   - action_cargar_autosave_mongo
+  - action_autoresume_conversacion
+  - action_reset_conversacion_segura

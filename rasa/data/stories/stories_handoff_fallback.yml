@@ -1,4 +1,6 @@
+#\rasa\data\stories\stories_handoff_fallback.yml
 version: "3.1"
+
 stories:
   - story: Soporte con dos fallbacks y completar
     steps:
@@ -8,15 +10,21 @@ stories:
       - action: utter_handoff_iniciado
       - action: soporte_form
       - active_loop: soporte_form
-      # Usuario confuso → baja confianza → tu pipeline puede disparar nlu_fallback
+
+      # 1er fallback dentro del form
       - intent: nlu_fallback
       - action: action_registrar_intento_form
-      - action: utter_form_entendido_dificultad
+      - action: action_verificar_max_intentos_form
+      - action: utter_form_fallback_warn
       - action: soporte_form
       - active_loop: soporte_form
+
+      # 2º fallback dentro del form
       - intent: nlu_fallback
       - action: action_registrar_intento_form
-      - action: utter_form_entendido_dificultad
+      - action: action_verificar_max_intentos_form
+      - action: utter_form_fallback_warn
       - action: soporte_form
       - active_loop: soporte_form
-      # (El 3er fallback lo maneja la rule que verifica el máximo y corta el form)
+
+      # El 3er fallback se manejará ya con la rule que deriva a humano

@@ -1,16 +1,52 @@
+# ruta: rasa/data/rules/rules_encuesta.yml
 version: "3.1"
+
 rules:
 
-  - rule: Encuesta positiva → pedir comentario
+  # Encuesta positiva → set slot y agradecer
+  - rule: Encuesta positiva (encuesta_satis_yes)
     steps:
+      - intent: encuesta_satis_yes
       - action: action_set_encuesta_tipo
       - slot_was_set:
           - encuesta_tipo: "positivo"
-      - action: utter_pedir_comentario
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
 
-  - rule: Encuesta negativa → lamentar y ofrecer ayuda
+  - rule: Encuesta positiva (respuesta_satisfecho)
     steps:
+      - intent: respuesta_satisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "positivo"
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
+
+  # Encuesta negativa → set slot y ofrecer ayuda
+  - rule: Encuesta negativa (encuesta_satis_no)
+    steps:
+      - intent: encuesta_satis_no
       - action: action_set_encuesta_tipo
       - slot_was_set:
           - encuesta_tipo: "negativo"
       - action: utter_encuesta_insatisfaccion
+
+  - rule: Encuesta negativa (respuesta_insatisfecho)
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativo"
+      - action: utter_encuesta_insatisfaccion
+
+  # Problema resuelto / no resuelto
+  - rule: Problema resuelto
+    steps:
+      - intent: problema_resuelto_si
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
+
+  - rule: Problema no resuelto
+    steps:
+      - intent: problema_resuelto_no
+      - action: utter_ofrecer_soporte

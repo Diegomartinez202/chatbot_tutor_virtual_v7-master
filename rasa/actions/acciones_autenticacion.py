@@ -1,80 +1,102 @@
-# rasa/actions/acciones_autenticacion.py
+# ruta: rasa/actions/acciones_autenticacion.py
 from __future__ import annotations
-from typing import Dict, List, Any, Text
+import re
+from typing import Dict, List, Any, Text, Optional
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType, FollowupAction
-from rasa_sdk.forms import FormValidationAction
 from rasa_sdk.types import DomainDict
-from .common import EMAIL_RE, _has_auth
 
-class ValidateRecoveryForm(FormValidationAction):
-    def name(self) -> Text: return "validate_recovery_form"
+# ====== Fallbacks seguros si no existe .common ======
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-    def validate_email(self, value: Text, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> Dict[Text, Any]:
-        v = (value or "").strip()
-        if not EMAIL_RE.match(v):
-            dispatcher.utter_message(text="📧 Ese email no parece válido. Escribe algo como usuario@dominio.com")
-            return {"email": None}
-        return {"email": v}
+def _has_auth(tracker: Tracker) -> bool:
+    """Determina si el usuario está autenticado a partir del slot is_authenticated."""
+    return bool(tracker.get_slot("is_authenticated"))
 
+# ====== VALIDACIONES (si usas forms con validadores personalizados, opcional) ======
+class ValidatePasswordRecoveryForm(Action):
+    """Validador simple para password_recovery_form (Rasa 3 permite FormValidationAction,
+    pero para reducir dependencias usamos Action normal con prompts claros)."""
+    def name(self) -> Text: return "validate_password_recovery_form"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        # Este validador es opcional; puedes omitirlo si no lo llamas en rules.
+        return []
+
+# ====== ACCIONES DE AUTENTICACIÓN ======
 class ActionCheckAuth(Action):
     def name(self) -> Text: return "action_check_auth"
 
-    async def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        intent  = ((tracker.latest_message or {}).get("intent") or {}).get("name") or ""
-        authed  = _has_auth(tracker)
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        intent = ((tracker.latest_message or {}).get("intent") or {}).get("name") or ""
+        authed = _has_auth(tracker)
+
         if intent in ("estado_estudiante", "ver_certificados"):
             if not authed:
                 dispatcher.utter_message(response="utter_need_auth")
                 return []
-            return [FollowupAction("action_estado_estudiante" if intent == "estado_estudiante" else "action_ver_certificados")]
+            # Delega al flujo correcto según intent
+            next_action = "action_estado_estudiante" if intent == "estado_estudiante" else "action_ver_certificados"
+            return [FollowupAction(next_action)]
         return []
 
-class ActionSyncAuthFromMetadata(Action):
-    def name(self) -> Text: return "action_sync_auth_from_metadata"
-
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[EventType]:
-        has_token = False
-        try:
-            md = tracker.latest_message.get("metadata") or {}
-            auth = md.get("auth") or {}
-            has_token = bool(isinstance(auth, dict) and (auth.get("hasToken") or auth.get("token")))
-        except Exception:
-            has_token = False
-        return [SlotSet("has_token", has_token)]
-
-class ActionCheckAuthEstado(Action):
-    def name(self) -> Text: return "action_check_auth_estado"
-
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[EventType]:
-        meta = (tracker.latest_message or {}).get("metadata") or {}
-        has_token = bool(((meta.get("auth") or {}).get("hasToken")))
-        return [FollowupAction("action_estado_estudiante" if has_token else "utter_need_auth")]
-
-class ActionSubmitRecovery(Action):
-    def name(self) -> Text: return "action_submit_recovery"
+class ActionIngresoZajuna(Action):
+    def name(self) -> Text: return "action_ingreso_zajuna"
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        email = tracker.get_slot("email")
-        if not email:
-            dispatcher.utter_message(text="Indícame tu correo para enviarte la recuperación.")
-            return []
-        dispatcher.utter_message(text=f"Se envió un enlace de recuperación a {email}.")
+        dispatcher.utter_message(text="Abriendo flujo de inicio de sesión… Ingresa tu correo y contraseña.")
         return []
 
 class ActionSetAuthenticatedTrue(Action):
     def name(self) -> Text: return "action_set_authenticated_true"
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
         return [SlotSet("is_authenticated", True)]
 
-class ActionMarkAuthenticated(Action):
-    def name(self): return "action_mark_authenticated"
+class ActionRecuperarContrasena(Action):
+    def name(self) -> Text: return "action_recuperar_contrasena"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        email = (tracker.get_slot("email") or "").strip()
+        if not EMAIL_RE.match(email):
+            dispatcher.utter_message(text="📧 Necesito un correo válido para enviar el enlace de recuperación.")
+            return []
+        dispatcher.utter_message(text=f"Generando enlace de recuperación para {email}…")
+        return []
+
+class ActionEnviarCorreoRecuperacion(Action):
+    def name(self) -> Text: return "action_enviar_correo_recuperacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        email = (tracker.get_slot("email") or "").strip()
+        if EMAIL_RE.match(email):
+            dispatcher.utter_message(text=f"📬 Se envió el correo de recuperación a {email}.")
+        else:
+            dispatcher.utter_message(text="No pude enviar el correo porque el email no es válido.")
+        return []
+
+# ====== PLACEHOLDERS (si ya existen en otros módulos, no molestan) ======
+class ActionEnviarSoporte(Action):
+    def name(self) -> Text: return "action_enviar_soporte"
     def run(self, dispatcher, tracker, domain):
-        return [SlotSet("is_authenticated", True)]
+        dispatcher.utter_message(text="✅ He enviado tu solicitud de soporte. Un agente te contactará.")
+        return []
 
-class ActionNecesitaAuth(Action):
-    def name(self) -> str: return "action_necesita_auth"
-    async def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: dict) -> list:
-        dispatcher.utter_message(text="Para continuar con esta acción necesitas iniciar sesión. ¿Deseas hacerlo ahora?")
+class ActionDerivarYRegistrarHumano(Action):
+    def name(self) -> Text: return "action_derivar_y_registrar_humano"
+    def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(text="Derivando tu caso a un agente humano…")
+        return []
+
+class ActionConectarHumano(Action):
+    def name(self) -> Text: return "action_conectar_humano"
+    def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(text="Conexión iniciada. Un asesor responderá aquí mismo.")
+        return []
+
+class ActionPreguntarResolucion(Action):
+    def name(self) -> Text: return "action_preguntar_resolucion"
+    def run(self, dispatcher, tracker, domain):
+        dispatcher.utter_message(response="utter_preguntar_resolucion")
         return []

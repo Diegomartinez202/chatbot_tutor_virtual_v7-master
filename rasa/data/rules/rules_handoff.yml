@@ -1,13 +1,14 @@
 version: "3.1"
+
 rules:
 
-  # Oferta explícita
+  # Usuario pide humano explícitamente
   - rule: Ofrecer derivación a humano
     steps:
       - intent: necesita_humano
       - action: utter_ofrecer_humano
 
-  # Confirmaciones
+  # Usuario confirma que quiere humano
   - rule: Confirmar handoff (intento dedicado)
     condition:
       - active_loop: null
@@ -17,42 +18,26 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Confirmar handoff con affirm
-    condition:
-      - active_loop: null
-    steps:
-      - intent: affirm
-      - action: utter_handoff_iniciado
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  # Negaciones
+  # Usuario rechaza el handoff
   - rule: Negar handoff (intento dedicado)
     condition:
       - active_loop: null
     steps:
       - intent: negar_escalar
-      - action: utter_cierre_cancelado
+      - action: utter_derivacion_cancelada
 
-  - rule: Negar handoff con deny
-    condition:
-      - active_loop: null
-    steps:
-      - intent: deny
-      - action: utter_cierre_cancelado
-
-  # Submit del form → deriva + cola
-  - rule: Submit soporte_form
+  # Submit del soporte_form → crear ticket + derivar a humano
+  - rule: Submit soporte_form (handoff)
     condition:
       - active_loop: soporte_form
     steps:
       - action: soporte_form
       - active_loop: null
-      - action: action_submit_soporte
+      - action: action_soporte_submit
       - action: action_derivar_y_registrar_humano
       - action: utter_handoff_en_cola
 
-  # Terminar conversación durante el form
+  # Terminar conversación durante el soporte_form
   - rule: Terminar conversación durante soporte_form
     condition:
       - active_loop: soporte_form
@@ -60,4 +45,3 @@ rules:
       - intent: terminar_conversacion
       - action: action_deactivate_loop
       - active_loop: null
-      - action: action_confirmar_cierre

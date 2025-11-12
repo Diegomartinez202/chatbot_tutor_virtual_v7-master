@@ -1,25 +1,43 @@
-# rasa/actions/acciones_conversacion_persistente.py
+# ruta: rasa/actions/acciones_conversacion_persistente.py
 from typing import Any, Text, Dict, List
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
-from rasa_sdk.events import SlotSet, ConversationPaused, ConversationResumed
+from rasa_sdk.events import SlotSet, ConversationResumed
 
 class ActionAutoResume(Action):
-    def name(self) -> Text: return "action_auto_resume"
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
-        encuesta_activa = tracker.get_slot("encuesta_activa")
-        usuario = tracker.sender_id
+    def name(self) -> Text:
+        return "action_auto_resume"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List:
+        encuesta_activa = bool(tracker.get_slot("encuesta_activa"))
+        usuario = tracker.sender_id or "usuario"
         if encuesta_activa:
-            dispatcher.utter_message(text=f"👋 Hola {usuario}, parece que dejaste una encuesta sin terminar. ¿Deseas continuar?")
+            # Marca que hay algo por reanudar y pregunta
+            dispatcher.utter_message(text=f"👋 Hola {usuario}, parece que dejaste una encuesta sin terminar.")
+            dispatcher.utter_message(response="utter_reanudar_auto")
             return [SlotSet("reanudar_pendiente", True)]
-        dispatcher.utter_message(text="👋 ¡Hola! Bienvenido de nuevo. No tienes tareas pendientes.")
+        # Sin pendientes
+        dispatcher.utter_message(response="utter_bienvenida_auto")
         return [SlotSet("reanudar_pendiente", False)]
 
 class ActionReanudarAuto(Action):
-    def name(self) -> Text: return "action_reanudar_auto"
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]):
-        if tracker.get_slot("reanudar_pendiente"):
+    def name(self) -> Text:
+        return "action_reanudar_auto"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List:
+        if bool(tracker.get_slot("reanudar_pendiente")):
             dispatcher.utter_message(text="🔄 Retomando tu encuesta o proceso pendiente donde lo dejaste...")
-            return [ConversationResumed()]
-        dispatcher.utter_message(text="Nada pendiente. Continuemos desde el inicio.")
+            # Puedes disparar aquí un FollowupAction al formulario/flujo que corresponda.
+            return [ConversationResumed(), SlotSet("reanudar_pendiente", False)]
+        dispatcher.utter_message(text="No hay procesos pendientes. Continuemos desde el inicio.")
         return []

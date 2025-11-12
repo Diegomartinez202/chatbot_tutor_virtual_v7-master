@@ -4,33 +4,18 @@ intents:
   - escalar_humano
   - confirmacion_escalar_humano
   - negar_escalar
-  - solicitar_soporte
-  - affirm
-  - deny
   - necesita_humano
-  - confirmar_derivacion   
-  - negar_derivacion  
-forms:
-  soporte_form:
-    required_slots:
-      - motivo_soporte
-      - detalle_soporte
-      - email_contacto
+  - confirmar_derivacion
+  - negar_derivacion
+  - solicitar_soporte
+  - terminar_conversacion
 
 slots:
-  motivo_soporte:
-    type: text
-    influence_conversation: true
-  detalle_soporte:
-    type: text
-    influence_conversation: true
-  email_contacto:
-    type: text
-    influence_conversation: true
   soporte_intentos:
     type: any
     influence_conversation: false
     initial_value: 0
+
 responses:
   utter_ofrecer_humano:
     - text: "¿Deseas que te contacte un asesor humano?"
@@ -43,6 +28,7 @@ responses:
   utter_handoff_iniciado:
     - text: "Perfecto. Para derivarte con un asesor humano necesito algunos datos."
 
+  # Preguntas del form (las usará tu soporte_form ya definido en otro domain part)
   utter_ask_motivo_soporte:
     - text: "Cuéntame brevemente el motivo de tu solicitud de soporte."
 
@@ -53,7 +39,7 @@ responses:
     - text: "¿Cuál es tu correo de contacto?"
 
   utter_handoff_en_cola:
-    - text: "✅ He registrado tu caso y te contactar&aacute; un asesor. Te avisaré por este canal y por correo."
+    - text: "✅ He registrado tu caso y te contactará un asesor. Te avisaré por este canal y por correo."
 
   utter_pedir_derivacion:
     - text: "¿Deseas que te ponga en contacto con un asesor humano?"
@@ -72,15 +58,21 @@ responses:
         - title: "🏠 Menú principal"
           payload: "/ir_menu_principal"
 
-  # Mensaje cuando el usuario falla dentro del form y vamos a derivar
+  # Mensaje cuando el usuario falla varias veces en el form
   utter_handoff_por_fallos:
     - text: "Veo que hubo varias dificultades. Te conectaré con un asesor humano para ayudarte mejor."
 
-  # Mensaje de intento fallido dentro del form (1 y 2)
+  # Mensaje de intento fallido dentro del form
   utter_intento_form_fallido:
     - text: "No logré entender del todo. ¿Podrías intentarlo de otra forma?"
 
 actions:
-  - validate_soporte_form
-  - action_submit_soporte
+  - action_registrar_intento_form
+  - action_verificar_max_intentos_form
+  - action_ofrecer_humano
+  - action_handoff_cancelar
+  - action_derivar_humano_confirmada
+  - action_cancelar_derivacion
+  # Se reutilizan desde otros módulos:
+  - action_soporte_submit
   - action_derivar_y_registrar_humano

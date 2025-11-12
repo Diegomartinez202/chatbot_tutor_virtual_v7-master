@@ -1,4 +1,4 @@
-#\rasa\data\stories\stories_conversacion_persistente.yml
+# ruta: rasa/data/stories/stories_conversacion_persistente.yml
 version: "3.1"
 stories:
   - story: flujo_auto_resume_si

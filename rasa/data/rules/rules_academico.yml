@@ -1,4 +1,6 @@
+# ruta: rasa/data/rules/rules_academico.yml
 version: "3.1"
+
 rules:
 
   # ===== CERTIFICADOS =====
@@ -8,7 +10,7 @@ rules:
           - is_authenticated: true
     steps:
       - intent: consultar_certificados
-      - action: action_consultar_certificados
+      - action: action_listar_certificados
       - action: utter_preguntar_continuar_menu
 
   - rule: Consultar certificados (no autenticado)
@@ -26,7 +28,7 @@ rules:
           - is_authenticated: true
     steps:
       - intent: ver_estado_estudiante
-      - action: action_ver_estado_estudiante
+      - action: action_estado_estudiante
       - action: utter_preguntar_continuar_menu
 
   - rule: Ver estado (no autenticado)
@@ -47,4 +49,4 @@ rules:
   - rule: Confirmar y finalizar conversación
     steps:
       - intent: terminar_conversacion
-      - action: action_confirmar_cierre
+      - action: utter_confirmar_cierre

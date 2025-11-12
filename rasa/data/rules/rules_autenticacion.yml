@@ -1,20 +1,19 @@
+# ruta: rasa/data/rules/rules_autenticacion.yml
 version: "3.1"
+
 rules:
 
   # =============================
-  # Consultas condicionales por autenticación (SIN acción intermedia)
+  # Consultas condicionales por autenticación
   # =============================
-
   - rule: Estado estudiante (autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: true
     steps:
-      - intent: estado_estudiante   # o ver_estado_estudiante si lo usas
-      - action: action_check_auth   # opcional si sincronizas token → slot
-      - action: action_check_auth_estado    # si la tienes para validar y setear slot
-      - action: action_estado_estudiante    # tu acción que trae el estado real (alias: zajuna_get_estado_estudiante)
-      # Si prefieres, reemplaza por la acción exacta que usas hoy.
+      - intent: estado_estudiante
+      - action: action_check_auth
+      - action: action_estado_estudiante
 
   - rule: Estado estudiante (NO autenticado)
     condition:
@@ -22,68 +21,55 @@ rules:
           - is_authenticated: false
     steps:
       - intent: estado_estudiante
-      - action: action_check_auth     # opcional; no rompe si ya está en false
-      - action: utter_need_auth       # ===> Debe existir en domain (ya lo dejamos)
+      - action: action_check_auth
+      - action: utter_need_auth
 
   - rule: Consultar certificados (autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: true
     steps:
-      - intent: consultar_certificados
+      - intent: ver_certificados
       - action: action_check_auth
-      - action: action_ver_certificados   # alias: zajuna_get_certificados
-      - action: utter_certificados_carousel   # response avanzada (ya creada)
+      - action: action_ver_certificados
 
   - rule: Consultar certificados (NO autenticado)
     condition:
       - slot_was_set:
           - is_authenticated: false
     steps:
-      - intent: consultar_certificados
+      - intent: ver_certificados
       - action: action_check_auth
       - action: utter_need_auth
 
   # =============================
   # Inicio de login por intent dedicado
   # =============================
-
-  - rule: Iniciar login por enviar_credenciales
+  - rule: Iniciar login (enviar_credenciales)
     steps:
       - intent: enviar_credenciales
       - action: auth_login_form
       - active_loop: auth_login_form
 
-  # Submit OK del auth_login_form
   - rule: Submit auth_login_form OK
     condition:
       - active_loop: auth_login_form
     steps:
       - action: auth_login_form
       - active_loop: null
-      - action: action_ingreso_zajuna       # crea/sincroniza sesión con Zajuna
-      - action: action_check_auth            # setea is_authenticated según token
-      - slot_was_set:
-          - is_authenticated: true
+      - action: action_ingreso_zajuna
+      - action: action_set_authenticated_true
       - action: utter_auth_ok
 
-  # Submit FAIL del auth_login_form
-  - rule: Submit auth_login_form FAIL
-    condition:
-      - active_loop: auth_login_form
+  - rule: Submit auth_login_form FAIL (manual)
     steps:
-      - action: auth_login_form
-      - active_loop: null
-      - action: action_check_auth
-      - slot_was_set:
-          - is_authenticated: false
+      - intent: deny
       - action: utter_auth_fail
 
   # =============================
   # Confirmación de autenticación por botón
   # =============================
-
-  - rule: Confirmar autenticación directa (botón)
+  - rule: Confirmar autenticación directa
     steps:
       - intent: confirmar_autenticacion
       - action: action_set_authenticated_true
@@ -92,8 +78,7 @@ rules:
   # =============================
   # Recuperación de contraseña (form + submit)
   # =============================
-
-  - rule: Iniciar recuperación por recuperar_contrasena
+  - rule: Iniciar recuperación por intent
     steps:
       - intent: recuperar_contrasena
       - action: password_recovery_form
@@ -112,25 +97,23 @@ rules:
   # =============================
   # Soporte rápido (affirm/deny)
   # =============================
-
   - rule: Soporte → usuario afirma
     steps:
       - intent: solicitar_soporte
-      - action: action_ofrecer_continuar_tema
+      - action: utter_ofrecer_continuar
       - intent: affirm
       - action: action_enviar_soporte
 
   - rule: Soporte → usuario niega
     steps:
       - intent: solicitar_soporte
-      - action: action_ofrecer_continuar_tema
+      - action: utter_ofrecer_continuar
       - intent: deny
       - action: utter_saludo
 
   # =============================
-  # Derivación a humano directa
+  # Derivación a humano
   # =============================
-
   - rule: Escalar siempre a humano
     steps:
       - intent: necesita_humano
@@ -140,10 +123,7 @@ rules:
   # =============================
   # Encuesta desde intención
   # =============================
-
   - rule: Registro de encuesta desde iniciar_encuesta
     steps:
       - intent: iniciar_encuesta
       - action: action_preguntar_resolucion
-      - intent: affirm
-      - action: action_registrar_encuesta   # ← corregido el typo

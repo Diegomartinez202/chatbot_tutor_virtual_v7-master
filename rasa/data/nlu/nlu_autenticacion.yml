@@ -1,125 +1,109 @@
-#\rasa\data\nlu\nlu_autenticacion.yml
+# ruta: rasa/data/nlu/nlu_autenticacion.yml
 version: "3.1"
 
 nlu:
-- intent: solicitar_soporte
-  examples: |
-    - Necesito soporte
-    - Quiero reportar un problema
-    - Ayuda, por favor
-    - Tengo un inconveniente
+  # ===== SOPORTE / HUMANO / ENCUESTA =====
+  - intent: solicitar_soporte
+    examples: |
+      - necesito soporte
+      - quiero reportar un problema
+      - ayuda, por favor
+      - tengo un inconveniente
+      - contactar a soporte
+      - abrir un ticket
+      - hablar con soporte
 
-- intent: recuperar_contrasena
-  examples: |
-    - Olvidé mi contraseña
-    - Necesito recuperar mi password
-    - No puedo entrar a mi cuenta
-    - Restablecer contraseña
+  - intent: necesita_humano
+    examples: |
+      - necesito hablar con alguien
+      - quiero un agente humano
+      - pásame con una persona
+      - escalar a humano
+      - atención personalizada
 
-- intent: provide_email
-  examples: |
-    - mi correo es [usuario@ejemplo.com](email)
-    - mi email es [test@gmail.com](email)
-    - es [prueba@correo.com](email)
+  - intent: iniciar_encuesta
+    examples: |
+      - quiero hacer una encuesta
+      - me gustaría dar feedback
+      - deseo evaluar el soporte
+      - iniciar encuesta
+      - empezar encuesta de satisfacción
+      - abrir encuesta
 
-- intent: affirm
-  examples: |
-    - sí
-    - correcto
-    - claro
-    - por supuesto
+  # ===== AUTENTICACIÓN =====
+  - intent: auth_login_cmd
+    examples: |
+      - iniciar sesión
+      - login
+      - abrir login
+      - quiero autenticarme
 
-- intent: deny
-  examples: |
-    - no
-    - incorrecto
-    - no quiero
-    - cancelado
+  - intent: enviar_credenciales
+    examples: |
+      - voy a iniciar sesión
+      - ingresar mis credenciales
+      - iniciar sesión ahora
+      - quiero iniciar sesión
 
-- intent: iniciar_encuesta
-  examples: |
-    - Quiero hacer una encuesta
-    - Me gustaría dar feedback
-    - Deseo evaluar el soporte
+  - intent: confirmar_autenticacion
+    examples: |
+      - ya inicié sesión
+      - listo, ya me autenticqué
+      - ya me logueé
+      - ya entré a la plataforma
+      - ya estoy autenticado
 
-- intent: necesita_humano
-  examples: |
-    - Necesito hablar con alguien
-    - Quiero un agente humano
-    - No entiendo, tráiganme un humano
+  - intent: deny
+    examples: |
+      - no
+      - no gracias
+      - mejor no
+      - negativo
+      - cancelar
 
-- intent: fallback
-  examples: |
-    - No entiendo
-    - Repite, por favor
-    - No sé cómo responder
- 
-- intent: estado_estudiante
-  examples: |
-    - ver mi estado académico
-    - estado del estudiante
-    - cómo voy en el curso
-    - dime mi estado
-    - quiero saber mi estado
+  - intent: affirm
+    examples: |
+      - sí
+      - correcto
+      - claro
+      - de acuerdo
+      - por supuesto
 
-- intent: enviar_credenciales
-  examples: |
-    - quiero iniciar sesión
-    - voy a iniciar sesión
-    - iniciar sesión ahora
-    - ingresar mis credenciales
-    - /auth_login_cmd
+  # ===== RECUPERACIÓN DE CONTRASEÑA =====
+  - intent: recuperar_contrasena
+    examples: |
+      - olvidé mi contraseña
+      - recuperar contraseña
+      - no recuerdo mi clave
+      - restablecer mi contraseña
+      - necesito recuperar el acceso
+      - no puedo entrar a mi cuenta
 
-- intent: confirmar_autenticacion
-  examples: |
-    - ya inicié sesión
-    - listo, ya me autenticqué
-    - ya me logueé
-    - ya entré a la plataforma
+  - intent: provide_email
+    examples: |
+      - mi correo es [usuario@ejemplo.com](email)
+      - mi email es [test@gmail.com](email)
+      - es [prueba@correo.com](email)
 
-- intent: recuperar_contrasena
-  examples: |
-    - olvidé mi contraseña
-    - recuperar contraseña
-    - no recuerdo mi clave
-    - restablecer mi contraseña
-    - necesito recuperar el acceso
+  # ===== CONSULTAS PROTEGIDAS =====
+  - intent: estado_estudiante
+    examples: |
+      - ver mi estado académico
+      - estado del estudiante
+      - cómo voy en el curso
+      - dime mi estado
+      - quiero saber mi estado
 
-- intent: solicitar_soporte
-  examples: |
-    - necesito soporte
-    - ayuda con un problema
-    - contactar a soporte
-    - abrir un ticket
-    - hablar con soporte
+  - intent: ver_certificados
+    examples: |
+      - ver mis certificados
+      - consultar certificados
+      - mostrar certificados
+      - descargar mis certificados
 
-- intent: affirm
-  examples: |
-    - sí
-    - correcto
-    - de acuerdo
-    - claro que sí
-    - afirmativo
-
-- intent: deny
-  examples: |
-    - no
-    - mejor no
-    - no gracias
-    - negativo
-    - ahora no
-
-- intent: necesita_humano
-  examples: |
-    - quiero hablar con un humano
-    - necesito un asesor
-    - pásame con una persona
-    - escalar a humano
-    - atención personalizada
-
-- intent: iniciar_encuesta
-  examples: |
-    - iniciar encuesta
-    - quiero responder la encuesta
-    - empezar encuesta de satisfacción
-    - abrir encuesta
+  # ===== FALLBACK =====
+  - intent: fallback
+    examples: |
+      - no entiendo
+      - repite, por favor
+      - no sé cómo responder

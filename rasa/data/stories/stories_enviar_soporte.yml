@@ -1,0 +1,9 @@
+# ruta: rasa/data/stories/stories_enviar_soporte.yml
+version: "3.1"
+
+stories:
+- story: Usuario pide enviar soporte
+  steps:
+    - intent: enviar_soporte
+    - action: action_enviar_soporte
+    - action: utter_soporte_creado
