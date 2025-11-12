@@ -91,3 +91,28 @@ class ActionRegistrarEncuesta(Action):
         dispatcher.utter_message(text="✅ Registro de satisfacción guardado y autosave completado.")
         _log(tracker.sender_id, "registrar_encuesta", "ok", {"intent": data["ultimo_intent"]})
         return []
+
+class ActionGuardarAutosave(Action):
+    def name(self) -> Text:
+        return "action_guardar_autosave"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[EventType]:
+        client = GuardianClient(
+            base_url="http://autosave-guardian:8080",
+            username="admin",
+            password="admin123",
+        )
+
+        # Datos mínimos a guardar
+        payload = {
+            "latest_intent": tracker.latest_message.get("intent", {}).get("name"),
+            "latest_text": tracker.latest_message.get("text"),
+            "slots": tracker.current_slot_values(),
+        }
+
+        ok = client.autosave_create(tracker.sender_id, payload)
+        if ok:
+            dispatcher.utter_message(text="Autosave guardado ✅")
+        else:
+            dispatcher.utter_message(text="No se pudo guardar el autosave ❌ (no bloqueante)")
+        return []

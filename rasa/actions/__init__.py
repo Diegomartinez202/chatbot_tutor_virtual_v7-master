@@ -13,7 +13,6 @@ from .acciones_soporte import (
     ValidateSoporteForm,
     ActionEnviarSoporte,
     ActionSoporteSubmit,
-    ActionSubmitSoporte,
     ActionDerivarYRegistrarHumano,
 )
 
@@ -45,14 +44,8 @@ from .acciones_academico import (
 from .acciones_encuesta import (
     ActionRegistrarEncuesta,
     ActionPreguntarResolucion,
-    ActionSetEncuestaTipo,
 )
 
-# Alias de compatibilidad por typo en nombre de archivo
-from .accines_encuesta import (  # noqa: F401
-    ActionRegistrarEncuesta as _AliasActionRegistrarEncuesta,
-    ActionPreguntarResolucion as _AliasActionPreguntarResolucion,
-)
 
 # ======= Menú / Acciones de acceso rápido =======
 from .acciones_menu import (
@@ -71,8 +64,8 @@ from .acciones_terminar_conversacion import (
 # ======= Cierre segura (otra variante) =======
 from .acciones_terminar_conversacion_segura import (
     ActionVerificarProcesoActivo,
-    ActionConfirmarCierre as ActionConfirmarCierreSegura,
-    ActionCancelarCierre as ActionCancelarCierreSegura,
+    ActionConfirmarCierreSeguroFinal,
+    ActionCancelarCierreSeguro
 )
 
 # ======= Cierre segura + autosave =======
@@ -80,7 +73,7 @@ from .acciones_terminar_conversacion_segura_autosave import (
     ActionVerificarProcesoActivoAutosave,
     ActionGuardarEncuestaIncompleta,
     ActionConfirmarCierreAutosave,
-    ActionCancelarCierre as ActionCancelarCierreAutosave,
+    ActionCancelarCierreAutosave,
 )
 
 # ======= Conversación segura (guardian/autosave) =======
@@ -89,15 +82,14 @@ from .acciones_conversacion_segura import (
     ActionGuardarProgresoConversacion,
     ActionTerminarConversacionSegura,
     ActionReanudarConversacionSegura,
+    ActionConfirmarCierreSeguro,
 )
 
-from .acciones_conversacion_segura import (
-    ActionConfirmarCierreSeguro,
-    ActionAutoSaveEncuesta,
-    ActionGuardarAutoSaveMongo,
-    ActionCargarAutoSaveMongo,
-    ActionAutoResumeConversacion,
-    ActionResetConversacionSegura,
+from .acciones_seguridad import (
+    ActionVerificarEstadoEncuesta,
+    ActionTerminarConversacionSegura,
+    ActionIrMenuPrincipal,
+    ActionGuardarProgresoEncuesta,
 )
 
 # ======= Sesión segura (eventos) =======
@@ -116,7 +108,8 @@ from .acciones_seguridad_guardian import (
     ActionGuardianPausar,
     ActionGuardianReanudar,
     ActionGuardianReset,
-    ActionRegistrarEncuesta as ActionRegistrarEncuestaGuardian,  # no pisa el otro
+    ActionRegistrarEncuesta, 
+    ActionGuardarAutosave,
 )
 
 # ======= Conversación persistente =======
@@ -144,8 +137,13 @@ from .acciones_handoff import (
     ActionCancelarDerivacion,
 )
 from .acciones_certificados import (
-    ActionConsultarCertificados,  # ← NUEVA
+    ActionConsultarCertificados,  
 )
+
+from .acciones_guardian import (
+    ActionAutosaveSnapshot,
+)
+
 __all__ = [
     # Validators
     "ValidateSoporteForm",
@@ -160,7 +158,6 @@ __all__ = [
     # Soporte
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",
-    "ActionSubmitSoporte",
     "ActionDerivarYRegistrarHumano",
 
     # Auth / gates y sync
@@ -183,7 +180,7 @@ __all__ = [
     # Encuesta / resolución (ambas referencias válidas)
     "ActionRegistrarEncuesta",
     "ActionPreguntarResolucion",
-    "ActionSetEncuestaTipo",
+    
 
     # Menú / accesos
     "ActionSetMenuPrincipal",
@@ -254,4 +251,6 @@ __all__ = [
     "ActionConsultarCertificados",   
     "ZajunaGetCertificados",
     "ZajunaGetEstadoEstudiante",
+
+    "ActionAutosaveSnapshot",
 ]

@@ -1,0 +1,10 @@
+action_endpoint:
+  url: "http://action-server:5055/webhook"
+
+tracker_store:
+  type: mongod
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
+
+assistant_id: "tutorbot-local"

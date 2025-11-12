@@ -12,7 +12,7 @@ WORKDIR /app
 # ✅ 2) Copiamos tus acciones y el entrypoint
 COPY actions /app/actions
 COPY actions/entrypoint.sh /entrypoint.sh
-
+COPY utils /app/utils 
 # ✅ 3) requirements opcional
 USER root
 RUN if [ -f /app/actions/requirements.txt ]; then \

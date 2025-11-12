@@ -18,12 +18,9 @@ COPY rasa_action_server/requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Acciones y utilidades
+# Código de acciones y utilidades
 COPY rasa/actions /app/actions
-COPY rasa/utils /app/utils
-
-# (opcional) si vas a correr también la API Flask en este mismo contenedor:
-# COPY rasa/api /app/api
+COPY rasa/utils   /app/utils
 
 RUN adduser --disabled-password --gecos "" --uid 10002 appuser && \
     chown -R appuser:appuser /app
@@ -32,7 +29,7 @@ USER appuser
 EXPOSE 5055
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -fsS http://localhost:5055/health || exit 1
+  CMD curl -fsS http://127.0.0.1:5055/health || exit 1
 
-# Mantengo tu CMD original
-CMD ["python", "-m", "rasa_sdk", "start", "--actions", "actions.actions", "--port", "5055"]
+# Arranque del Action Server (nota: --actions actions)
+CMD ["python", "-m", "rasa_sdk", "start", "--actions", "actions", "--port", "5055"]

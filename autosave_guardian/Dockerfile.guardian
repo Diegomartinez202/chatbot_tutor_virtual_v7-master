@@ -10,34 +10,29 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Sistema base (curl para healthcheck)
+# Dependencias de sistema mínimas
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Dependencias
+# ---- Dependencias Python (versiones fijas) ----
 COPY autosave_guardian/requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Copiamos SOLO la API (para imágenes ligeras)
-# Queda en /app/api/autosave_guardian_api.py
-COPY rasa/api /app/api
-
-# Usuario no-root
-RUN adduser --disabled-password --gecos "" --uid 10012 appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# ---- Tu código de la API ----
+# Estructura esperada:
+# autosave_guardian/
+#   ├─ app.py           (Flask app con /ping y endpoints JWT)
+#   └─ requirements.txt
+COPY autosave_guardian /app
 
 EXPOSE 8080
 
-# Healthcheck (gunicorn sirve en :8080)
+# Healthcheck robusto sin 'grep'
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -fsS http://localhost:8080/health || exit 1
+  CMD curl -fsS http://127.0.0.1:8080/ping || exit 1
 
-# Arranque con gunicorn
-# -C permite pasar config (si usas gunicorn_conf.py)
-# --chdir /app/api asegura que 'autosave_guardian_api:app' se resuelva
-CMD ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:8080", \
-     "--timeout", "30", "--access-logfile", "-", "--chdir", "/app/api", \
-     "autosave_guardian_api:app"]
+# Arranque con Gunicorn (producción)
+# -w 2 workers, --timeout 60s; ajusta según carga
+CMD ["gunicorn", "-w", "2", "--timeout", "60", "-b", "0.0.0.0:8080", "app:app"]

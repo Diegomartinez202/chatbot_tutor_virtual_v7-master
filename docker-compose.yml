@@ -18,12 +18,12 @@ services:
   # MongoDB (común a build/prod)
   # ------------------------------------------------------------
   mongo:
-   profiles: ["build","prod"]
+   profiles: ["build","prod","interactive"]
    image: mongo:6
    container_name: mongo
    restart: unless-stopped
    ports:
-     - "27017:27017"  # útil si quieres conectar desde Compass/host
+     - "27017:27017"  
    volumes:
      - mongo-data:/data/db
     # Si quieres inicializar índices/seed la primera vez:
@@ -70,10 +70,10 @@ services:
   # Rasa Action Server (build/prod)
   # ------------------------------------------------------------
   action-server:
-    profiles: ["build","prod"]
+    profiles: ["build", "prod", "interactive"]
     build:
-      context: ./rasa
-      dockerfile: actions/Dockerfile
+      context: .
+      dockerfile: rasa_action_server/Dockerfile
     container_name: action-server
     restart: unless-stopped
     env_file:
@@ -108,11 +108,13 @@ services:
       JWT_AUDIENCE: "${JWT_AUDIENCE}"
 
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     ports:
       - "5055:5055"
     volumes:
       - ./rasa/actions:/app/actions
+      - ./rasa/utils:/app/utils 
       - action-logs:/app/logs
     networks:
       - app-net
@@ -131,66 +133,89 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 30s
 
+   # ------------------------------------------------------------
+   # Rasa (build/prod) — Tracker en Mongo y arranque robusto
+   # ------------------------------------------------------------
   rasa:
-    profiles: ["build","prod"]
-    build:
-      context: ./rasa
-      dockerfile: Dockerfile
-    container_name: rasa
-    restart: unless-stopped
-    env_file:
-      - ./.env.local
-    environment:
-      ACTION_SERVER_URL: http://action-server:5055/webhook
-      RASA_PORT: "5005"
-      RASA_AUTOTRAIN: "true"
-      ENDPOINTS_TEMPLATE: "mongo"
-      RASA_MODEL: /app/models
-      TRACKER_MONGO_URL: "mongodb://mongo:27017"
-      TRACKER_MONGO_DB: "rasa"
-      RASA_MODELS_COLLECTION: "trained_models"
-      TRACKER_MONGO_COLLECTION: "conversations"
-      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
-      SQLALCHEMY_WARN_20: "0"
-      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
-    depends_on:
-      mongo:
-        condition: service_healthy
-      action-server:
-        condition: service_healthy
-    ports:
-      - "5005:5005"
-    networks:
-      - app-net
-    volumes:
-      - ./rasa:/app
-    entrypoint: ["/bin/sh","-lc"]
-    command: >-
-      printf '%s\n'
-      'action_endpoint:'
-      "  url: ${ACTION_SERVER_URL}"
-      ''
-      'tracker_store:'
-      '  type: rasa.core.tracker_store.MongoTrackerStore'
-      "  url: ${TRACKER_MONGO_URL}"
-      "  db: ${TRACKER_MONGO_DB}"
-      "  collection: ${TRACKER_MONGO_COLLECTION}"
-      ''
-      'assistant_id: "tutorbot-local"'
-      > /app/endpoints.yml
-      && echo '[rasa] endpoints.yml generado:' && cat /app/endpoints.yml && echo
-      && echo '[🚀] Iniciando Rasa con registro automático de modelos...'
-      && exec /entrypoint_with_log.sh
-    healthcheck:
-      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
-      interval: 30s
-      timeout: 5s
-      start_period: 600s
-      retries: 5
+      profiles: ["build","prod"]
+      build:
+        context: ./rasa
+        dockerfile: Dockerfile
+      container_name: rasa
+      restart: unless-stopped
+      env_file:
+        - ./.env.local
+      environment:
+        ACTION_SERVER_URL: http://action-server:5055/webhook
+        RASA_PORT: "5005"
+        RASA_AUTOTRAIN: "true"
+        ENDPOINTS_TEMPLATE: "mongo"
+        RASA_MODEL: /app/models
+        TRACKER_MONGO_URL: "mongodb://mongo:27017"
+        TRACKER_MONGO_DB: "rasa"
+        RASA_MODELS_COLLECTION: "trained_models"
+        TRACKER_MONGO_COLLECTION: "conversations"
+        SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+        SQLALCHEMY_WARN_20: "0"
+        RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+        TZ: America/Bogota
+      depends_on:
+        mongo:
+          condition: service_healthy
+        action-server:
+          condition: service_healthy
+      ports:
+        - "5005:5005"
+      networks:
+        - app-net
+      volumes:
+        - ./rasa:/app               # monta todo el proyecto rasa dentro de /app
+        - ./rasa/models:/app/models
+        - ./rasa/data:/app/data
+        - ./rasa/domain.yml:/app/domain.yml:ro
+        - ./rasa/config.yml:/app/config.yml:ro
+        - ./rasa/credentials.yml:/app/credentials.yml:ro
+      command: >
+        bash -lc "
+          set -euo pipefail;
+          # Generar endpoints.yml válido (tracker_store mongo)
+          cat > /app/endpoints.yml << 'YML'
+          action_endpoint:
+            url: ${ACTION_SERVER_URL}
 
+          tracker_store:
+            type: mongo
+            url: ${TRACKER_MONGO_URL}
+            db: ${TRACKER_MONGO_DB}
+            collection: ${TRACKER_MONGO_COLLECTION}
+          YML
 
+          echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+          echo '[🚀] Iniciando Rasa...';
+
+          # Si tu imagen tiene un entrypoint custom, úsalo.
+          # Si NO existe /entrypoint_with_log.sh, hacemos fallback a 'rasa run'.
+          if [ -x /entrypoint_with_log.sh ]; then
+            exec /entrypoint_with_log.sh --credentials /app/credentials.yml
+          else
+            exec rasa run \
+              --enable-api \
+              --cors "*" \
+              --endpoints /app/endpoints.yml \
+              --credentials /app/credentials.yml \
+              --debug
+          fi
+        "
+      healthcheck:
+        test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
+        interval: 30s
+        timeout: 5s
+        start_period: 60s
+        retries: 5
+
+                   
   # ------------------------------------------------------------
   # Rasa dev (Redis) — puerto distinto para no chocar con prod
   # ------------------------------------------------------------
@@ -315,36 +340,62 @@ services:
       ACTIONS_CORS: "*"
       RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
 
-  # ------------------------------------------------------------
-  # Rasa Action interactive
-  # ------------------------------------------------------------
-  rasa_interactive:
-      profiles: ["interactive"]   
-      image: ${RASA_IMAGE:-rasa/rasa:3.6.15-full}
-      working_dir: /app
-      command: >
-        bash -lc "
-        rasa interactive
-          --endpoints endpoints.yml
-          --config config.yml
-          --domain domain.yml
-          --debug
-         "
-      ports:
-       - "5005:5005"       
-      volumes:
-        - ./rasa:/app       
-      environment:
-      - TZ=America/Bogota
-      networks:
-        - app-net
-      tty: true          
-      stdin_open: true   
+   # ------------------------------------------------------------
+   # Rasa Interactive (perfil 'interactive')
+   # ------------------------------------------------------------
 
+  rasa_interactive:
+    profiles: ["interactive"]
+    image: rasa/rasa:3.6.20-full
+    container_name: rasa_interactive
+    working_dir: /app
+    depends_on:
+      mongo:
+        condition: service_healthy
+      action-server:
+        condition: service_started
+    environment:
+      TZ: America/Bogota
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+      TRACKER_MONGO_URL: mongodb://mongo:27017
+      TRACKER_MONGO_DB: rasa
+      TRACKER_MONGO_COLLECTION: conversations
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+    volumes:
+      - ./rasa:/app                 
+    ports:
+      - "5006:5005"
+    tty: true
+    stdin_open: true
+    entrypoint: ["/bin/bash", "-lc"]
+    command: |
+      echo "[interactive] 🧩 Generando endpoints.yml temporal..."
+      cat > /app/endpoints.yml <<'YML'
+      action_endpoint:
+        url: http://action-server:5055/webhook
+
+      tracker_store:
+        type: rasa.core.tracker_store.MongoTrackerStore
+        url: mongodb://mongo:27017
+        db: rasa
+        collection: conversations
+      YML
+
+      echo "[interactive] 🚀 Lanzando modo interactivo..."
+      exec rasa interactive \
+        --endpoints /app/endpoints.yml \
+        --config /app/config.yml \
+        --domain /app/domain.yml \
+        --debug \
+        --no-prompt \
+        --model /app/models  \
+        --port 5005
   # ------------------------------------------------------------
   # Rasa Action guardian (Flask API JWT + Mongo)
   # ------------------------------------------------------------
   autosave-guardian:
+    profiles: ["prod","interactive"]
     build:
       context: .
       dockerfile: autosave_guardian/Dockerfile.guardian
@@ -361,6 +412,8 @@ services:
     networks:
       - app-net
     restart: unless-stopped
+    ports:
+     - "8080:8080"
     expose:
       - "8080"          # ← visible dentro de app-net (Nginx lo ve)
     depends_on:
@@ -726,14 +779,19 @@ services:
       - app-net
 
   # ------------------------------------------------------------
-  # 🧩 Curación de datos: mueve interactive/ → data/ con dedup
+  # 🧩 Curación de datos Interactive → Data (deduplicación)
   # ------------------------------------------------------------
   rasa_merge_interactive:
     profiles: ["interactive"]
     image: ${RASA_IMAGE:-python:3.11-slim}
+    container_name: rasa_merge_interactive
     working_dir: /app
     command: >
-      bash -lc "python3 rasa/scripts/merge_interactive.py"
+      bash -lc "
+        echo '[merge_interactive] Iniciando proceso de curación de datos...';
+        python3 rasa/scripts/merge_interactive.py;
+        echo '[merge_interactive] Proceso completado ✅';
+      "
     volumes:
       - ./rasa:/app/rasa
     networks:

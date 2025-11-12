@@ -21,3 +21,4 @@ imports:
   - domain_parts/domain_menu_estado_certificados.yml
   - domain_parts/domain_menu_presentacion.yml
   - domain_parts/domain_handoff_responses.yml
+  - domain_parts/domain_guardian.yml
