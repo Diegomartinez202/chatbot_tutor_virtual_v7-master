@@ -1,3 +1,6 @@
+#\rasa\domain_parts\domain_sesion_segura.yml
+version: "3.1"
+
 intents:
   - notificar_desconexion
   - notificar_inactividad
@@ -5,12 +8,10 @@ intents:
   - guardar_estado_seguridad
   - recuperar_estado_seguridad
 
-actions:
-  - action_notificar_desconexion
-  - action_notificar_inactividad
-  - action_notificar_reconexion
-  - action_guardar_estado_seguridad
-  - action_recuperar_estado_seguridad
+slots:
+  evento_seguridad:
+    type: text
+    influence_conversation: true
 
 responses:
   utter_notificar_desconexion:
@@ -21,3 +22,11 @@ responses:
 
   utter_notificar_reconexion:
     - text: "🔄 Bienvenido de nuevo, restaurando tu sesión previa..."
+
+actions:
+  - action_notificar_desconexion
+  - action_notificar_inactividad
+  - action_notificar_reconexion
+  - action_guardar_estado_seguridad
+  - action_recuperar_estado_seguridad
+

@@ -1,3 +1,4 @@
+#\rasa\domain_parts\domain_menu_estado_certificados.yml
 version: "3.1"
 
 intents:
@@ -29,7 +30,7 @@ responses:
         - title: "🔐 Iniciar sesión"
           payload: "/auth_login_cmd"
         - title: "❌ Terminar conversación"
-          payload: "/terminar_conversacion"
+          payload: "/terminar_conversacion_segura_autosave"
 
   # 🔒 Petición de autenticación (con CTA)
   utter_pedir_autenticacion:

@@ -2,28 +2,44 @@
 version: "3.1"
 
 nlu:
-- intent: notificar_desconexion
-  examples: |
-    - el usuario cerró la ventana
-    - desconexión detectada
-    - cerró el navegador
-    - perdió conexión
+  - intent: terminar_conversacion_segura
+    examples: |
+      - quiero cerrar el chat pero guarda mi progreso
+      - cerrar conversación de forma segura
+      - terminar pero guardar lo que llevo
+      - salir y guardar la encuesta
+      - quiero terminar la conversación de forma segura
+      - finalizar pero que quede guardado
+      - cerrar chat con autosave
+      - terminar conversación segura
 
-- intent: notificar_reconexion
-  examples: |
-    - usuario reconectado
-    - reanudó sesión
-    - volvió al chat
-    - regresó después de desconexión
+  - intent: confirmar_cierre_segura
+    examples: |
+      - sí, ciérralo y guarda
+      - sí, terminar y guardar
+      - confirmo el cierre
+      - sí, termina la conversación
+      - ok, cierra por favor
+      - sí deseo salir
+      - está bien, termina
+      - confirma el cierre
 
-- intent: notificar_inactividad
-  examples: |
-    - usuario inactivo
-    - lleva tiempo sin responder
-    - inactividad detectada
+  - intent: cancelar_cierre_segura
+    examples: |
+      - no, mejor sigo
+      - no quiero cerrar
+      - cancela el cierre
+      - aún no quiero salir
+      - continuar en el chat
+      - seguir con la conversación
+      - no cerrar todavía
+      - prefiero seguir
 
-- intent: reanudar_sesion_guardada
-  examples: |
-    - restaurar sesión
-    - cargar sesión anterior
-    - reanudar autosave
+  - intent: ir_menu_principal
+    examples: |
+      - volver al menú principal
+      - ir al menú
+      - regresar al menú
+      - mostrar menú principal
+      - ir al inicio
+      - muéstrame el menú

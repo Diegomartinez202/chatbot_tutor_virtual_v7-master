@@ -1,5 +1,6 @@
 #\rasa\data\nlu\nlu_sesion_segura.yml
 version: "3.1"
+
 nlu:
   - intent: notificar_desconexion
     examples: |
@@ -33,3 +34,4 @@ nlu:
       - Recupera mi sesión
       - Restaura el progreso
       - Carga el estado anterior
+

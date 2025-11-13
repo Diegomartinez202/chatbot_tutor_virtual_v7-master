@@ -1,3 +1,4 @@
+#\rasa\data\nlu\nlu_menu_estado_certificados.yml
 version: "3.1"
 nlu:
   - intent: ver_estado_estudiante

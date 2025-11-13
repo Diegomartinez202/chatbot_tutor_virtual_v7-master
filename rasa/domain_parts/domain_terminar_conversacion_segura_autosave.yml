@@ -1,0 +1,59 @@
+version: "3.1"
+
+intents:
+  - terminar_conversacion_segura_autosave
+  - confirmar_cierre_autosave
+  - cancelar_cierre_autosave
+
+slots:
+  # Indica si hay un proceso "largo" o transacción en curso
+  proceso_activo:
+    type: text
+    influence_conversation: true
+    initial_value: null
+
+  # Marca si hay una encuesta sin terminar
+  encuesta_incompleta:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+
+  # Reutilizamos estos (de tu otro módulo), pero los definimos igual
+  session_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: true
+
+  confirmacion_cierre:
+    type: text
+    influence_conversation: true
+    initial_value: null
+
+responses:
+  # Cuando hay encuesta incompleta y se va a cerrar
+  utter_confirmar_cierre_con_autosave:
+    - text: "Tienes una encuesta sin terminar. ¿Deseas guardar tu progreso y cerrar la conversación?"
+      buttons:
+        - title: "Sí, guardar y cerrar"
+          payload: "/confirmar_cierre_autosave"
+        - title: "No, continuar"
+          payload: "/cancelar_cierre_autosave"
+
+  # Cuando hay algún proceso activo (pero no necesariamente encuesta)
+  utter_confirmar_cierre_seguro:
+    - text: "Tienes un proceso activo. ¿Seguro que quieres cerrar ahora?"
+      buttons:
+        - title: "Sí, cerrar"
+          payload: "/confirmar_cierre_autosave"
+        - title: "No, continuar"
+          payload: "/cancelar_cierre_autosave"
+
+  # Cuando no hay nada pendiente pero quieres diferenciar el copy
+  utter_despedida_sin_guardar:
+    - text: "La conversación se cerró sin guardar progreso adicional. Puedes volver cuando quieras. 👋"
+
+actions:
+  - action_verificar_proceso_activo_autosave
+  - action_guardar_encuesta_incompleta
+  - action_confirmar_cierre_autosave
+  - action_cancelar_cierre_autosave

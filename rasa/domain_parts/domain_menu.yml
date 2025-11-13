@@ -39,9 +39,6 @@ responses:
         - title: "No, volver al menú principal"
           payload: "/ir_menu_principal"
 
-  utter_fallback:
-    - text: "Lo siento, no entendí eso. Por favor selecciona una opción del menú principal."
-
 actions:
   - action_set_menu_principal
   - action_ver_estado_estudiante

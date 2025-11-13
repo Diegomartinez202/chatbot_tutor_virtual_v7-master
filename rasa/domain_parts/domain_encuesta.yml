@@ -17,6 +17,7 @@ intents:
   - continue
   - affirm
   - deny
+  
 
 entities:
   - satisfaccion
@@ -65,6 +66,8 @@ responses:
           payload: "/respuesta_insatisfecho{'nivel_satisfaccion': 'regular'}"
         - title: "😞 Mala"
           payload: "/respuesta_insatisfecho{'nivel_satisfaccion': 'mala'}"
+        - title: "💾 Terminar y guardar progreso"
+          payload: "/terminar_conversacion_segura_autosave"
 
   # --- Encuesta positiva ---
   utter_agradecer_satisfaccion:
@@ -75,6 +78,8 @@ responses:
           payload: "/dar_retroalimentacion"
         - title: "🏠 Volver al menú principal"
           payload: "/ir_menu_principal"
+        - title: "💾 Terminar y guardar progreso"
+          payload: "/terminar_conversacion_segura_autosave"
 
   utter_pedir_retroalimentacion:
     - text: "Por favor, cuéntanos brevemente qué te gustó o qué podríamos mejorar ✍️"
@@ -87,6 +92,8 @@ responses:
           payload: "/ir_menu_principal"
         - title: "👋 Terminar conversación"
           payload: "/terminar_conversacion"
+        - title: "💾 Terminar y guardar progreso"
+          payload: "/terminar_conversacion_segura_autosave"
 
   # --- Encuesta negativa ---
   utter_lamentar_insatisfaccion:
@@ -97,6 +104,8 @@ responses:
           payload: "/contactar_tutor"
         - title: "🏠 Volver al menú principal"
           payload: "/ir_menu_principal"
+        - title: "💾 Terminar y guardar progreso"
+          payload: "/terminar_conversacion_segura_autosave"
 
   # Alias usados por reglas/historias
   utter_agradecimiento_satisfaccion:
@@ -114,10 +123,12 @@ responses:
   utter_ofrecer_continuar:
     - text: "¿Deseas realizar otra consulta o volver al menú principal?"
       buttons:
-        - title: "Volver al menú principal"
+        - title: "🏠 Volver al menú principal"
           payload: "/ir_menu_principal"
-        - title: "Finalizar conversación"
+        - title: "👋 Finalizar conversación"
           payload: "/terminar_conversacion"
+        - title: "💾 Terminar y guardar progreso"
+          payload: "/terminar_conversacion_segura_autosave"
 
   utter_despedida_final:
     - text: "✨ Gracias por usar el Asistente Virtual Zajuna. ¡Hasta pronto! 👋"
@@ -136,7 +147,13 @@ responses:
 
   utter_gracias_feedback:
     - text: "¡Gracias por compartir tu opinión! 💬 Valoramos mucho tus comentarios."
-
+  utter_agradecimiento_final:
+    - text: "✨ Agradecemos tu tiempo y confianza. Si más adelante necesitas asistencia, estaremos encantados de ayudarte nuevamente. ¡Hasta pronto!"
+      buttons:
+        - title: "💾 Terminar guardando conversación"
+          payload: "/terminar_conversacion_segura_autosave"
+        - title: "🏠 Volver al menú"
+          payload: "/ir_menu_principal"
 actions:
   - action_registrar_encuesta
   - action_guardar_feedback
@@ -144,7 +161,7 @@ actions:
   - action_preguntar_resolucion
   - action_set_encuesta_tipo
   - validate_encuesta_satisfaccion_form
-
+ 
 forms:
   feedback_form:
     required_slots:

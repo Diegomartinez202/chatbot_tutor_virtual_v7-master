@@ -1,0 +1,23 @@
+version: "3.1"
+
+rules:
+
+  - rule: Reiniciar conversación (admin)
+    steps:
+      - intent: reiniciar_conversacion
+      - action: action_reiniciar_conversacion
+
+  - rule: Limpiar sesión (alias de reinicio)
+    steps:
+      - intent: limpiar_sesion
+      - action: action_reiniciar_conversacion
+
+  - rule: Mostrar token admin
+    steps:
+      - intent: mostrar_token
+      - action: action_mostrar_token
+
+  - rule: Ping servidor admin
+    steps:
+      - intent: ping_servidor
+      - action: action_ping_servidor

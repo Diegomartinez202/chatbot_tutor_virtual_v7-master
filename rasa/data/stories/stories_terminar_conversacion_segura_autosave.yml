@@ -1,0 +1,29 @@
+version: "3.1"
+
+stories:
+
+  - story: Cierre seguro con encuesta incompleta
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: action_verificar_proceso_activo_autosave
+      - slot_was_set:
+          - encuesta_incompleta: true
+      - intent: confirmar_cierre_autosave
+      - action: action_guardar_encuesta_incompleta
+      - action: action_confirmar_cierre_autosave
+
+  - story: Cierre seguro sin encuesta incompleta
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: action_verificar_proceso_activo_autosave
+      - slot_was_set:
+          - encuesta_incompleta: false
+      - intent: confirmar_cierre_autosave
+      - action: action_confirmar_cierre_autosave
+
+  - story: Usuario cancela el cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: action_verificar_proceso_activo_autosave
+      - intent: cancelar_cierre_autosave
+      - action: action_cancelar_cierre_autosave

@@ -24,5 +24,6 @@ rules:
 
   - rule: Cancelar o fallback de cierre
     steps:
-      - intent: fallback
+      - intent: nlu_fallback
       - action: utter_fallback
+

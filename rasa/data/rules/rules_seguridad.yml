@@ -3,20 +3,21 @@ version: "3.1"
 
 rules:
 
-- rule: Guardar autosave al detectar desconexión
-  steps:
-    - intent: notificar_desconexion
-    - action: action_notificar_desconexion
-    - action: action_guardar_estado_seguridad
+  # 1) El usuario pide terminar de forma segura
+  - rule: Verificar estado de encuesta antes de cerrar
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_verificar_estado_encuesta
 
-- rule: Guardar autosave al detectar inactividad
-  steps:
-    - intent: notificar_inactividad
-    - action: action_notificar_inactividad
-    - action: action_guardar_estado_seguridad
+  # 2) El usuario confirma que quiere cerrar (si había algo activo, se guarda)
+  - rule: Confirmar cierre seguro y guardar progreso
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: action_guardar_progreso_encuesta
+      - action: action_terminar_conversacion_segura
 
-- rule: Recuperar sesión al reconectarse
-  steps:
-    - intent: notificar_reconexion
-    - action: action_notificar_reconexion
-    - action: action_recuperar_estado_seguridad
+  # 3) El usuario cancela el cierre seguro → volver al menú principal
+  - rule: Cancelar cierre seguro y volver al menú
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: action_ir_menu_principal

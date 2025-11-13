@@ -18,14 +18,16 @@ from .acciones_soporte import (
 
 # ======= Autenticación =======
 from .acciones_autenticacion import (
-    ValidateRecoveryForm,
+    ValidatePasswordRecoveryForm,
     ActionCheckAuth,
-    ActionCheckAuthEstado,
-    ActionSyncAuthFromMetadata,
+    ActionIngresoZajuna,
     ActionSetAuthenticatedTrue,
-    ActionMarkAuthenticated,
-    ActionNecesitaAuth,
-    ActionSubmitRecovery,
+    ActionRecuperarContrasena,
+    ActionEnviarCorreoRecuperacion,
+    ActionEnviarSoporte,
+    ActionDerivarYRegistrarHumano,
+    ActionConectarHumano,
+    ActionPreguntarResolucion,
 )
 
 # ======= Académico =======
@@ -78,18 +80,21 @@ from .acciones_terminar_conversacion_segura_autosave import (
 
 # ======= Conversación segura (guardian/autosave) =======
 from .acciones_conversacion_segura import (
-    ActionVerificarEstadoConversacion,
-    ActionGuardarProgresoConversacion,
-    ActionTerminarConversacionSegura,
-    ActionReanudarConversacionSegura,
+    ActionResetConversacionSegura,
+    ActionAutoresumeConversacion,
+    ActionCargarAutosaveMongo,
+    ActionGuardarAutosaveMongo,
+    ActionAutosaveEncuesta,
     ActionConfirmarCierreSeguro,
+
+
 )
 
 from .acciones_seguridad import (
     ActionVerificarEstadoEncuesta,
+    ActionGuardarProgresoEncuesta,
     ActionTerminarConversacionSegura,
     ActionIrMenuPrincipal,
-    ActionGuardarProgresoEncuesta,
 )
 
 # ======= Sesión segura (eventos) =======
@@ -131,7 +136,7 @@ from .acciones_handoff import (
     ActionRegistrarIntentoForm,
     ActionVerificarMaxIntentosForm,
     ActionOfrecerHumano,
-    ActionDerivarYRegistrarHumano as ActionDerivarYRegistrarHumano_HandoffAlias,
+    ActionDerivarYRegistrarHumano,
     ActionHandoffCancelar,
     ActionDerivarHumanoConfirmada,
     ActionCancelarDerivacion,
@@ -145,6 +150,14 @@ from .acciones_guardian import (
 )
 from .acciones_enviar_soporte import (
     ActionEnviarSoporte,
+)
+from .acciones_menu_estado_certificados import (
+    ActionConsultarCertificados,
+)
+from .acciones_admin import (
+    ActionReiniciarConversacion,
+    ActionMostrarToken,
+    ActionPingServidor,
 )
 
 __all__ = [
@@ -245,17 +258,20 @@ __all__ = [
     "ActionHandoffCancelar",
 
     "ActionConfirmarCierre",
-    "ActionFinalizarConversacion",
     "ActionCancelarCierre",
-    
  
     "ActionDerivarHumanoConfirmada",
     "ActionCancelarDerivacion",
-    "ActionConsultarCertificados",   
     "ZajunaGetCertificados",
     "ZajunaGetEstadoEstudiante",
 
     "ActionAutosaveSnapshot",
+        
+    "ValidatePasswordRecoveryForm",
+    "ActionEnviarCorreoRecuperacion",
+    "ActionPreguntarResolucion",
 
-    "ActionEnviarSoporte",
+    "ActionReiniciarConversacion",
+    "ActionMostrarToken",
+    "ActionPingServidor",
 ]

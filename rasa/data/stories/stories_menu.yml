@@ -1,5 +1,4 @@
-#\rasa\data\stories\stories_menu.yml
-version: "3.3"
+version: "3.1"
 
 stories:
   - story: usuario va al menú principal
@@ -8,30 +7,7 @@ stories:
       - action: action_set_menu_principal
       - action: utter_menu_principal
 
-  - story: usuario quiere ver estado estudiante autenticado
+  - story: usuario ve menú en saludo
     steps:
-      - slot_was_set:
-          - is_authenticated: true
-      - intent: ver_estado_estudiante
-      - action: action_ver_estado_estudiante
-
-  - story: usuario quiere ver estado estudiante no autenticado
-    steps:
-      - slot_was_set:
-          - is_authenticated: false
-      - intent: ver_estado_estudiante
-      - action: utter_login_requerido
-
-  - story: usuario consulta certificados autenticado
-    steps:
-      - slot_was_set:
-          - is_authenticated: true
-      - intent: consultar_certificados
-      - action: action_consultar_certificados
-
-  - story: usuario consulta certificados no autenticado
-    steps:
-      - slot_was_set:
-          - is_authenticated: false
-      - intent: consultar_certificados
-      - action: utter_login_requerido
+      - intent: saludo
+      - action: utter_menu_principal

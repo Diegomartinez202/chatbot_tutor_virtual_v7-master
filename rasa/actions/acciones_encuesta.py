@@ -35,7 +35,9 @@ class ActionRegistrarEncuesta(Action):
         _append_jsonl(registro)
 
         dispatcher.utter_message(text="✅ Registro de satisfacción guardado correctamente.")
-        return []
+        return [
+            SlotSet("encuesta_incompleta", False),
+            SlotSet("proceso_activo", None),]
 
 class ActionGuardarFeedback(Action):
     def name(self) -> str:
@@ -56,9 +58,12 @@ class ActionPreguntarResolucion(Action):
     def name(self) -> str:
         return "action_preguntar_resolucion"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]) -> List[EventType]:
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]) -> List[Dict[str, Any]]:
         dispatcher.utter_message(response="utter_esta_resuelto")
-        return []
+        return [
+            SlotSet("encuesta_incompleta", True),
+            SlotSet("proceso_activo", "encuesta_satisfaccion"),
+        ]
 
 class ActionSetEncuestaTipo(Action):
     def name(self) -> Text: 

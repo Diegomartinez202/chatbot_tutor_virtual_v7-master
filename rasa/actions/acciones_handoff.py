@@ -105,3 +105,16 @@ class ActionCancelarDerivacion(Action):
     ) -> List[EventType]:
         dispatcher.utter_message(response="utter_derivacion_cancelada")
         return [SlotSet("derivacion_humano", False)]
+
+class ActionDerivarYRegistrarHumano(Action):
+    def name(self) -> Text:
+        return "action_derivar_y_registrar_humano"
+
+    def run(self, dispatcher, tracker, domain) -> List[EventType]:
+        dispatcher.utter_message(response="utter_derivando_humano")
+        return [
+            SlotSet("derivacion_humano", True),
+            SlotSet("proceso_activo", "soporte_humano"),
+            SlotSet("derivacion_humano", False),
+            SlotSet("proceso_activo", None),
+        ]

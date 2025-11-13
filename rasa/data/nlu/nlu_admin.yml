@@ -1,0 +1,32 @@
+version: "3.1"
+
+nlu:
+  - intent: reiniciar_conversacion
+    examples: |
+      - reiniciar conversación
+      - reinicia el chat
+      - resetear conversación
+      - limpiar todo
+      - empezar desde cero
+
+  - intent: limpiar_sesion
+    examples: |
+      - limpiar sesión
+      - borrar contexto
+      - eliminar datos de sesión
+      - limpiar estado del chat
+
+  - intent: mostrar_token
+    examples: |
+      - muéstrame mi token
+      - cuál es mi token
+      - ver token actual
+      - mostrar identificador de usuario
+
+  - intent: ping_servidor
+    examples: |
+      - ping
+      - probar servidor
+      - está vivo el bot
+      - verificar servidor
+      - prueba de conexión

@@ -1,5 +1,5 @@
-#\rasa\data\nlu\nlu_seguridad_guardian.yml
 version: "3.1"
+
 nlu:
 - intent: guardian_pausar_conversacion
   examples: |
@@ -7,11 +7,13 @@ nlu:
     - cerrar chat
     - terminar por ahora
     - guarda y pausa
+
 - intent: guardian_reanudar_conversacion
   examples: |
     - reanudar
     - continuar donde iba
     - retomar conversación
+
 - intent: guardian_guardar_progreso
   examples: |
     - guarda mi progreso

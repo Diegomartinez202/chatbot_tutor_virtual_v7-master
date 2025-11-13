@@ -1,39 +1,50 @@
 version: "3.1"
 
-imports:
-  - domain_conversacion_segura.yml
-
 intents:
-  - notificar_desconexion
-  - notificar_reconexion
-  - notificar_inactividad
-  - reanudar_sesion_guardada
-
-entities:
-  - evento_seguridad
-  - tiempo_inactividad
+  - terminar_conversacion_segura
+  - confirmar_cierre_segura
+  - cancelar_cierre_segura
+  - ir_menu_principal
 
 slots:
-  evento_seguridad:
-    type: text
+  encuesta_activa:
+    type: bool
     influence_conversation: true
-  tiempo_inactividad:
-    type: float
-    influence_conversation: false
+    initial_value: false
 
 responses:
-  utter_notificar_desconexion:
-    - text: "He detectado que la sesión se ha cerrado inesperadamente. Guardaré tu progreso antes de salir."
-  utter_notificar_inactividad:
-    - text: "Parece que llevas un tiempo inactivo. Guardaré tu avance temporalmente."
-  utter_notificar_reconexion:
-    - text: "Bienvenido de nuevo 👋. He restaurado tu conversación previa desde el guardado automático."
-  utter_reanudar_sesion_guardada:
-    - text: "Tu sesión fue recuperada desde el último autosave."
+  # Confirmación de cierre seguro (la usa ActionVerificarEstadoEncuesta)
+  utter_confirmar_cierre:
+    - text: "Tienes una encuesta o proceso activo. ¿Deseas cerrar la conversación y guardar tu progreso?"
+      buttons:
+        - title: "✅ Sí, cerrar y guardar"
+          payload: "/confirmar_cierre_segura"
+        - title: "↩️ No, continuar"
+          payload: "/cancelar_cierre_segura"
+
+  # Cierre confirmado (la usa ActionVerificarEstadoEncuesta y ActionTerminarConversacionSegura)
+  utter_cierre_confirmado:
+    - text: "✅ Conversación finalizada de forma segura. ¡Gracias por usar el asistente Zajuna! 🌟"
+
+  # Mensaje mientras se guarda el progreso (la usa ActionGuardarProgresoEncuesta)
+  utter_guardando_progreso:
+    - text: "💾 Guardando tu progreso antes de cerrar la conversación…"
+
+  # Menú principal básico (lo usa ActionIrMenuPrincipal; si ya tienes uno, puedes borrar este bloque)
+  utter_menu_principal:
+    - text: "🏠 Volvemos al menú principal. ¿Qué deseas hacer ahora?"
+      buttons:
+        - title: "🎓 Ver estado académico"
+          payload: "/ver_estado_estudiante"
+        - title: "📜 Consultar certificados"
+          payload: "/consultar_certificados"
+        - title: "🛠️ Soporte"
+          payload: "/solicitar_soporte"
+        - title: "❌ Terminar conversación"
+          payload: "/terminar_conversacion_segura"
 
 actions:
-  - action_guardar_estado_seguridad
-  - action_recuperar_estado_seguridad
-  - action_notificar_desconexion
-  - action_notificar_inactividad
-  - action_notificar_reconexion
+  - action_verificar_estado_encuesta
+  - action_guardar_progreso_encuesta
+  - action_terminar_conversacion_segura
+  - action_ir_menu_principal

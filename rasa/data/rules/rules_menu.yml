@@ -1,66 +1,16 @@
-#\rasa\data\rules\rules_menu.yml
 version: "3.1"
+
 rules:
 
-  - rule: Ver estado estudiante (autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: ver_estado_estudiante
-      - action: action_ver_estado_estudiante
-
-  - rule: Ver estado estudiante (NO autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: ver_estado_estudiante
-      - action: utter_login_requerido
-
-  # Soporta también el otro intent usado en tus historias
-  - rule: Consultar estado (autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: consultar_estado_estudiante
-      - action: zajuna_get_estado_estudiante
-
-  - rule: Consultar estado (NO autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: consultar_estado_estudiante
-      - action: utter_pedir_autenticacion
-
-  - rule: Consultar certificados (autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: true
-    steps:
-      - intent: consultar_certificados
-      - action: action_consultar_certificados
-
-  - rule: Consultar certificados (NO autenticado)
-    condition:
-      - slot_was_set:
-          - is_authenticated: false
-    steps:
-      - intent: consultar_certificados
-      - action: utter_login_requerido
-
+  # Mostrar menú principal cuando el usuario saluda
   - rule: Mostrar menú principal al saludo
     steps:
       - intent: saludo
       - action: utter_menu_principal
 
-  - rule: Terminar conversación segura
-    steps:
-      - intent: terminar_conversacion
-      - action: action_guardian_pausar
-  - rule: Mostrar menú quick
+  # Volver al menú principal cuando el usuario lo pide
+  - rule: Ir al menú principal
     steps:
       - intent: ir_menu_principal
-      - action: utter_menu_principal_quick
+      - action: action_set_menu_principal
+      - action: utter_menu_principal

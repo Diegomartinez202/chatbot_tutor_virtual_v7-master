@@ -1,4 +1,10 @@
+#\rasa\domain_parts\domain_seguridad_guardian.yml
 version: "3.1"
+
+intents:
+  - guardian_pausar_conversacion
+  - guardian_reanudar_conversacion
+  - guardian_guardar_progreso
 
 slots:
   encuesta_activa:
@@ -11,8 +17,10 @@ slots:
 responses:
   utter_guardando_progreso:
     - text: "💾 Guardando tu progreso…"
+
   utter_confirmar_cierre:
     - text: "Tienes un proceso pendiente. ¿Seguro deseas cerrar?"
+
   utter_cierre_confirmado:
     - text: "✅ Conversación pausada de forma segura. Puedes retomarla cuando quieras."
 

@@ -1,4 +1,4 @@
-# ============================================================
+# ============================================================ 
 # 🧩 DOMAIN ADMIN - Tutor Virtual Zajuna
 # Comandos internos y mantenimiento de sesión
 # ============================================================
@@ -11,11 +11,18 @@ intents:
   - mostrar_token
   - ping_servidor
 
+slots:
+  user_token:
+    type: text
+    influence_conversation: false
+
 responses:
   utter_reinicio_confirmado:
     - text: "🧹 La sesión ha sido reiniciada correctamente."
+
   utter_token_actual:
     - text: "🔑 Tu token actual es: {user_token}"
+
   utter_ping_ok:
     - text: "✅ El servidor está activo y respondiendo correctamente."
 

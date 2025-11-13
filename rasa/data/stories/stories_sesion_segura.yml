@@ -1,5 +1,6 @@
 #\rasa\data\stories\stories_sesion_segura.yml
 version: "3.1"
+
 stories:
 
 - story: Guardado automático por desconexión
@@ -14,8 +15,19 @@ stories:
     - action: action_notificar_inactividad
     - action: action_guardar_estado_seguridad
 
-- story: Recuperación de sesión
+- story: Recuperación de sesión automática
   steps:
     - intent: notificar_reconexion
     - action: action_notificar_reconexion
     - action: action_recuperar_estado_seguridad
+
+- story: Guardado manual del estado
+  steps:
+    - intent: guardar_estado_seguridad
+    - action: action_guardar_estado_seguridad
+
+- story: Recuperación manual del estado
+  steps:
+    - intent: recuperar_estado_seguridad
+    - action: action_recuperar_estado_seguridad
+

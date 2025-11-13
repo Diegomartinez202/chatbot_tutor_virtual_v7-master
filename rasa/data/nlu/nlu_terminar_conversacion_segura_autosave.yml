@@ -1,0 +1,32 @@
+version: "3.1"
+
+nlu:
+  - intent: terminar_conversacion_segura_autosave
+    examples: |
+      - quiero cerrar el chat de forma segura
+      - terminar conversación pero guardando progreso
+      - salir y guardar lo que llevo
+      - pausar conversación con autosave
+      - quiero terminar pero guarda mi progreso
+      - cerrar sesión con autosave
+      - terminar ahora pero sin perder la encuesta
+
+  - intent: confirmar_cierre_autosave
+    examples: |
+      - sí, cerrar y guardar
+      - confirmar cierre con autosave
+      - sí, termina de forma segura
+      - ok, cierra la sesión
+      - sí, terminar ahora
+      - correcto, finalizar todo
+      - confirma el cierre por favor
+
+  - intent: cancelar_cierre_autosave
+    examples: |
+      - no, mejor seguimos
+      - no quiero cerrar todavía
+      - cancela el cierre seguro
+      - quiero continuar con la conversación
+      - no, continuar con el chat
+      - aún no quiero salir
+      - sigamos hablando

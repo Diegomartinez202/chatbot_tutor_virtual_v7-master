@@ -18,3 +18,5 @@ from .acciones_seguridad import *
 from .acciones_certificados import *
 from .acciones_guardian import *
 from .acciones_enviar_soporte import *
+from .acciones_menu_estado_certificados import *
+from .acciones_admin import *
