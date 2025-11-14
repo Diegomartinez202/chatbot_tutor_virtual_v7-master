@@ -172,7 +172,7 @@ services:
       networks:
         - app-net
       volumes:
-        - ./rasa:/app               # monta todo el proyecto rasa dentro de /app
+        - ./rasa:/app               
         - ./rasa/models:/app/models
         - ./rasa/data:/app/data
         - ./rasa/domain.yml:/app/domain.yml:ro
@@ -362,6 +362,12 @@ services:
       SQLALCHEMY_WARN_20: "0"
     volumes:
       - ./rasa:/app
+      - ./rasa/domain:/app/domain
+      - ./rasa/data:/app/data
+      - ./rasa/models:/app/models
+      - ./rasa/config.yml:/app/config.yml:ro
+      - ./rasa/credentials.yml:/app/credentials.yml:ro
+      - ./rasa/data/interactive:/app/data/interactive
     ports:
       - "5006:5005"
     tty: true

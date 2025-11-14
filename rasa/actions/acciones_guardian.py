@@ -1,4 +1,3 @@
-# rasa/actions/guardian_actions.py
 from __future__ import annotations
 
 from typing import Any, Dict, List, Text
@@ -28,7 +27,6 @@ class ActionAutosaveSnapshot(Action):
             max_retries=2,
         )
 
-        # datos simples de ejemplo
         data = {
             "latest_intent": tracker.latest_message.get("intent", {}).get("name"),
             "slots": tracker.current_slot_values(),
@@ -42,7 +40,9 @@ class ActionAutosaveSnapshot(Action):
         else:
             dispatcher.utter_message(text="⚠️ No fue posible guardar el snapshot.")
 
-        # También podrías loggear un evento (no bloqueante para UX)
-        gc.log_event("action_autosave_snapshot_called", {"sender_id": tracker.sender_id})
+        gc.log_event(
+            "action_autosave_snapshot_called",
+            {"sender_id": tracker.sender_id},
+        )
 
         return []

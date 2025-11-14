@@ -1,4 +1,3 @@
-#\rasa\data\rules\rules_seguridad.yml
 version: "3.1"
 
 rules:

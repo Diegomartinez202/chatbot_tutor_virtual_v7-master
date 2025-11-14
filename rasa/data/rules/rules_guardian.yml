@@ -1,0 +1,13 @@
+version: "3.1"
+
+rules:
+
+  - rule: Guardar snapshot manual (Guardian)
+    steps:
+      - intent: guardar_snapshot
+      - action: action_autosave_snapshot
+
+  - rule: Ayuda sobre Guardian
+    steps:
+      - intent: ayuda_guardian
+      - action: utter_guardian_help

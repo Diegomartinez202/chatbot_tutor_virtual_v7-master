@@ -1,4 +1,3 @@
-# rasa/actions/acciones_admin.py
 from __future__ import annotations
 from typing import Any, Dict, List, Text
 
@@ -20,13 +19,21 @@ class ActionReiniciarConversacion(Action):
         """
         Reinicio "lógico" de la conversación:
         - Aquí podrías limpiar slots críticos.
-        - Por ahora solo enviamos el mensaje de confirmación.
+        - Por ahora enviamos un mensaje y reseteamos algunos básicos.
         """
         dispatcher.utter_message(response="utter_reinicio_confirmado")
 
-        # Si quieres resetear slots concretos, los pones aquí:
-        return [SlotSet("session_activa", True), SlotSet("encuesta_incompleta", False), ...]
-        return []
+        events: List[EventType] = [
+            SlotSet("session_activa", True),
+            SlotSet("encuesta_incompleta", False),
+            SlotSet("proceso_activo", None),
+            SlotSet("confirmacion_cierre", None),
+        ]
+
+        # Aquí podrías añadir más SlotSet si lo necesitas, por ejemplo:
+        # events.append(SlotSet("is_authenticated", False))
+
+        return events
 
 
 class ActionMostrarToken(Action):

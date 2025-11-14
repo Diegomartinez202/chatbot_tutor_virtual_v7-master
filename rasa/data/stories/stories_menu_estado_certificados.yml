@@ -1,5 +1,5 @@
-#\rasa\data\stories\stories_menu_estado_certificados.yml
 version: "3.1"
+
 stories:
   - story: Flujo ver estado autenticado
     steps:

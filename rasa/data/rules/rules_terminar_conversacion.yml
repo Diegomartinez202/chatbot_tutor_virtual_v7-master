@@ -1,4 +1,3 @@
-#\rasa\data\rules\rules_terminar_conversacion.yml
 version: "3.3"
 
 rules:

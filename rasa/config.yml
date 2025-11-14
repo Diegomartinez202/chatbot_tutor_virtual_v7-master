@@ -37,6 +37,13 @@ pipeline:
     # Umbral más permisivo para reducir “no entendí”
     threshold: 0.40
     ambiguity_threshold: 0.05
+  - name: SpacyNLP
+    model: es_core_news_md
+  - name: SpacyTokenizer
+  - name: SpacyFeaturizer
+ 
+ 
+  
 
 # ============================================
 # 🧠 POLÍTICAS DE DECISIÓN (CORE)

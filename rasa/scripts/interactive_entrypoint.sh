@@ -13,24 +13,44 @@ tracker_store:
   collection: conversations
 YML
 
-echo "[interactive] 🔎 Comprobando rutas..."
+echo "[interactive] 🔎 Comprobando rutas requeridas..."
 [ -f /app/config.yml ] || { echo "❌ Falta /app/config.yml"; exit 1; }
 [ -d /app/data ] || { echo "❌ Falta /app/data"; exit 1; }
 [ -d /app/domain_parts ] || { echo "❌ Falta /app/domain_parts"; exit 1; }
 
-# Entrena si no hay modelos, pero sin tumbar el contenedor si falla
-if ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
-  echo "[interactive] 🛠️ No hay modelos. Validando + entrenando (best effort)..."
-  rasa data validate --domain /app/domain_parts --data /app/data --config /app/config.yml || true
-  rasa train --domain /app/domain_parts --data /app/data --config /app/config.yml || true
+# 🧠 Combinar fragmentos del dominio en un único archivo antes de iniciar
+echo "[interactive] ⚙️ Combinando fragmentos de dominio en /app/domain.yml..."
+if rasa data convert domain --domain /app/domain_parts --out /app/domain.yml >/dev/null 2>&1; then
+  echo "[interactive] ✅ Dominio combinado exitosamente: /app/domain.yml"
+else
+  echo "⚠️ No se pudo combinar el dominio automáticamente. Verifica los YAML en /app/domain_parts"
+  exit 1
 fi
 
-echo "[interactive] 🚀 Iniciando Rasa Interactive..."
+# Entrena si no hay modelos, pero sin tumbar el contenedor si falla
+if ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
+  echo "[interactive] 🛠️ No hay modelos entrenados. Validando + entrenando (best effort)..."
+  rasa data validate \
+    --domain /app/domain.yml \
+    --data /app/data \
+    --config /app/config.yml || true
+  rasa train \
+    --domain /app/domain.yml \
+    --data /app/data \
+    --config /app/config.yml || true
+else
+  echo "[interactive] 📦 Se encontraron modelos existentes. Saltando entrenamiento inicial."
+fi
+
+# Crear carpeta para logs o sesiones interactivas
 mkdir -p /app/interactive
+
+# 🚀 Lanzar modo interactivo
+echo "[interactive] 🚀 Iniciando Rasa Interactive..."
 exec rasa interactive \
   --endpoints /app/endpoints.yml \
   --config /app/config.yml \
-  --domain /app/domain_parts \
+  --domain /app/domain.yml \
   --data /app/data \
   --model /app/models \
   --port 5005 \
