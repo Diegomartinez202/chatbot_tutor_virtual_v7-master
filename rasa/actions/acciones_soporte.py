@@ -15,9 +15,6 @@ from .common import (
     _entity_value, _json_payload_from_text, post_json_with_retries
 )
 
-# -------------------------------
-# ✅ Validación de soporte_form
-# -------------------------------
 class ValidateSoporteForm(FormValidationAction):
     def name(self) -> Text:
         return "validate_soporte_form"
@@ -55,10 +52,6 @@ class ValidateSoporteForm(FormValidationAction):
             return {"mensaje": None}
         return {"mensaje": v}
 
-
-# -------------------------------
-# 🚀 Envío rápido de soporte (sin form)
-# -------------------------------
 class ActionEnviarSoporte(Action):
     def name(self) -> Text:
         return "action_enviar_soporte"
@@ -108,10 +101,6 @@ class ActionEnviarSoporte(Action):
         )
         return []
 
-
-# -------------------------------
-# 📨 Submit del formulario
-# -------------------------------
 class ActionSoporteSubmit(Action):
     def name(self) -> Text:
         return "action_soporte_submit"
@@ -157,9 +146,6 @@ class ActionSoporteSubmit(Action):
         return []
 
 
-# -------------------------------
-# 👨‍🏫 Enviar correo al tutor
-# -------------------------------
 class ActionEnviarCorreoTutor(Action):
     def name(self) -> Text:
         return "action_enviar_correo_tutor"
@@ -185,10 +171,6 @@ class ActionEnviarCorreoTutor(Action):
         dispatcher.utter_message(response="utter_correo_enviado" if ok else "utter_soporte_error")
         return []
 
-
-# -------------------------------
-# 🧑‍💻 Derivar a humano (registro simple)
-# -------------------------------
 class ActionDerivarYRegistrarHumano(Action):
     def name(self) -> Text:
         return "action_derivar_y_registrar_humano"

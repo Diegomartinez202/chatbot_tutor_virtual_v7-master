@@ -45,8 +45,6 @@ nlu:
     - no se pudo crear el ticket
     - falló el soporte
 
-# 👇 Intent comando separado del intent de login normal
-#    (SIN "quiero loguearme" y SIN "iniciar sesión" para evitar duplicados)
 - intent: auth_login_cmd
   examples: |
     - /auth_login
@@ -64,7 +62,6 @@ nlu:
 
 - intent: nlu_fallback
   examples: |
-    - no entiendo
     - qué
     - no sé
     - ajá

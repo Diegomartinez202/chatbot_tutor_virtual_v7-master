@@ -1,0 +1,1113 @@
+
+version: "3.1"
+
+nlu:
+
+  - intent: consultar_academico
+    examples: |
+      - quiero ver el menú académico
+      - menú académico
+      - abrir sección académica
+      - área académica
+      - proceso académico
+      - procesos administrativos
+      - información académica
+
+  - intent: proceso_academico
+    examples: |
+      - quiero ver mi proceso académico
+      - proceso estudiantil
+      - trámites académicos
+      - ayuda con el proceso académico
+
+  - intent: proceso_academico_secundario
+    examples: |
+      - submenú académico
+      - menú académico secundario
+      - ver submenú de académico
+      - abrir submenú académico
+
+  - intent: consultar_certificados
+    examples: |
+      - quiero ver mis certificados
+      - consultar certificados
+      - ver certificados
+      - mis certificados disponibles
+      - ¿qué certificados tengo?
+      - muéstrame los certificados
+      - ver diplomas emitidos
+      - necesito mi constancia
+      - certificados en PDF
+      - ¿dónde descargo mis certificados?
+      - certificados del curso
+      - consultar constancias
+      - mostrar certificados
+      - ver mis certificados
+      - descargar certificados
+      - qué certificados tengo
+      - certificados disponibles
+      - ver diplomas
+     
+  - intent: ver_certificados_info
+    examples: |
+      - muéstrame certificados sin login
+      - ver certificados de ejemplo
+      - listar certificados rápidos
+      - ver certificados demo
+
+  - intent: ver_estado_estudiante
+    examples: |
+      - ver mi estado académico
+      - ¿cuál es mi estado?
+      - estado del curso
+      - muéstrame mi estado de estudiante
+      - ver estado del aprendiz
+      - consultar estado académico
+      - estado académico actual
+      - revisar mi progreso académico
+      - cómo va mi matrícula
+
+  - intent: ver_estado_estudiante_info
+    examples: |
+      - status académico
+      - cuál es mi estado académico
+      - estado del aprendiz
+      - información sobre el estado del estudiante
+      - qué significa estado académico
+      - tipos de estado del estudiante
+      - explícamelos estados académicos
+      - cómo funciona el estado del estudiante
+
+  - intent: horarios_calendario
+    examples: |
+      - ver horario
+      - calendario de clases
+      - fechas académicas
+      - cuándo son mis clases
+      - calendario del curso
+      - horarios del semestre
+
+  - intent: ir_menu_principal
+    examples: |
+      - ir al menú principal
+      - volver al menú
+      - regresar al inicio
+      - muéstrame el menú
+      - abrir menú principal
+      - ver opciones
+      - quiero el menú
+      - volver a las opciones
+      - ir al inicio
+      - mostrar menú
+      - regresar al menú
+
+  - intent: confirmar_autenticacion
+    examples: |
+      - ya inicié sesión
+      - listo, ya me conecté
+      - ya estoy autenticado
+
+  - intent: negar_autenticacion
+    examples: |
+      - no he iniciado sesión
+      - todavía no me conecto
+      - no estoy autenticado
+
+  - intent: ver_login_hint
+    examples: |
+      - ¿cómo me autentico?
+      - ver guía de inicio de sesión
+      - ayuda con el login
+
+  - intent: reiniciar_conversacion
+    examples: |
+      - reiniciar conversación
+      - reinicia el chat
+      - resetear conversación
+      - limpiar todo
+      - empezar desde cero
+
+  - intent: limpiar_sesion
+    examples: |
+      - limpiar sesión
+      - borrar contexto
+      - eliminar datos de sesión
+      - limpiar estado del chat
+
+  - intent: mostrar_token
+    examples: |
+      - muéstrame mi token [usuario](tipo_usuario)
+      - quiero ver el token del [admin](tipo_usuario)
+      - mostrar token para el [usuario](tipo_usuario)
+      - token para el [admin](tipo_usuario)
+      - ver token
+
+  - intent: ping_servidor
+    examples: |
+      - ping
+      - probar servidor
+      - está vivo el bot
+      - verificar servidor
+      - prueba de conexión
+ 
+  - intent: solicitar_soporte
+    examples: |
+      - necesito soporte
+      - quiero reportar un problema
+      - ayuda, por favor
+      - tengo un inconveniente
+      - contactar a soporte
+      - abrir un ticket
+      - hablar con soporte
+
+  - intent: necesita_humano
+    examples: |
+      - necesito hablar con alguien
+      - quiero un agente humano
+      - pásame con una persona
+      - escalar a humano
+      - atención personalizada
+
+  - intent: iniciar_encuesta
+    examples: |
+      - quiero hacer una encuesta
+      - me gustaría dar feedback
+      - deseo evaluar el soporte
+      - iniciar encuesta
+      - empezar encuesta de satisfacción
+      - abrir encuesta
+
+
+  - intent: enviar_credenciales
+    examples: |
+      - voy a iniciar sesión
+      - ingresar mis credenciales
+      - iniciar sesión ahora
+      - quiero ingresar mis datos
+      - déjame entrar con mi usuario y contraseña
+
+  - intent: confirmar_autenticacion
+    examples: |
+      - ya inicié sesión
+      - listo, ya me autenticqué
+      - ya me logueé
+      - ya entré a la plataforma
+      - ya estoy autenticado
+
+
+  - intent: affirm
+    examples: |
+      - sí
+      - correcto
+      - claro
+      - de acuerdo
+      - por supuesto
+      - claro que sí
+      - afirmativo
+      - ok
+      - perfecto
+      - de una
+
+  - intent: recuperar_contrasena
+    examples: |
+      - olvidé mi contraseña
+      - recuperar contraseña
+      - no recuerdo mi clave
+      - restablecer mi contraseña
+      - necesito recuperar el acceso
+      - no puedo entrar a mi cuenta
+
+  - intent: provide_email
+    examples: |
+      - mi correo es [usuario@ejemplo.com](email)
+      - mi email es [test@gmail.com](email)
+      - es [prueba@correo.com](email)
+
+  - intent: estado_estudiante
+    examples: |
+      - estado del estudiante
+      - cómo voy en el curso
+      - dime mi estado
+      - quiero saber mi estado
+      - estado académico
+      - mi progreso académico
+      - cuál es mi estado
+      - cuál es mi estado como estudiante
+
+  - intent: reanudar_auto_si
+    examples: |
+      - sí, continuar desde donde guardaste
+      - sí, retomemos desde el autosave
+      - reanudar desde el último punto
+      - sí, retomar sesión guardada
+
+  - intent: reanudar_auto_no
+    examples: |
+      - no, empezar de nuevo
+      - no quiero reanudar
+      - comenzar nuevo chat
+      - no retomar
+      - empezar de cero
+      - no quiero usar el autosave
+
+  - intent: cancelar_cierre
+    examples: |
+      - no, mejor sigo
+      - cancela el cierre
+      - aún no
+      - no quiero cerrar
+      - no, continuar
+      - sigamos
+      - quiero seguir
+      - no cierres
+      - mejor continuemos
+      - aún quiero continuar
+      - no, mejor sigamos
+      - espera, no cierres todavía
+      - prefiero seguir hablando
+      - no, aún necesito ayuda
+      - sigamos un poco más
+
+  - intent: reanudar_conversacion
+    examples: |
+      - continuar encuesta
+      - seguir donde estaba
+      - continuar donde iba
+      - retomar conversación
+      - reanudar chat
+      - seguir donde íbamos
+
+  - intent: limpiar_autosave
+    examples: |
+      - limpia autosave
+      - borra datos guardados
+      - reinicia la sesión
+
+  - intent: encuesta_satis_yes
+    examples: |
+      - sí me sirvió
+      - fue útil
+      - sí, útil
+      - me ayudó
+      - sí, gracias
+
+  - intent: encuesta_satis_no
+    examples: |
+      - no me sirvió
+      - no fue útil
+      - no me ayudó
+      - no, aún tengo dudas
+
+  - intent: problema_resuelto_si
+    examples: |
+      - sí quedó resuelto
+      - ya quedó
+      - listo, solucionado
+      - todo bien ya
+      - quedó resuelto
+
+
+  - intent: continuar_tema_si
+    examples: |
+      - sí quiero seguir
+      - sí, otro tema
+      - quiero ver otra cosa
+      - quiero continuar con otro tema
+      - sigamos con otra cosa
+      - continuar con el menú
+      - ver más opciones
+      - seguir con el asistente
+      - quiero continuar con este tema
+      - sigamos hablando de esto
+      - seguir con el mismo tema
+
+
+  - intent: enviar_soporte
+    examples: |
+      - Quiero contactar soporte
+      - Necesito ayuda con el acceso
+      - Enviar ticket a soporte
+      - Tengo un problema tecnico y deseo reportarlo
+
+  - intent: explorar_temas
+    examples: |
+      - quiero ver cursos
+      - qué temas puedo aprender
+      - explorar contenidos
+      - muéstrame los cursos
+      - qué programas tienen
+      - ver oferta académica
+      - cursos disponibles
+      - quiero aprender algo nuevo
+      - ver cursos disponibles
+      - ver catálogo completo
+      - muéstrame el catálogo
+      - catálogo de cursos detallado
+      - catálogo
+
+
+  - intent: cambiar_idioma_ingles
+    examples: |
+      - quiero usar el chat en inglés
+      - change to english
+      - switch to english
+      - responde en inglés
+      - cambiar idioma a inglés
+      - I prefer English
+      - talk to me in English
+
+  - intent: cambiar_idioma_espanol
+    examples: |
+      - volver a español
+      - regresar a idioma español
+      - hablar en español
+      - ponlo en español
+      - cambia al español
+      - quiero español
+      - switch back to spanish
+
+  - intent: ir_menu_principal
+    examples: |
+      - ir al menú
+      - volver al menú
+      - menú principal
+      - regresar al menú
+
+  - intent: terminar_conversacion
+    examples: |
+      - terminar conversación
+      - quiero terminar la conversación
+      - finalizar chat
+      - terminar chat
+      - cerrar chat
+      - quiero cerrar el chat
+      - cerrar conversación
+      - cerrar este chat
+      - salir del chat
+      - salir del asistente
+      - quiero salir
+      - quiero cerrar la conversación
+      - ya no necesito más ayuda
+      - podemos terminar aquí
+      - hasta aquí está bien
+      - eso es todo, gracias
+      - ya no necesito ayuda
+      - deseo salir del sistema
+      - terminar sesión
+      - salir del flujo
+
+  - intent: guardar_snapshot
+    examples: |
+      - guarda un snapshot
+      - haz un snapshot de la sesión
+      - guardar snapshot
+      - guardar estado de la conversación
+      - forzar autosave
+      - guardar progreso técnico
+      - crear snapshot de guardian
+      - ejecutar autosave
+
+  - intent: ayuda_guardian
+    examples: |
+      - ayuda guardian
+      - qué hace guardian
+      - para qué sirve el snapshot
+      - explícame el autosave
+      - ayuda con snapshot
+
+
+
+  - intent: necesita_humano
+    examples: |
+      - me atiende una persona
+      - quiero hablar con un asesor
+      - pasar a un humano
+      - necesito agente humano
+      - deseo derivación a humano
+
+  - intent: confirmacion_escalar_humano
+    examples: |
+      - sí, conéctame por favor
+      - sí, quiero hablar con humano
+      - continuar con agente
+      - aceptar derivación
+      - sí, pásame con humano
+      - por favor con un asesor
+      - quiero hablar con un agente
+      - sí, con un humano
+      - confirmo derivación a humano
+      - adelante, escálalo
+      - sí, necesito asistencia humana
+
+  - intent: deny
+    examples: |
+      - no
+      - no gracias
+      - mejor no
+      - negativo
+      - prefiero que no
+      - no quiero
+      - no por ahora
+      - nah
+      - cancela
+      - ahora no
+      - prefiero luego
+
+  - intent: escalar_humano
+    examples: |
+      - con humano por favor
+      - soporte humano
+      - necesito un agente
+      - atención humana
+      - soporte con persona
+      - pasar con un humano
+      - pasar a humano
+      - escalar el caso
+      - derivar a humano
+      - hablar con humano
+
+  - intent: negar_escalar
+    examples: |
+      - no, sigo contigo
+      - no quiero humano
+      - mejor continúo con el bot
+      - no conectar con humano
+      - cancelar derivación
+      - no, así está bien
+      - no, no escales
+      - no quiero hablar con humano
+      - no quiero que me pases con humano
+      
+  - intent: ir_menu_principal
+    examples: |
+      - volver al menú principal
+      - ir al inicio
+      - regresar al menú
+      - quiero el menú principal
+      - muéstrame el menú
+      - menú principal
+      - volver a opciones
+      - inicio por favor
+      - mostrar menú
+
+  - intent: fallback
+    examples: |
+      - no entiendo
+      - qué puedo hacer
+      - ayuda
+      - menú
+      - repetir opciones
+      - vuelve a mostrar opciones
+      - repite, por favor
+      - no sé cómo responder
+
+  - intent: auth_login_cmd
+    examples: |
+      - login
+      - abrir login
+      - abrir inicio de sesión
+      - autenticación
+      - comando de login
+
+  - intent: saludo
+    examples: |
+      - hola
+      - buenos días
+      - buenas
+      - qué tal
+      - hey bot
+      - hola de nuevo
+      - buenas tardes
+      - buenas noches
+      - hola chatbot
+      - hola, ¿me ayudas?
+      - holi
+      - qué más
+      - buen día
+      - hola!!
+      - hola, qué tal?
+      - qué onda
+      - hola, soy [María Gómez](nombre)
+
+  - intent: ver_login_hint
+    examples: |
+      - ¿cómo inicio sesión?
+      - no sé entrar
+      - cómo hago login
+      - ver guía de inicio de sesión
+      - muéstrame los pasos para iniciar sesión
+
+  - intent: recuperar_contrasena
+    examples: |
+      - olvidé mi contraseña
+      - no recuerdo mi clave
+      - recuperar acceso
+      - restablecer contraseña
+      - ayuda con mi contraseña
+
+  - intent: terminar_conversacion_segura
+    examples: |
+      - quiero cerrar el chat pero guarda mi progreso
+      - cerrar conversación de forma segura
+      - terminar pero guardar lo que llevo
+      - salir y guardar la encuesta
+      - quiero terminar la conversación de forma segura
+      - finalizar pero que quede guardado
+      - cerrar chat con autosave
+      - terminar conversación segura
+
+  - intent: cancelar_cierre_segura
+    examples: |
+      - no quiero cierre seguro
+      - no cierres de forma segura
+      - cancelar cierre pero seguir en el chat
+      - continuar en el chat
+      - seguir con la conversación
+      - no cerrar todavía
+      - prefiero seguir
+
+  - intent: ir_menu_principal
+    examples: |
+      - volver al menú principal
+      - ir al menú
+      - regresar al menú
+      - mostrar menú principal
+      - ir al inicio
+      - muéstrame el menú
+
+  - intent: guardian_pausar_conversacion
+    examples: |
+      - pausar conversación
+      - terminar por ahora
+      - guarda y pausa
+      - guardar y pausar
+      - detener por ahora
+      - pausar el chat
+
+  - intent: guardian_reanudar_conversacion
+    examples: |
+      - reanudar
+      - reanudar chat guardado
+      - reanudar sesión guardada
+      - recuperar conversación guardada
+
+  - intent: guardian_guardar_progreso
+    examples: |
+      - guarda mi progreso
+      - salvar estado
+      - guardar avance
+
+  - intent: notificar_desconexion
+    examples: |
+      - Me desconecté
+      - Se cayó la conexión
+      - Perdí la sesión
+      - Hubo un corte de red
+
+  - intent: notificar_inactividad
+    examples: |
+      - Estuve ausente
+      - Dejé de usar el chat
+      - No he respondido hace rato
+      - Me quedé inactivo
+
+  - intent: notificar_reconexion
+    examples: |
+      - Volví al chat
+      - Ya regresé
+      - Me reconecté
+      - Estoy de nuevo aquí
+
+  - intent: guardar_estado_seguridad
+    examples: |
+      - Guarda mi estado actual
+      - Guarda el progreso
+      - Guarda todo antes de salir
+
+  - intent: recuperar_estado_seguridad
+    examples: |
+      - Recupera mi sesión
+      - Restaura el progreso
+      - Carga el estado anterior
+
+  - intent: solicitar_soporte
+    examples: |
+      - necesito soporte técnico
+      - ayuda con la plataforma
+      - problemas técnicos
+      - soporte por favor
+      - tengo un problema con el campus
+      - asistencia técnica
+      - me puedes ayudar con un error
+      - abrir ticket de soporte
+      - comunicarme con soporte
+      - soporte
+      - quiero reportar un incidente
+
+  - intent: soporte_tecnico
+    examples: |
+      - requiero soporte técnico
+      - soporte técnico por favor
+      - necesito ayuda técnica
+
+  - intent: problema_no_ingreso
+    examples: |
+      - no puedo ingresar
+      - la plataforma no me deja entrar
+      - no logro iniciar sesión
+      - no puedo acceder
+      - al entrar me da error
+      - no puedo loguearme
+
+  - intent: pantalla_blanca
+    examples: |
+      - pantalla en blanco
+      - no se carga nada
+      - veo todo blanco
+      - la página queda en blanco
+      - el curso no carga y queda en blanco
+      - white screen
+      - se queda congelado en blanco
+
+  - intent: error_actividad
+    examples: |
+      - error al abrir una actividad
+      - me sale error al acceder a contenido
+      - no puedo abrir la actividad
+      - actividad no abre
+      - error en el cuestionario
+      - se bloquea al abrir la actividad
+      - no deja entregar la actividad
+
+  - intent: otro_problema_tecnico
+    examples: |
+      - otro tipo de error técnico
+      - diferente problema técnico
+      - es otro fallo
+      - tengo un problema distinto
+      - error raro en el sistema
+      - no sé qué error es
+      - un problema diferente
+
+  - intent: necesita_humano
+    examples: |
+      - quiero hablar con alguien
+      - pasar con un agente humano
+      - hablar con un asesor
+      - necesito un humano
+      - atención humana por favor
+      - conéctame con un agente
+
+  - intent: respuesta_satisfecho
+    examples: |
+      - sí, quedé satisfecho
+      - todo bien, gracias
+      - estoy satisfecho
+      - me sirvió, gracias
+      - quedé contento con la ayuda
+
+  - intent: respuesta_insatisfecho
+    examples: |
+      - no quedé satisfecho
+      - no funcionó
+      - no se resolvió mi problema
+      - no me gustó la atención
+
+  - intent: enviar_correo_tutor
+    examples: |
+      - enviar correo al tutor
+      - escribir a mi tutor
+      - contactar a mi tutor por correo
+      - mandar email al tutor
+
+  - intent: continuar_consulta
+    examples: |
+      - consultar otro tema
+      - seguir con otra consulta
+      - ver otra cosa
+      - seguir preguntando
+
+  - intent: ver_link_soporte
+    examples: |
+      - ver enlace de soporte
+      - link de soporte
+
+  - intent: ver_soporte_creado_info
+    examples: |
+      - ver ticket creado
+      - ver confirmación de soporte
+
+  - intent: negar_cierre
+    examples: |
+      - no quiero cerrar el chat
+      - no cierres la conversación
+      - no quiero que se cierre
+      - no quiero salir todavía
+      - no quiero salir del chat
+      - quiero seguir en el chat
+
+  - intent: confirmar_cierre_segura
+    examples: |
+      - sí, ciérralo y guarda
+      - sí, terminar y guardar
+      - confirmo el cierre seguro
+      - ok, cierra y guarda
+      - está bien, termina guardando
+      - confirma el cierre seguro
+
+  - intent: despedida
+    examples: |
+      - adiós
+      - chao
+      - nos vemos
+      - hasta luego
+      - muchas gracias, adiós
+      - gracias, hasta luego
+      - gracias, chao
+      - gracias, bye
+      - hasta pronto
+      - nos vemos pronto
+      - bye
+      - que estés bien
+      - cuídate
+      - hablamos luego
+
+  - intent: terminar_conversacion_segura_autosave
+    examples: |
+      - quiero cerrar el chat de forma segura
+      - terminar conversación pero guardando progreso
+      - salir y guardar lo que llevo
+      - pausar conversación con autosave
+      - quiero terminar pero guarda mi progreso
+      - cerrar sesión con autosave
+      - terminar ahora pero sin perder la encuesta
+
+  - intent: confirmar_cierre_autosave
+    examples: |
+      - sí, cerrar y guardar
+      - confirmar cierre con autosave
+      - sí, termina de forma segura
+      - ok, cierra la sesión y guarda
+      - sí, terminar ahora con autosave
+      - correcto, finalizar todo guardando
+
+  - intent: cancelar_cierre_autosave
+    examples: |
+      - no, mejor seguimos
+      - no quiero cerrar todavía
+      - cancela el cierre seguro
+      - quiero continuar con la conversación
+      - no, continuar con el chat
+      - aún no quiero salir
+      - sigamos hablando
+
+  - intent: certificado_estudio
+    examples: |
+      - quiero un certificado de estudio
+      - necesito mi certificado de estudio
+      - certificado de estudiante
+      - constancia de estudio
+      - certificado de que estoy estudiando
+      - certificado de matrícula
+      - certificado académico de estudio
+     
+  - intent: certificado_notas
+    examples: |
+      - quiero un certificado de notas
+      - necesito mi certificado de calificaciones
+      - certificado de notas
+      - historial de notas
+      - certificado de calificaciones del curso
+      - constancia de notas
+      - certificado con mis calificaciones
+      - certificado de calificaciones
+      - quiero certificado de notas
+      
+  - intent: certificado_laboral
+    examples: |
+      - necesito un certificado laboral
+      - certificado de trabajo
+      - constancia laboral
+      - certificado de experiencia laboral
+      - certificado para mi empresa
+      - certificado de que trabajo aquí
+      - certificado laboral
+      
+  - intent: certificado_otro
+    examples: |
+      - es otro tipo de certificado
+      - necesito otro tipo de certificado
+      - no está en la lista
+      - es un certificado diferente
+      - otro certificado
+      - certificado especial
+      - otro tipo de certificado
+      - necesito un certificado especial
+      - mi certificado no está en la lista
+
+  - intent: listar_certificados
+    examples: |
+      - ver certificados disponibles
+      - listar certificados
+      - muéstrame todos mis certificados
+      - ver todos los certificados
+      - mostrar listado de certificados
+
+  - intent: descargar_certificado
+    examples: |
+      - descargar certificado
+      - quiero descargar mi certificado
+      - bajar mi certificado en PDF
+      - descargar mis certificados
+      - necesito el certificado en PDF
+      - descargar constancia
+
+  - intent: ayuda_certificados
+    examples: |
+      - ayuda con certificados
+      - no sé qué certificado elegir
+      - explícarme los tipos de certificados
+      - información sobre certificados
+      - qué certificado me sirve
+      - necesito orientación sobre certificados
+      - necesito ayuda con los certificados
+      - no entiendo los certificados
+      - explícamelos certificados
+      - qué certificados puedo sacar
+      - no sé qué certificado escoger
+      - quiero información sobre certificados
+
+  - intent: consulta_por_identificacion
+    examples: |
+      - quiero consultar por identificación
+      - buscar certificado con mi cédula
+      - consultar certificado por documento
+      - usar mi número de identificación
+      - consulta con mi número de documento
+      - ver certificados con mi cédula
+      - consultar certificado con mi cédula
+      - buscar mis certificados por documento
+      - consulta con mi cédula
+
+  - intent: consulta_por_solicitud
+    examples: |
+      - consultar por número de solicitud
+      - tengo un número de solicitud
+      - buscar certificado con el número de solicitud
+      - consulta usando mi radicado
+      - revisar certificado por código de solicitud
+      - buscar certificado por código de solicitud
+      - revisar certificado con el radicado
+      - usar el número de solicitud
+      - consulta con mi radicado
+
+  - intent: consulta_por_tipo
+    examples: |
+      - consultar por tipo de certificado
+      - buscar certificado por tipo
+      - elegir el tipo de certificado
+      - filtrar por tipo de certificado
+      - ver certificados según el tipo
+      - quiero filtrar por tipo de certificado
+      - consulta por tipo de constancia
+
+  - intent: contactar_tutor
+    examples: |
+      - quiero contactar a mi tutor
+      - cómo puedo escribirle a mi tutor
+      - contactar a mi tutor
+      - hablar con mi tutor
+      - enviar mensaje a mi tutor
+      - necesito comunicarme con mi tutor
+      - quiero enviar un correo a mi tutor
+      - necesito escribirle a mi tutor
+
+  - intent: continue
+    examples: |
+      - continúa por favor
+      - puedes continuar
+      - seguir con lo que estabas
+      - continúa con la explicación
+      - continúa con lo que estabas diciendo
+      - sigue con la explicación
+      - sigue adelante
+      - continue
+      - continue please
+      - sigue por favor
+
+  - intent: confirmar_cierre
+    examples: |
+      - sí, ciérralo
+      - guarda y cierra
+      - termina todo
+      - sí deseo salir
+      - sí, finalizar
+      - confirmar cierre
+      - listo, termina
+      - termina por favor
+      - cerrar ya
+      - sí, terminar
+      - ok, termina
+      - sí, cerrar
+      - correcto, finaliza
+      - adelante, cierra
+      - sí, cerrar chat
+      - sí, termina la conversación
+      - ok, cierra el chat
+      - sí, quiero cerrar la conversación
+      - confirma el cierre
+
+  - intent: dar_retroalimentacion
+    examples: |
+      - quiero dar retroalimentación
+      - quiero dar feedback
+      - me gustaría dejar un comentario
+      - quiero evaluar el servicio
+      - quiero evaluar el soporte
+      - deseo dar mi opinión
+      - quiero dejar una sugerencia
+      - quiero dejar una queja
+      - quiero responder la encuesta
+      - me gustaría dar mi retroalimentación
+      - deseo evaluar el servicio
+      - quiero evaluar el asistente
+      - quiero dejar mi opinión
+
+  - intent: iniciar_sesion
+    examples: |
+      - quiero iniciar sesión
+      - iniciar sesión
+      - quiero entrar a la plataforma
+      - quiero loguearme
+      - cómo inicio sesión
+      - acceder a mi cuenta
+      - entrar con mi usuario
+      - quiero hacer login
+      - empezar sesión
+      - abrir mi sesión
+
+  - intent: negar_derivacion
+    examples: |
+      - no quiero que me pasen con un humano
+      - no quiero derivación
+      - prefiero seguir contigo
+      - no, no me pases con un asesor
+      - no necesito un humano
+      - mejor sigo con el bot
+      - no, no escales el caso
+      - quiero continuar aquí
+      - no quiero ser derivado
+      - no deseo hablar con un agente
+      - prefiero continuar contigo
+
+  - intent: pedir_mensaje
+    examples: |
+      - quiero enviar un mensaje
+      - quiero enviar un mensaje a soporte
+      - enviar mensaje al soporte
+      - deseo contactar a soporte por mensaje
+      - escribir un mensaje sobre mi problema
+      - quiero mandar un mensaje al soporte
+      - quiero dejar un mensaje
+      - quiero explicar mi problema por mensaje
+
+  - intent: enviar_soporte_directo
+    examples: |
+      - enviar soporte ahora
+      - enviar el ticket de soporte
+      - mandar el reporte directo
+      - enviar mi solicitud a soporte
+      - ya está listo, envíalo a soporte
+      - envía el soporte por favor
+
+  - intent: enviar_correo
+    examples: |
+      - enviar correo
+      - quiero enviar un correo
+      - mandar email
+      - enviar un mensaje por correo
+      - enviar correo al soporte
+      - enviar correo de ayuda
+
+  - intent: necesita_auth
+    examples: |
+      - creo que necesito iniciar sesión
+      - necesito autenticarme
+      - debo iniciar sesión primero
+      - antes tengo que loguearme
+      - entiendo que debo autenticarme
+      - primero debo iniciar sesión
+
+  - intent: continuar_tema_no
+    examples: |
+      - no quiero seguir con este tema
+      - no, ya terminé con este tema
+      - no quiero continuar
+      - no, gracias, ya está bien
+      - prefiero no seguir con el tema
+      - no quiero ver otra cosa
+      - no, gracias
+      - ya terminé
+      - finalizar conversación
+
+  - intent: problema_resuelto_no
+    examples: |
+      - no, el problema no se resolvió
+      - no se solucionó
+      - sigo con el problema
+      - no quedó resuelto
+      - aún tengo el mismo problema
+      - necesito más ayuda
+
+  - intent: cancelar
+    examples: |
+      - cancelar
+      - cancelar acción
+      - no quiero seguir con esto
+      - olvida lo anterior
+      - anular proceso
+      - detener lo que estás haciendo
+      - no quiero hacer eso
+      - detener proceso
+      - anular cierre
+      - no continúes con eso
+
+  - intent: cerrar_chat
+    examples: |
+      - cerrar solo el chat
+      - cerrar la ventana de chat
+      - quiero cerrar la ventana de chat
+      - cerrar la conversación pero seguir en la plataforma
+      - cerrar este chat de la página
+
+  - intent: confirmar_derivacion
+    examples: |
+      - sí, deriva por favor
+      - confirmar derivación
+      - sí, pásame con un asesor
+      - sí, con un asesor
+      - adelante, deriva el caso
+      - sí, deriva la conversación
+      - sí, pásame con un agente
+      - sí, con un humano por favor
+      - quiero que me pases con soporte
+      - sí, continúa con la derivación
+      - está bien, deriva a humano
+
+  - intent: nlu_fallback
+    examples: |
+      - no sé qué decir
+      - no estoy seguro
+      - no tengo idea
+      - no sé qué significa eso
+      - no sé, explícame
+      - no sé exactamente
+      - qué significa eso
+      - no estoy seguro qué hacer
+
+  - intent: ver_certificados
+    examples: |
+      - mostrar mis certificados
+      - ver certificados de estudio
+      - ver los certificados que tengo
+      - ver certificados emitidos

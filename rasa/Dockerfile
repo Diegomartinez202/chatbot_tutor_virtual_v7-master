@@ -17,6 +17,9 @@ WORKDIR /app
 RUN pip install --no-cache-dir "redis>=4.5" "pymongo[srv]==3.13.0"
 RUN pip install --no-cache-dir pika
 
+# 🧠 spaCy + modelo en español para el pipeline de Rasa
+RUN pip install --no-cache-dir "spacy==3.7.2" \
+    "es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl"
 # 📁 Copia el proyecto Rasa completo
 COPY . /app
 

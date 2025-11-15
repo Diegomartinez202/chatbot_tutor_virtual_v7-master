@@ -56,3 +56,43 @@ class ActionEnviarSoporte(Action):
             dispatcher.utter_message(response="utter_soporte_error")
 
         return []
+
+class ActionEnviarSoporteDirecto(Action):
+    def name(self) -> Text:
+        return "action_enviar_soporte_directo"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[EventType]:
+        # Similar a ActionEnviarSoporte, pero pensado para un envío "rápido/directo"
+        nombre  = (tracker.get_slot("nombre") or "").strip() or "Usuario"
+        email   = (tracker.get_slot("email") or "").strip() or "sin-correo@ejemplo.com"
+        motivo  = (tracker.get_slot("motivo_soporte") or "").strip() or "otro"
+        mensaje = (tracker.latest_message.get("text") or "").strip() or "Solicitud de soporte directo (sin detalle)."
+        prefer  = (tracker.get_slot("prefer_contacto") or "").strip() or "email"
+        phone   = (tracker.get_slot("phone") or "").strip()
+
+        payload = {
+            "fecha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "sender_id": tracker.sender_id,
+            "nombre": nombre,
+            "email": email,
+            "motivo": motivo,
+            "mensaje": mensaje,
+            "prefer_contacto": prefer,
+            "phone": phone,
+            "ultimo_intent": (tracker.latest_message.get("intent") or {}).get("name"),
+            "tipo": "soporte_directo",
+        }
+
+        ok = _append_ticket(payload)
+
+        if ok:
+            dispatcher.utter_message(text="✅ He enviado tu solicitud de soporte directo. Un agente te contactará.")
+        else:
+            dispatcher.utter_message(text="⚠️ No pude registrar el soporte directo ahora mismo. Intentaremos de nuevo.")
+
+        return []

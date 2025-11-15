@@ -10,57 +10,60 @@ language: "es"
 # 🧩 PIPELINE NLP (Español + robusto)
 # ============================================
 pipeline:
-  - name: WhitespaceTokenizer
+  - name: SpacyNLP
+    model: es_core_news_md
+
+  # ÚNICO tokenizer: spaCy
+  - name: SpacyTokenizer
+
   - name: RegexFeaturizer
     use_lookup_tables: true
     use_regexes: true
     use_word_boundaries: true
+
   - name: LexicalSyntacticFeaturizer
+
   - name: CountVectorsFeaturizer
     lowercase: true
     token_pattern: "(?u)\\b\\w+\\b"
+
   - name: CountVectorsFeaturizer
     analyzer: "char_wb"
     min_ngram: 1
     max_ngram: 4
     lowercase: true
+
+  - name: SpacyFeaturizer
+
   - name: DIETClassifier
     epochs: 120
     constrain_similarities: true
     entity_recognition: true
     intent_classification: true
+
   - name: EntitySynonymMapper
+
   - name: ResponseSelector
     epochs: 80
     constrain_similarities: true
+
   - name: FallbackClassifier
-    # Umbral más permisivo para reducir “no entendí”
     threshold: 0.40
     ambiguity_threshold: 0.05
-  - name: SpacyNLP
-    model: es_core_news_md
-  - name: SpacyTokenizer
-  - name: SpacyFeaturizer
- 
- 
-  
 
 # ============================================
 # 🧠 POLÍTICAS DE DECISIÓN (CORE)
 # ============================================
 policies:
-  # 1) Reglas deterministas (forms, auth, menús, fallback Core)
   - name: RulePolicy
     core_fallback_threshold: 0.30
     core_fallback_action_name: "action_default_fallback"
     enable_fallback_prediction: true
     check_for_contradictions: true
 
-  # 2) Memorización
   - name: MemoizationPolicy
     max_history: 5
 
-  # 3) Política de aprendizaje (TED)
   - name: TEDPolicy
     max_history: 10
     epochs: 120

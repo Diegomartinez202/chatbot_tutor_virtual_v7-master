@@ -1,0 +1,332 @@
+version: "3.1"
+
+stories:
+
+- story: Ir al menú académico desde consulta
+  steps:
+    - intent: consultar_academico
+    - action: utter_menu_academico
+
+
+  
+- story: Admin reinicia conversación
+  steps:
+    - intent: reiniciar_conversacion
+    - action: action_reiniciar_conversacion
+
+- story: Admin limpia sesión
+  steps:
+    - intent: limpiar_sesion
+    - action: action_reiniciar_conversacion
+
+- story: Admin muestra token
+  steps:
+    - intent: mostrar_token
+    - action: action_mostrar_token
+
+- story: Admin hace ping
+  steps:
+    - intent: ping_servidor
+    - action: action_ping_servidor
+  
+- story: Login exitoso por formulario
+  steps:
+    - intent: enviar_credenciales
+    - action: auth_login_form
+    - active_loop: auth_login_form
+    - action: auth_login_form
+    - active_loop: null
+    - action: action_ingreso_zajuna
+    - action: action_set_authenticated_true
+    - action: utter_auth_ok
+
+- story: Intentar acción protegida sin autenticación
+  steps:
+    - intent: estado_estudiante
+    - action: action_check_auth
+    - action: utter_need_auth
+    - intent: confirmar_autenticacion
+    - action: action_set_authenticated_true
+    - action: action_estado_estudiante
+
+- story: Recuperación de contraseña
+  steps:
+    - intent: recuperar_contrasena
+    - action: password_recovery_form
+    - active_loop: password_recovery_form
+    - action: password_recovery_form
+    - active_loop: null
+    - action: action_recuperar_contrasena
+    - action: action_enviar_correo_recuperacion
+    - action: utter_recuperacion_enviada
+
+- story: Soporte rápido con afirmación
+  steps:
+    - intent: solicitar_soporte
+    - action: utter_pedir_confirmacion_soporte
+    - intent: affirm
+    - action: action_iniciar_soporte
+    - action: utter_ofrecer_continuar
+
+- story: Fallback simple
+  steps:
+    - intent: fallback
+    - action: utter_fallback
+    
+
+- story: Usuario niega cierre directamente
+  steps:
+    - intent: negar_cierre
+    - action: action_cancelar_cierre
+    - action: utter_cierre_cancelado
+    - action: utter_volver_menu_principal
+ 
+- story: flujo_auto_resume_si
+  steps:
+    - intent: saludo
+    - intent: reanudar_auto_si
+    - action: action_reanudar_auto
+    - action: utter_reanudar_confirmado
+
+- story: flujo_auto_resume_no
+  steps:
+    - intent: saludo
+    - intent: reanudar_auto_no
+    - action: utter_reanudar_cancelado
+
+- story: reanudar_conversacion_guardada
+  steps:
+    - intent: reanudar_conversacion
+    - action: action_cargar_autosave_mongo
+    - action: action_autoresume_conversacion
+
+- story: limpiar_autosave_datos
+  steps:
+    - intent: limpiar_autosave
+    - action: action_reset_conversacion_segura
+    - action: utter_limpiar_autosave
+  
+- story: Encuesta positiva (set tipo)
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_ofrecer_continuar
+
+- story: Usuario pide enviar soporte
+  steps:
+    - intent: enviar_soporte
+    - action: action_enviar_soporte
+    - action: utter_soporte_creado
+ 
+- story: Ir al menú principal (unificado)
+  steps:
+    - intent: ir_menu_principal
+    - action: action_set_menu_principal
+    - action: utter_menu_principal
+  
+- story: Guardar snapshot
+  steps:
+    - intent: guardar_snapshot
+    - action: action_autosave_snapshot
+
+- story: Ayuda de guardian
+  steps:
+    - intent: ayuda_guardian
+    - action: utter_guardian_help
+  
+- story: Derivar a humano con confirmación
+  steps:
+    - intent: necesita_humano
+    - action: utter_pedir_derivacion
+    - intent: confirmacion_escalar_humano
+    - action: action_derivar_y_registrar_humano
+    - action: action_conectar_humano
+    - action: utter_espera_agente
+
+- story: Soporte con dos fallbacks y completar
+  steps:
+    - intent: escalar_humano
+    - action: utter_ofrecer_humano
+    - intent: affirm
+    - action: utter_handoff_iniciado
+    - action: soporte_form
+    - active_loop: soporte_form
+  
+    - intent: nlu_fallback
+    - action: action_registrar_intento_form
+    - action: action_verificar_max_intentos_form
+    - action: utter_form_fallback_warn
+    - action: soporte_form
+    - active_loop: soporte_form
+
+    - intent: nlu_fallback
+    - action: action_registrar_intento_form
+    - action: action_verificar_max_intentos_form
+    - action: utter_form_fallback_warn
+    - action: soporte_form
+    - active_loop: soporte_form  
+  
+- story: usuario va al menú principal
+  steps:
+    - intent: ir_menu_principal
+    - action: action_set_menu_principal
+    - action: utter_menu_principal
+
+
+
+- story: Flujo ver estado autenticado
+  steps:
+    - intent: ver_estado_estudiante
+    - slot_was_set:
+        - is_authenticated: true
+    - action: action_ver_estado_estudiante
+
+- story: Flujo certificados no autenticado
+  steps:
+    - intent: consultar_certificados
+    - slot_was_set:
+        - is_authenticated: false
+    - action: utter_pedir_autenticacion
+  
+- story: Usuario pausa y luego reanuda
+  steps:
+    - intent: guardian_guardar_progreso
+    - action: action_guardian_guardar_progreso
+    - intent: guardian_pausar_conversacion
+    - action: action_guardian_pausar
+    - intent: guardian_reanudar_conversacion
+    - action: action_guardian_reanudar
+  
+- story: Guardado automático por desconexión
+  steps:
+    - intent: notificar_desconexion
+    - action: action_notificar_desconexion
+    - action: action_guardar_estado_seguridad
+
+- story: Guardado por inactividad
+  steps:
+    - intent: notificar_inactividad
+    - action: action_notificar_inactividad
+    - action: action_guardar_estado_seguridad
+
+- story: Recuperación de sesión automática
+  steps:
+    - intent: notificar_reconexion
+    - action: action_notificar_reconexion
+    - action: action_recuperar_estado_seguridad
+
+- story: Guardado manual del estado
+  steps:
+    - intent: guardar_estado_seguridad
+    - action: action_guardar_estado_seguridad
+
+- story: Recuperación manual del estado
+  steps:
+    - intent: recuperar_estado_seguridad
+    - action: action_recuperar_estado_seguridad
+  
+- story: Usuario decide contactar tutor
+  steps:
+    - intent: enviar_correo_tutor
+    - action: action_enviar_correo_tutor
+    - action: utter_correo_enviado
+    - action: utter_preguntar_continuar_menu
+
+- story: Usuario satisfecho → continuar
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_ofrecer_continuar
+    - intent: continuar_tema_si
+    - action: utter_continuar_tema_menu
+
+
+- story: Continuar con otra consulta
+  steps:
+    - intent: continuar_consulta
+    - action: utter_menu_principal
+  
+- story: Cierre seguro con encuesta incompleta
+  steps:
+    - intent: terminar_conversacion_segura_autosave
+    - action: action_verificar_proceso_activo_autosave
+    - slot_was_set:
+        - encuesta_incompleta: true
+    - intent: confirmar_cierre_autosave
+    - action: action_guardar_encuesta_incompleta
+    - action: action_confirmar_cierre_autosave
+
+- story: Cierre seguro sin encuesta incompleta
+  steps:
+    - intent: terminar_conversacion_segura_autosave
+    - action: action_verificar_proceso_activo_autosave
+    - slot_was_set:
+        - encuesta_incompleta: false
+    - intent: confirmar_cierre_autosave
+    - action: action_confirmar_cierre_autosave
+
+- story: Usuario cancela el cierre seguro
+  steps:
+    - intent: terminar_conversacion_segura_autosave
+    - action: action_verificar_proceso_activo_autosave
+    - intent: cancelar_cierre_autosave
+    - action: action_cancelar_cierre_autosave
+
+- story: Usuario niega cierre
+  steps:
+    - intent: negar_cierre
+    - action: action_cancelar_cierre
+    - action: utter_cierre_cancelado
+    - action: utter_volver_menu_principal
+
+- story: Usuario se despide directamente
+  steps:
+    - intent: despedida
+    - action: utter_despedida_final 
+  
+- story: Problema no resuelto y escalamiento a humano
+  steps:
+    - intent: problema_resuelto_no
+    - action: utter_problema_resuelto_no
+    - intent: escalar_humano
+    - action: utter_ofrecer_humano
+    - action: action_derivar_y_registrar_humano
+   
+- story: Problema no resuelto y continuar con el bot
+  steps:
+    - intent: negar_escalar
+    - action: utter_continuar_con_bot
+
+- story: Ayuda con certificados desde intent dedicado
+  steps:
+    - intent: ayuda_certificados
+    - action: utter_ayuda_certificados
+
+- story: Cancelar acción actual
+  steps:
+    - intent: cancelar
+    - action: utter_cancelar_accion
+  
+- story: Usuario cancela el cierre después de confirmación
+  steps:
+    - intent: cancelar_cierre
+    - action: action_cancelar_cierre
+    - action: utter_cierre_cancelado
+    - action: utter_volver_menu_principal
+  
+- story: Soporte → usuario afirma
+  steps:
+    - intent: solicitar_soporte
+    - action: utter_pedir_confirmacion_soporte
+    - intent: affirm
+    - action: action_iniciar_soporte
+    - action: utter_ofrecer_continuar   # opcional, si quieres ofrecer seguir después
+
+- story: Soporte → usuario niega
+  steps:
+    - intent: solicitar_soporte
+    - action: utter_pedir_confirmacion_soporte
+    - intent: deny
+    - action: utter_cancelar_soporte

@@ -36,30 +36,6 @@ class ActionReiniciarConversacion(Action):
         return events
 
 
-class ActionMostrarToken(Action):
-    def name(self) -> Text:
-        return "action_mostrar_token"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: Dict[Text, Any],
-    ) -> List[EventType]:
-        """
-        Muestra un "token" de usuario.
-        Aquí usamos el sender_id como identificador lógico.
-        """
-        user_token = str(tracker.sender_id)
-
-        dispatcher.utter_message(
-            response="utter_token_actual",
-            user_token=user_token,
-        )
-
-        return [SlotSet("user_token", user_token)]
-
-
 class ActionPingServidor(Action):
     def name(self) -> Text:
         return "action_ping_servidor"
@@ -75,4 +51,54 @@ class ActionPingServidor(Action):
         Puede usarse en pruebas automatizadas.
         """
         dispatcher.utter_message(response="utter_ping_ok")
+        return []
+
+class ActionSetDefaultTipoUsuario(Action):
+    def name(self) -> Text:
+        return "action_set_default_tipo_usuario"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[SlotSet]:
+        tipo = tracker.get_slot("slot_tipo_usuario")
+
+        # Si no hay tipo definido, asumimos "usuario"
+        if not tipo:
+            return [SlotSet("slot_tipo_usuario", "usuario")]
+
+        # Si viene algo raro, normalizamos a "usuario"
+        if tipo not in ("usuario", "admin"):
+            return [SlotSet("slot_tipo_usuario", "usuario")]
+
+        return []
+
+
+class ActionMostrarToken(Action):
+    def name(self) -> Text:
+        return "action_mostrar_token"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[SlotSet]:
+        tipo = tracker.get_slot("slot_tipo_usuario") or "usuario"
+        user_token = tracker.get_slot("user_token") or "TOKEN_DE_EJEMPLO_123"
+
+        if tipo == "admin":
+            # Aquí podrías cambiar el origen del token admin si es distinto
+            dispatcher.utter_message(
+                response="utter_token_admin",
+                user_token=user_token,
+            )
+        else:
+            dispatcher.utter_message(
+                response="utter_token_actual",
+                user_token=user_token,
+            )
+
         return []

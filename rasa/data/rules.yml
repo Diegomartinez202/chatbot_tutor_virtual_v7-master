@@ -1,0 +1,1513 @@
+version: "3.1"
+
+rules:
+
+  - rule: consultar certificados
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: consultar_certificados
+      - action: action_listar_certificados
+      - action: utter_preguntar_continuar_menu
+
+  - rule: Consultar certificados (autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: consultar_certificados
+      - action: action_listar_certificados
+      - action: utter_preguntar_continuar_menu
+
+  - rule: Consultar certificados (no autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: consultar_certificados
+      - action: utter_pedir_autenticacion
+
+  - rule: Ver estado (autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: ver_estado_estudiante
+      - action: action_estado_estudiante
+      - action: utter_preguntar_continuar_menu
+
+  - rule: Ver estado (no autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: ver_estado_estudiante
+      - action: utter_pedir_autenticacion
+  
+  - rule: Menú principal por regla
+    steps:
+      - intent: ir_menu_principal
+      - action: action_set_menu_principal
+      - action: utter_menu_principal
+
+  - rule: Confirmar y finalizar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_confirmar_cierre
+  
+  - rule: Reiniciar conversación (admin)
+    steps:
+      - intent: reiniciar_conversacion
+      - action: action_reiniciar_conversacion
+
+  - rule: Limpiar sesión (alias de reinicio)
+    steps:
+      - intent: limpiar_sesion
+      - action: action_reiniciar_conversacion
+
+  - rule: Ping servidor admin
+    steps:
+      - intent: ping_servidor
+      - action: action_ping_servidor
+  
+  - rule: Estado estudiante (autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth
+      - action: action_estado_estudiante
+
+  - rule: Estado estudiante (NO autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: estado_estudiante
+      - action: action_check_auth
+      - action: utter_need_auth
+
+  - rule: Consultar certificados (autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: ver_certificados
+      - action: action_check_auth
+      - action: action_ver_certificados
+
+  - rule: Consultar certificados (NO autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: ver_certificados
+      - action: action_check_auth
+      - action: utter_need_auth
+
+  - rule: Iniciar login (enviar_credenciales)
+    steps:
+      - intent: enviar_credenciales
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  - rule: Submit auth_login_form OK
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: auth_login_form
+      - active_loop: null
+      - action: action_ingreso_zajuna
+      - action: action_set_authenticated_true
+      - action: utter_auth_ok
+
+  - rule: Submit auth_login_form FAIL (manual)
+    steps:
+      - intent: deny
+      - action: utter_auth_fail
+
+  - rule: Confirmar autenticación directa
+    steps:
+      - intent: confirmar_autenticacion
+      - action: action_set_authenticated_true
+      - action: utter_auth_ok
+
+  - rule: Iniciar recuperación por intent
+    steps:
+      - intent: recuperar_contrasena
+      - action: password_recovery_form
+      - active_loop: password_recovery_form
+
+  - rule: Submit password_recovery_form
+    condition:
+      - active_loop: password_recovery_form
+    steps:
+      - action: password_recovery_form
+      - active_loop: null
+      - action: action_recuperar_contrasena
+      - action: action_enviar_correo_recuperacion
+      - action: utter_recuperacion_enviada
+
+  - rule: Registro de encuesta desde iniciar_encuesta
+    steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+
+  - rule: Iniciar login por comando (auth_login_cmd)
+    steps:
+      - intent: auth_login_cmd
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  - rule: Iniciar login por enviar_credenciales
+    steps:
+      - intent: enviar_credenciales
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  - rule: Iniciar recuperación por recuperar_contrasena
+    steps:
+      - intent: recuperar_contrasena
+      - action: password_recovery_form
+      - active_loop: password_recovery_form
+  - rule: Solicitar confirmación para terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+
+  - rule: Usuario niega cierre
+    steps:
+      - intent: cancelar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+
+  - rule: Fallback en cierre
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback
+  
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+      - action: utter_cierre_confirmado
+
+  - rule: Despedida directa
+    steps:
+      - intent: despedida
+      - action: action_finalizar_conversacion
+      - action: utter_cierre_confirmado
+
+  
+  - rule: Reanudar encuesta si hay pendiente
+    condition:
+      - slot_was_set:
+          - reanudar_pendiente: true
+    steps:
+      - intent: reanudar_auto_si
+      - action: action_reanudar_auto
+      - action: utter_reanudar_confirmado
+
+  - rule: No reanudar encuesta
+    steps:
+      - intent: reanudar_auto_no
+      - action: utter_reanudar_cancelado
+  - rule: Confirmar cierre seguro
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: action_confirmar_cierre_seguro
+      - action: utter_despedida_final
+  
+  - rule: Confirmar cierre con autosave (si hay encuesta activa)
+    condition:
+      - slot_was_set:
+          - encuesta_activa: true
+    steps:
+      - intent: confirmar_cierre
+      - action: action_autosave_encuesta
+      - action: action_guardar_autosave_mongo
+      - action: utter_cierre_confirmado
+      - action: action_reset_conversacion_segura
+
+  - rule: Confirmar cierre sin encuesta activa
+    condition:
+      - slot_was_set:
+          - encuesta_activa: false
+    steps:
+      - intent: confirmar_cierre
+      - action: utter_cierre_confirmado
+      - action: action_reset_conversacion_segura
+
+  - rule: Cancelar cierre seguro
+    steps:
+      - intent: cancelar_cierre
+      - action: utter_cierre_cancelado
+
+  - rule: Reanudar conversación automática
+    steps:
+      - intent: reanudar_conversacion
+      - action: action_cargar_autosave_mongo
+      - action: action_autoresume_conversacion
+
+  - rule: Limpiar autosave
+    steps:
+      - intent: limpiar_autosave
+      - action: action_reset_conversacion_segura
+      - action: utter_limpiar_autosave
+
+  - rule: Encuesta positiva (encuesta_satis_yes)
+    steps:
+      - intent: encuesta_satis_yes
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "positivo"
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
+
+  - rule: Encuesta positiva (respuesta_satisfecho)
+    steps:
+      - intent: respuesta_satisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "positivo"
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
+
+  - rule: Encuesta negativa (encuesta_satis_no)
+    steps:
+      - intent: encuesta_satis_no
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativo"
+      - action: utter_encuesta_insatisfaccion
+
+  - rule: Encuesta negativa (respuesta_insatisfecho)
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativo"
+      - action: utter_encuesta_insatisfaccion
+
+  - rule: Problema resuelto
+    steps:
+      - intent: problema_resuelto_si
+      - action: utter_agradecimiento_satisfaccion
+      - action: utter_ofrecer_continuar
+
+  - rule: Atajo rápido → Enviar soporte
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_creado
+  
+  - rule: Manejar fallback (no entendido)
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback
+
+  - rule: Saludo inicial → mostrar menú
+    steps:
+      - intent: saludo
+      - action: utter_saludar
+      - action: utter_menu_principal
+  
+  - rule: Cambiar idioma a español
+    steps:
+      - intent: cambiar_idioma_espanol
+      - action: utter_cambiar_idioma_espanol
+
+  - rule: Cambiar idioma a inglés
+    steps:
+      - intent: cambiar_idioma_ingles
+      - action: utter_cambiar_idioma_ingles
+
+  - rule: Afirmación genérica
+    steps:
+      - intent: affirm
+      - action: utter_affirm
+
+  - rule: Negación genérica
+    steps:
+      - intent: deny
+      - action: utter_deny
+
+  - rule: Mostrar catálogo
+    steps:
+      - intent: explorar_temas
+      - action: utter_catalogo_cursos
+  
+  - rule: Guardar snapshot manual (Guardian)
+    steps:
+      - intent: guardar_snapshot
+      - action: action_autosave_snapshot
+
+  - rule: Ayuda sobre Guardian
+    steps:
+      - intent: ayuda_guardian
+      - action: utter_guardian_help
+
+
+  - rule: Confirmar handoff (intento dedicado)
+    condition:
+      - active_loop: null
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: utter_handoff_iniciado
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Negar handoff (intento dedicado)
+    condition:
+      - active_loop: null
+    steps:
+      - intent: negar_escalar
+      - action: utter_derivacion_cancelada
+
+  - rule: Submit soporte_form (handoff)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_soporte_submit
+      - action: action_derivar_y_registrar_humano
+      - action: utter_handoff_en_cola
+
+  - rule: Terminar conversación durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - action: action_deactivate_loop
+      - active_loop: null
+
+  - rule: Fallback dentro de soporte_form (contar intentos)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: nlu_fallback
+      - action: action_registrar_intento_form
+      - action: action_verificar_max_intentos_form
+      - action: utter_form_fallback_warn
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Derivar a humano tras 3 fallos en soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - slot_was_set:
+          - soporte_intentos: 0    
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_handoff_por_fallos
+      - action: action_derivar_humano_confirmada
+
+  - rule: Terminar conversación dentro de soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_confirmar_cierre
+  
+  - rule: Usuario pide terminar mientras está el soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - active_loop: null
+      - action: action_confirmar_cierre
+
+  - rule: Ver estado estudiante (autenticado) - intent ver_estado_estudiante
+    steps:
+      - intent: ver_estado_estudiante
+      - slot_was_set:
+          - is_authenticated: true
+      - action: action_ver_estado_estudiante
+
+  - rule: Ver estado estudiante (no autenticado) - intent ver_estado_estudiante
+    steps:
+      - intent: ver_estado_estudiante
+      - slot_was_set:
+          - is_authenticated: false
+      - action: utter_login_requerido
+
+  - rule: Ver estado estudiante (autenticado) - intent estado_estudiante
+    steps:
+      - intent: estado_estudiante
+      - slot_was_set:
+          - is_authenticated: true
+      - action: action_ver_estado_estudiante
+
+  - rule: Ver estado estudiante (no autenticado) - intent estado_estudiante
+    steps:
+      - intent: estado_estudiante
+      - slot_was_set:
+          - is_authenticated: false
+      - action: utter_login_requerido
+
+  - rule: Consultar certificados (autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: true
+    steps:
+      - intent: consultar_certificados
+      - action: action_consultar_certificados
+
+  - rule: Consultar certificados (no autenticado)
+    condition:
+      - slot_was_set:
+          - is_authenticated: false
+    steps:
+      - intent: consultar_certificados
+      - action: utter_login_hint
+  
+  - rule: Consultar certificados (autenticado)
+    steps:
+      - intent: consultar_certificados
+      - action: utter_certificados_carousel
+  
+  - rule: Mostrar guía de login (deep-links)
+    steps:
+      - intent: ver_login_hint
+      - action: utter_login_hint
+
+  - rule: Mostrar CTA de recuperación de contraseña
+    steps:
+      - intent: recuperar_contrasena
+      - action: utter_recuperar_acceso_cta
+ 
+  - rule: Verificar estado de encuesta antes de cerrar
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_verificar_estado_encuesta
+
+  - rule: Confirmar cierre seguro y guardar progreso
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: action_guardar_progreso_encuesta
+      - action: action_terminar_conversacion_segura
+
+  
+  
+  - rule: Guardar progreso explícito
+    steps:
+      - intent: guardian_guardar_progreso
+      - action: action_guardian_guardar_progreso
+
+  - rule: Pausar conversación segura
+    steps:
+      - intent: guardian_pausar_conversacion
+      - action: action_guardian_pausar
+
+  - rule: Reanudar conversación segura
+    steps:
+      - intent: guardian_reanudar_conversacion
+      - action: action_guardian_reanudar
+  - rule: Guardar estado en desconexión
+    steps:
+      - intent: notificar_desconexion
+      - action: action_notificar_desconexion
+      - action: action_guardar_estado_seguridad
+
+  - rule: Guardar estado por inactividad
+    steps:
+      - intent: notificar_inactividad
+      - action: action_notificar_inactividad
+      - action: action_guardar_estado_seguridad
+
+  - rule: Restaurar estado en reconexión
+    steps:
+      - intent: notificar_reconexion
+      - action: action_notificar_reconexion
+      - action: action_recuperar_estado_seguridad
+
+
+  - rule: Guardar estado bajo demanda
+    steps:
+      - intent: guardar_estado_seguridad
+      - action: action_guardar_estado_seguridad
+
+  - rule: Recuperar estado bajo demanda
+    steps:
+      - intent: recuperar_estado_seguridad
+      - action: action_recuperar_estado_seguridad
+  
+  - rule: Abrir flujo de soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_solicitar_soporte_intro
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_soporte_submit
+      - action: utter_soporte_registrado
+      - action: utter_preguntar_satisfaccion
+
+  - rule: Usuario satisfecho
+    steps:
+      - intent: respuesta_satisfecho
+      - action: utter_encuesta_positiva
+      - action: utter_preguntar_continuar_menu
+
+  - rule: Usuario insatisfecho
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: utter_encuesta_negativa
+      - action: utter_ofrecer_contacto_tutor
+
+  - rule: Enviar correo a tutor
+    steps:
+      - intent: enviar_correo_tutor
+      - action: action_enviar_correo_tutor
+      - action: utter_correo_enviado
+      - action: utter_preguntar_continuar_menu
+
+  - rule: Continuar desde encuesta
+    steps:
+      - intent: continuar_consulta
+      - action: utter_menu_principal
+
+  - rule: Terminar conversación (soporte)
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_despedida_profesional
+
+  
+  - rule: Derivar a humano (affirm)
+    steps:
+      - intent: affirm
+      - action: action_derivar_y_registrar_humano
+      - action: utter_derivando_humano
+
+  - rule: Cancelar derivación (deny)
+    steps:
+      - intent: deny
+      - action: utter_derivacion_cancelada
+  
+  - rule: Solicitar confirmación para terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+
+  - rule: Usuario niega cierre
+    steps:
+      - intent: negar_cierre
+      - action: action_cancelar_cierre
+
+  - rule: Despedida directa
+    steps:
+      - intent: despedida
+      - action: action_finalizar_conversacion
+
+  - rule: Cancelar o fallback de cierre
+    steps:
+      - intent: nlu_fallback
+      - action: utter_fallback
+  
+  - rule: Intentar terminar conversación con proceso activo
+    steps:
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo
+
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_confirmar_cierre
+
+  - rule: Despedida directa
+    steps:
+      - intent: despedida
+      - action: action_confirmar_cierre
+
+  - rule: Fallback en cierre
+    steps:
+      - intent: fallback
+      - action: utter_fallback
+ 
+  - rule: Verificar proceso activo antes de cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: action_verificar_proceso_activo_autosave
+
+  - rule: Confirmar cierre seguro con encuesta incompleta
+    condition:
+      - slot_was_set:
+          - encuesta_incompleta: true
+    steps:
+      - intent: confirmar_cierre_autosave
+      - action: action_guardar_encuesta_incompleta
+      - action: action_confirmar_cierre_autosave
+
+  - rule: Confirmar cierre seguro sin encuesta incompleta
+    steps:
+      - intent: confirmar_cierre_autosave
+      - action: action_confirmar_cierre_autosave
+
+  - rule: Cancelar cierre seguro con autosave
+    steps:
+      - intent: cancelar_cierre_autosave
+      - action: action_cancelar_cierre_autosave
+  
+  - rule: Terminar conversación segura con autosave dentro de soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_verificar_proceso_activo_autosave
+
+
+  - rule: Iniciar formulario de soporte cuando el usuario pide enviar mensaje
+    steps:
+      - intent: pedir_mensaje
+      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Manejar error en flujo de soporte
+    steps:
+      - intent: soporte_error
+      - action: utter_soporte_error
+  
+  - rule: Enviar soporte directo
+    steps:
+      - intent: enviar_soporte_directo
+      - action: action_enviar_soporte_directo  
+   
+  - rule: Enviar correo genérico
+    steps:
+      - intent: enviar_correo_tutor
+      - action: action_enviar_correo  
+
+  - rule: Detectar que necesita autenticación
+    steps:
+      - intent: necesita_auth
+      - action: utter_necesita_autenticacion  
+
+  - rule: Usuario no quiere continuar con el tema
+    steps:
+      - intent: continuar_tema_no
+      - action: utter_despedida_final
+
+
+  - rule: Problema no resuelto -> ofrecer escalamiento
+    steps:
+      - intent: problema_resuelto_no
+      - action: utter_problema_resuelto_no
+
+  - rule: Problema no resuelto -> ofrecer opciones
+    steps:
+      - intent: problema_resuelto_no
+      - action: utter_problema_resuelto_no
+
+  - rule: Usuario quiere escalar a humano
+    steps:
+      - intent: escalar_humano
+      - action: utter_derivar_a_humano
+    
+  - rule: Usuario NO quiere escalar
+    steps:
+      - intent: negar_escalar
+      - action: utter_continuar_con_bot
+  
+  - rule: Usuario pide ayuda con certificados
+    steps:
+      - intent: ayuda_certificados
+      - action: utter_ayuda_certificados
+
+  
+  - rule: Usuario cancela la acción actual
+    steps:
+      - intent: cancelar
+      - action: utter_cancelar_accion
+  
+  - rule: Usuario pide cerrar el chat
+    steps:
+      - intent: cerrar_chat
+      - action: utter_cerrar_chat_confirmacion  
+  
+  - rule: Usuario elige certificado de estudio
+    steps:
+      - intent: certificado_estudio
+      - action: utter_certificado_estudio_info
+
+  - rule: Usuario elige certificado de notas
+    steps:
+      - intent: certificado_notas
+      - action: utter_certificado_notas_info
+
+  - rule: Usuario elige certificado laboral
+    steps:
+      - intent: certificado_laboral
+      - action: utter_certificado_laboral_info
+
+  - rule: Usuario elige otro tipo de certificado
+    steps:
+      - intent: certificado_otro
+      - action: utter_certificado_otro_info
+
+  - rule: Usuario confirma derivación a humano
+    steps:
+      - intent: confirmar_derivacion
+      - action: utter_confirmar_derivacion
+
+  - rule: Usuario elige consultar certificados por identificación
+    steps:
+      - intent: consulta_por_identificacion
+      - action: utter_consulta_por_identificacion_info
+
+  - rule: Usuario elige consultar certificados por solicitud
+    steps:
+      - intent: consulta_por_solicitud
+      - action: utter_consulta_por_solicitud_info
+
+  - rule: Usuario elige consultar certificados por tipo
+    steps:
+      - intent: consulta_por_tipo
+      - action: utter_consulta_por_tipo_info
+
+  - rule: Usuario quiere contactar a su tutor
+    steps:
+      - intent: contactar_tutor
+      - action: utter_contactar_tutor_opciones
+      - action: utter_contactar_tutor_confirmacion
+
+  - rule: Usuario quiere continuar con otro tema (continuar_tema_si)
+    steps:
+      - intent: continuar_tema_si
+      - action: utter_continuar_tema_menu
+
+  - rule: Usuario dice 'continue'
+    steps:
+      - intent: continue
+      - action: utter_continuar_tema_menu
+
+  - rule: Usuario quiere dar retroalimentación
+    steps:
+      - intent: dar_retroalimentacion
+      - action: utter_iniciar_retroalimentacion
+
+  - rule: Usuario inicia feedback directo
+    steps:
+      - intent: dar_retroalimentacion
+      - action: utter_iniciar_retroalimentacion
+      - action: feedback_form
+      - active_loop: feedback_form
+
+  - rule: Iniciar formulario de feedback desde iniciar_encuesta
+    steps:
+      - intent: iniciar_encuesta
+      - action: feedback_form
+      - active_loop: feedback_form
+  
+  - rule: Usuario quiere descargar certificado
+    steps:
+      - intent: descargar_certificado
+      - action: utter_descargar_certificado
+  
+  - rule: Usuario reporta error en actividad
+    steps:
+      - intent: error_actividad
+      - action: utter_error_actividad_ayuda
+  
+  - rule: Usuario pide horarios o calendario
+    steps:
+      - intent: horarios_calendario
+      - action: utter_horarios_calendario_info
+  
+  - rule: Usuario usa intent iniciar_sesion
+    steps:
+      - intent: iniciar_sesion
+      - action: utter_redirigir_login
+  
+  - rule: Usuario quiere listar certificados
+    steps:
+      - intent: listar_certificados
+      - action: utter_listar_certificados
+  
+  - rule: Usuario niega autenticación
+    steps:
+      - intent: negar_autenticacion
+      - action: utter_negar_autenticacion
+  
+  - rule: Usuario niega derivación a humano
+    steps:
+      - intent: negar_derivacion
+      - action: utter_no_escalar_humano
+  
+  - rule: Usuario reporta otro problema técnico
+    steps:
+      - intent: otro_problema_tecnico
+      - action: utter_otro_problema_tecnico
+  
+  - rule: Usuario reporta pantalla blanca
+    steps:
+      - intent: pantalla_blanca
+      - action: utter_pantalla_blanca_ayuda
+  
+  - rule: Usuario tiene problema para ingresar
+    steps:
+      - intent: problema_no_ingreso
+      - action: utter_problema_no_ingreso
+  
+  - rule: Usuario pide ver proceso académico
+    steps:
+      - intent: proceso_academico
+      - action: utter_proceso_academico_menu
+  
+  - rule: Usuario abre submenú académico
+    steps:
+      - intent: proceso_academico_secundario
+      - action: utter_proceso_academico_secundario_menu
+  
+  - rule: Usuario envía correo fuera de formularios
+    condition:
+      - active_loop: null
+    steps:
+      - intent: provide_email
+      - action: utter_confirmar_email
+  
+  - rule: Usuario pide soporte técnico
+    steps:
+      - intent: soporte_tecnico
+      - action: utter_soporte_tecnico_menu
+  
+  - rule: Usuario quiere ver info de certificados
+    steps:
+      - intent: ver_certificados_info
+      - action: utter_ver_certificados_info
+  
+  - rule: Usuario quiere ver info del estado estudiante
+    steps:
+      - intent: ver_estado_estudiante_info
+      - action: utter_ver_estado_estudiante_info
+  
+  - rule: Usuario quiere ver link de soporte
+    steps:
+      - intent: ver_link_soporte
+      - action: utter_ver_link_soporte
+  
+  - rule: Usuario quiere ver información del soporte creado
+    steps:
+      - intent: ver_soporte_creado_info
+      - action: utter_ver_soporte_creado_info
+  
+  - rule: Agradecer retroalimentación
+    steps:
+      - intent: dar_retroalimentacion
+      - action: utter_gracias_retroalimentacion
+  - rule: Mostrar detalle de estado académico
+    steps:
+      - intent: ver_estado_estudiante_info
+      - action: utter_estado_estudiante_detalle
+  - rule: Reanudar conversación
+    steps:
+      - intent: reanudar_conversacion
+      - action: utter_reanudar_conversacion
+
+  - rule: Pedir motivo de soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_ask_motivo_soporte
+  
+  - rule: Notificación de inactividad
+    steps:
+      - intent: notificar_inactividad
+      - action: utter_notificar_inactividad
+  
+  - rule: Confirmación de cierre seguro
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: utter_cierre_confirmado_seguro
+  
+  - rule: Notificar inactividad
+    steps:
+      - intent: notificar_inactividad
+      - action: utter_notificar_inactividad
+  
+  - rule: Cierre confirmado de forma segura
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: utter_cierre_confirmado_seguro
+ 
+  - rule: Despedida sin guardar progreso
+    steps:
+      - intent: terminar_conversacion_segura_autosave   
+      - action: utter_despedida_sin_guardar
+ 
+  - rule: Mostrar encuesta de satisfacción
+    steps:
+      - intent: iniciar_encuesta
+      - action: utter_encuesta_satisfaccion
+  
+  - rule: Agradecer feedback
+    steps:
+      - intent: encuesta_satis_yes   
+      - action: utter_gracias_feedback
+  
+  - rule: Pedir comentario de satisfacción
+    steps:
+      - intent: encuesta_satis_no
+      - action: utter_ask_comentario
+  
+  - rule: Presentar ayuda de login
+    steps:
+      - intent: ver_login_hint
+      - action: utter_login_hint_presentacion
+
+  - rule: Ofrecer derivación a humano
+    steps:
+       - intent: necesita_humano
+       - action: utter_pedir_derivacion
+
+  - rule: Confirmar derivación a humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: action_derivar_y_registrar_humano
+      - action: action_conectar_humano
+      - action: utter_espera_agente
+
+  - rule: Avisar derivación a humano en progreso
+    steps:
+      - intent: confirmar_derivacion
+      - action: utter_derivar_humano_en_progreso
+  - rule: Volver al menú explícito
+    steps:
+      - intent: ir_menu_principal
+      - action: action_set_menu_principal
+      - action: utter_volver_menu
+
+  - rule: Mostrar menú principal rápido
+    steps:
+      - intent: ir_menu_principal
+      - action: action_set_menu_principal
+      - action: utter_menu_principal_quick
+
+  - rule: Cancelar cierre seguro y volver al menú
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: action_ir_menu_principal
+  
+  - rule: Confirmar estado de estudiante mostrado
+    steps:
+      - intent: ver_estado_estudiante
+      - action: utter_estado_mostrado
+  
+  - rule: Consultar certificados desde intent principal
+    steps:
+      - intent: consultar_certificados
+      - action: utter_consultar_certificados
+  
+  - rule: Mostrar listado de certificados
+    steps:
+      - intent: listar_certificados
+      - action: utter_certificado_listado
+  
+  - rule: Confirmar snapshot guardado
+    steps:
+      - intent: guardar_snapshot     
+      - action: utter_guardian_snapshot_ok
+  
+  - rule: Informar intento de form fallido
+    steps:
+      - intent: nlu_fallback
+      - action: utter_intento_form_fallido
+
+  - rule: Pedir nombre fuera de formulario
+    steps:
+      - intent: pedir_nombre      
+      - action: utter_ask_nombre
+  
+  - rule: Confirmar que se realizará la consulta
+    steps:
+      - intent: confirmar_autenticacion
+      - action: utter_confirmacion_consulta
+  - rule: Confirmar snapshot de guardian
+    steps:
+      - intent: guardar_snapshot 
+      - action: utter_guardian_snapshot_ok
+
+  - rule: Notificar que se está guardando el progreso
+    steps:
+      - intent: guardar_estado_seguridad
+      - action: utter_guardando_progreso
+
+  - rule: Notificar desconexión
+    steps:
+      - intent: notificar_desconexion
+      - action: utter_notificar_desconexion
+
+  - rule: Notificar reconexión
+    steps:
+      - intent: notificar_reconexion
+      - action: utter_notificar_reconexion
+
+  - rule: Reanudar conversación automática
+    steps:
+      - intent: guardian_reanudar_conversacion
+      - action: utter_reanudar_auto
+
+  - rule: Reinicio confirmado
+    steps:
+      - intent: reiniciar_conversacion
+      - action: utter_reinicio_confirmado
+  
+  - rule: Confirmar cierre seguro
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: utter_confirmar_cierre_seguro
+
+  - rule: Confirmar cierre con autosave
+    steps:
+      - intent: confirmar_cierre_autosave
+      - action: utter_confirmar_cierre_con_autosave
+
+  - rule: Cancelar cierre seguro
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: utter_cierre_cancelado_seguro
+
+  - rule: Cancelar cierre normal
+    steps:
+      - intent: cancelar_cierre
+      - action: utter_cancelar_cierre
+
+  - rule: Preguntar si el problema está resuelto
+    steps:
+      - intent: problema_resuelto_si
+      - action: utter_esta_resuelto
+
+  - rule: Consultar certificados
+    steps:
+      - intent: consultar_certificados
+      - action: utter_consultar_certificados
+
+  - rule: Mostrar certificados listados
+    steps:
+      - intent: listar_certificados
+      - action: utter_certificados_listado
+  - rule: Error en flujo de soporte
+    steps:
+      - intent: soporte_error
+      - action: utter_soporte_error
+
+  - rule: Pedir detalle de soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_ask_detalle_soporte
+  - rule: Pedir retroalimentación al usuario
+    steps:
+      - intent: dar_retroalimentacion
+      - action: utter_pedir_retroalimentacion
+
+  - rule: Agradecer feedback
+    steps:
+      - intent: respuesta_satisfecho
+      - action: utter_gracias_feedback
+
+  - rule: Agradecer satisfacción
+    steps:
+      - intent: encuesta_satis_yes
+      - action: utter_agradecer_satisfaccion
+
+  - rule: Lamentar insatisfacción
+    steps:
+      - intent: encuesta_satis_no
+      - action: utter_lamentar_insatisfaccion
+
+  - rule: Agradecimiento final tras encuesta
+    steps:
+      - intent: continuar_tema_no
+      - action: utter_agradecimiento_final
+  
+  - rule: Ping del servidor
+    steps:
+      - intent: ping_servidor
+      - action: utter_ping_ok
+
+  - rule: Menú de soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_menu_soporte
+  
+  - rule: Intento de formulario fallido
+    steps:
+      - intent: nlu_fallback
+      - action: utter_intento_form_fallido
+  - rule: Activar soporte_form cuando el usuario confirma soporte
+    steps:
+      - intent: soporte_confirmar
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Usuario pide que el bot solicite el correo
+    steps:
+      - intent: pedir_correo
+      - action: utter_pedir_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Capturar correo explícito durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Capturar teléfono durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_telefono
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Capturar cédula durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_cedula
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Capturar URL de soporte
+    steps:
+      - intent: enviar_url
+      - action: utter_gracias_url
+  
+  - rule: Usuario pide que el bot solicite el email
+    steps:
+      - intent: pedir_email
+      - action: utter_pedir_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Capturar número (cédula) durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_numero
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Usuario decide no continuar con el tema actual
+    steps:
+      - intent: continuar_tema_no
+      - action: utter_no_continuar_tema
+      - action: utter_menu_principal
+
+  - rule: Preguntar confirmación de cierre definitivo
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_preguntar_cierre
+      - action: utter_confirmar_cierre_definitivo
+
+  - rule: Responder saludo del usuario
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+
+  - rule: Iniciar flujo de login pidiendo email
+    steps:
+      - intent: auth_login_cmd
+      - action: utter_ask_email
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  - rule: Pedir password explícitamente en login
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: utter_ask_password
+
+  - rule: Iniciar soporte solicitando datos de contacto
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_ask_email_contacto
+      - action: soporte_form
+      - active_loop: soporte_form
+  
+  - rule: Preguntar cédula en soporte
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: utter_ask_cedula
+
+  - rule: Preguntar teléfono en soporte
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: utter_ask_phone
+  
+  - rule: Pedir mensaje de soporte
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: utter_ask_mensaje
+
+  - rule: Iniciar encuesta de satisfacción
+    steps:
+      - intent: iniciar_encuesta
+      - action: utter_pedir_comentario
+      - action: encuesta_satisfaccion_form
+      - active_loop: encuesta_satisfaccion_form
+
+  - rule: Preguntar nivel de satisfacción
+    condition:
+      - active_loop: encuesta_satisfaccion_form
+    steps:
+      - action: utter_ask_nivel_satisfaccion
+
+  - rule: Pedir comentario libre de satisfacción
+    condition:
+      - active_loop: encuesta_satisfaccion_form
+    steps:
+      - action: utter_ask_feedback_texto
+
+  - rule: Iniciar formulario de feedback detallado
+    steps:
+      - intent: dar_retroalimentacion
+      - action: utter_ask_usuario
+      - action: feedback_form
+      - active_loop: feedback_form
+
+  - rule: Pedir usuario en feedback_form
+    condition:
+      - active_loop: feedback_form
+    steps:
+      - action: utter_ask_usuario
+
+  - rule: Pedir texto de feedback en feedback_form
+    condition:
+      - active_loop: feedback_form
+    steps:
+    - action: utter_ask_feedback_texto
+  - rule: Confirmar cierre seguro
+    steps:
+      - intent: confirmar_cierre
+      - action: action_autosave_encuesta
+      - action: action_guardar_autosave_mongo
+      - action: utter_cierre_confirmado
+      - action: action_reset_conversacion_segura
+
+  - rule: Cancelar cierre seguro
+    steps:
+      - intent: cancelar_cierre
+      - action: utter_cierre_cancelado
+  
+  - rule: Problema no resuelto - mensaje base
+    steps:
+      - intent: problema_resuelto_no
+      - action: utter_problema_resuelto_no
+
+  - rule: Problema no resuelto - usuario pide humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: utter_ofrecer_humano
+
+  - rule: Problema no resuelto - usuario no quiere humano
+    steps:
+      - intent: negar_derivacion
+      - action: utter_no_continuar_tema
+  
+  - rule: Flujo base - usuario quiere terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+  
+  - rule: Saludo inicial
+    steps:
+      - intent: saludo
+      - action: utter_saludar
+      - action: action_auto_resume
+  
+  - rule: Cierre seguro - sin encuesta activa
+    condition:
+      - slot_was_set:
+        - encuesta_activa: false
+    steps:
+      - action: action_verificar_estado_encuesta
+      - action: action_confirmar_cierre_seguro
+
+  - rule: Cierre seguro - encuesta incompleta o activa
+    condition:
+      - slot_was_set:
+          - encuesta_activa: true
+    steps:
+      - action: action_verificar_estado_encuesta
+      - action: action_listen
+  
+  - rule: Flujo base - usuario quiere terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+  
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+      - action: utter_cierre_confirmado
+  
+  - rule: Usuario cancela cierre
+    steps:
+      - intent: cancelar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+      - action: utter_volver_menu_principal
+
+  - rule: Saludo inicial
+    steps:
+      - intent: saludo
+      - action: utter_saludar
+      - action: action_auto_resume
+  
+  - rule: Usuario pide hablar con tutor tras encuesta negativa
+    steps:
+      - intent: contactar_tutor
+      - action: utter_ofrecer_contacto_tutor
+  
+  - rule: Flujo base - cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_verificar_estado_encuesta
+
+  - rule: Cierre seguro sin encuesta activa
+    condition:
+      - slot_was_set:
+          - encuesta_activa: false
+    steps:
+      - action: action_verificar_estado_encuesta
+      - action: action_confirmar_cierre_seguro
+      - action: utter_despedida_final
+  
+  - rule: Cierre seguro cancelado por el usuario
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: action_cancelar_cierre_segura
+      - action: utter_cierre_cancelado
+      - action: utter_volver_menu_principal
+  
+  - rule: Usuario niega cierre
+    steps:
+      - intent: negar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+      - action: utter_volver_menu_principal
+  
+  - rule: Derivar a humano directo
+    steps:
+      - intent: escalar_humano
+      - action: utter_ofrecer_humano
+  
+  - rule: Confirmar derivación a humano
+    steps:
+      - intent: confirmacion_escalar_humano
+      - action: utter_derivar_a_humano
+  
+  - rule: Usuario quiere cerrar solo el chat
+    steps:
+      - intent: cerrar_chat
+      - action: utter_cerrar_chat
+  
+  - rule: Usuario insatisfecho - marcar tipo y responder
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativa"
+      - action: utter_encuesta_negativa
+  
+  - rule: Asignar usuario si no se especifica
+    steps:
+      - intent: mostrar_token
+      - action: action_set_default_tipo_usuario
+  
+  - rule: Despedida directa sin formularios
+    condition:
+      - active_loop: null
+    steps:
+      - intent: terminar_conversacion
+      - action: utter_despedida_final
+  
+  - rule: Confirmar cierre si el formulario está activo
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - action: action_confirmar_cierre
+  
+  - rule: Mostrar token (con tipo por defecto)
+    steps:
+      - intent: mostrar_token
+      - action: action_set_default_tipo_usuario
+      - action: action_mostrar_token
+  
+  - rule: Flujo base - usuario quiere terminar conversación
+    steps:
+      - intent: terminar_conversacion
+      - action: action_verificar_proceso_activo_autosave
+
+  - rule: Usuario confirma cierre
+    steps:
+      - intent: confirmar_cierre
+      - action: action_finalizar_conversacion
+      - action: utter_cierre_confirmado
+
+  - rule: Usuario cancela cierre explícito
+    steps:
+      - intent: cancelar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+      - action: action_ir_menu_principal   
+
+  - rule: Usuario niega cierre
+    steps:
+      - intent: negar_cierre
+      - action: action_cancelar_cierre
+      - action: utter_cierre_cancelado
+      - action: action_ir_menu_principal  
+  
+  - rule: Flujo base - cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_verificar_estado_encuesta
+
+  - rule: Confirmar cierre seguro
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: action_guardar_progreso_encuesta   
+      - action: action_confirmar_cierre_seguro
+      - action: utter_cierre_confirmado_seguro
+
+  - rule: Cancelar cierre seguro
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: action_cancelar_cierre_segura
+      - action: utter_cierre_cancelado_seguro
+      - action: action_ir_menu_principal
+  
+  - rule: Usuario quiere cerrar solo el chat
+    steps:
+      - intent: cerrar_chat
+      - action: utter_cerrar_chat_confirmacion
+    
+

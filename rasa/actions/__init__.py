@@ -46,8 +46,10 @@ from .acciones_academico import (
 from .acciones_encuesta import (
     ActionRegistrarEncuesta,
     ActionPreguntarResolucion,
+    ActionVerificarEstadoEncuesta,
+    ValidateEncuestaSatisfaccionForm,
+    ActionGuardarFeedback,
 )
-
 
 # ======= Menú / Acciones de acceso rápido =======
 from .acciones_menu import (
@@ -86,8 +88,6 @@ from .acciones_conversacion_segura import (
     ActionGuardarAutosaveMongo,
     ActionAutosaveEncuesta,
     ActionConfirmarCierreSeguro,
-
-
 )
 
 from .acciones_seguridad import (
@@ -158,13 +158,14 @@ from .acciones_admin import (
     ActionReiniciarConversacion,
     ActionMostrarToken,
     ActionPingServidor,
+    ActionSetDefaultTipoUsuario,
 )
 
 __all__ = [
     # Validators
     "ValidateSoporteForm",
     "ValidateRecoveryForm",
-
+    "ActionSetDefaultTipoUsuario",
     # Core utility / email / health / humano
     "ActionEnviarCorreo",
     "ActionConectarHumano",
@@ -274,4 +275,10 @@ __all__ = [
     "ActionReiniciarConversacion",
     "ActionMostrarToken",
     "ActionPingServidor",
+
+    "ActionRegistrarEncuesta",
+    "ActionPreguntarResolucion",
+    "ActionVerificarEstadoEncuesta",
+    "ValidateEncuestaSatisfaccionForm",
+    "ActionGuardarFeedback",
 ]
