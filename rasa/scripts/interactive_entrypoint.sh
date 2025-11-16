@@ -27,14 +27,20 @@ else
   exit 1
 fi
 
-# Carpeta para datos interactivos (montada en ./rasa/data/interactive en el host)
-echo "[interactive] 📁 Asegurando carpeta /app/data/interactive ..."
+# Carpeta raíz para datos interactivos (montada en ./rasa/data/interactive en el host)
+echo "[interactive] 📁 Asegurando carpeta raíz /app/data/interactive ..."
 mkdir -p /app/data/interactive
 
-# Crear/asegurar archivos donde quieres ir guardando lo generado
-: > /app/data/interactive/interactive_stories.yml
-: > /app/data/interactive/interactive_nlu.yml
-: > /app/data/interactive/interactive_rules.yml
+# 🔢 Crear carpeta de sesión única por fecha/hora (no sobrescribe sesiones anteriores)
+SESSION_ID="$(date +'%Y%m%d_%H%M%S')"
+INTERACTIVE_DIR="/app/data/interactive/session_${SESSION_ID}"
+
+echo "[interactive] 🗂  Creando carpeta de sesión: ${INTERACTIVE_DIR}"
+mkdir -p "${INTERACTIVE_DIR}"
+
+# (Opcional) Mensaje para el usuario/dev
+echo "[interactive] 💾 Los datos interactivos de esta sesión se guardarán en:"
+echo "   ${INTERACTIVE_DIR}"
 
 # Entrena si no hay modelos, pero sin tumbar el contenedor si falla
 if ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
@@ -62,6 +68,6 @@ exec rasa interactive \
   --domain /app/domain.yml \
   --data /app/data \
   --model /app/models \
-  --out /app/data/interactive \
+  --out "${INTERACTIVE_DIR}" \
   --port 5005 \
   --debug
