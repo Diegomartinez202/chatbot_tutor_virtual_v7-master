@@ -54,19 +54,30 @@ RUN pip install --no-cache-dir pymongo \
  && chmod +x /app/scripts/log_model_train.py
 
 # Creamos un entrypoint extendido que:
-#  1️⃣ Registra el último modelo entrenado en MongoDB.
-#  2️⃣ Arranca Rasa normalmente.
+#  1️⃣ Si no hay modelo en /app/models, entrena uno nuevo.
+#  2️⃣ Registra el último modelo entrenado en MongoDB.
+#  3️⃣ Arranca Rasa normalmente.
 RUN echo '#!/usr/bin/env bash' > /entrypoint_with_log.sh && \
     echo 'set -e' >> /entrypoint_with_log.sh && \
+    echo '' >> /entrypoint_with_log.sh && \
     echo 'LATEST_MODEL=$(ls -t /app/models/*.tar.gz 2>/dev/null | head -n 1)' >> /entrypoint_with_log.sh && \
     echo 'if [ -n "$LATEST_MODEL" ]; then' >> /entrypoint_with_log.sh && \
     echo '  echo "[💾] Registrando modelo al iniciar: $LATEST_MODEL";' >> /entrypoint_with_log.sh && \
     echo '  python3 /app/scripts/log_model_train.py "$LATEST_MODEL" || true;' >> /entrypoint_with_log.sh && \
     echo 'else' >> /entrypoint_with_log.sh && \
-    echo '  echo "[⚠️] No se encontró modelo en /app/models/"' >> /entrypoint_with_log.sh && \
+    echo '  echo "[⚠️] No se encontró modelo en /app/models/. Entrenando uno nuevo...";' >> /entrypoint_with_log.sh && \
+    echo '  rasa train;' >> /entrypoint_with_log.sh && \
+    echo '  LATEST_MODEL=$(ls -t /app/models/*.tar.gz 2>/dev/null | head -n 1);' >> /entrypoint_with_log.sh && \
+    echo '  if [ -n "$LATEST_MODEL" ]; then' >> /entrypoint_with_log.sh && \
+    echo '    echo "[💾] Registrando modelo recién entrenado: $LATEST_MODEL";' >> /entrypoint_with_log.sh && \
+    echo '    python3 /app/scripts/log_model_train.py "$LATEST_MODEL" || true;' >> /entrypoint_with_log.sh && \
+    echo '  else' >> /entrypoint_with_log.sh && \
+    echo '    echo "[❌] No se pudo entrenar un modelo. Revisa los logs de entrenamiento.";' >> /entrypoint_with_log.sh && \
+    echo '  fi' >> /entrypoint_with_log.sh && \
     echo 'fi' >> /entrypoint_with_log.sh && \
+    echo '' >> /entrypoint_with_log.sh && \
     echo 'echo "[🚀] Iniciando Rasa..."' >> /entrypoint_with_log.sh && \
-    echo 'exec rasa run --enable-api --cors "*" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
+    echo 'exec rasa run --enable-api --cors "*" --endpoints /app/endpoints.yml --credentials /app/credentials.yml --model "$LATEST_MODEL" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
     chmod +x /entrypoint_with_log.sh
 
 

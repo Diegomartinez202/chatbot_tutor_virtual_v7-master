@@ -60,7 +60,6 @@ intents:
   - guardar_snapshot
   - ayuda_guardian
   - confirmar_derivacion
-  - negar_derivacion
   - iniciar_sesion
   - cerrar_chat
   - terminar_conversacion_segura_autosave

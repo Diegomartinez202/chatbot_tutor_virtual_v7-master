@@ -362,7 +362,6 @@ services:
       SQLALCHEMY_WARN_20: "0"
     volumes:
       - ./rasa:/app
-      - ./rasa/domain:/app/domain
       - ./rasa/data:/app/data
       - ./rasa/models:/app/models
       - ./rasa/config.yml:/app/config.yml:ro
@@ -373,6 +372,7 @@ services:
     tty: true
     stdin_open: true
     entrypoint: ["/bin/sh","-lc","sh /app/scripts/interactive_entrypoint.sh"]
+
   # ------------------------------------------------------------
   # Rasa Action guardian (Flask API JWT + Mongo)
   # ------------------------------------------------------------
@@ -395,14 +395,14 @@ services:
       - app-net
     restart: unless-stopped
     ports:
-     - "8080:8080"
+     - "8081:8080"
     expose:
       - "8080"          # ← visible dentro de app-net (Nginx lo ve)
     depends_on:
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:8080/ping | grep -q 'ok'"]
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -675,7 +675,7 @@ services:
       - rasa
       - admin-builder
     ports:       
-      - "8080:80"      
+      - "8080:80" 
       - "443:443"    
     volumes:
       - ./admin_panel_react/dist:/usr/share/nginx/html:ro

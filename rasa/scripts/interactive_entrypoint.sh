@@ -27,6 +27,15 @@ else
   exit 1
 fi
 
+# Carpeta para datos interactivos (montada en ./rasa/data/interactive en el host)
+echo "[interactive] 📁 Asegurando carpeta /app/data/interactive ..."
+mkdir -p /app/data/interactive
+
+# Crear/asegurar archivos donde quieres ir guardando lo generado
+: > /app/data/interactive/interactive_stories.yml
+: > /app/data/interactive/interactive_nlu.yml
+: > /app/data/interactive/interactive_rules.yml
+
 # Entrena si no hay modelos, pero sin tumbar el contenedor si falla
 if ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
   echo "[interactive] 🛠️ No hay modelos entrenados. Validando + entrenando (best effort)..."
@@ -42,7 +51,7 @@ else
   echo "[interactive] 📦 Se encontraron modelos existentes. Saltando entrenamiento inicial."
 fi
 
-# Crear carpeta para logs o sesiones interactivas
+# Carpeta para logs/sesiones si la quieres usar luego
 mkdir -p /app/interactive
 
 # 🚀 Lanzar modo interactivo
@@ -53,5 +62,6 @@ exec rasa interactive \
   --domain /app/domain.yml \
   --data /app/data \
   --model /app/models \
+  --out /app/data/interactive \
   --port 5005 \
   --debug
