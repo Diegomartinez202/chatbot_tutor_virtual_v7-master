@@ -51,29 +51,48 @@ class ActionEstadoEstudiante(Action):
 # 👩‍🏫 Tutor asignado
 # ======================
 class ActionTutorAsignado(Action):
-    def name(self) -> Text: 
+    def name(self) -> Text:
         return "action_tutor_asignado"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+
+        # Si no está autenticado, pedimos autenticación y salimos
         if not _is_auth(tracker):
             dispatcher.utter_message(response="utter_pedir_autenticacion")
             return []
 
         base = _backend_base()
         nombre, contacto = None, None
+
         if base:
             try:
-                resp = requests.get(f"{base}/api/tutor", headers=_auth_headers(tracker), timeout=8)
+                resp = requests.get(
+                    f"{base}/api/tutor",
+                    headers=_auth_headers(tracker),
+                    timeout=8,
+                )
                 if resp.ok:
-                    data = resp.json() if isinstance(resp.json(), dict) else {}
-                    nombre, contacto = data.get("nombre"), data.get("contacto")
+                    data = resp.json()
+                    if isinstance(data, dict):
+                        nombre = data.get("nombre")
+                        contacto = data.get("contacto")
             except Exception:
+                # Aquí podrías loguear el error si quieres
                 pass
 
+        # Valores por defecto si la API no devuelve nada
+        nombre = nombre or "Ing. María Pérez (demo)"
+        contacto = contacto or "maria.perez@zajuna.edu (demo)"
+
         dispatcher.utter_message(
-            text=f"👩‍🏫 Tu tutor asignado es {nombre or 'Ing. María Pérez (demo)'}."
-                 f" Contacto: {contacto or 'maria.perez@zajuna.edu (demo)'}."
+            text=f"👩‍🏫 Tu tutor asignado es {nombre}. Contacto: {contacto}."
         )
+
         return []
 
 # ======================
@@ -83,33 +102,55 @@ class ActionListarCertificados(Action):
     def name(self) -> Text: 
         return "action_listar_certificados"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+
+        # 🔐 Validar autenticación
         if not _is_auth(tracker):
             dispatcher.utter_message(response="utter_pedir_autenticacion")
             return []
 
         base = _backend_base()
         certificados: Optional[List[Dict[str, Any]]] = None
+
         if base:
             try:
-                resp = requests.get(f"{base}/api/certificados", headers=_auth_headers(tracker), timeout=8)
+                resp = requests.get(
+                    f"{base}/api/certificados",
+                    headers=_auth_headers(tracker),
+                    timeout=8
+                )
                 if resp.ok:
                     data = resp.json()
                     certificados = data.get("certificados") if isinstance(data, dict) else data
             except Exception:
+                # En caso de error en backend, seguimos con demo
                 pass
 
+        # Demo / fallback si no hay respuesta del backend
         if not certificados:
             certificados = [
                 {"curso": "Excel Intermedio", "fecha": "2025-06-10", "url": "https://zajuna.example/cert/123"},
                 {"curso": "Programación Básica", "fecha": "2025-04-02", "url": "https://zajuna.example/cert/456"},
             ]
 
+        # Construir el texto que irá en {certificado}
         lines = [
-            f"• {i.get('curso','Certificado')} ({i.get('fecha','s.f.')})" + (f" → {i.get('url')}" if i.get('url') else "")
+            f"• {i.get('curso','Certificado')} ({i.get('fecha','s.f.')})"
+            + (f" → {i.get('url')}" if i.get('url') else "")
             for i in certificados
         ]
-        dispatcher.utter_message(text="🧾 Tus certificados:\n" + "\n".join(lines))
+        listado = "\n".join(lines)
+
+        # 👉 Usar el utter con botones
+        dispatcher.utter_message(
+            response="utter_certificados_listado",
+            certificado=listado,
+        )
         return []
 
 class ActionVerCertificados(Action):
@@ -154,3 +195,26 @@ class ZajunaGetEstadoEstudiante(Action):
 
     def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict]:
         return ActionEstadoEstudiante().run(dispatcher, tracker, domain)
+
+class ActionVerEstadoEstudiante(Action):
+    def name(self) -> str:
+        return "action_ver_estado_estudiante"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: dict):
+
+        # Aquí tú haces tu lógica: consultar API, estado, etc.
+        estado = "Activo"
+        programa = "Tecnología en Desarrollo de Software"
+        semestre = "3"
+
+        # Llamas el utter directamente
+        dispatcher.utter_message(
+            response="utter_estado_mostrado",
+            estado=estado,
+            programa=programa,
+            semestre=semestre
+        )
+
+        return []

@@ -14,6 +14,7 @@ from .acciones_soporte import (
     ActionEnviarSoporte,
     ActionSoporteSubmit,
     ActionDerivarYRegistrarHumano,
+    ActionMarcarEscalarHumano,
 )
 
 # ======= Autenticación =======
@@ -40,6 +41,7 @@ from .acciones_academico import (
     ActionRecuperarContrasena,
     ZajunaGetCertificados,
     ZajunaGetEstadoEstudiante,
+    ActionVerEstadoEstudiante,
 )
 
 # ======= Encuesta =======
@@ -130,6 +132,7 @@ from .acciones_cierre_conversacion import (
     ActionConfirmarCierre,
     ActionFinalizarConversacion,
     ActionCancelarCierre,
+    ActionAnalizarEstadoUsuario,
 )
 
 from .acciones_handoff import (
@@ -140,6 +143,7 @@ from .acciones_handoff import (
     ActionHandoffCancelar,
     ActionDerivarHumanoConfirmada,
     ActionCancelarDerivacion,
+    ActionHandoffEnCola,
 )
 from .acciones_certificados import (
     ActionConsultarCertificados,  
@@ -265,7 +269,7 @@ __all__ = [
     "ActionCancelarDerivacion",
     "ZajunaGetCertificados",
     "ZajunaGetEstadoEstudiante",
-
+    "ActionHandoffEnCola",
     "ActionAutosaveSnapshot",
         
     "ValidatePasswordRecoveryForm",
@@ -281,4 +285,6 @@ __all__ = [
     "ActionVerificarEstadoEncuesta",
     "ValidateEncuestaSatisfaccionForm",
     "ActionGuardarFeedback",
+
+    "ActionAnalizarEstadoUsuario",
 ]

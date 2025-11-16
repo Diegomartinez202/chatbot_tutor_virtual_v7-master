@@ -1,4 +1,4 @@
-# ruta: rasa/domain_parts/domain_academico.yml
+
 version: "3.1"
 
 intents:
@@ -28,7 +28,6 @@ intents:
   - enviar_credenciales
   - recuperar_contrasena
   - provide_email
-  - estado_estudiante
   - ver_certificados
   - fallback
   - terminar_conversacion
@@ -64,9 +63,8 @@ intents:
   - negar_derivacion
   - iniciar_sesion
   - cerrar_chat
-  - terminar_conversacion_segura_autosave 
+  - terminar_conversacion_segura_autosave
   - confirmar_cierre_segura
-  - cancelar_cierre_segura
   - guardian_pausar_conversacion
   - guardian_reanudar_conversacion
   - guardian_guardar_progreso
@@ -96,13 +94,13 @@ intents:
   - ayuda_certificados
   - consulta_por_identificacion
   - consulta_por_solicitud
-  - consulta_por_tipo        
+  - consulta_por_tipo     
   - problema_resuelto_no
   - pedir_mensaje
   - soporte_error
   - enviar_soporte_directo
   - necesita_auth
-  - continuar_tema_no 
+  - continuar_tema_no
   - pedir_nombre
   - enviar_numero
   - enviar_correo
@@ -110,14 +108,26 @@ intents:
   - pedir_email
   - soporte_confirmar
   - enviar_telefono
-  - enviar_cedula
+  - enviar_cedula          
+  - cancelar_cierre_segura
   - pedir_correo
-  - terminar_conversacion      
-  - cerrar_chat                    
-  - confirmar_cierre              
-  - cancelar_cierre                                
-  - terminar_conversacion_segura   
- 
+  - ingreso_zajuna
+  - ver_tutor_asignado
+  - detectar_emocion
+  - negar_handoff
+  - guardar_estado
+  - pedir_humano
+  - problema_no_resuelto
+  - pedir_humano_directo
+  - menu_rapido
+  - sugerir_tutor
+  - menu_soporte
+  - menu_administrativo
+  - menu_academico
+  - estado_estudiante 
+  - soporte_acceso
+  - soporte_error_plataforma
+  - consultar_contenido_curso
 
 entities:
   - curso
@@ -130,7 +140,7 @@ entities:
   - password
   - prefer_contacto
   - motivo_soporte
-  - phone   
+  - phone
   - autosave_estado
   - satisfaccion
   - comentario
@@ -145,7 +155,7 @@ entities:
   - problema
   - url_problema 
   - tipo_usuario
-
+  - emocion
 
 slots:
   is_authenticated:
@@ -472,6 +482,32 @@ slots:
       - type: from_entity
         entity: tipo_usuario
 
+  emocion_detectada:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+  
+  autenticado:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  encuesta_satisfaccion:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  escalar_humano:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+      - type: custom
+  
 forms:
   auth_login_form:
     required_slots:
@@ -506,32 +542,6 @@ forms:
 
 responses:
   
-  utter_menu_academico:
-    - text: "📚 Menú académico de Zajuna:"
-      buttons:
-        - title: "📜 Ver certificados"
-          payload: "/consultar_certificados"
-        - title: "🧾 Estado de estudiante"
-          payload: "/ver_estado_estudiante"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/ir_menu_principal"
-
-  utter_certificados_listado:
-    - text: "🎓 Aquí tienes tus certificados disponibles:\n{certificado}"
-      buttons:
-        - title: "Volver al menú académico"
-          payload: "/consultar_academico"
-        - title: "Ir al menú principal"
-          payload: "/ir_menu_principal"
-
-  utter_estado_estudiante_detalle:
-    - text: "📊 Estado actual del estudiante: {curso}"
-      buttons:
-        - title: "Volver al menú académico"
-          payload: "/consultar_academico"
-        - title: "Ir al menú principal"
-          payload: "/ir_menu_principal"
-
   utter_preguntar_continuar_menu:
     - text: "¿Deseas realizar otra consulta?"
       buttons:
@@ -545,18 +555,7 @@ responses:
 
   utter_ping_ok:
     - text: "✅ El servidor está activo y respondiendo correctamente."
-  
-  utter_saludo:
-    - text: "¡Hola! 👋 ¿En qué puedo ayudarte hoy?"
-
-  utter_need_auth:
-    - text: "⚠️ Para realizar esta acción necesitas iniciar sesión."
-      buttons:
-        - title: "Iniciar sesión"
-          payload: "/auth_login_cmd"
-        - title: "Cancelar"
-          payload: "/deny"
-
+ 
   utter_auth_ok:
     - text: "✅ Autenticación correcta. ¿Qué deseas consultar?"
       buttons:
@@ -594,42 +593,11 @@ responses:
         - title: "🔁 Volver al menú"
           payload: "/ir_menu_principal"
 
-  utter_despedida_profesional:
-    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
-      buttons:
-        - title: "🔁 Reabrir menú"
-          payload: "/ir_menu_principal"
-        - title: "🔁 Reanudar más tarde"
-          payload: "/terminar_conversacion"
-
   utter_cerrar_chat:
     - text: "✅ Conversación finalizada. Cuando quieras, vuelve a escribirme."
 
-  utter_volver_menu:
-    - text: "📋 Este es el menú principal. ¿Qué deseas hacer?"
-      buttons:
-        - title: "📊 Estado académico"
-          payload: "/ver_estado_estudiante"
-        - title: "📄 Certificados"
-          payload: "/consultar_certificados"
-        - title: "🛠️ Soporte"
-          payload: "/solicitar_soporte"
-
-    - text: "¿Quieres volver al menú principal?"
-      buttons:
-        - title: "🏠 Menú principal"
-          payload: "/ir_menu_principal" 
-
   utter_derivando_humano:
     - text: "Te conecto con un asesor humano. ⏳ Por favor, espera un momento."
-
-  utter_reanudar_auto:
-    - text: "Parece que tienes una encuesta pendiente. ¿Deseas retomarla?"
-      buttons:
-        - title: "Sí, continuar"
-          payload: "/reanudar_auto_si"
-        - title: "No, empezar nuevo chat"
-          payload: "/reanudar_auto_no"
 
   utter_reanudar_confirmado:
     - text: "Perfecto, retomamos tu encuesta donde la dejaste. 🔄"
@@ -659,20 +627,6 @@ responses:
           payload: "/respuesta_insatisfecho{'nivel_satisfaccion': 'mala'}"
         - title: "💾 Terminar y guardar progreso"
           payload: "/terminar_conversacion_segura_autosave"
-
-  utter_agradecer_satisfaccion:
-    - text: "¡Nos alegra que tu experiencia haya sido positiva! 💚"
-    - text: "¿Deseas dejar un comentario adicional o volver al menú?"
-      buttons:
-        - title: "🗒️ Dejar comentario"
-          payload: "/dar_retroalimentacion"
-        - title: "🏠 Volver al menú principal"
-          payload: "/ir_menu_principal"
-        - title: "💾 Terminar y guardar progreso"
-          payload: "/terminar_conversacion_segura_autosave"
-
-  utter_pedir_retroalimentacion:
-    - text: "Por favor, cuéntanos brevemente qué te gustó o qué podríamos mejorar ✍️"
 
   utter_gracias_retroalimentacion:
     - text: "🙏 ¡Gracias por tu comentario! Lo tendremos muy en cuenta."
@@ -724,25 +678,8 @@ responses:
   utter_encuesta_satisfaccion:
     - text: "¿Cómo calificarías la atención recibida hoy? 😊\nOpciones: satisfecho / neutral / insatisfecho"
 
-  utter_pedir_comentario:
-    - text: "¿Deseas dejar un comentario adicional sobre tu experiencia?"
-
-  utter_gracias_feedback:
-    - text: "¡Gracias por compartir tu opinión! 💬 Valoramos mucho tus comentarios."
-
-  utter_agradecimiento_final:
-    - text: "✨ Agradecemos tu tiempo y confianza. Si más adelante necesitas asistencia, estaremos encantados de ayudarte nuevamente. ¡Hasta pronto!"
-      buttons:
-        - title: "💾 Terminar guardando conversación"
-          payload: "/terminar_conversacion_segura_autosave"
-        - title: "🏠 Volver al menú"
-          payload: "/ir_menu_principal"
-
   utter_ask_nivel_satisfaccion:
     - text: "⭐ Del 1 al 5, ¿qué tan satisfecho estás? (1 = muy poco, 5 = muy satisfecho)"
-
-  utter_ask_comentario:
-    - text: "💬 ¿Quieres dejar algún comentario adicional?"
   
   utter_soporte_creado:
     - text: "🎫 Tu solicitud de soporte fue registrada correctamente. Un asesor te contactará en breve."
@@ -752,16 +689,6 @@ responses:
         Parece que hubo un problema al procesar tu solicitud de soporte. 
         ¿Quieres que lo intentemos de nuevo o prefieres que te derive a un agente humano?
   
-  utter_saludar:
-    - text: "¡Hola! 👋 Soy tu asistente virtual de **Zajuna**. ¿En qué puedo ayudarte hoy?"
-      buttons:
-        - title: "🔑 Iniciar sesión"
-          payload: "/auth_login_cmd"
-        - title: "🎓 Consultar área académica"
-          payload: "/consultar_academico"
-        - title: "🛠️ Soporte técnico"
-          payload: "/solicitar_soporte"
-
   utter_affirm:
     - text: "¡Perfecto! 👍 ¿Deseas hacer algo más?"
 
@@ -784,12 +711,6 @@ responses:
 
   utter_guardian_snapshot_ok:
     - text: "✅ He solicitado guardar un snapshot de tu sesión actual (modo técnico)."
-
-  utter_ask_motivo_soporte:
-    - text: "Cuéntame brevemente el motivo de tu solicitud de soporte."
-
-  utter_ask_detalle_soporte:
-    - text: "¿Puedes darme más detalle para ayudar al asesor a contextualizar?"
 
   utter_ask_email_contacto:
     - text: "¿Cuál es tu correo de contacto?"
@@ -884,18 +805,10 @@ responses:
           payload: "/consultar_certificados"
         - title: "📊 Estado académico"
           payload: "/ver_estado_estudiante"
+
   utter_form_fallback_warn:
     - text: "No logré entenderte del todo. ¿Puedes intentar con otras palabras? (Intento {soporte_intentos}/3)"
   
-  utter_login_requerido:
-    - text: "Para acceder a esta opción necesitas iniciar sesión en Zajuna. ¿Deseas iniciar sesión ahora?"
-      buttons:
-        - title: "🔑 Iniciar sesión ahora"
-          payload: "/auth_login_cmd"
-        - title: "📋 Ver guía de login"
-          payload: "/ver_login_hint"
-        - title: "↩️ Volver al menú principal"
-          payload: "/ir_menu_principal"
 
   utter_menu_principal:
     - text: "¡Hola! Soy tu asistente Zajuna 👋. Este es el menú principal, ¿qué deseas hacer?"
@@ -914,39 +827,14 @@ responses:
           payload: "/terminar_conversacion_segura_autosave"
 
   utter_pedir_autenticacion:
-    - text: >
-        🔐 Para consultar tus certificados o ver tu estado académico, necesito que inicies sesión.
-        ¿Deseas iniciar ahora?
-      buttons:
-        - title: "🔑 Iniciar sesión Zajuna"
-          payload: "/auth_login_cmd"
-        - title: "❓ ¿Cómo me autentico?"
-          payload: "/ver_login_hint"
-        - title: "❌ No, luego"
-          payload: "/deny"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/ir_menu_principal"
-
- 
-  utter_estado_mostrado:
-    - text: "📊 Tu estado académico actual es: {estado}."
-      buttons:
-        - title: "📜 Ver certificados"
-          payload: "/consultar_certificados"
-        - title: "🏠 Menú principal"
-          payload: "/saludo"
-
-  utter_certificado_listado:
     - text: |
-        📑 **Tus certificados**
-        {certificados_md}
-
-        ¿Qué deseas hacer ahora?
+        🔐 Para ver esta información necesitas iniciar sesión primero.
+        Por favor inicia sesión en la plataforma Zajuna y luego vuelve a preguntarme.
       buttons:
-        - title: "⬇️ Descargar certificados"
-          payload: "/ver_certificados_info"
-        - title: "🏠 Menú principal"
-          payload: "/saludo"
+        - title: "Ver cómo iniciar sesión"
+          payload: "/ver_login_hint"
+        - title: "Ir al inicio"
+          payload: "/ir_menu_principal"
 
   utter_confirmacion_consulta:
     - text: "✅ He enviado tus certificados al correo registrado."
@@ -957,7 +845,8 @@ responses:
         1) Abre el portal: {zajuna_base_url}/login  
         2) Ingresa tu usuario/correo y contraseña.  
         3) Si olvidaste la clave, usa **“¿Olvidé mi contraseña?”**.
-
+           Cuando hayas iniciado sesión, vuelve y escribe:
+          👉 *"consultar certificados"* o *"ver mi estado académico"*.
         Atajos:
         • Inicio de sesión: {zajuna_base_url}/login  
         • Registro: {zajuna_base_url}/register  
@@ -969,7 +858,7 @@ responses:
           payload: "/recuperar_contrasena"
         - title: "🏠 Menú"
           payload: "/saludo"
-
+       
   utter_recuperar_acceso_cta:
     - text: |
         🆘 **Recuperación de acceso**
@@ -984,20 +873,6 @@ responses:
           payload: "/auth_login_cmd"
         - title: "🏠 Menú"
           payload: "/saludo"
-
-  utter_menu_principal_quick:
-    - text: "Elige una opción para continuar:"
-      buttons:
-        - title: "🎓 Estado académico"
-          payload: "/ver_estado_estudiante"
-        - title: "📜 Certificados"
-          payload: "/consultar_certificados"
-        - title: "🛠️ Soporte"
-          payload: "/solicitar_soporte"
-        - title: "🔐 Iniciar sesión"
-          payload: "/auth_login_cmd"
-        - title: "❌ Terminar"
-          payload: "/terminar_conversacion"
 
     - channel: "socketio"
       text: "👇 Opciones rápidas:"
@@ -1088,18 +963,6 @@ responses:
                     url: "https://zajuna.sena.edu.co/cert/456/download"
                     title: "Descargar"
 
-  utter_login_hint_presentacion:
-    - text: |
-        🔐 Para ver tus datos en tiempo real, inicia sesión en Zajuna:
-        1) 📲 Abre: https://zajuna.sena.edu.co/login
-        2) ▶️ Ingresa tus credenciales
-        3) 🔁 Vuelve aquí (el bot detectará tu sesión)
-      buttons:
-        - title: "Abrir Zajuna"
-          payload: "/auth_login_cmd"
-        - title: "¿Olvidé mi contraseña?"
-          payload: "/recuperar_contrasena"
-
   utter_cierre_confirmado_seguro:
     - text: "✅ Conversación finalizada de forma segura y se guardará tu progreso actual, ¡Gracias por usar el asistente Zajuna! 🌟"
   
@@ -1115,26 +978,9 @@ responses:
 
   utter_notificar_reconexion:
     - text: "🔄 Bienvenido de nuevo, restaurando tu sesión previa..."
- 
-  utter_solicitar_soporte_intro:
-    - text: "🛠️ Vamos a crear un ticket de soporte. Te haré 3 preguntas rápidas."
-
-  utter_menu_soporte:
-    - text: "🛠️ Menú de soporte:"
-      buttons:
-        - title: "📝 Reportar un problema"
-          payload: "/solicitar_soporte"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/ir_menu_principal"
 
   utter_ask_mensaje:
     - text: "Cuéntame brevemente tu problema o solicitud."
-
-  utter_soporte_registrado:
-    - text: "🎫 Tu ticket de soporte fue creado correctamente."
-
-  utter_encuesta_positiva:
-    - text: "¡Nos alegra que estés satisfecho! ✅"
 
   utter_encuesta_negativa:
     - text: "Lamentamos que tu experiencia no haya sido la mejor. Podemos contactar a tu tutor para ayudarte."
@@ -1161,26 +1007,8 @@ responses:
         - title: "❌ Salir del chat"
           payload: "/terminar_conversacion"
 
-  utter_confirmar_cierre:
-    - text: "¿Estás seguro que deseas finalizar la conversación ahora?"
-      buttons:
-        - title: "✅ Sí, finalizar"
-          payload: "/confirmar_cierre"
-        - title: "↩️ No, continuar"
-          payload: "/cancelar_cierre"
-
   utter_cancelar_cierre:
     - text: "Perfecto 😊, continuemos. ¿En qué más puedo ayudarte?"
-
-  utter_confirmar_cierre_seguro:
-    - text: >
-        Parece que aún tienes un proceso activo: **{proceso_activo}**.  
-        ¿Deseas cerrar la conversación de todos modos?
-      buttons:
-        - title: "Sí, cerrar de todas formas"
-          payload: "/confirmar_cierre_autosave"
-        - title: "No, continuar"
-          payload: "/cancelar_cierre_autosave"
 
   utter_confirmar_cierre_con_autosave:
     - text: >
@@ -1191,9 +1019,6 @@ responses:
           payload: "/confirmar_cierre_autosave"
         - title: "No, descartar encuesta"
           payload: "/cancelar_cierre_autosave"
-
-  utter_despedida_sin_guardar:
-    - text: "La conversación se cerró sin guardar progreso adicional. Puedes volver cuando quieras. 👋"
   
   utter_encuesta_insatisfaccion:
     - text: "Gracias por contarnos. Puedo derivarte a un tutor o dejar registro. ¿Qué prefieres?"
@@ -1202,48 +1027,6 @@ responses:
           payload: "/contactar_tutor"
         - title: "Registrar y seguir"
           payload: "/continuar_consulta"
-
-  utter_consultar_certificados:
-    - text: >
-        Claro, te ayudo a consultar tus certificados.  
-        Primero dime, ¿qué tipo de certificado necesitas?
-      buttons:
-        - title: "Certificado de estudio"
-          payload: "/certificado_estudio"
-        - title: "Certificado de notas"
-          payload: "/certificado_notas"
-        - title: "Certificado laboral"
-          payload: "/certificado_laboral"
-        - title: "Otro tipo"
-          payload: "/certificado_otro"
-
-    - text: >
-        Puedo mostrarte el estado o la forma de descarga de tus certificados.  
-        Elige una opción o escríbeme cuál necesitas:
-      buttons:
-        - title: "Ver certificados disponibles"
-          payload: "/listar_certificados"
-        - title: "Descargar certificado"
-          payload: "/descargar_certificado"
-        - title: "Ayuda general"
-          payload: "/ayuda_certificados"
-
-    - text: >
-        Para ayudarte con tus certificados necesito algunos datos.  
-        ¿Quieres consultar por identificación, por número de solicitud o por tipo de certificado?
-      buttons:
-        - title: "Por identificación"
-          payload: "/consulta_por_identificacion"
-        - title: "Por solicitud"
-          payload: "/consulta_por_solicitud"
-        - title: "Por tipo de certificado"
-          payload: "/consulta_por_tipo"
-
-  utter_preguntar_cierre:
-    - text: "¿Seguro que quieres terminar la conversación? Tienes un proceso activo."
-
-  utter_confirmar_cierre_definitivo:
-    - text: "Perfecto, cierro la conversación y guardo tu progreso."
 
   utter_iniciar_soporte_desde_pedir_mensaje:
     - text: >
@@ -1312,11 +1095,6 @@ responses:
           payload: "/escalar_humano"
         - title: "Seguir con el bot"
           payload: "/negar_escalar"   
-
-  utter_derivar_a_humano:
-    - text: >
-        Perfecto, te derivo con un agente humano.  
-        Por favor espera un momento mientras conecto tu caso.
 
   utter_continuar_con_bot:
     - text: >
@@ -1573,18 +1351,6 @@ responses:
         - title: "Terminar conversación"
           payload: "/terminar_conversacion"
 
-  utter_no_escalar_humano:
-    - text: >
-        Perfecto, seguimos aquí en el chat conmigo.  
-        ¿Sobre qué tema te gustaría seguir trabajando?
-      buttons:
-        - title: "Menú académico"
-          payload: "/consultar_academico"
-        - title: "Mis certificados"
-          payload: "/consultar_certificados"
-        - title: "Soporte técnico"
-          payload: "/solicitar_soporte"
-
   utter_otro_problema_tecnico:
     - text: >
         Entiendo, es otro tipo de problema técnico.  
@@ -1709,11 +1475,6 @@ responses:
         - title: "No, seguir contigo"
           payload: "/negar_escalar"
 
-  utter_espera_agente:
-    - text: >
-        Te estoy conectando con un agente humano. 
-        Por favor espera un momento...
-
   utter_pedir_correo:
     - text: "Por favor, dime tu correo electrónico."
   
@@ -1730,12 +1491,84 @@ responses:
         Perfecto, no crearé un ticket de soporte. Si luego lo necesitas, solo dime
         que quieres soporte y lo abrimos.
 
-  utter_token_actual:
-    - text: "Tu token actual es: {user_token}"
+  utter_despedida_profesional:
+    - text: "👋 Gracias por usar el asistente Zajuna. ¡Que tengas un excelente día! 🌟"
+      buttons:
+        - title: "🔁 Reabrir menú"
+          payload: "/ir_menu_principal"
+        - title: "🔁 Reanudar más tarde"
+          payload: "/terminar_conversacion"
 
-  utter_token_admin:
-    - text: "Token de administración actual: {user_token}"
+  utter_saludo:
+    - text: "¡Hola! soy tu asistente virtual para la plataforma Zajuna 👋 ¿En qué puedo ayudarte hoy?"
+      buttons:
+        - title: "🛠 Soporte"
+          payload: "/menu_soporte"
+        - title: "🧾 Administrativo"
+          payload: "/menu_administrativo"
+        - title: "🎓 Académico"
+          payload: "/menu_academico"
+
+  utter_menu_soporte:
+    - text: "Has elegido 🛠 Soporte. Puedo ayudarte con problemas técnicos, acceso a la plataforma, errores, etc. ¿Qué problema tienes?"
+    - text: "🛠️ Menú de soporte:"
+      buttons:
+        - title: "🔑 No puedo ingresar a Zajuna"
+          payload: "/soporte_acceso"
+        - title: "⚠️ Error en la plataforma"
+          payload: "/soporte_error_plataforma"
+        - title: "📝 Reportar un problema"
+          payload: "/solicitar_soporte"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/ir_menu_principal"
+
+
+  utter_menu_administrativo:
+    - text: "Has elegido 🧾 Administrativo. ¿Qué deseas gestionar?"
+      buttons:
+        - title: "📜 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "👨‍🎓 Ver estado como estudiante"
+          payload: "/estado_estudiante"
+
+  utter_menu_academico:
+    - text: "Has elegido 🎓 Académico. ¿Sobre qué quieres consultar?"
+    - text: "📚 Menú académico de Zajuna:"
+      buttons:
+        - title: "👨‍🏫 Ver tutor asignado"
+          payload: "/ver_tutor_asignado"
+        - title: "📚 Contenido del curso"
+          payload: "/consultar_contenido_curso"
+        - title: "📜 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "🧾 Estado de estudiante"
+          payload: "/ver_estado_estudiante"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/ir_menu_principal"
+
+  utter_soporte_acceso:
+    - text: "🔑 Veamos tu acceso. Primero, verifica si tu usuario y contraseña son correctos. Si ya lo hiciste, dime si ves algún mensaje de error específico."
+
+  utter_soporte_error_plataforma:
+    - text: "⚠️ Entiendo, estás teniendo errores en la plataforma. ¿Te aparece algún mensaje de error o pantalla en blanco?"
+
+  utter_estado_estudiante_resumen:
+    - text: "Puedo ayudarte a revisar tu estado como estudiante. Por ahora, esta función está conectada al portal Zajuna."
+
+  utter_contenido_curso_resumen:
+    - text: "El contenido del curso incluye unidades, actividades y evaluaciones. Puedes verlo también desde tu aula en Zajuna."
   
+  utter_derivar_a_humano_opciones:
+    - text: |
+        🔄 Puedo derivarte con un agente humano para que continúe tu caso.
+
+        Primero terminaré de registrar tu solicitud de soporte y luego te pasaré con un asesor.  
+        ¿Te parece bien?
+      buttons:
+        - title: "✅ Sí, pasar con humano"
+          payload: "/pedir_humano_directo"
+        - title: "🔁 Seguir con el bot"
+          payload: "/negar_handoff"
 
 actions:
   - action_estado_estudiante
@@ -1754,7 +1587,6 @@ actions:
   - action_conectar_humano
   - action_preguntar_resolucion
   - action_set_authenticated_true
-  - action_check_auth
   - action_enviar_correo_recuperacion
   - action_confirmar_cierre
   - action_finalizar_conversacion
@@ -1781,9 +1613,7 @@ actions:
   - action_derivar_humano_confirmada
   - action_cancelar_derivacion
   - action_soporte_submit
-  - action_set_menu_principal
   - action_ver_estado_estudiante
-  - action_consultar_certificados
   - action_verificar_estado_encuesta
   - action_guardar_progreso_encuesta
   - action_terminar_conversacion_segura
@@ -1813,5 +1643,8 @@ actions:
   - action_cancelar_cierre_segura
   - action_enviar_soporte_directo
   - action_iniciar_soporte
-  - action_set_default_tipo_usuario
-  - action_ir_menu_principal 
+  - action_set_default_tipo_usuario 
+  - action_analizar_estado_usuario
+  - action_procesar_soporte
+  - action_marcar_escalar_humano
+  - action_handoff_en_cola

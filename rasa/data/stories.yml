@@ -7,12 +7,11 @@ stories:
     - intent: consultar_academico
     - action: utter_menu_academico
 
-
-  
 - story: Admin reinicia conversación
   steps:
     - intent: reiniciar_conversacion
     - action: action_reiniciar_conversacion
+    - action: utter_reinicio_confirmado
 
 - story: Admin limpia sesión
   steps:
@@ -22,6 +21,7 @@ stories:
 - story: Admin muestra token
   steps:
     - intent: mostrar_token
+    - action: action_set_default_tipo_usuario
     - action: action_mostrar_token
 
 - story: Admin hace ping
@@ -40,18 +40,10 @@ stories:
     - action: action_set_authenticated_true
     - action: utter_auth_ok
 
-- story: Intentar acción protegida sin autenticación
-  steps:
-    - intent: estado_estudiante
-    - action: action_check_auth
-    - action: utter_need_auth
-    - intent: confirmar_autenticacion
-    - action: action_set_authenticated_true
-    - action: action_estado_estudiante
-
 - story: Recuperación de contraseña
   steps:
     - intent: recuperar_contrasena
+    - action: utter_recuperar_acceso_cta
     - action: password_recovery_form
     - active_loop: password_recovery_form
     - action: password_recovery_form
@@ -77,22 +69,19 @@ stories:
 - story: Usuario niega cierre directamente
   steps:
     - intent: negar_cierre
-    - action: action_cancelar_cierre
-    - action: utter_cierre_cancelado
-    - action: utter_volver_menu_principal
+    - action: action_ir_menu_principal
  
 - story: flujo_auto_resume_si
   steps:
     - intent: saludo
-    - intent: reanudar_auto_si
-    - action: action_reanudar_auto
-    - action: utter_reanudar_confirmado
-
+    - action: utter_saludo
+    - action: action_auto_resume
+  
 - story: flujo_auto_resume_no
   steps:
     - intent: saludo
-    - intent: reanudar_auto_no
-    - action: utter_reanudar_cancelado
+    - action: utter_saludo
+    - action: action_auto_resume  
 
 - story: reanudar_conversacion_guardada
   steps:
@@ -122,13 +111,7 @@ stories:
 - story: Ir al menú principal (unificado)
   steps:
     - intent: ir_menu_principal
-    - action: action_set_menu_principal
-    - action: utter_menu_principal
-  
-- story: Guardar snapshot
-  steps:
-    - intent: guardar_snapshot
-    - action: action_autosave_snapshot
+    - action: action_ir_menu_principal
 
 - story: Ayuda de guardian
   steps:
@@ -137,43 +120,14 @@ stories:
   
 - story: Derivar a humano con confirmación
   steps:
-    - intent: necesita_humano
-    - action: utter_pedir_derivacion
-    - intent: confirmacion_escalar_humano
-    - action: action_derivar_y_registrar_humano
-    - action: action_conectar_humano
-    - action: utter_espera_agente
+    - intent: pedir_humano
+    - action: action_marcar_escalar_humano
+    - action: utter_derivar_a_humano_opciones
 
-- story: Soporte con dos fallbacks y completar
-  steps:
-    - intent: escalar_humano
-    - action: utter_ofrecer_humano
-    - intent: affirm
-    - action: utter_handoff_iniciado
-    - action: soporte_form
-    - active_loop: soporte_form
-  
-    - intent: nlu_fallback
-    - action: action_registrar_intento_form
-    - action: action_verificar_max_intentos_form
-    - action: utter_form_fallback_warn
-    - action: soporte_form
-    - active_loop: soporte_form
-
-    - intent: nlu_fallback
-    - action: action_registrar_intento_form
-    - action: action_verificar_max_intentos_form
-    - action: utter_form_fallback_warn
-    - action: soporte_form
-    - active_loop: soporte_form  
-  
 - story: usuario va al menú principal
   steps:
     - intent: ir_menu_principal
-    - action: action_set_menu_principal
-    - action: utter_menu_principal
-
-
+    - action: action_ir_menu_principal
 
 - story: Flujo ver estado autenticado
   steps:
@@ -184,10 +138,10 @@ stories:
 
 - story: Flujo certificados no autenticado
   steps:
-    - intent: consultar_certificados
     - slot_was_set:
-        - is_authenticated: false
-    - action: utter_pedir_autenticacion
+        - autenticado: false
+    - intent: consultar_certificados
+    - action: utter_login_hint
   
 - story: Usuario pausa y luego reanuda
   steps:
@@ -197,24 +151,25 @@ stories:
     - action: action_guardian_pausar
     - intent: guardian_reanudar_conversacion
     - action: action_guardian_reanudar
-  
+ 
+- story: Usuario inicia feedback directo
+  steps:
+    - intent: dar_retroalimentacion
+    - action: utter_iniciar_retroalimentacion
+    - action: feedback_form
+    - active_loop: feedback_form    
+
 - story: Guardado automático por desconexión
   steps:
     - intent: notificar_desconexion
     - action: action_notificar_desconexion
     - action: action_guardar_estado_seguridad
+    - action: utter_notificar_desconexion
 
 - story: Guardado por inactividad
   steps:
     - intent: notificar_inactividad
-    - action: action_notificar_inactividad
     - action: action_guardar_estado_seguridad
-
-- story: Recuperación de sesión automática
-  steps:
-    - intent: notificar_reconexion
-    - action: action_notificar_reconexion
-    - action: action_recuperar_estado_seguridad
 
 - story: Guardado manual del estado
   steps:
@@ -277,26 +232,36 @@ stories:
 - story: Usuario niega cierre
   steps:
     - intent: negar_cierre
-    - action: action_cancelar_cierre
-    - action: utter_cierre_cancelado
-    - action: utter_volver_menu_principal
+    - action: action_ir_menu_principal
 
 - story: Usuario se despide directamente
   steps:
     - intent: despedida
-    - action: utter_despedida_final 
+    - action: action_finalizar_conversacion
   
-- story: Problema no resuelto y escalamiento a humano
+- story: Soporte con dos fallbacks y completar
   steps:
-    - intent: problema_resuelto_no
-    - action: utter_problema_resuelto_no
     - intent: escalar_humano
     - action: utter_ofrecer_humano
+    - intent: affirm
     - action: action_derivar_y_registrar_humano
-   
+    - action: utter_handoff_iniciado
+    - action: utter_derivando_humano
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- story: Problema no resuelto y escalamiento a humano
+  steps:
+    - intent: problema_no_resuelto
+    - action: utter_ofrecer_humano
+    - intent: pedir_humano_directo
+    - action: action_derivar_y_registrar_humano
+  
 - story: Problema no resuelto y continuar con el bot
   steps:
-    - intent: negar_escalar
+    - intent: problema_no_resuelto
+    - action: utter_ofrecer_humano
+    - intent: negar_handoff
     - action: utter_continuar_con_bot
 
 - story: Ayuda con certificados desde intent dedicado
@@ -322,7 +287,7 @@ stories:
     - action: utter_pedir_confirmacion_soporte
     - intent: affirm
     - action: action_iniciar_soporte
-    - action: utter_ofrecer_continuar   # opcional, si quieres ofrecer seguir después
+    - action: utter_ofrecer_continuar   
 
 - story: Soporte → usuario niega
   steps:
@@ -330,3 +295,11 @@ stories:
     - action: utter_pedir_confirmacion_soporte
     - intent: deny
     - action: utter_cancelar_soporte
+  
+- story: Usuario inicia encuesta de satisfacción
+  steps:
+    - intent: iniciar_encuesta
+    - action: utter_encuesta_satisfaccion
+    - action: action_preguntar_resolucion
+    - action: feedback_form
+    - active_loop: feedback_form

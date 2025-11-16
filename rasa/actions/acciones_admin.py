@@ -35,7 +35,6 @@ class ActionReiniciarConversacion(Action):
 
         return events
 
-
 class ActionPingServidor(Action):
     def name(self) -> Text:
         return "action_ping_servidor"
@@ -62,19 +61,15 @@ class ActionSetDefaultTipoUsuario(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: Dict[Text, Any],
-    ) -> List[SlotSet]:
-        tipo = tracker.get_slot("slot_tipo_usuario")
+    ) -> List[Dict[Text, Any]]:
 
-        # Si no hay tipo definido, asumimos "usuario"
-        if not tipo:
-            return [SlotSet("slot_tipo_usuario", "usuario")]
+        tipo_usuario = tracker.get_slot("slot_tipo_usuario")
 
-        # Si viene algo raro, normalizamos a "usuario"
-        if tipo not in ("usuario", "admin"):
-            return [SlotSet("slot_tipo_usuario", "usuario")]
+        # Si no está definido, asumimos "usuario"
+        if not tipo_usuario:
+            tipo_usuario = "usuario"
 
-        return []
-
+        return [SlotSet("slot_tipo_usuario", tipo_usuario)]
 
 class ActionMostrarToken(Action):
     def name(self) -> Text:
@@ -85,17 +80,23 @@ class ActionMostrarToken(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: Dict[Text, Any],
-    ) -> List[SlotSet]:
-        tipo = tracker.get_slot("slot_tipo_usuario") or "usuario"
-        user_token = tracker.get_slot("user_token") or "TOKEN_DE_EJEMPLO_123"
+    ) -> List[Dict[Text, Any]]:
 
-        if tipo == "admin":
-            # Aquí podrías cambiar el origen del token admin si es distinto
+        tipo_usuario = tracker.get_slot("slot_tipo_usuario")
+        user_token = tracker.get_slot("user_token")  # o auth_token, según tu diseño
+
+        # Si por alguna razón viene vacío, evita romper el mensaje
+        if not user_token:
+            user_token = "N/D"
+
+        # Si es admin → usar utter_token_admin
+        if tipo_usuario == "admin":
             dispatcher.utter_message(
                 response="utter_token_admin",
                 user_token=user_token,
             )
         else:
+            # Usuario normal → usar la respuesta estándar
             dispatcher.utter_message(
                 response="utter_token_actual",
                 user_token=user_token,

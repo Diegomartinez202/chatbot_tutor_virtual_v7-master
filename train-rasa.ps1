@@ -26,7 +26,21 @@ if (-not $rasaContainer) {
 Write-Host "✅ Contenedor Rasa detectado: $rasaContainer"
 
 # ==============================
-# 3. Ejecutar entrenamiento
+# 3. Validar datos (domain, stories, rules, nlu)
+# ==============================
+Write-Host "`n🔎 Ejecutando: rasa data validate ..."
+docker exec -it $rasaContainer rasa data validate
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`n❌ La validación de datos FALLÓ. Revisa los errores de rules/stories/domain arriba." -ForegroundColor Red
+    Write-Host "   (Arregla esos errores y vuelve a ejecutar el script.)"
+    exit 1
+}
+
+Write-Host "`n✅ Validación de datos OK. Podemos entrenar el modelo." -ForegroundColor Green
+
+# ==============================
+# 4. Ejecutar entrenamiento
 # ==============================
 Write-Host "`n🚀 Iniciando entrenamiento dentro del contenedor..."
 docker exec -it $rasaContainer rasa train

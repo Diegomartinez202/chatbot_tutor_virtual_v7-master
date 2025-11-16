@@ -100,6 +100,12 @@ nlu:
       - ir al inicio
       - mostrar menú
       - regresar al menú
+      - volver al menú principal
+      - quiero el menú principal
+      - menú principal
+      - volver a opciones
+      - inicio por favor
+   
 
   - intent: confirmar_autenticacion
     examples: |
@@ -369,7 +375,7 @@ nlu:
   - intent: ir_menu_principal
     examples: |
       - ir al menú
-      - volver al menú
+      - voy al menú
       - menú principal
       - regresar al menú
 
@@ -478,18 +484,6 @@ nlu:
       - no quiero hablar con humano
       - no quiero que me pases con humano
       
-  - intent: ir_menu_principal
-    examples: |
-      - volver al menú principal
-      - ir al inicio
-      - regresar al menú
-      - quiero el menú principal
-      - muéstrame el menú
-      - menú principal
-      - volver a opciones
-      - inicio por favor
-      - mostrar menú
-
   - intent: fallback
     examples: |
       - no entiendo
@@ -641,7 +635,6 @@ nlu:
       - me puedes ayudar con un error
       - abrir ticket de soporte
       - comunicarme con soporte
-      - soporte
       - quiero reportar un incidente
 
   - intent: soporte_tecnico
@@ -755,23 +748,7 @@ nlu:
       - está bien, termina guardando
       - confirma el cierre seguro
 
-  - intent: despedida
-    examples: |
-      - adiós
-      - chao
-      - nos vemos
-      - hasta luego
-      - muchas gracias, adiós
-      - gracias, hasta luego
-      - gracias, chao
-      - gracias, bye
-      - hasta pronto
-      - nos vemos pronto
-      - bye
-      - que estés bien
-      - cuídate
-      - hablamos luego
-
+ 
   - intent: terminar_conversacion_segura_autosave
     examples: |
       - quiero cerrar el chat de forma segura
@@ -990,7 +967,6 @@ nlu:
     examples: |
       - no quiero que me pasen con un humano
       - no quiero derivación
-      - prefiero seguir contigo
       - no, no me pases con un asesor
       - no necesito un humano
       - mejor sigo con el bot
@@ -1111,3 +1087,144 @@ nlu:
       - ver certificados de estudio
       - ver los certificados que tengo
       - ver certificados emitidos
+
+
+  - intent: sugerir_tutor
+    examples: |
+      - necesito ayuda con algo más complejo
+      - no entiendo la explicación
+      - no estoy seguro si continuar
+      - no me siento conforme con esto
+      - me gustaría apoyo adicional
+
+
+  - intent: detectar_emocion
+    examples: |
+      - Estoy muy frustrado
+      - Me siento confundido
+      - Estoy molesto
+      - Me siento inseguro
+      - Estoy desmotivado
+      - Estoy confundido
+      - No entiendo nada
+      - Estoy frustrado
+
+  - intent: ingreso_zajuna
+    examples: |
+      - quiero entrar a Zajuna
+      - cómo ingreso a Zajuna
+      - iniciar sesión en Zajuna
+
+  - intent: ver_tutor_asignado
+    examples: |
+      - quiero ver mi tutor asignado
+      - quién es mi tutor
+      - ver tutor asignado
+
+  - intent: menu_soporte
+    examples: |
+      - soporte
+      - quiero soporte
+      - necesito ayuda de un técnico
+      - tengo un problema técnico
+      - problemas con la plataforma
+      - ayuda con el sistema
+
+  - intent: menu_administrativo
+    examples: |
+      - administrativo
+      - quiero hacer un trámite administrativo
+      - necesito un certificado
+      - quiero ver arbol administrativo
+      - trámites administrativos
+      - necesito información administrativa
+
+  - intent: menu_academico
+    examples: |
+      - académico
+      - tema académico
+      - dudas académicas
+      - necesito ayuda con el curso
+      - ayuda académica
+      - tengo dudas de la clase
+
+  - intent: soporte_acceso
+    examples: |
+      - no puedo ingresar a zajuna
+      - no puedo acceder a la plataforma
+      - no me deja entrar
+      - tengo problemas de acceso
+      - error al iniciar sesión
+
+  - intent: soporte_error_plataforma
+    examples: |
+      - la plataforma está fallando
+      - me sale un error en zajuna
+      - tengo errores en la plataforma
+      - la página no carga bien
+
+  - intent: consultar_contenido_curso
+    examples: |
+      - quiero ver el contenido del curso
+      - qué temas incluye el curso
+      - ver contenido académico
+      - ver las unidades del curso
+
+  - intent: despedida
+    examples: |
+      - adiós
+      - chao
+      - nos vemos al rato
+      - nos vemos luego
+      - hasta luego
+      - nos vemos
+      - gracias por tu ayuda
+      - gracias, adiós
+      - gracias por todo
+      - hasta la próxima
+      - gracias, chao
+      - gracias por la ayuda
+      - gracias, nos vemos luego
+      - gracias por tu asistencia
+      - muy gentil, adiós
+      - gracias por tu apoyo
+      - nos vemos pronto
+
+  - intent: guardar_estado
+    examples: |
+      - guardas por favor el progreso
+      - guardar estado
+      - guarda donde voy
+
+  - intent: menu_rapido
+    examples: |
+      - menú rápido
+      - ir al menú rápido
+
+  - intent: pedir_humano_directo
+    examples: |
+      - pásame con soporte humano
+      - quiero soporte humano ahora
+
+  - intent: problema_no_resuelto
+    examples: |
+      - mi problema no se ha resuelto
+      - sigue sin funcionar
+      - eso no me ayudó
+
+  - intent: negar_handoff
+    examples: |
+      - no, no quiero hablar con un humano
+      - prefiero seguir contigo
+      - sigamos con el bot
+
+
+  - intent: pedir_humano
+    examples: |
+      - quiero hablar con un humano
+      - pásame con un asesor
+      - necesito una persona de soporte
+      - quiero soporte humano
+      - hablar con un agente
+      - necesito un agente humano
+      - contactame con una persona

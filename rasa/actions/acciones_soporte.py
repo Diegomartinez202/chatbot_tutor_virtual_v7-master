@@ -105,12 +105,21 @@ class ActionSoporteSubmit(Action):
     def name(self) -> Text:
         return "action_soporte_submit"
 
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict
+    ) -> List[EventType]:
+
         nombre  = (tracker.get_slot("nombre")  or "").strip()
         email   = (tracker.get_slot("email")   or "").strip()
         mensaje = (tracker.get_slot("mensaje") or "").strip()
+
         if not (nombre and email and mensaje):
-            dispatcher.utter_message(text="❌ Faltan datos para crear el ticket de soporte.")
+            dispatcher.utter_message(
+                text="❌ Faltan datos para crear el ticket de soporte."
+            )
             return []
 
         meta = {
@@ -120,8 +129,15 @@ class ActionSoporteSubmit(Action):
             "slots": tracker.current_slot_values(),
             "metadata": (tracker.latest_message or {}).get("metadata") or {},
         }
-        payload = {"name": nombre, "email": email, "subject": "Soporte técnico (Rasa)",
-                   "message": mensaje, "conversation_id": tracker.sender_id, "metadata": meta}
+
+        payload = {
+            "name": nombre,
+            "email": email,
+            "subject": "Soporte técnico (Rasa)",
+            "message": mensaje,
+            "conversation_id": tracker.sender_id,
+            "metadata": meta,
+        }
 
         headers = {"Content-Type": "application/json"}
         if HELPDESK_TOKEN:
@@ -129,21 +145,52 @@ class ActionSoporteSubmit(Action):
 
         resp = post_json_with_retries(HELPDESK_WEBHOOK, payload, headers)
         ok = bool(resp and 200 <= getattr(resp, "status_code", 0) < 300)
-        jlog(logging.INFO, "action_soporte_submit", ok=ok, status_code=getattr(resp, "status_code", None))
+
+        jlog(
+            logging.INFO,
+            "action_soporte_submit",
+            ok=ok,
+            status_code=getattr(resp, "status_code", None),
+        )
+
+        events: List[EventType] = [
+            SlotSet("nombre", None),
+            SlotSet("email", None),
+            SlotSet("mensaje", None),
+        ]
+
         if ok:
+            dispatcher.utter_message(
+                text="✅ He registrado tu solicitud de soporte. En breve un agente revisará tu caso."
+            )
+
             try:
                 data = resp.json()
                 tid = (data or {}).get("ticket_id") or (data or {}).get("id")
             except Exception:
                 tid = None
+
             if tid:
-                dispatcher.utter_message(text=f"🎫 Ticket creado correctamente. ID: {tid}")
+                dispatcher.utter_message(
+                    text=f"🎫 Ticket creado correctamente. ID: {tid}"
+                )
+
+            # 👇 Aquí decidimos qué hacer según el slot escalar_humano
+            if tracker.get_slot("escalar_humano"):
+                # Handoff a humano
+                events.append(FollowupAction("action_derivar_y_registrar_humano"))
             else:
-                dispatcher.utter_message(response="utter_soporte_registrado")
-            # Limpiar slots del form
-            return [SlotSet("nombre", None), SlotSet("email", None), SlotSet("mensaje", None)]
-        dispatcher.utter_message(response="utter_soporte_error")
-        return []
+                # No handoff: seguimos con la encuesta
+                dispatcher.utter_message(response="utter_preguntar_satisfaccion")
+
+            # Reseteamos el flag de handoff
+            events.append(SlotSet("escalar_humano", False))
+            return events
+
+        dispatcher.utter_message(
+            text="⚠️ Ocurrió un problema al registrar tu soporte. Por favor, inténtalo de nuevo más tarde."
+        )
+        return events
 
 
 class ActionEnviarCorreoTutor(Action):
@@ -179,3 +226,25 @@ class ActionDerivarYRegistrarHumano(Action):
         dispatcher.utter_message(text="Te conecto con un agente humano en breve.")
         # Aquí podrías registrar el traspaso en tu backend si lo deseas.
         return []
+
+class ActionProcesarSoporte(Action):
+    def name(self) -> Text:
+        return "action_procesar_soporte"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+
+        # Aquí podrías guardar el ticket, enviar correo, etc.
+        # Por ahora no hace nada "peligroso".
+        return []
+
+class ActionMarcarEscalarHumano(Action):
+    def name(self) -> Text:
+        return "action_marcar_escalar_humano"
+
+    def run(self, dispatcher, tracker, domain):
+        return [SlotSet("escalar_humano", True)]

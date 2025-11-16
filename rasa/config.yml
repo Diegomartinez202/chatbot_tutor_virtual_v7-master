@@ -68,8 +68,7 @@ policies:
     max_history: 10
     epochs: 120
     constrain_similarities: true
-    batch_size:
-      text: 32
+    batch_size: 64
 
 # ============================================
 # 🧩 Modo interactivo (opcional)
