@@ -654,14 +654,23 @@ nlu:
 
   - intent: pantalla_blanca
     examples: |
-      - pantalla en blanco
       - no se carga nada
       - veo todo blanco
       - la página queda en blanco
       - el curso no carga y queda en blanco
       - white screen
       - se queda congelado en blanco
-
+      - tengo la pantalla en blanco
+      - se queda la pantalla en blanco
+      - solo veo una pantalla blanca
+      - la plataforma se queda en blanco
+      - me aparece una pantalla en blanco
+      - aparece pantalla en blanco
+      - todo se ve en blanco
+      - pantalla en blanco al ingresar
+      - pantalla completamente en blanco
+      - pantalla en blanco  
+       
   - intent: error_actividad
     examples: |
       - error al abrir una actividad
@@ -963,19 +972,6 @@ nlu:
       - empezar sesión
       - abrir mi sesión
 
-  - intent: negar_derivacion
-    examples: |
-      - no quiero que me pasen con un humano
-      - no quiero derivación
-      - no, no me pases con un asesor
-      - no necesito un humano
-      - mejor sigo con el bot
-      - no, no escales el caso
-      - quiero continuar aquí
-      - no quiero ser derivado
-      - no deseo hablar con un agente
-      - prefiero continuar contigo
-
   - intent: pedir_mensaje
     examples: |
       - quiero enviar un mensaje
@@ -1217,6 +1213,16 @@ nlu:
       - no, no quiero hablar con un humano
       - prefiero seguir contigo
       - sigamos con el bot
+      - no quiero que me pasen con un humano
+      - no quiero derivación
+      - no, no me pases con un asesor
+      - no necesito un humano
+      - mejor sigo con el bot
+      - no, no escales el caso
+      - quiero continuar aquí
+      - no quiero ser derivado
+      - no deseo hablar con un agente
+      - prefiero continuar contigo
 
 
   - intent: pedir_humano
@@ -1228,3 +1234,18 @@ nlu:
       - hablar con un agente
       - necesito un agente humano
       - contactame con una persona
+
+
+  - intent: soporte_pqrs
+    examples: |
+      - quiero hacer una PQRS
+      - registrarlo como PQRS
+      - quiero un PQRS formal
+      - enviar una pqrs
+
+  - intent: soporte_interno
+    examples: |
+      - solo como mensaje interno
+      - mensaje simple a soporte
+      - registrar como mensaje interno
+      - no hace falta pqrs, solo mensaje

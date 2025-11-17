@@ -127,6 +127,9 @@ intents:
   - soporte_acceso
   - soporte_error_plataforma
   - consultar_contenido_curso
+  - soporte_pqrs
+  - soporte_interno
+  - soporte
 
 entities:
   - curso
@@ -155,6 +158,7 @@ entities:
   - url_problema 
   - tipo_usuario
   - emocion
+  - cedula
 
 slots:
   is_authenticated:
@@ -452,10 +456,13 @@ slots:
     type: text
     influence_conversation: false
     mappings:
+      - type: from_entity
+        entity: cedula
       - type: from_text
         conditions:
           - active_loop: soporte_form
             requested_slot: cedula
+
   problema:
     type: text
     influence_conversation: true
@@ -507,6 +514,20 @@ slots:
     mappings:
       - type: custom
   
+  tipo_soporte:
+    type: categorical
+    values:
+      - pqrs
+      - interno
+    influence_conversation: true
+    mappings:
+      - type: from_intent
+        value: "pqrs"
+        intent: soporte_pqrs
+      - type: from_intent
+        value: "interno"
+        intent: soporte_interno
+
 forms:
   auth_login_form:
     required_slots:
@@ -1362,9 +1383,10 @@ responses:
         Si el problema continúa, puedo ayudarte a reportarlo a soporte.
       buttons:
         - title: "Reportar a soporte"
-          payload: "/solicitar_soporte"
+          payload: "/pedir_mensaje"
         - title: "Volver al menú principal"
           payload: "/ir_menu_principal"
+
   utter_problema_no_ingreso:
     - text: >
         Veo que no puedes ingresar a la plataforma.  
@@ -1568,6 +1590,19 @@ responses:
           payload: "/pedir_humano_directo"
         - title: "🔁 Seguir con el bot"
           payload: "/negar_handoff"
+  utter_ask_soporte_mensaje:
+    - text: "Describe brevemente el problema o error que te ocurrió."
+
+  utter_ask_prefer_contacto:
+    - text: "¿Prefieres que soporte te contacte por correo o por teléfono?"
+  
+  utter_preguntar_tipo_soporte:
+    - text: "¿Cómo quieres que registremos tu caso?"
+      buttons:
+        - title: "📨 PQRS formal"
+          payload: "/soporte_pqrs"
+        - title: "💬 Mensaje interno"
+          payload: "/soporte_interno"
 
 actions:
   - action_estado_estudiante

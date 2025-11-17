@@ -8,7 +8,7 @@ import IconTooltip from "@/components/ui/IconTooltip";
 import ChatUI from "@/components/chat/ChatUI";
 import assets from "@/config/assets";
 import { useAvatarPreload } from "@/hooks/useAvatar";
-
+import useRasaStatus from "@/hooks/useRasaStatus";
 export default function ChatWidget({
     connectFn,
     title = "Asistente",
@@ -19,26 +19,18 @@ export default function ChatWidget({
 }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
-    const [status, setStatus] = useState("connecting");
+    const { status, checkStatus } = useRasaStatus();
 
     const connect = useCallback(async () => {
-        setStatus("connecting");
-        try {
-            if (connectFn) {
-                await connectFn();
-            } else {
-                await new Promise((r) => setTimeout(r, 700));
-            }
-            setStatus("ready");
-        } catch {
-            setStatus("error");
-        }
-    }, [connectFn]);
+        await checkStatus();
+    }, [checkStatus]);
 
+    // 🔄 Se ejecuta al abrir el widget
     useEffect(() => {
         if (open) connect();
     }, [open, connect]);
 
+    // (NO CAMBIA NADA desde aquí ↓)
     useEffect(() => {
         if (!open) return;
         const onEsc = (e) => e.key === "Escape" && setOpen(false);

@@ -1,0 +1,43 @@
+
+version: "3.1"
+stories:
+- story: interactive_story_1
+  steps:
+  - intent: saludo
+  - slot_was_set:
+    - curso: hola
+  - slot_was_set:
+    - certificado: hola
+  - slot_was_set:
+    - tutor: hola
+  - slot_was_set:
+    - satisfaccion: hola
+  - slot_was_set:
+    - encuesta_tipo: hola
+  - slot_was_set:
+    - auth_token: hola
+  - slot_was_set:
+    - problema: hola
+  - action: utter_saludo
+  - action: action_auto_resume
+  - slot_was_set:
+    - reanudar_pendiente: false
+  - intent: saludo
+  - slot_was_set:
+    - curso: buenos dias
+  - slot_was_set:
+    - certificado: buenos dias
+  - slot_was_set:
+    - tutor: buenos dias
+  - slot_was_set:
+    - satisfaccion: buenos dias
+  - slot_was_set:
+    - encuesta_tipo: buenos dias
+  - slot_was_set:
+    - auth_token: buenos dias
+  - slot_was_set:
+    - problema: buenos dias
+  - action: utter_saludo
+  - action: action_auto_resume
+  - slot_was_set:
+    - reanudar_pendiente: false

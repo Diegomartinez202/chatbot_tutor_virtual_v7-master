@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Text, Optional
 
 from rasa_sdk import Tracker
 from rasa_sdk.executor import CollectingDispatcher
-from rasa_sdk.events import SlotSet, EventType
+from rasa_sdk.events import SlotSet, EventType, FollowupAction
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
 from rasa_sdk import Action
@@ -109,12 +109,25 @@ class ActionSoporteSubmit(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict
+        domain: DomainDict,
     ) -> List[EventType]:
 
-        nombre  = (tracker.get_slot("nombre")  or "").strip()
-        email   = (tracker.get_slot("email")   or "").strip()
-        mensaje = (tracker.get_slot("mensaje") or "").strip()
+        # Nuevo: leemos tipo_soporte y campos adicionales del form
+        tipo_soporte = (tracker.get_slot("tipo_soporte") or "interno").strip()
+        cedula = (tracker.get_slot("cedula") or "").strip()
+        motivo = (tracker.get_slot("motivo_soporte") or "").strip()
+        prefer_contacto = (tracker.get_slot("prefer_contacto") or "").strip()
+        phone = (tracker.get_slot("phone") or "").strip()
+        soporte_mensaje = (tracker.get_slot("soporte_mensaje") or "").strip()
+
+        # Lo que ya tenías
+        nombre = (tracker.get_slot("nombre") or "").strip()
+        email = (tracker.get_slot("email") or "").strip()
+        mensaje_slot = (tracker.get_slot("mensaje") or "").strip()
+
+        # 🔧 Mejora suave: si "mensaje" viene vacío pero sí llenaron "soporte_mensaje",
+        # usamos ese como mensaje principal.
+        mensaje = mensaje_slot or soporte_mensaje
 
         if not (nombre and email and mensaje):
             dispatcher.utter_message(
@@ -122,6 +135,7 @@ class ActionSoporteSubmit(Action):
             )
             return []
 
+        # Meta enriquecida (seguimos mandando todos los slots)
         meta = {
             "rasa_sender_id": tracker.sender_id,
             "latest_intent": (tracker.latest_message.get("intent") or {}).get("name"),
@@ -130,12 +144,23 @@ class ActionSoporteSubmit(Action):
             "metadata": (tracker.latest_message or {}).get("metadata") or {},
         }
 
+        # 🎯 Asunto y payload diferenciados según tipo_soporte
+        if tipo_soporte == "pqrs":
+            subject = "PQRS - Soporte técnico (Rasa)"
+        else:
+            subject = "Soporte técnico (Rasa)"
+
         payload = {
             "name": nombre,
             "email": email,
-            "subject": "Soporte técnico (Rasa)",
+            "subject": subject,
             "message": mensaje,
             "conversation_id": tracker.sender_id,
+            "tipo_soporte": tipo_soporte,      # 👈 nuevo
+            "cedula": cedula,                  # 👈 nuevo
+            "motivo_soporte": motivo,          # 👈 nuevo
+            "prefer_contacto": prefer_contacto,# 👈 nuevo
+            "phone": phone,                    # 👈 nuevo
             "metadata": meta,
         }
 
@@ -153,16 +178,33 @@ class ActionSoporteSubmit(Action):
             status_code=getattr(resp, "status_code", None),
         )
 
+        # 🔁 Mantenemos tu lógica de reseteo, solo añadimos algunos slots más
         events: List[EventType] = [
             SlotSet("nombre", None),
             SlotSet("email", None),
             SlotSet("mensaje", None),
+            SlotSet("soporte_mensaje", None),
+            SlotSet("tipo_soporte", None),
         ]
 
         if ok:
-            dispatcher.utter_message(
-                text="✅ He registrado tu solicitud de soporte. En breve un agente revisará tu caso."
-            )
+            # 📝 Mensaje final personalizado según tipo_soporte
+            if tipo_soporte == "pqrs":
+                dispatcher.utter_message(
+                    text=(
+                        "🎫 He registrado tu caso como **PQRS formal**. "
+                        "Un asesor revisará tu solicitud y te contactará por los datos registrados."
+                    )
+                )
+            else:
+                dispatcher.utter_message(
+                    text=(
+                        "💬 He registrado tu caso como **mensaje interno de soporte**. "
+                        "El equipo lo revisará y te contactará si es necesario."
+                    )
+                )
+
+            # 🔁 Mantengo tu lógica original de ticket + handoff + encuesta
 
             try:
                 data = resp.json()
@@ -175,12 +217,12 @@ class ActionSoporteSubmit(Action):
                     text=f"🎫 Ticket creado correctamente. ID: {tid}"
                 )
 
-            # 👇 Aquí decidimos qué hacer según el slot escalar_humano
+            # 👇 Lógica que ya tenías: decidir si hacer handoff o encuesta
             if tracker.get_slot("escalar_humano"):
                 # Handoff a humano
                 events.append(FollowupAction("action_derivar_y_registrar_humano"))
             else:
-                # No handoff: seguimos con la encuesta
+                # No handoff: seguimos con la encuesta de satisfacción
                 dispatcher.utter_message(response="utter_preguntar_satisfaccion")
 
             # Reseteamos el flag de handoff

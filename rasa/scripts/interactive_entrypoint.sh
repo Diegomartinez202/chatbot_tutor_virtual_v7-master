@@ -18,9 +18,9 @@ echo "[interactive] 🔎 Comprobando rutas requeridas..."
 [ -d /app/data ] || { echo "❌ Falta /app/data"; exit 1; }
 
 # --------------------------------------------------------------------
-# 🧠 RESOLUCIÓN HÍBRIDA DE DOMINIO:
-# 1) Si existe /app/domain_parts y tiene YAML → se fusiona
-# 2) Si NO → se usa /app/domain.yml centralizado
+# 🧠 DOMINIO: híbrido
+# 1) Si existe /app/domain_parts con YAML → fusiona en /app/domain.yml
+# 2) Si no, usa /app/domain.yml centralizado
 # --------------------------------------------------------------------
 
 DOMAIN_FILE="/app/domain.yml"
@@ -41,7 +41,7 @@ else
 fi
 
 # --------------------------------------------------------------------
-# 🗂  CREAR CARPETA DE SESIÓN INTERACTIVA (SIN SOBRESCRIBIR)
+# 🗂  CREAR CARPETA DE SESIÓN INTERACTIVA + ARCHIVOS
 # --------------------------------------------------------------------
 
 echo "[interactive] 📁 Asegurando carpeta raíz /app/data/interactive ..."
@@ -53,8 +53,56 @@ INTERACTIVE_DIR="/app/data/interactive/session_${SESSION_ID}"
 echo "[interactive] 🗂  Creando carpeta de sesión: ${INTERACTIVE_DIR}"
 mkdir -p "${INTERACTIVE_DIR}"
 
+NLU_FILE="${INTERACTIVE_DIR}/nlu.yml"
+STORIES_FILE="${INTERACTIVE_DIR}/stories.yml"
+RULES_FILE="${INTERACTIVE_DIR}/rules.yml"
+
+# Crear archivos vacíos (si no existen) con encabezado mínimo
+init_nlu() {
+  if [ ! -f "${NLU_FILE}" ]; then
+    echo "[interactive] ✍️ Inicializando ${NLU_FILE}"
+    cat > "${NLU_FILE}" <<EOF
+version: "3.1"
+
+nlu:
+  # ejemplos generados en modo interactivo
+EOF
+  fi
+}
+
+init_stories() {
+  if [ ! -f "${STORIES_FILE}" ]; then
+    echo "[interactive] ✍️ Inicializando ${STORIES_FILE}"
+    cat > "${STORIES_FILE}" <<EOF
+version: "3.1"
+
+stories:
+  # historias generadas en modo interactivo
+EOF
+  fi
+}
+
+init_rules() {
+  if [ ! -f "${RULES_FILE}" ]; then
+    echo "[interactive] ✍️ Inicializando ${RULES_FILE}"
+    cat > "${RULES_FILE}" <<EOF
+version: "3.1"
+
+rules:
+  # reglas generadas en modo interactivo
+EOF
+  fi
+}
+
+init_nlu
+init_stories
+init_rules
+
 echo "[interactive] 💾 Los datos interactivos de esta sesión se guardarán en:"
-echo "   ${INTERACTIVE_DIR}"
+echo "   NLU     : ${NLU_FILE}"
+echo "   Stories : ${STORIES_FILE}"
+echo "   Rules   : ${RULES_FILE}"
+echo "   Carpeta : ${INTERACTIVE_DIR}"
 
 # --------------------------------------------------------------------
 # 📦 ENTRENAMIENTO PREVIO (SOLO SI NO HAY MODELOS)
@@ -86,6 +134,9 @@ exec rasa interactive \
   --domain "${DOMAIN_FILE}" \
   --data /app/data \
   --model /app/models \
+  --nlu "${NLU_FILE}" \
+  --stories "${STORIES_FILE}" \
+  --rules "${RULES_FILE}" \
   --out "${INTERACTIVE_DIR}" \
   --port 5005 \
   --debug

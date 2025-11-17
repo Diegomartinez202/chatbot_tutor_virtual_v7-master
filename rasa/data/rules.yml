@@ -603,24 +603,6 @@ rules:
       - active_loop: auth_login_form
     steps:
       - action: utter_ask_password
-  
-  - rule: Preguntar cédula en soporte
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: utter_ask_cedula
-
-  - rule: Preguntar teléfono en soporte
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: utter_ask_phone
-  
-  - rule: Pedir mensaje de soporte
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: utter_ask_mensaje
 
   - rule: Preguntar nivel de satisfacción
     condition:
@@ -962,4 +944,23 @@ rules:
     steps:
       - intent: notificar_inactividad
       - action: action_guardar_estado_seguridad
- 
+  
+  - rule: Iniciar soporte 
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_preguntar_tipo_soporte
+  
+  - rule: Soporte como PQRS formal
+    steps:
+      - intent: soporte_pqrs
+      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Soporte como mensaje interno
+    steps:
+      - intent: soporte_interno
+      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: soporte_form
+      - active_loop: soporte_form
+  

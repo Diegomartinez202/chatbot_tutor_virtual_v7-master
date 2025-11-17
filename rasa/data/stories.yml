@@ -52,14 +52,6 @@ stories:
     - action: action_enviar_correo_recuperacion
     - action: utter_recuperacion_enviada
 
-- story: Soporte rápido con afirmación
-  steps:
-    - intent: solicitar_soporte
-    - action: utter_pedir_confirmacion_soporte
-    - intent: affirm
-    - action: action_iniciar_soporte
-    - action: utter_ofrecer_continuar
-
 - story: Fallback simple
   steps:
     - intent: fallback
@@ -284,17 +276,11 @@ stories:
 - story: Soporte → usuario afirma
   steps:
     - intent: solicitar_soporte
-    - action: utter_pedir_confirmacion_soporte
-    - intent: affirm
-    - action: action_iniciar_soporte
-    - action: utter_ofrecer_continuar   
-
-- story: Soporte → usuario niega
-  steps:
-    - intent: solicitar_soporte
-    - action: utter_pedir_confirmacion_soporte
-    - intent: deny
-    - action: utter_cancelar_soporte
+    - action: utter_preguntar_tipo_soporte
+    - intent: soporte_pqrs
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form 
   
 - story: Usuario inicia encuesta de satisfacción
   steps:

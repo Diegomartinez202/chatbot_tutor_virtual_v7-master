@@ -21,10 +21,24 @@ export default function ChatbotLoading({
     useAvatarPreload(avatarSrc || assets.BOT_AVATAR);
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3" role="status" aria-live="polite">
-            <div className="relative">
+        <div
+            className="
+                w-full h-full flex flex-col items-center justify-center gap-4 
+                px-4 py-6
+            "
+            role="status"
+            aria-live="polite"
+        >
+            {/* Avatar responsivo */}
+            <div className="relative flex items-center justify-center">
                 <IconTooltip label={label} side="top">
-                    <div className="w-24 h-24 sm:w-20 sm:h-20 rounded-full shadow-lg overflow-hidden bg-white flex items-center justify-center"
+                    <div
+                        className="
+                            rounded-full shadow-md overflow-hidden bg-white flex items-center justify-center
+                            w-20 h-20 
+                            sm:w-24 sm:h-24 
+                            md:w-28 md:h-28
+                        "
                         aria-busy={useSpinner}
                     >
                         {imgError ? (
@@ -35,7 +49,11 @@ export default function ChatbotLoading({
                             <img
                                 src={avatarSrc}
                                 alt="Avatar del chatbot"
-                                className="max-w-[96px] max-h-[96px] w-full h-full object-contain"
+                                className="
+                                    object-contain 
+                                    w-full h-full 
+                                    p-1
+                                "
                                 loading="eager"
                                 onError={() => setImgError(true)}
                             />
@@ -44,12 +62,21 @@ export default function ChatbotLoading({
                 </IconTooltip>
 
                 {useSpinner && (
-                    <Loader2 className="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-indigo-600 bg-white rounded-full p-0.5" aria-hidden="true" />
+                    <Loader2
+                        className="
+                            absolute -bottom-2 -right-2 
+                            h-5 w-5 md:h-6 md:w-6 
+                            animate-spin text-indigo-600 bg-white rounded-full p-0.5
+                        "
+                        aria-hidden="true"
+                    />
                 )}
             </div>
 
+            {/* Texto + badge */}
             <div className="flex flex-col items-center gap-1">
-                <p className="text-sm text-gray-600 dark:text-gray-300">{label}</p>
+                <p className="text-sm text-gray-700">{label}</p>
+
                 {showStatusBadge && statusValue && (
                     <Badge type="status" value={statusValue} size="xs">
                         {statusMessage || statusValue}

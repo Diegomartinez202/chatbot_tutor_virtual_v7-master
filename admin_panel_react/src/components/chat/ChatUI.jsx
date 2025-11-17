@@ -11,6 +11,8 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
 import { sendToRasaREST } from "./rasa/restClient.js";
+import useRasaStatus from "../hooks/useRasaStatus";
+import ChatbotStatusBar from "./ChatbotStatusBar";
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
@@ -85,6 +87,7 @@ function UserAvatar({ user, size = 28 }) {
 export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
+    const { rasaStatus, checkStatus } = useRasaStatus();
 
     const [senderId] = useState(() => {
         const k = "rasa:senderId";
@@ -335,6 +338,16 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
     return (
         <div className="h-full flex flex-col chat-container">
+            <ChatbotStatusBar
+                status={rasaStatus}
+                message={
+                    rasaStatus === "connecting" ? "Conectando con Rasa..." :
+                        rasaStatus === "ready" ? "Rasa conectado" :
+                            "Error conectando a Rasa"
+                }
+                onRetry={checkStatus}
+                className="px-3 py-2 border-b bg-gray-50"
+            />
             {/* Mensajes */}
             <div className="chat-messages px-3 py-4">
                 {showQuick && (
