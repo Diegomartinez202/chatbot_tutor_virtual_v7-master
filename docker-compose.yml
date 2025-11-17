@@ -143,6 +143,7 @@ services:
       build:
         context: ./rasa
         dockerfile: Dockerfile
+      image: tutorbot-local-rasa
       container_name: rasa
       restart: unless-stopped
       env_file:
@@ -348,7 +349,8 @@ services:
   rasa_interactive:
     networks: [app-net]
     profiles: ["interactive"]
-    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    image: tutorbot-local-rasa
+    #image: tutorbot-local-rasa
     container_name: rasa_interactive
     working_dir: /app
     depends_on:
@@ -356,14 +358,22 @@ services:
         condition: service_healthy
       action-server:
         condition: service_started
+    env_file:
+      - ./.env.local
     environment:
       TZ: America/Bogota
       SQLALCHEMY_SILENCE_UBER_WARNING: "1"
       SQLALCHEMY_WARN_20: "0"
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_INTERACTIVE_PATH: /app/data/interactive
     volumes:
       - ./rasa:/app
-      - ./rasa/data:/app/data
       - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/domain.yml:/app/domain.yml:ro
       - ./rasa/config.yml:/app/config.yml:ro
       - ./rasa/credentials.yml:/app/credentials.yml:ro
       - ./rasa/data/interactive:/app/data/interactive

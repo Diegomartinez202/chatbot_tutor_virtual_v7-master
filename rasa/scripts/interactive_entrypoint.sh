@@ -16,56 +16,74 @@ YML
 echo "[interactive] 🔎 Comprobando rutas requeridas..."
 [ -f /app/config.yml ] || { echo "❌ Falta /app/config.yml"; exit 1; }
 [ -d /app/data ] || { echo "❌ Falta /app/data"; exit 1; }
-[ -d /app/domain_parts ] || { echo "❌ Falta /app/domain_parts"; exit 1; }
 
-# 🧠 Combinar fragmentos del dominio en un único archivo antes de iniciar
-echo "[interactive] ⚙️ Combinando fragmentos de dominio en /app/domain.yml..."
-if rasa data convert domain --domain /app/domain_parts --out /app/domain.yml >/dev/null 2>&1; then
-  echo "[interactive] ✅ Dominio combinado exitosamente: /app/domain.yml"
+# --------------------------------------------------------------------
+# 🧠 RESOLUCIÓN HÍBRIDA DE DOMINIO:
+# 1) Si existe /app/domain_parts y tiene YAML → se fusiona
+# 2) Si NO → se usa /app/domain.yml centralizado
+# --------------------------------------------------------------------
+
+DOMAIN_FILE="/app/domain.yml"
+
+if [ -d /app/domain_parts ] && ls /app/domain_parts/*.yml >/dev/null 2>&1; then
+  echo "[interactive] ⚙️ Se encontró carpeta /app/domain_parts con YAML."
+  echo "[interactive] 🔧 Combinando fragmentos del dominio en ${DOMAIN_FILE}..."
+
+  if rasa data convert domain --domain /app/domain_parts --out "${DOMAIN_FILE}" >/dev/null 2>&1; then
+    echo "[interactive] ✅ Dominio combinado exitosamente: ${DOMAIN_FILE}"
+  else
+    echo "⚠️ Error combinando dominio desde /app/domain_parts. Revisa los YAML."
+    exit 1
+  fi
 else
-  echo "⚠️ No se pudo combinar el dominio automáticamente. Verifica los YAML en /app/domain_parts"
-  exit 1
+  echo "[interactive] 📄 Usando dominio centralizado: ${DOMAIN_FILE}"
+  [ -f "${DOMAIN_FILE}" ] || { echo "❌ No existe dominio centralizado en ${DOMAIN_FILE}"; exit 1; }
 fi
 
-# Carpeta raíz para datos interactivos (montada en ./rasa/data/interactive en el host)
+# --------------------------------------------------------------------
+# 🗂  CREAR CARPETA DE SESIÓN INTERACTIVA (SIN SOBRESCRIBIR)
+# --------------------------------------------------------------------
+
 echo "[interactive] 📁 Asegurando carpeta raíz /app/data/interactive ..."
 mkdir -p /app/data/interactive
 
-# 🔢 Crear carpeta de sesión única por fecha/hora (no sobrescribe sesiones anteriores)
 SESSION_ID="$(date +'%Y%m%d_%H%M%S')"
 INTERACTIVE_DIR="/app/data/interactive/session_${SESSION_ID}"
 
 echo "[interactive] 🗂  Creando carpeta de sesión: ${INTERACTIVE_DIR}"
 mkdir -p "${INTERACTIVE_DIR}"
 
-# (Opcional) Mensaje para el usuario/dev
 echo "[interactive] 💾 Los datos interactivos de esta sesión se guardarán en:"
 echo "   ${INTERACTIVE_DIR}"
 
-# Entrena si no hay modelos, pero sin tumbar el contenedor si falla
+# --------------------------------------------------------------------
+# 📦 ENTRENAMIENTO PREVIO (SOLO SI NO HAY MODELOS)
+# --------------------------------------------------------------------
+
 if ! ls /app/models/*.tar.gz >/dev/null 2>&1; then
-  echo "[interactive] 🛠️ No hay modelos entrenados. Validando + entrenando (best effort)..."
+  echo "[interactive] 🛠️ No hay modelos entrenados. Validando + entrenando..."
   rasa data validate \
-    --domain /app/domain.yml \
+    --domain "${DOMAIN_FILE}" \
     --data /app/data \
     --config /app/config.yml || true
+
   rasa train \
-    --domain /app/domain.yml \
+    --domain "${DOMAIN_FILE}" \
     --data /app/data \
     --config /app/config.yml || true
 else
   echo "[interactive] 📦 Se encontraron modelos existentes. Saltando entrenamiento inicial."
 fi
 
-# Carpeta para logs/sesiones si la quieres usar luego
-mkdir -p /app/interactive
+# --------------------------------------------------------------------
+# 🚀 INICIAR SESIÓN INTERACTIVA
+# --------------------------------------------------------------------
 
-# 🚀 Lanzar modo interactivo
 echo "[interactive] 🚀 Iniciando Rasa Interactive..."
 exec rasa interactive \
   --endpoints /app/endpoints.yml \
   --config /app/config.yml \
-  --domain /app/domain.yml \
+  --domain "${DOMAIN_FILE}" \
   --data /app/data \
   --model /app/models \
   --out "${INTERACTIVE_DIR}" \
