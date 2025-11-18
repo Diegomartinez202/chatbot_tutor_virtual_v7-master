@@ -1,4 +1,3 @@
-# backend/main.py
 from __future__ import annotations
 
 from dotenv import load_dotenv
@@ -46,8 +45,16 @@ from backend.db.mongodb import get_database  # noqa: F401  (asegura init y dispo
 # 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
 from backend.middleware.permissions_policy import add_permissions_policy
-
 from pymongo import MongoClient
+
+# 📚 Docs
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import HTMLResponse  # para ReDoc
+
+# 🌐 Middleware base
+from starlette.middleware.base import BaseHTTPMiddleware
+# OJO: quitamos el Response de Starlette para no machacar el de FastAPI
+# from starlette.responses import Response  # ❌ ya no hace falta
 
 # =========================================================
 # 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
@@ -75,30 +82,49 @@ def _parse_csv_or_space(v: str):
 logger = log
 
 
+# ✅ Mover CSPMiddleware arriba y usar Response de FastAPI
+class CSPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "   
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+
+        response.headers["Content-Security-Policy"] = csp
+        return response
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         debug=settings.debug,
         title="Zajuna Chat Backend",
         description="Backend para intents, autenticación, logs y estadísticas",
         version="2.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url=None,   
+        redoc_url=None,  
     )
-
     # ─────────────────────────────────────────
     # Permissions-Policy (una sola vez, según entorno)
     # ─────────────────────────────────────────
     app_env = (getattr(settings, "app_env", None) or os.getenv("APP_ENV") or "prod").lower()
     add_permissions_policy(app, preset="relaxed" if app_env == "dev" else "strict")
 
-    # Si defines una policy efectiva a mano, también la aplicamos (mantiene tu lógica)
+
     add_permissions_policy(
         app,
         policy=getattr(settings, "permissions_policy_effective", None),
         add_legacy_feature_policy=True,
     )
 
-    # 🌐 CORS (bloque original)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
@@ -106,41 +132,53 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # CSP/CORS adicionales que ya usas
+ 
     add_cors_and_csp(app)
 
-    # Middlewares propios (orden conservado)
+  
+    app.add_middleware(CSPMiddleware)
+
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
     app.middleware("http")(request_meta_middleware)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(AccessLogMiddleware)
     app.add_middleware(AuthMiddleware)
 
-    # Archivos estáticos
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    @app.get("/docs", include_in_schema=False)
+    async def custom_swagger_ui():
+        return get_swagger_ui_html(
+            openapi_url="/openapi.json",
+            title="Documentación de la API",
+            swagger_js_url="/static/swagger-ui-bundle.js",
+            swagger_css_url="/static/swagger-ui.css",
+            swagger_ui_parameters={"defaultModelsExpandDepth": -1},
+            swagger_favicon_url="/static/favicon.png",  
+        )
+
+    @app.get("/docs/oauth2-redirect", include_in_schema=False)
+    async def swagger_ui_redirect():
+        return get_swagger_ui_oauth2_redirect_html()
 
     # ─────────────────────────────────────────
     # Agrupador /api (evita duplicados y mantiene todo bajo /api)
     # ─────────────────────────────────────────
     api = APIRouter()
 
-    # Mantengo tus routers tal cual, pero organizados en el agrupador
-    api.include_router(api_router)                         # tu router agregador principal
-    api.include_router(admin_ctrl.router)                  # controladores admin
-    api.include_router(users_ctrl.router)                  # controladores users
-    api.include_router(chat_api_router)                    # rutas de chat expuestas bajo /api
-    api.include_router(root_router)                        # otras rutas de chat bajo /api
-    api.include_router(me_router)                          # shim /me (compat)
-    api.include_router(user_settings_router, prefix="/me", tags=["user-settings"])  # /api/me/*
+    api.include_router(api_router)
+    api.include_router(admin_ctrl.router)
+    api.include_router(users_ctrl.router)
+    api.include_router(chat_api_router)
+    api.include_router(root_router)
+    api.include_router(me_router)
+    api.include_router(user_settings_router, prefix="/me", tags=["user-settings"])
 
-    # Montamos todo el grupo en /api (un solo include → sin duplicados)
     app.include_router(api, prefix="/api")
 
-    # Chat proxy externo (mantengo tu include original fuera de /api si así lo usas)
     app.include_router(chat_router)
 
-    # CSP por si falta (no pisa cuando ya viene desde Nginx/otros)
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)
@@ -154,7 +192,6 @@ def create_app() -> FastAPI:
 
     FRONT_BASE = (settings.frontend_site_url or "").rstrip("/")
 
-    # ✅ Health check
     @app.get("/health", include_in_schema=False)
     async def health():
         return {"ok": True}
@@ -190,7 +227,23 @@ def create_app() -> FastAPI:
     def root():
         return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
 
-    # Logs de arranque
+    @app.get("/redoc", include_in_schema=False)
+    async def redoc_docs():
+        html = """
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>ReDoc - Documentación Chatbot Tutor Virtual</title>
+            <meta charset="utf-8" />
+          </head>
+          <body>
+            <redoc spec-url="/openapi.json"></redoc>
+            <script src="/static/redoc.standalone.js"></script>
+          </body>
+        </html>
+        """
+        return HTMLResponse(content=html)
+
     if settings.debug:
         log.warning("🛠️ MODO DEBUG ACTIVADO. No recomendado para producción.")
     else:
@@ -204,40 +257,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-# ─────────────────────────────────────────────────────────────
-# ✅ Startup check: conexión a MongoDB
-# ─────────────────────────────────────────────────────────────
-from pymongo import MongoClient
-
-@app.on_event("startup")
-async def startup_check_mongo():
-    mongo_uri = settings.mongo_uri_effective
-    mongo_db = settings.mongo_db_name_effective
-
-    try:
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
-        client.admin.command("ping")
-        logger.info(f"✅ Conexión inicial a MongoDB exitosa → {mongo_uri} (DB: {mongo_db})")
-    except Exception as e:
-        logger.exception(f"❌ Fallo al verificar conexión MongoDB ({mongo_uri}): {e}")
-
-# ─────────────────────────────────────────────────────
-# Startup / Shutdown (Rate limit si procede; DB ya se inicializa en el import)
-# ─────────────────────────────────────────────────────
-@app.on_event("startup")
-async def _startup():
-    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
-    if provider == "fastapi-limiter":
-        await init_rate_limit(app)
-
-@app.on_event("shutdown")
-async def _shutdown():
-    provider = (os.getenv("RATE_LIMIT_PROVIDER", "builtin") or "builtin").lower().strip()
-    if provider == "fastapi-limiter":
-        await close_redis()
-
-# 🔥 Standalone
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=settings.debug)

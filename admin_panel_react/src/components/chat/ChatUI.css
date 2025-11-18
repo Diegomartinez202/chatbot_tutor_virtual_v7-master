@@ -185,3 +185,46 @@
 .bubble .flex {
     flex-wrap: wrap;
 }
+.chat-hero-avatar-container {
+    width: 180px;
+    height: 180px;
+    border-radius: 9999px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    margin: 0 auto;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.chat-hero-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Tablets */
+@media (max-width: 900px) {
+    .chat-hero-avatar-container {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+/* Móviles */
+@media (max-width: 640px) {
+    .chat-hero-avatar-container {
+        width: 120px;
+        height: 120px;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 400px) {
+    .chat-hero-avatar-container {
+        width: 95px;
+        height: 95px;
+    }
+}

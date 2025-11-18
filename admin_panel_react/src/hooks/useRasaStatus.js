@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
-const RASA_STATUS_URL = "http://localhost:5005/status";
+const RASA_STATUS_URL =
+    import.meta.env.VITE_RASA_STATUS_URL ||
+    `${(import.meta.env.VITE_API_BASE || "http://localhost:8000/api").replace(/\/$/, "")}/chat/health`;
 
 export default function useRasaStatus() {
     const [status, setStatus] = useState("connecting");

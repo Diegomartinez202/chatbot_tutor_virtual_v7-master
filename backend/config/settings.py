@@ -73,7 +73,7 @@ class Settings(BaseSettings):
 
     # 🌱 Entorno
     app_env: Literal["dev", "test", "prod", "staging"] = Field(default="dev", alias="APP_ENV")
-    debug: bool = Field(default=False, alias="DEBUG")
+    debug: bool = Field(default=False, alias="APP_DEBUG")
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
     base_url: str = Field(default="http://localhost:8000", alias="BASE_URL")
 

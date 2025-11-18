@@ -9,20 +9,20 @@ import React, {
 } from "react";
 
 function HostChatBubbleImpl({
-  iframeUrl = `${window.location.origin}/?embed=1`,
+  iframeUrl = `${window.location.origin}/chat?embed=1&guest=1`,
   allowedOrigin = window.location.origin,
   title = "Tutor Virtual",
   subtitle = "Sustentación",
   position = "bottom-right", // bottom-right | bottom-left | top-right | top-left
   startOpen = false,         // NO forzamos abrir
-  theme = "auto",            // auto | light | dark
+  theme = "auto",            
   zIndex = 2147483000,
   initialToken,
   onTelemetry,
   onAuthNeeded,
   // 🆕 Opcionales añadidos: avatares (NO rompen nada si no se usan)
-  avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/bot-avatar.png",
-  loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/bot-loading.png",
+    avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/embed/bot-avatar.png",
+    loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/embed/bot-loading.gif",
 }, ref) {
   const bubbleRef = useRef(null);
   const [mounted, setMounted] = useState(false);

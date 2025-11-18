@@ -5,9 +5,9 @@
     <title>Host Híbrido – Tutor Virtual</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>
-       window.APP_CONTEXT = "hybrid";
-       window.__DISABLE_CHAT_WIDGET__ = false;
-       document.documentElement.setAttribute('data-app-context','hybrid');
+        window.APP_CONTEXT = "hybrid";
+        window.__DISABLE_CHAT_WIDGET__ = false;
+        document.documentElement.setAttribute('data-app-context', 'hybrid');
     </script>
     <!-- La CSP real la controlas desde Nginx; aquí solo estilos mínimos para la demo -->
     <style>
@@ -30,6 +30,7 @@
             padding: 16px;
         }
 
+        /* --- Lanzador de la burbuja (botón) --- */
         .bubble-launch {
             position: fixed;
             right: 18px;
@@ -39,9 +40,35 @@
             color: #fff;
             border: 0;
             border-radius: 999px;
-            padding: 12px 14px;
+            padding: 8px 12px;
             cursor: pointer;
             box-shadow: 0 10px 30px rgba(2,6,23,0.18);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bubble-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .bubble-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+        .bubble-label {
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .bubble {
@@ -117,7 +144,6 @@
 </head>
 <body>
     <header>
-       
         <strong>Portal de prueba (host híbrido)</strong>
         <div>
             <a class="cta" href="https://zajuna.sena.edu.co/" target="_blank" rel="noopener noreferrer">🔐 Iniciar sesión</a>
@@ -138,7 +164,14 @@
         </div>
     </main>
 
-    <button id="launcher" class="bubble-launch">💬 Abrir chat</button>
+    <!-- 🔹 Botón con avatar -->
+    <button id="launcher" class="bubble-launch">
+        <span class="bubble-avatar">
+            <!-- Asegúrate de tener public/bot-avatar.png accesible en /bot-avatar.png -->
+            <img src="/bot-avatar.png" alt="Tutor Virtual" />
+        </span>
+        <span class="bubble-label"></span>
+    </button>
 
     <div id="bubble" class="bubble" aria-live="polite">
         <div class="head">
@@ -149,17 +182,16 @@
             </div>
         </div>
         <div class="body">
+            <!-- Abrimos la landing principal del chat web -->
             <iframe id="chatFrame"
-                    src="/chat?embed=1&guest=1"
+                    src="/"
                     title="Chat Zajuna"
                     referrerpolicy="strict-origin-when-cross-origin"
                     allow="microphone; clipboard-read; clipboard-write"
                     style="border:0;width:100%;height:100%;display:block"></iframe>
         </div>
     </div>
-
     <script>
-      
         const frame = document.getElementById("chatFrame");
         const bubble = document.getElementById("bubble");
         const launcher = document.getElementById("launcher");
@@ -171,8 +203,8 @@
 
         const ALLOWED_IFRAME_ORIGINS = [
             location.origin,               // http://localhost:8080 (host en tu Nginx)
-            "https://zajuna.sena.edu.co",  
-            "http://localhost:5173"       
+            "https://zajuna.sena.edu.co",
+            "http://localhost:5173"
         ];
 
         function getToken() {
@@ -185,62 +217,59 @@
         function postToIframe(msg) {
             try { frame.contentWindow?.postMessage(msg, "*"); } catch { }
         }
-     
         function sendAuthToken() {
             const tok = getToken();
             if (tok) postToIframe({ type: "auth:token", token: tok });
         }
 
-function setMinimized(min) {
-  bubble.style.height = min ? "56px" : "580px";
-  btnMin.textContent = min ? "Expandir" : "Minimizar";
-}
+        function setMinimized(min) {
+            bubble.style.height = min ? "56px" : "580px";
+            btnMin.textContent = min ? "Expandir" : "Minimizar";
+        }
 
-function isOpen() {
-  return bubble.classList.contains("open");
-}
+        function isOpen() {
+            return bubble.classList.contains("open");
+        }
 
-function isMinimized() {
-  return bubble.style.height === "56px";
-}
+        function isMinimized() {
+            return bubble.style.height === "56px";
+        }
 
-window.addEventListener("message", (ev) => {
-  const origin = ev.origin || ev.originalEvent?.origin;
-  if (ALLOWED_IFRAME_ORIGINS.length && !ALLOWED_IFRAME_ORIGINS.includes(origin)) return;
+        window.addEventListener("message", (ev) => {
+            const origin = ev.origin || ev.originalEvent?.origin;
+            if (ALLOWED_IFRAME_ORIGINS.length && !ALLOWED_IFRAME_ORIGINS.includes(origin)) return;
 
-  const data = ev.data || {};
-  if (!data || typeof data !== "object") return;
+            const data = ev.data || {};
+            if (!data || typeof data !== "object") return;
 
-  if (data.type === "auth:request") sendAuthToken();
+            if (data.type === "auth:request") sendAuthToken();
 
-  // 🔁 El iframe manda "widget:toggle" sin acción cuando pulsas "✕ Minimizar" en su header.
-  // En vez de cerrar/abrir, interpreta eso como "toggle de minimizado".
-  if (data.type === "widget:toggle") {
-    if (data.action === "close") {
-      bubble.classList.remove("open"); // solo cerrar si lo piden explícito
-      return;
-    }
-    // sin action -> toggle minimizar (no cierres el bubble)
-    if (!isOpen()) bubble.classList.add("open");
-    setMinimized(!isMinimized());
-  }
-});
+            // iframe manda "widget:toggle" sin acción -> usamos para minimizar/restaurar
+            if (data.type === "widget:toggle") {
+                if (data.action === "close") {
+                    bubble.classList.remove("open");
+                    return;
+                }
+                if (!isOpen()) bubble.classList.add("open");
+                setMinimized(!isMinimized());
+            }
+        });
 
-launcher.addEventListener("click", () => {
-  if (!isOpen()) {
-    bubble.classList.add("open");
-    setMinimized(false); // abrir en grande
-    sendAuthToken();
-  } else {
-    // si ya está abierto, solo enfoca y restaura tamaño
-    setMinimized(false);
-    try { frame.contentWindow?.focus(); } catch {}
-  }
-});
+        launcher.addEventListener("click", () => {
+            if (!isOpen()) {
+                bubble.classList.add("open");
+                setMinimized(false);
+                sendAuthToken();
+            } else {
+                setMinimized(false);
+                try { frame.contentWindow?.focus(); } catch { }
+            }
+        });
 
-btnClose.addEventListener("click", () => bubble.classList.remove("open"));
+        btnClose.addEventListener("click", () => bubble.classList.remove("open"));
 
-btnMin.addEventListener("click", () => setMinimized(!isMinimized()));
+        btnMin.addEventListener("click", () => setMinimized(!isMinimized()));
+
         // Simuladores de token (para demo)
         btnSet.addEventListener("click", () => {
             const sample = "demo-token-" + Math.random().toString(36).slice(2, 8);

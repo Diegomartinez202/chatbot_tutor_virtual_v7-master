@@ -74,7 +74,7 @@ function ensureBubbleCss(href = "/embed/zajuna-bubble.css") {
 
 const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
     {
-        iframeUrl = `${window.location.origin}/?embed=1`,
+        iframeUrl = `${window.location.origin}/chat?embed=1&guest=1`,
         allowedOrigin = window.location.origin,
         title = "Tutor Virtual",
         subtitle = "Sustentación",
@@ -90,8 +90,8 @@ const HostChatBubbleRef = forwardRef(function HostChatBubbleRef(
         injectCss = true,
         showDebug = false,
         
-        avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/mi-avatar.png",
-        loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/bot-loading.png",
+        avatar = (import.meta?.env?.VITE_BOT_AVATAR) || "/embed/bot-avatar.png",
+        loadingAvatar = (import.meta?.env?.VITE_BOT_LOADING) || "/embed/bot-loading.gif",
     },
     ref
 ) {

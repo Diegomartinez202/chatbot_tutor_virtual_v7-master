@@ -11,14 +11,14 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
 import { sendToRasaREST } from "./rasa/restClient.js";
-import useRasaStatus from "../hooks/useRasaStatus";
-import ChatbotStatusBar from "./ChatbotStatusBar";
+import useRasaStatus from "../../hooks/useRasaStatus";
+import ChatbotStatusBar from "../ChatbotStatusBar";
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
 /* --- Avatares --- */
-function BotAvatar({ size = 28 }) {
+function BotAvatar({ size = 28, src = BOT_AVATAR }) {
     const [err, setErr] = useState(false);
     return (
         <div
@@ -29,7 +29,7 @@ function BotAvatar({ size = 28 }) {
                 <UserIcon className="w-4 h-4 text-indigo-600" />
             ) : (
                 <img
-                    src={BOT_AVATAR}
+                    src={src}
                     alt="Bot"
                     className="w-full h-full object-cover"
                     onError={() => setErr(true)}
@@ -84,7 +84,7 @@ function UserAvatar({ user, size = 28 }) {
     );
 }
 
-export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" }) {
+export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" , avatarSrc = BOT_AVATAR, }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
     const { rasaStatus, checkStatus } = useRasaStatus();
@@ -374,7 +374,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
                         </UserRow>
                     ) : (
                         <BotRow key={m.id}>
-                            <BotAvatar />
+                                <BotAvatar src={avatarSrc} />
                             <div className="bubble bot">
                                 {m.text && <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>}
                                 {m.render && m.render()}
@@ -385,7 +385,7 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
 
                 {typing && (
                     <BotRow>
-                        <BotAvatar />
+                        <BotAvatar src={avatarSrc} />
                         <div className="bubble bot">
                             {tChat("typing", "Escribiendo")}
                             <span className="typing-dots" />

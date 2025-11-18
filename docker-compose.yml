@@ -453,10 +453,9 @@ services:
       MONGODB_DB: chatbot_tutor_virtual_v7_3
       MONGO_URL: mongodb://mongo:27017
       MONGO_DB: chatbot_admin
-      # ✅ Rasa (URL base, NO al webhook)
+ 
       RASA_URL: http://rasa:5005
-      RASA_REST_URL: http://rasa:5005/webhooks/rest/webhook
-      RASA_WS_URL: ws://rasa:5005/ws
+      RASA_WS_URL: ws://rasa:5005
 
       # ✅ Rate limit
       RATE_LIMIT_ENABLED: "true"
@@ -551,10 +550,9 @@ services:
       MONGODB_DB: chatbot_tutor_virtual_v7_3
       MONGO_URL: mongodb://mongo:27017
       MONGO_DB: chatbot_admin
-      # ✅ Rasa (URL base, NO al webhook)
+ 
       RASA_URL: http://rasa:5005
-      RASA_REST_URL: http://rasa:5005/webhooks/rest/webhook
-      RASA_WS_URL: ws://rasa:5005/ws
+      RASA_WS_URL: ws://rasa:5005
 
       # ✅ Rate limit
       RATE_LIMIT_ENABLED: "true"

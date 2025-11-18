@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir "redis>=4.5" "pymongo[srv]==3.13.0"
 RUN pip install --no-cache-dir pika
 
 # 🧠 spaCy + modelo en español para el pipeline de Rasa
-RUN pip install --no-cache-dir "spacy==3.7.2" \
-    "es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl"
+RUN pip install --no-cache-dir "spacy==3.7.2"
+RUN python -m spacy download es_core_news_md
 # 📁 Copia el proyecto Rasa completo
 COPY . /app
 
@@ -49,9 +49,11 @@ RUN pip install --no-cache-dir "sqlalchemy<2.0"
 # Copiamos el script de registro
 COPY scripts/log_model_train.py /app/scripts/log_model_train.py
 
-# Aseguramos pymongo actualizado y ejecutable
-RUN pip install --no-cache-dir pymongo \
- && chmod +x /app/scripts/log_model_train.py
+# ============================================================
+# 🧠 spaCy con modelo ES — SIN DESCARGAS DESDE GITHUB
+# ============================================================
+RUN pip install --no-cache-dir "spacy==3.7.2" \
+ && python -m spacy download es_core_news_md
 
 # Creamos un entrypoint extendido que:
 #  1️⃣ Si no hay modelo en /app/models, entrena uno nuevo.

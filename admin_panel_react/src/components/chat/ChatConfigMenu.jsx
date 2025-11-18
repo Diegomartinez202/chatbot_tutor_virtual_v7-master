@@ -1,7 +1,16 @@
+// src/components/chat/ChatConfigMenu.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    Settings, LogOut, Sun, Moon, Languages, UserPlus, LogIn, Shield, Contrast
+    Settings,
+    LogOut,
+    Sun,
+    Moon,
+    Languages,
+    UserPlus,
+    LogIn,
+    Shield,
+    Contrast,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -19,14 +28,66 @@ function applyHighContrast(on) {
     const html = document.documentElement;
     html.classList.toggle("high-contrast", !!on);
 }
-function safeGetLS(k, f) { try { return localStorage.getItem(k) ?? f; } catch { return f; } }
-function safeSetLS(k, v) { try { localStorage.setItem(k, v); } catch { } }
+function safeGetLS(k, f) {
+    try {
+        return localStorage.getItem(k) ?? f;
+    } catch {
+        return f;
+    }
+}
+function safeSetLS(k, v) {
+    try {
+        localStorage.setItem(k, v);
+    } catch { }
+}
 function mergeAppSettings(patch) {
     try {
         const raw = localStorage.getItem(APP_SETTINGS_KEY);
         const cur = raw ? JSON.parse(raw) : {};
         localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify({ ...cur, ...patch }));
     } catch { }
+}
+
+/** Pequeños helpers visuales para que todo se vea uniforme  */
+function SectionTitle({ children }) {
+    return (
+        <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            {children}
+        </div>
+    );
+}
+
+function MenuButton({
+    icon: Icon,
+    label,
+    helper,
+    onClick,
+    danger = false,
+    align = "between",
+}) {
+    const justify =
+        align === "start"
+            ? "justify-start"
+            : align === "center"
+                ? "justify-center"
+                : "justify-between";
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`w-full flex ${justify} items-center gap-2 px-3 py-2.5 text-sm rounded-lg transition-colors
+      ${danger ? "text-rose-300 hover:bg-rose-500/10" : "text-slate-100 hover:bg-slate-700/60"}`}
+        >
+            <span className="inline-flex items-center gap-2">
+                {Icon && <Icon className="w-4 h-4 shrink-0" />}
+                <span>{label}</span>
+            </span>
+            {helper && (
+                <span className="text-[11px] text-slate-400 font-medium">{helper}</span>
+            )}
+        </button>
+    );
 }
 
 export default function ChatConfigMenu({ className = "" }) {
@@ -43,7 +104,10 @@ export default function ChatConfigMenu({ className = "" }) {
 
     // URL SSO Zajuna (si existe en .env)
     const zajunaSSO = useMemo(
-        () => (import.meta.env.VITE_ZAJUNA_SSO_URL || import.meta.env.VITE_ZAJUNA_LOGIN_URL || "").trim(),
+        () =>
+            (import.meta.env.VITE_ZAJUNA_SSO_URL ||
+                import.meta.env.VITE_ZAJUNA_LOGIN_URL ||
+                "").trim(),
         []
     );
 
@@ -51,7 +115,9 @@ export default function ChatConfigMenu({ className = "" }) {
     useEffect(() => {
         const savedTheme =
             safeGetLS(THEME_KEY, null) ||
-            (JSON.parse(safeGetLS(APP_SETTINGS_KEY, "{}"))?.darkMode ? "dark" : "light");
+            (JSON.parse(safeGetLS(APP_SETTINGS_KEY, "{}"))?.darkMode
+                ? "dark"
+                : "light");
 
         const savedLang =
             safeGetLS(LANG_KEY, null) ||
@@ -67,7 +133,10 @@ export default function ChatConfigMenu({ className = "" }) {
         applyTheme(savedTheme);
         applyHighContrast(savedContrast);
         i18n.changeLanguage(savedLang);
-        document.documentElement.setAttribute("lang", savedLang === "en" ? "en" : "es");
+        document.documentElement.setAttribute(
+            "lang",
+            savedLang === "en" ? "en" : "es"
+        );
     }, [i18n]);
 
     /* ------- Cerrar al hacer click fuera / ESC ------- */
@@ -94,7 +163,10 @@ export default function ChatConfigMenu({ className = "" }) {
         safeSetLS(THEME_KEY, next);
         mergeAppSettings({ darkMode: next === "dark" });
         applyTheme(next);
-        window.parent?.postMessage({ type: "prefs:update", prefs: { theme: next } }, "*");
+        window.parent?.postMessage(
+            { type: "prefs:update", prefs: { theme: next } },
+            "*"
+        );
     };
 
     const changeLang = (val) => {
@@ -104,7 +176,10 @@ export default function ChatConfigMenu({ className = "" }) {
         i18n.changeLanguage(lang);
         mergeAppSettings({ language: lang });
         document.documentElement.setAttribute("lang", lang);
-        window.parent?.postMessage({ type: "prefs:update", prefs: { language: lang } }, "*");
+        window.parent?.postMessage(
+            { type: "prefs:update", prefs: { language: lang } },
+            "*"
+        );
     };
 
     const toggleContrast = () => {
@@ -113,11 +188,16 @@ export default function ChatConfigMenu({ className = "" }) {
         safeSetLS(CONTRAST_KEY, next ? "1" : "0");
         applyHighContrast(next);
         mergeAppSettings({ highContrast: next });
-        window.parent?.postMessage({ type: "prefs:update", prefs: { highContrast: next } }, "*");
+        window.parent?.postMessage(
+            { type: "prefs:update", prefs: { highContrast: next } },
+            "*"
+        );
     };
 
     const handleLogout = async () => {
-        try { await logout?.(); } catch { }
+        try {
+            await logout?.();
+        } catch { }
         navigate("/", { replace: true });
     };
 
@@ -135,71 +215,72 @@ export default function ChatConfigMenu({ className = "" }) {
 
     const langLabel = lang === "en" ? "English" : "Español";
     const themeLabel = theme === "dark" ? "Oscuro" : "Claro";
-    const contrastLabel = highContrast ? "Alto contraste: ON" : "Alto contraste: OFF";
+    const contrastLabel = highContrast
+        ? "Alto contraste: ON"
+        : "Alto contraste: OFF";
 
     return (
         <div className={`relative ${className}`}>
+            {/* Botón que vive en el navbar, junto a "Salir" */}
             <button
                 type="button"
                 ref={btnRef}
-                onClick={() => setOpen(v => !v)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm bg-white hover:bg-gray-50"
+                onClick={() => setOpen((v) => !v)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/60 bg-white/5 text-xs sm:text-sm text-white hover:bg-white/15 backdrop-blur shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={open}
             >
                 <Settings className="w-4 h-4" />
-                Configuración
+                <span className="hidden sm:inline">Configuración</span>
             </button>
 
             {open && (
                 <div
                     ref={menuRef}
                     role="menu"
-                    className="absolute right-0 mt-2 w-64 bg-white border rounded-xl shadow-xl p-1 z-50"
+                    className="
+                      absolute mt-2
+                      left-1/2 -translate-x-1/2
+                      md:left-auto md:right-0 md:translate-x-0
+                      w-72 max-w-[calc(100vw-2.5rem)]
+                      bg-white border rounded-xl shadow-2xl p-1 z-50
+                   "
                 >
-                    {/* === Panel administrativo / Zajuna === */}
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Panel administrativo
+                    {/* Cabecera del panel */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700/70 bg-slate-900/80">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                            <Settings className="w-4 h-4" />
+                            <span>Configuración</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setOpen(false)}
+                            className="p-1 rounded hover:bg-slate-700/80"
+                            aria-label="Cerrar panel de configuración"
+                        >
+                            ✕
+                        </button>
                     </div>
 
-                    <button
-                        role="menuitem"
-                        onClick={goZajuna}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded"
-                    >
-                        <Shield className="w-4 h-4" />
-                        Iniciar sesión / Registrarse con Zajuna
-                    </button>
+                    {/* === ACCESIBILIDAD (tema, contraste, idioma) === */}
+                    <SectionTitle>Accesibilidad</SectionTitle>
 
-                    <div className="my-1 h-px bg-gray-200" />
-
-                    {/* === Preferencias de visualización === */}
-                    <button
-                        role="menuitem"
+                    <MenuButton
+                        icon={theme === "dark" ? Moon : Sun}
+                        label="Tema"
+                        helper={themeLabel}
                         onClick={toggleTheme}
-                        className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-100 rounded"
-                    >
-                        <span className="flex items-center gap-2">
-                            {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                            Tema
-                        </span>
-                        <span className="text-xs text-gray-500">{themeLabel}</span>
-                    </button>
+                    />
 
-                    <button
-                        role="menuitem"
+                    <MenuButton
+                        icon={Contrast}
+                        label="Alto contraste"
+                        helper={contrastLabel}
                         onClick={toggleContrast}
-                        className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-100 rounded"
-                    >
-                        <span className="flex items-center gap-2">
-                            <Contrast className="w-4 h-4" />
-                            Accesibilidad
-                        </span>
-                        <span className="text-xs text-gray-500">{contrastLabel}</span>
-                    </button>
+                    />
 
-                    <div className="flex items-center justify-between gap-2 px-3 py-2">
-                        <span className="flex items-center gap-2 text-sm">
+                    <div className="px-3 pb-2 pt-1 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-2 text-sm text-slate-100">
                             <Languages className="w-4 h-4" />
                             Idioma
                         </span>
@@ -208,7 +289,10 @@ export default function ChatConfigMenu({ className = "" }) {
                                 type="button"
                                 aria-label="Cambiar a Español"
                                 onClick={() => changeLang("es")}
-                                className={`px-2 py-1 text-xs rounded border ${lang === "es" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white hover:bg-gray-100"}`}
+                                className={`px-2 py-1 text-[11px] rounded-full border transition ${lang === "es"
+                                        ? "bg-indigo-500 text-white border-indigo-500"
+                                        : "bg-slate-900 text-slate-200 border-slate-600 hover:bg-slate-700"
+                                    }`}
                             >
                                 ES
                             </button>
@@ -216,51 +300,58 @@ export default function ChatConfigMenu({ className = "" }) {
                                 type="button"
                                 aria-label="Switch to English"
                                 onClick={() => changeLang("en")}
-                                className={`px-2 py-1 text-xs rounded border ${lang === "en" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white hover:bg-gray-100"}`}
+                                className={`px-2 py-1 text-[11px] rounded-full border transition ${lang === "en"
+                                        ? "bg-indigo-500 text-white border-indigo-500"
+                                        : "bg-slate-900 text-slate-200 border-slate-600 hover:bg-slate-700"
+                                    }`}
                             >
                                 EN
                             </button>
                         </div>
                     </div>
 
-                    <div className="px-3 pb-2 text-xs text-gray-500">Actual: {langLabel}</div>
-
-                    <div className="my-1 h-px bg-gray-200" />
-
-                    {/* === Sesión local de la app === */}
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Sesión (aplicación)
+                    <div className="px-3 pb-2 text-[11px] text-slate-400">
+                        Actual: {langLabel}
                     </div>
 
-                    <button
-                        role="menuitem"
-                        onClick={goLoginApp}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded"
-                    >
-                        <LogIn className="w-4 h-4" />
-                        Iniciar sesión (app)
-                    </button>
+                    <div className="h-px bg-slate-700/70 mx-2 my-1" />
 
-                    <button
-                        role="menuitem"
+                    {/* === CHATBOT: autenticarse con Zajuna para el bot === */}
+                    <SectionTitle>Chatbot</SectionTitle>
+
+                    <MenuButton
+                        icon={Shield}
+                        label="Autenticarse con Zajuna"
+                        helper="Vincular sesión"
+                        onClick={goZajuna}
+                    />
+
+                    <div className="h-px bg-slate-700/70 mx-2 my-1" />
+
+                    {/* === PANEL ADMINISTRATIVO (app) === */}
+                    <SectionTitle>Panel administrativo</SectionTitle>
+
+                    <MenuButton
+                        icon={LogIn}
+                        label="Iniciar sesión (app)"
+                        onClick={goLoginApp}
+                    />
+
+                    <MenuButton
+                        icon={UserPlus}
+                        label="Registrarse (app)"
                         onClick={goRegisterApp}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded"
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        Registrarse (app)
-                    </button>
+                    />
 
                     {isAuthenticated && (
                         <>
-                            <div className="my-1 h-px bg-gray-200" />
-                            <button
-                                role="menuitem"
+                            <div className="h-px bg-slate-700/70 mx-2 my-1" />
+                            <MenuButton
+                                icon={LogOut}
+                                label="Cerrar sesión"
+                                danger
                                 onClick={handleLogout}
-                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-red-600"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Cerrar sesión
-                            </button>
+                            />
                         </>
                     )}
                 </div>

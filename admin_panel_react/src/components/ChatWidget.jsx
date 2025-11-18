@@ -1,3 +1,4 @@
+//\src\components\ChatWidget.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { X, Bot, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -105,7 +106,7 @@ export default function ChatWidget({
 
                             {status === "ready" && (
                                 <div className="w-full h-full">
-                                    {children ?? <ChatUI embed />}
+                                    {children ?? <ChatUI embed avatarSrc={avatarSrc} />}
                                 </div>
                             )}
                         </div>

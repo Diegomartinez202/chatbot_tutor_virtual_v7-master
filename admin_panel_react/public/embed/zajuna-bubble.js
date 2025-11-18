@@ -1,7 +1,7 @@
 /* public/embed/zajuna-bubble.js */
 ; (() => {
     const DEFAULTS = {
-        iframeUrl: `${window.location.origin}/hybrid-host.html`,
+        iframeUrl: `${window.location.origin}/`,
         // ✅ Se resuelve automáticamente desde iframeUrl si no lo pasas
         allowedOrigin: null,
         title: "Tutor Virtual",
@@ -12,7 +12,7 @@
         zIndex: 2147483000,
         showLabel: false,         // false => FAB redondo
         padding: 20,
-        avatar: "/bot-avatar.png",
+        avatar: "/embed/bot-avatar.png",
 
         // ✅ SOLO permisos necesarios (sin autoplay/clipboard-write)
         permissions: "microphone; camera; fullscreen",
@@ -30,7 +30,7 @@
         tokenCookieName: "access_token",    // "" si no usas cookie
 
         // 🆕 (opcional) avatar de “cargando/typing” para el FAB
-        loadingAvatar: "/bot-loading.png",
+        loadingAvatar: "/embed/bot-loading.png",
     };
 
     function css(el, styles) { Object.assign(el.style, styles); }

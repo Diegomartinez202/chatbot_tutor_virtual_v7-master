@@ -5,22 +5,19 @@ import { useNavigate, Link } from "react-router-dom";
 export default function HomePage() {
     const navigate = useNavigate();
 
-    // Avatar configurable por .env, con fallback al archivo en /public
     const AVATAR =
         import.meta.env.VITE_BOT_AVATAR ||
         "/bot-avatar.png";
 
     const goGuest = () => {
-        // Chat público sin login
         navigate("/chat");
     };
 
     const goZajuna = () => {
         const sso = import.meta.env.VITE_ZAJUNA_SSO_URL;
         if (sso) {
-            window.location.href = sso; // redirige al SSO
+            window.location.href = sso;
         } else {
-            // fallback: usa Login local
             navigate("/login");
         }
     };
@@ -32,16 +29,23 @@ export default function HomePage() {
                     src={AVATAR}
                     onError={(e) => { e.currentTarget.src = "/bot-avatar.png"; }}
                     alt="Avatar del Chatbot"
-                    className="mx-auto mb-6 w-40 h-40 object-contain"
+                    className="
+                      mx-auto mb-6 rounded-full shadow-lg object-cover
+                      w-20 h-20
+                      sm:w-24 sm:h-24
+                      md:w-28 md:h-28
+                      lg:w-32 lg:h-32
+                    "
                     loading="eager"
                 />
+
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                    ¡Bienvenido al <span className="text-indigo-600">Chatbot Tutor Virtual</span>!
+                    Â¡Bienvenido al <span className="text-indigo-600">Chatbot Tutor Virtual</span>!
                 </h1>
-                <p className="text-gray-600 mb-8">Elige cómo deseas entrar:</p>
+
+                <p className="text-gray-600 mb-8">Elige cÃ³mo deseas entrar:</p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {/* Entrar sin login */}
                     <button
                         type="button"
                         onClick={goGuest}
@@ -50,17 +54,15 @@ export default function HomePage() {
                         Entrar sin login
                     </button>
 
-                    {/* Entrar con autenticación (Zajuna / Login local) */}
                     <button
                         type="button"
                         onClick={goZajuna}
                         className="inline-flex items-center justify-center rounded-lg bg-white text-gray-900 px-5 py-3 text-sm font-medium border hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     >
-                        Entrar con autenticación
+                        Entrar con autenticaciÃ³n
                     </button>
                 </div>
 
-                {/* Link pequeño adicional */}
                 <div className="mt-6 text-xs text-gray-500">
                     <Link to="/dashboard" className="hover:underline">
                         Ir al panel (requiere login)

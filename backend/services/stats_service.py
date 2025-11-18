@@ -4,16 +4,20 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict
-
 from pymongo import DESCENDING
-
 from backend.db.mongodb import get_logs_collection, get_users_collection
-
+from datetime import timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 # Timezone used for day grouping and local range parsing
+
 TZ_NAME = "America/Bogota"
-LOCAL_TZ = ZoneInfo(TZ_NAME)
+
+try:
+    LOCAL_TZ = ZoneInfo(TZ_NAME)
+except ZoneInfoNotFoundError:
+    # Fallback razonable: UTC
+    LOCAL_TZ = timezone.utc
 
 
 def _parse_date_ymd(value: str) -> datetime:
