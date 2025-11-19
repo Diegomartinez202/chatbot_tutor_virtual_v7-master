@@ -17,16 +17,29 @@ services:
       # Chat sin login en dev
       DEMO_MODE: "true"
       CHAT_REQUIRE_AUTH: "false"
-
+    volumes:
+      - ./backend:/app/backend
   # --- Frontend DEV (Vite) ---
   admin-dev:
     profiles: ["build"]
+    build:
+      context: ./admin_panel_react      # 👈 carpeta del frontend
+      dockerfile: Dockerfile            # 👈 si tu Dockerfile se llama distinto, cámbialo aquí
+    working_dir: /app
     command: >
-      sh -lc "npm install && npm run dev -- --host --port 5173"
+      sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     restart: unless-stopped
     environment:
+      NODE_ENV: development
       VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173,http://app-dev.local:8080"
       VITE_USER_SETTINGS_URL: "/api/me/settings"
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - app-net
 
   # --- Rasa DEV (solo avisos silenciados) ---
   rasa:

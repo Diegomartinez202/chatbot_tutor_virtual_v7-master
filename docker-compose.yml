@@ -495,7 +495,7 @@ services:
      redis:
       condition: service_started
     ports:
-      - "8000:8000"
+      - "8001:8000"  
     networks:
       - app-net
     healthcheck:
@@ -537,42 +537,41 @@ services:
     - ./.env
     - ${BACKEND_ENV_FILE:-backend/.env.production}
     environment:
-      UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
-      UVICORN_PORT: ${UVICORN_PORT:-8000}
-      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
-      DEBUG: "false"
+        UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
+        UVICORN_PORT: ${UVICORN_PORT:-8000}
+        UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+        DEBUG: "false"
 
-
-     # ✅ Mongo
-      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
-      MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
-      MONGODB_URL: mongodb://mongo:27017
-      MONGODB_DB: chatbot_tutor_virtual_v7_3
-      MONGO_URL: mongodb://mongo:27017
-      MONGO_DB: chatbot_admin
+       # ✅ Mongo
+        MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
+        MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
+        MONGODB_URL: mongodb://mongo:27017
+        MONGODB_DB: chatbot_tutor_virtual_v7_3
+        MONGO_URL: mongodb://mongo:27017
+        MONGO_DB: chatbot_admin
  
-      RASA_URL: http://rasa:5005
-      RASA_WS_URL: ws://rasa:5005
+        RASA_URL: http://rasa:5005
+        RASA_WS_URL: ws://rasa:5005
 
-      # ✅ Rate limit
-      RATE_LIMIT_ENABLED: "true"
-      RATE_LIMIT_PROVIDER: builtin
-      RATE_LIMIT_BACKEND: redis
-      REDIS_URL: redis://redis:6379/0
+        # ✅ Rate limit
+        RATE_LIMIT_ENABLED: "true"
+        RATE_LIMIT_PROVIDER: builtin
+        RATE_LIMIT_BACKEND: redis
+        REDIS_URL: redis://redis:6379/0
 
-      #✅ CORS / EMBED / CSP (formato compatible con docker-compose)
-      FRAME_ANCESTORS: '["http://localhost","http://localhost:8080","http://localhost:5173"]'
-      ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://localhost"]'
-      FRONTEND_SITE_URL: http://localhost:5173
+        #✅ CORS / EMBED / CSP (formato compatible con docker-compose)
+        FRAME_ANCESTORS: '["http://localhost","http://localhost:8080","http://localhost:5173"]'
+        ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://localhost"]'
+        FRONTEND_SITE_URL: http://localhost:5173
 
-      TRACKER_MONGO_URL: "mongodb://mongo:27017"
-      TRACKER_MONGO_DB: "rasa"
-      TRACKER_MONGO_COLLECTION: "conversations"
-      RASA_PORT: "5005"
-      RASA_MODELS_COLLECTION: "trained_models"
-      LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
-      APP_ENV: ${APP_ENV:-prod}
-      PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
+        TRACKER_MONGO_URL: "mongodb://mongo:27017"
+        TRACKER_MONGO_DB: "rasa"
+        TRACKER_MONGO_COLLECTION: "conversations"
+        RASA_PORT: "5005"
+        RASA_MODELS_COLLECTION: "trained_models"
+        LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
+        APP_ENV: ${APP_ENV:-prod}
+        PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
     depends_on:
       rasa:
        condition: service_healthy
@@ -584,8 +583,10 @@ services:
       - "8000:8000"
     networks:
       - app-net
+    volumes:
+      - ./backend:/app/backend
     healthcheck:
-      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/health || curl -fsS http://127.0.0.1:8000/chat/health || curl -fsS http://127.0.0.1:8000/api/chat/health || exit 1"]
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/api/health || curl -fsS http://127.0.0.1:8000/chat/health || curl -fsS http://127.0.0.1:8000/api/chat/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -690,7 +691,11 @@ services:
       - ./ops/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+      - ./ops/nginx/conf.d/prod/prod-https.conf:/etc/nginx/conf.d/prod-https.conf:ro
+      - ./ops/nginx/conf.d/prod/includes/tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro
+      - ./ops/nginx/conf.d/common/default.conf:/etc/nginx/conf.d/common/default.conf:ro
       - ./ops/nginx/certs:/etc/nginx/certs:ro
+
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/ping"]
       interval: 30s

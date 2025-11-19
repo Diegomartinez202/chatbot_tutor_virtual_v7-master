@@ -1,96 +1,246 @@
-# Bloques location comunes. NO define server{}.
-# Requiere que el vhost que lo incluye defina:
-#   upstream admin_up; upstream backend_up; upstream rasa_up;
+# ---- utilidades ----
+location = /ping {
+  add_header Content-Type text/plain;
+  return 200 "ok\n";
+}
 
-# ===============================
-# Frontend (admin)
-# ===============================
-location / {
-  proxy_pass         http://admin_up;
+location = /user-avatar.png {
+  try_files
+      /embed/user-avatar.png
+      /user-avatar.png
+      /embed/bot-avatar.png
+      /bot-avatar.png
+      =404;
+}
+
+# ========= RASA vía /api/chat/rasa/*  =========
+location ^~ /api/chat/rasa/ {
+  proxy_pass         http://rasa_upstream/webhooks/;
   proxy_http_version 1.1;
 
-  # WebSocket/HMR si aplica (Vite o similares)
+  proxy_set_header   Host              $host;
+  proxy_set_header   X-Real-IP         $remote_addr;
+  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+  proxy_set_header   Upgrade           $http_upgrade;
+  proxy_set_header   Connection        $connection_upgrade;
+
+  proxy_read_timeout    300s;
+  proxy_send_timeout    300s;
+  client_max_body_size  25m;
+
+  add_header 'Access-Control-Allow-Origin'      $http_origin    always;
+  add_header 'Vary'                             'Origin'        always;
+  add_header 'Access-Control-Allow-Credentials' 'true'          always;
+  add_header 'Access-Control-Allow-Methods'     'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
+  add_header 'Access-Control-Allow-Headers'     'Authorization,Content-Type,X-Requested-With' always;
+  add_header 'Access-Control-Expose-Headers'    'Content-Length,Content-Type,X-Request-Id' always;
+  if ($request_method = OPTIONS) { return 204; }
+
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
+
+  proxy_buffering off;
+}
+
+# ========= API genérico → FastAPI =========
+location /api/ {
+  proxy_pass         http://backend_upstream;
+  proxy_http_version 1.1;
+
+  proxy_set_header   Host              $host;
+  proxy_set_header   X-Real-IP         $remote_addr;
+  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+
+  proxy_set_header   Upgrade           $http_upgrade;
+  proxy_set_header   Connection        $connection_upgrade;
+
+  proxy_read_timeout    300s;
+  proxy_send_timeout    300s;
+  client_max_body_size  25m;
+
+  add_header 'Access-Control-Allow-Origin'      $http_origin    always;
+  add_header 'Vary'                             'Origin'        always;
+  add_header 'Access-Control-Allow-Credentials' 'true'          always;
+  add_header 'Access-Control-Allow-Methods'     'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
+  add_header 'Access-Control-Allow-Headers'     'Authorization,Content-Type,X-Requested-With' always;
+  add_header 'Access-Control-Expose-Headers'    'Content-Length,Content-Type,X-Request-Id' always;
+  if ($request_method = OPTIONS) { return 204; }
+
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
+
+  proxy_buffering off;
+}
+
+# ========= FRONTEND SPA / =========
+location / {
+  add_header Content-Security-Policy "default-src 'self';
+     img-src 'self' data: blob:;
+     style-src 'self' 'unsafe-inline';
+     script-src 'self' 'unsafe-eval';
+     connect-src 'self' http: https: ws: wss:;
+     frame-src 'self' *;
+     frame-ancestors 'self' https://zajuna.sena.edu.co http://localhost:8080 http://localhost:5173;" always;
+  add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), autoplay=(), clipboard-write=()" always;
+  add_header X-Frame-Options "SAMEORIGIN" always;
+
+  try_files $uri /index.html;
+}
+
+# ========= CHAT =========
+location /chat/ {
+  proxy_pass http://backend_upstream/chat/;
+  proxy_http_version 1.1;
+
+  proxy_set_header Host              $host;
+  proxy_set_header X-Real-IP         $remote_addr;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+
   proxy_set_header Upgrade           $http_upgrade;
   proxy_set_header Connection        $connection_upgrade;
 
-  proxy_set_header Host              $host;
-  proxy_set_header X-Real-IP         $remote_addr;
-  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_read_timeout 120s;
+  proxy_send_timeout 120s;
 }
 
-# ===============================
-# API Backend (FastAPI)
-# ===============================
-location /api/ {
-  # Preflight CORS simple (ajusta si quieres)
-  if ($request_method = OPTIONS) {
-    add_header Access-Control-Allow-Origin      $http_origin always;
-    add_header Access-Control-Allow-Credentials "true" always;
-    add_header Access-Control-Allow-Methods     "GET,POST,PUT,PATCH,DELETE,OPTIONS" always;
-    add_header Access-Control-Allow-Headers     "Authorization,Content-Type,Accept,Origin,User-Agent" always;
-    return 204;
-  }
-  add_header Access-Control-Allow-Origin      $http_origin always;
-  add_header Access-Control-Allow-Credentials "true" always;
+location = /chat         { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
+location = /chat-embed   { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
+location = /iframe/chat  { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
+location = /widget       { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
 
-  proxy_pass         http://backend_up/;   # ← slash final para conservar subrutas
+location = /health      { proxy_pass http://backend_upstream/health;      }
+location = /auth/me     { proxy_pass http://backend_upstream/auth/me;     }
+location = /auth/logout { proxy_pass http://backend_upstream/auth/logout; }
+
+# ========= STATIC =========
+location /static/ {
+  proxy_pass         http://backend_upstream/static/;
   proxy_http_version 1.1;
-
-  proxy_set_header Upgrade           $http_upgrade;
-  proxy_set_header Connection        "upgrade";
-  proxy_set_header Host              $host;
-  proxy_set_header X-Real-IP         $remote_addr;
-  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header   Host $host;
+  proxy_set_header   X-Real-IP $remote_addr;
+  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
 }
 
-# ===============================
-# Rasa HTTP API (bajo /rasa/)
-# ===============================
+# ========= RASA =========
 location /rasa/ {
-  proxy_pass         http://rasa_up/;   # ← SLASH FINAL
+  proxy_pass http://rasa_upstream/;
   proxy_http_version 1.1;
-
-  proxy_set_header Upgrade           $http_upgrade;
-  proxy_set_header Connection        "upgrade";
   proxy_set_header Host              $host;
   proxy_set_header X-Real-IP         $remote_addr;
   proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
-  proxy_buffering    off;
+  proxy_set_header Upgrade           $http_upgrade;
+  proxy_set_header Connection        $connection_upgrade;
+  proxy_read_timeout 120s;
+  proxy_send_timeout 120s;
+}
 
-  # CORS básico (común)
-  add_header Access-Control-Allow-Origin  * always;
-  add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
-  add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+location /ws/ {
+  proxy_pass http://rasa_upstream/ws/;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade           $http_upgrade;
+  proxy_set_header Connection        $connection_upgrade;
+  proxy_set_header Host              $host;
+  proxy_set_header X-Real-IP         $remote_addr;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_read_timeout 120s;
+  proxy_send_timeout 120s;
+}
+
+# ========= Guardian =========
+location /guardian/ {
+  proxy_pass http://autosave-guardian:8080/;
+  proxy_http_version 1.1;
+
+  proxy_set_header Host              $host;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Real-IP         $remote_addr;
+
+  add_header Access-Control-Allow-Origin      $http_origin    always;
+  add_header Vary                             Origin          always;
+  add_header Access-Control-Allow-Credentials true            always;
+  add_header Access-Control-Allow-Methods     "GET, POST, DELETE, OPTIONS" always;
+  add_header Access-Control-Allow-Headers     "Authorization, Content-Type, Origin" always;
 
   if ($request_method = OPTIONS) { return 204; }
+
+  proxy_read_timeout  60s;
+  proxy_send_timeout  60s;
+
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
+
+  proxy_buffering off;
 }
 
-# ===============================
-# Salud directa de Rasa
-# ===============================
-location = /rasa/status {
-  proxy_pass         http://rasa_up/status;
+# ========= Assets =========
+location ~* \.(?:css|js|mjs|map|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)$ {
+  try_files $uri =404;
+  expires 30d;
+  add_header Cache-Control "public, max-age=2592000, immutable";
+  access_log off;
+}
+
+location = /docs {
+  proxy_pass         http://backend_upstream/docs;
   proxy_http_version 1.1;
   proxy_set_header   Host $host;
   proxy_set_header   X-Real-IP $remote_addr;
   proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header   X-Forwarded-Proto $scheme;
-  add_header Access-Control-Allow-Origin "*" always;
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
 }
 
-# ===============================
-# Rasa WebSocket
-# ===============================
-location /ws/ {
-  proxy_pass         http://rasa_up/ws/;  # ← slash final
+location = /docs/oauth2-redirect {
+  proxy_pass http://backend_upstream/docs/oauth2-redirect;
   proxy_http_version 1.1;
-  proxy_set_header   Upgrade $http_upgrade;
-  proxy_set_header   Connection "upgrade";
-  proxy_set_header   Host $host;
-  proxy_set_header   X-Real-IP $remote_addr;
-  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
+}
+
+location = /redoc {
+  proxy_pass         http://backend_upstream/redoc;
+  proxy_http_version 1.1;
+  proxy_set_header   Host              $host;
+  proxy_set_header   X-Real-IP         $remote_addr;
+  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
   proxy_set_header   X-Forwarded-Proto $scheme;
+  proxy_hide_header Content-Security-Policy;
+  proxy_hide_header Permissions-Policy;
+}
+
+location /embed/ {
+  try_files $uri =404;
+  expires 7d;
+  add_header Cache-Control "public, max-age=604800";
+}
+
+location = /site.webmanifest {
+  add_header Content-Type application/manifest+json;
+  try_files /site.webmanifest =404;
+}
+
+location = /index.html {
+  add_header Cache-Control "no-cache, no-store, must-revalidate";
+  add_header Service-Worker-Allowed "/" always;
+  try_files $uri =404;
+}
+
+location = /hybrid-host.html {
+  add_header Cache-Control "no-cache, no-store, must-revalidate";
+  add_header Service-Worker-Allowed "/" always;
+  try_files /hybrid-host.html =404;
 }

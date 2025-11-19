@@ -1,8 +1,12 @@
 version: "3.9"
 
-name: tutorbot-dev-lite
+name: tutorbot-dev-full
 
 services:
+
+  # ============================
+  # Backend DEV (FastAPI + reload)
+  # ============================
   backend-dev:
     build:
       context: ./backend
@@ -12,9 +16,13 @@ services:
     environment:
       APP_ENV: dev
       DEBUG: "true"
-      # CORS/CSP útiles en dev
+
+      # CORS / CSP
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
       EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
+
+      # Rasa
+      RASA_URL: http://rasa:5005
     command: >
       sh -lc "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
     ports:
@@ -26,6 +34,35 @@ services:
     networks:
       - app-net
 
+
+  # ============================
+  # Frontend DEV (Vite)
+  # ============================
+  admin-dev:
+    build:
+      context: ./admin_panel_react
+      dockerfile: Dockerfile
+    container_name: admin-dev
+    working_dir: /app
+    command: >
+      sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      NODE_ENV: development
+      VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
+      VITE_USER_SETTINGS_URL: "/api/me/settings"
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    networks:
+      - app-net
+
+
+  # ============================
+  # Rasa DEV
+  # ============================
   rasa:
     container_name: rasa
     build:
@@ -47,6 +84,10 @@ services:
     networks:
       - app-net
 
+
+  # ============================
+  # Action Server Rasa DEV
+  # ============================
   action-server:
     container_name: action-server
     build:
@@ -61,7 +102,33 @@ services:
     networks:
       - app-net
 
+
+  # ============================
+  # Nginx DEV (reverse proxy)
+  # ============================
+  nginx-dev:
+    image: nginx:alpine
+    container_name: nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+      - admin-dev
+      - rasa
+    ports:
+      - "8080:80"
+    volumes:
+      # nginx.conf principal
+      - ./ops/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+
+      # conf.d donde vive default.conf
+      - ./ops/nginx/conf.d/dev:/etc/nginx/conf.d:ro
+
+      # mime.types
+      - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+    networks:
+      - app-net
+
+
 networks:
   app-net:
     driver: bridge
-

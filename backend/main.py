@@ -1,64 +1,52 @@
-from __future__ import annotations
+from __future__ import annotations  
 
 from dotenv import load_dotenv
 load_dotenv()
 
 import os
 from pathlib import Path
+
 from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, Response, RedirectResponse
+from fastapi.responses import JSONResponse, Response, RedirectResponse, HTMLResponse
 
-# 🚀 Settings y logging unificado
 from backend.utils.logging import setup_logging, get_logger
 setup_logging()
-log = get_logger(__name__)  # logger principal del backend
+log = get_logger(__name__)  
 
 from backend.config.settings import settings
 
-# 🧩 Middlewares propios
 from backend.middleware.request_id import RequestIdMiddleware
 from backend.middleware.request_meta_middleware import request_meta_middleware
 from backend.middleware.log_middleware import LoggingMiddleware
 from backend.middleware.access_log_middleware import AccessLogMiddleware
 from backend.middleware.auth_middleware import AuthMiddleware
 
-# 🧭 Routers agregadores y controladores
 from backend.routes import router as api_router
 from backend.controllers import admin_controller as admin_ctrl
 from backend.controllers import user_controller as users_ctrl
 
-# Routers específicos
-from backend.routes.chat_proxy import router as chat_router
-from backend.routes.me_settings import router as me_router                  # /api/me (shim/compat)
-from backend.routes.user_settings import router as user_settings_router    # /api/me/settings
+from backend.routes.me_settings import router as me_router                 
+from backend.routes.user_settings import router as user_settings_router    
 from backend.routes.chat import router as root_router, chat_router as chat_api_router
 
-# ⏱️ Rate Limit opcional
 from backend.ext.rate_limit import init_rate_limit
 from backend.ext.redis_client import close_redis
 
-# 🗄️ Mongo (tu módulo actual con PyMongo síncrono; abre conexión al import)
-from backend.db.mongodb import get_database  # noqa: F401  (asegura init y disponible)
+from backend.db.mongodb import get_database 
 
-# 🛡️ CORS + CSP centralizado
 from backend.middleware.cors_csp import add_cors_and_csp
 from backend.middleware.permissions_policy import add_permissions_policy
 from pymongo import MongoClient
 
-# 📚 Docs
-from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
-from fastapi.responses import HTMLResponse  # para ReDoc
-
-# 🌐 Middleware base
+from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
 from starlette.middleware.base import BaseHTTPMiddleware
-# OJO: quitamos el Response de Starlette para no machacar el de FastAPI
-# from starlette.responses import Response  # ❌ ya no hace falta
 
-# =========================================================
-# 🚀 INICIALIZACIÓN DEL BACKEND - BANNER DEMO
-# =========================================================
+
+# ─────────────────────────────────────────
+# Modo demo / producción
+# ─────────────────────────────────────────
 if getattr(settings, "demo_mode", False):
     print("\n" + "=" * 70)
     print("⚠️  MODO DEMO ACTIVADO")
@@ -69,6 +57,8 @@ else:
 
 STATIC_DIR = Path(settings.static_dir).resolve()
 
+logger = log
+
 
 def _parse_csv_or_space(v: str):
     s = (v or "").strip()
@@ -78,11 +68,7 @@ def _parse_csv_or_space(v: str):
         return [x.strip() for x in s.split(",") if x.strip()]
     return [x.strip() for x in s.split() if x.strip()]
 
-# 🔊 Logger secundario usado en hooks (apunta al principal)
-logger = log
 
-
-# ✅ Mover CSPMiddleware arriba y usar Response de FastAPI
 class CSPMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
@@ -109,22 +95,20 @@ def create_app() -> FastAPI:
         title="Zajuna Chat Backend",
         description="Backend para intents, autenticación, logs y estadísticas",
         version="2.0.0",
-        docs_url=None,   
-        redoc_url=None,  
+        docs_url=None,   # usamos /docs custom
+        redoc_url=None,  # usamos /redoc custom
     )
-    # ─────────────────────────────────────────
-    # Permissions-Policy (una sola vez, según entorno)
-    # ─────────────────────────────────────────
+
+    # Permissions-Policy
     app_env = (getattr(settings, "app_env", None) or os.getenv("APP_ENV") or "prod").lower()
     add_permissions_policy(app, preset="relaxed" if app_env == "dev" else "strict")
-
-
     add_permissions_policy(
         app,
         policy=getattr(settings, "permissions_policy_effective", None),
         add_legacy_feature_policy=True,
     )
 
+    # CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=getattr(settings, "allowed_origins_list", settings.allowed_origins),
@@ -134,51 +118,40 @@ def create_app() -> FastAPI:
     )
  
     add_cors_and_csp(app)
-
-  
     app.add_middleware(CSPMiddleware)
 
+    # Middlewares varios
     app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
     app.middleware("http")(request_meta_middleware)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(AccessLogMiddleware)
     app.add_middleware(AuthMiddleware)
 
+    # Static
     Path(STATIC_DIR).mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    @app.get("/docs", include_in_schema=False)
-    async def custom_swagger_ui():
-        return get_swagger_ui_html(
-            openapi_url="/openapi.json",
-            title="Documentación de la API",
-            swagger_js_url="/static/swagger-ui-bundle.js",
-            swagger_css_url="/static/swagger-ui.css",
-            swagger_ui_parameters={"defaultModelsExpandDepth": -1},
-            swagger_favicon_url="/static/favicon.png",  
-        )
-
-    @app.get("/docs/oauth2-redirect", include_in_schema=False)
-    async def swagger_ui_redirect():
-        return get_swagger_ui_oauth2_redirect_html()
-
     # ─────────────────────────────────────────
-    # Agrupador /api (evita duplicados y mantiene todo bajo /api)
+    # Agrupador /api
     # ─────────────────────────────────────────
     api = APIRouter()
 
-    api.include_router(api_router)
     api.include_router(admin_ctrl.router)
     api.include_router(users_ctrl.router)
     api.include_router(chat_api_router)
     api.include_router(root_router)
     api.include_router(me_router)
-    api.include_router(user_settings_router, prefix="/me", tags=["user-settings"])
+    api.include_router(
+        user_settings_router,
+        prefix="/me",
+        tags=["user-settings"],
+    )
 
-    app.include_router(api, prefix="/api")
+    # IMPORTANTE: aquí solo quito el prefix extra para evitar /api/api/...
+    # No borro nada de lógica ni routers.
+    app.include_router(api)
 
-    app.include_router(chat_router)
-
+    # CSP adicional para frame-ancestors
     @app.middleware("http")
     async def _csp_headers(request: Request, call_next):
         resp = await call_next(request)
@@ -227,23 +200,6 @@ def create_app() -> FastAPI:
     def root():
         return {"message": "✅ API del Chatbot Tutor Virtual en funcionamiento"}
 
-    @app.get("/redoc", include_in_schema=False)
-    async def redoc_docs():
-        html = """
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>ReDoc - Documentación Chatbot Tutor Virtual</title>
-            <meta charset="utf-8" />
-          </head>
-          <body>
-            <redoc spec-url="/openapi.json"></redoc>
-            <script src="/static/redoc.standalone.js"></script>
-          </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
-
     if settings.debug:
         log.warning("🛠️ MODO DEBUG ACTIVADO. No recomendado para producción.")
     else:
@@ -256,4 +212,75 @@ def create_app() -> FastAPI:
     return app
 
 
+# ---- Instanciamos la app ----
 app = create_app()
+
+
+@app.get("/debug-routes", include_in_schema=False)
+def debug_routes():
+    return [f"{route.path} -> {getattr(route, 'name', '')}" for route in app.routes]
+
+
+# ---- Rutas de documentación Swagger/ReDoc fuera de create_app ----
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    html = """
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Swagger UI - Zajuna Chat Backend</title>
+        <link rel="stylesheet" type="text/css" href="/static/swagger-ui.css" />
+        <style>
+          body { margin: 0; padding: 0; }
+          #swagger-ui { box-sizing: border-box; }
+        </style>
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="/static/swagger-ui-bundle.js"></script>
+        <script src="/static/swagger-ui-standalone-preset.js"></script>
+        <script>
+        window.onload = function() {
+          const ui = SwaggerUIBundle({
+            url: "/openapi.json",
+            dom_id: "#swagger-ui",
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIStandalonePreset
+            ],
+            layout: "StandaloneLayout",
+            docExpansion: "none",
+            defaultModelsExpandDepth: -1
+          });
+          window.ui = ui;
+        };
+        </script>
+      </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+
+@app.get("/docs/oauth2-redirect", include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_docs():
+    html = """
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>ReDoc - Documentación Chatbot Tutor Virtual</title>
+        <meta charset="utf-8" />
+      </head>
+      <body>
+        <redoc spec-url="/openapi.json"></redoc>
+        <script src="/static/redoc.standalone.js"></script>
+      </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
