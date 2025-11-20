@@ -87,30 +87,17 @@ nlu:
       - calendario del curso
       - horarios del semestre
 
-  - intent: ir_menu_principal
-    examples: |
-      - ir al menú principal
-      - volver al menú
-      - regresar al inicio
-      - muéstrame el menú
-      - abrir menú principal
-      - ver opciones
-      - quiero el menú
-      - volver a las opciones
-      - ir al inicio
-      - mostrar menú
-      - regresar al menú
-      - volver al menú principal
-      - quiero el menú principal
-      - menú principal
-      - volver a opciones
-      - inicio por favor
-   
+
 
   - intent: confirmar_autenticacion
     examples: |
       - ya inicié sesión
       - listo, ya me conecté
+      - ya estoy autenticado
+      - ya inicié sesión
+      - listo, ya me autenticqué
+      - ya me logueé
+      - ya entré a la plataforma
       - ya estoy autenticado
 
   - intent: negar_autenticacion
@@ -118,12 +105,6 @@ nlu:
       - no he iniciado sesión
       - todavía no me conecto
       - no estoy autenticado
-
-  - intent: ver_login_hint
-    examples: |
-      - ¿cómo me autentico?
-      - ver guía de inicio de sesión
-      - ayuda con el login
 
   - intent: reiniciar_conversacion
     examples: |
@@ -165,14 +146,20 @@ nlu:
       - contactar a soporte
       - abrir un ticket
       - hablar con soporte
-
-  - intent: necesita_humano
-    examples: |
-      - necesito hablar con alguien
-      - quiero un agente humano
-      - pásame con una persona
-      - escalar a humano
-      - atención personalizada
+      - necesito soporte técnico
+      - ayuda con la plataforma
+      - problemas técnicos
+      - soporte por favor
+      - tengo un problema con el campus
+      - asistencia técnica
+      - me puedes ayudar con un error
+      - abrir ticket de soporte
+      - comunicarme con soporte
+      - quiero reportar un incidente
+      - quiero crear un caso de soporte
+      - necesito abrir un caso técnico
+      - quiero registrar un problema en la plataforma
+      - deseo ayuda con un fallo del sistema
 
   - intent: iniciar_encuesta
     examples: |
@@ -192,14 +179,6 @@ nlu:
       - quiero ingresar mis datos
       - déjame entrar con mi usuario y contraseña
 
-  - intent: confirmar_autenticacion
-    examples: |
-      - ya inicié sesión
-      - listo, ya me autenticqué
-      - ya me logueé
-      - ya entré a la plataforma
-      - ya estoy autenticado
-
 
   - intent: affirm
     examples: |
@@ -213,15 +192,20 @@ nlu:
       - ok
       - perfecto
       - de una
-
-  - intent: recuperar_contrasena
-    examples: |
-      - olvidé mi contraseña
-      - recuperar contraseña
-      - no recuerdo mi clave
-      - restablecer mi contraseña
-      - necesito recuperar el acceso
-      - no puedo entrar a mi cuenta
+      - correcto
+      - sí, crea el ticket
+      - si, crea el ticket
+      - sí, por favor crea el ticket
+      - sí, abre el ticket
+      - sí, quiero que crees el ticket
+      - adelante, crea el ticket
+      - sí, haz el ticket
+      - sí, genera el ticket 
+      - sí, por favor genera el ticket
+      - sí, crea el caso de soporte
+      - sí, abre el caso de soporte
+      - sí, quiero que crees el caso de soporte
+      - adelante, crea el caso de soporte
 
   - intent: provide_email
     examples: |
@@ -328,12 +312,7 @@ nlu:
       - seguir con el mismo tema
 
 
-  - intent: enviar_soporte
-    examples: |
-      - Quiero contactar soporte
-      - Necesito ayuda con el acceso
-      - Enviar ticket a soporte
-      - Tengo un problema tecnico y deseo reportarlo
+
 
   - intent: explorar_temas
     examples: |
@@ -378,6 +357,28 @@ nlu:
       - voy al menú
       - menú principal
       - regresar al menú
+      - volver al menú principal
+      - ir al menú
+      - regresar al menú
+      - mostrar menú principal
+      - ir al inicio
+      - muéstrame el menú
+      - ir al menú principal
+      - volver al menú
+      - regresar al inicio
+      - muéstrame el menú
+      - abrir menú principal
+      - ver opciones
+      - quiero el menú
+      - volver a las opciones
+      - ir al inicio
+      - mostrar menú
+      - regresar al menú
+      - volver al menú principal
+      - quiero el menú principal
+      - menú principal
+      - volver a opciones
+      - inicio por favor
 
   - intent: terminar_conversacion
     examples: |
@@ -422,15 +423,6 @@ nlu:
       - ayuda con snapshot
 
 
-
-  - intent: necesita_humano
-    examples: |
-      - me atiende una persona
-      - quiero hablar con un asesor
-      - pasar a un humano
-      - necesito agente humano
-      - deseo derivación a humano
-
   - intent: confirmacion_escalar_humano
     examples: |
       - sí, conéctame por favor
@@ -458,6 +450,11 @@ nlu:
       - cancela
       - ahora no
       - prefiero luego
+      - no, no crees el ticket
+      - mejor no abras el ticket
+      - no, no quiero que crees el ticket
+      - no, no abras el caso de soporte
+      - no, no quiero que crees el caso de soporte
 
   - intent: escalar_humano
     examples: |
@@ -530,6 +527,9 @@ nlu:
       - cómo hago login
       - ver guía de inicio de sesión
       - muéstrame los pasos para iniciar sesión
+      - ¿cómo me autentico?
+      - ver guía de inicio de sesión
+      - ayuda con el login
 
   - intent: recuperar_contrasena
     examples: |
@@ -538,6 +538,12 @@ nlu:
       - recuperar acceso
       - restablecer contraseña
       - ayuda con mi contraseña
+      - olvidé mi contraseña
+      - recuperar contraseña
+      - no recuerdo mi clave
+      - restablecer mi contraseña
+      - necesito recuperar el acceso
+      - no puedo entrar a mi cuenta
 
   - intent: terminar_conversacion_segura
     examples: |
@@ -560,15 +566,8 @@ nlu:
       - no cerrar todavía
       - prefiero seguir
 
-  - intent: ir_menu_principal
-    examples: |
-      - volver al menú principal
-      - ir al menú
-      - regresar al menú
-      - mostrar menú principal
-      - ir al inicio
-      - muéstrame el menú
 
+   
   - intent: guardian_pausar_conversacion
     examples: |
       - pausar conversación
@@ -624,24 +623,8 @@ nlu:
       - Restaura el progreso
       - Carga el estado anterior
 
-  - intent: solicitar_soporte
-    examples: |
-      - necesito soporte técnico
-      - ayuda con la plataforma
-      - problemas técnicos
-      - soporte por favor
-      - tengo un problema con el campus
-      - asistencia técnica
-      - me puedes ayudar con un error
-      - abrir ticket de soporte
-      - comunicarme con soporte
-      - quiero reportar un incidente
 
-  - intent: soporte_tecnico
-    examples: |
-      - requiero soporte técnico
-      - soporte técnico por favor
-      - necesito ayuda técnica
+
 
   - intent: problema_no_ingreso
     examples: |
@@ -699,6 +682,17 @@ nlu:
       - necesito un humano
       - atención humana por favor
       - conéctame con un agente
+      - me atiende una persona
+      - quiero hablar con un asesor
+      - pasar a un humano
+      - necesito agente humano
+      - deseo derivación a humano
+      - necesito hablar con alguien
+      - quiero un agente humano
+      - pásame con una persona
+      - escalar a humano
+      - atención personalizada
+
 
   - intent: respuesta_satisfecho
     examples: |
@@ -728,16 +722,6 @@ nlu:
       - seguir con otra consulta
       - ver otra cosa
       - seguir preguntando
-
-  - intent: ver_link_soporte
-    examples: |
-      - ver enlace de soporte
-      - link de soporte
-
-  - intent: ver_soporte_creado_info
-    examples: |
-      - ver ticket creado
-      - ver confirmación de soporte
 
   - intent: negar_cierre
     examples: |
@@ -983,14 +967,7 @@ nlu:
       - quiero dejar un mensaje
       - quiero explicar mi problema por mensaje
 
-  - intent: enviar_soporte_directo
-    examples: |
-      - enviar soporte ahora
-      - enviar el ticket de soporte
-      - mandar el reporte directo
-      - enviar mi solicitud a soporte
-      - ya está listo, envíalo a soporte
-      - envía el soporte por favor
+
 
   - intent: enviar_correo
     examples: |
@@ -1117,14 +1094,7 @@ nlu:
       - quién es mi tutor
       - ver tutor asignado
 
-  - intent: menu_soporte
-    examples: |
-      - soporte
-      - quiero soporte
-      - necesito ayuda de un técnico
-      - tengo un problema técnico
-      - problemas con la plataforma
-      - ayuda con el sistema
+
 
   - intent: menu_administrativo
     examples: |
@@ -1144,20 +1114,7 @@ nlu:
       - ayuda académica
       - tengo dudas de la clase
 
-  - intent: soporte_acceso
-    examples: |
-      - no puedo ingresar a zajuna
-      - no puedo acceder a la plataforma
-      - no me deja entrar
-      - tengo problemas de acceso
-      - error al iniciar sesión
 
-  - intent: soporte_error_plataforma
-    examples: |
-      - la plataforma está fallando
-      - me sale un error en zajuna
-      - tengo errores en la plataforma
-      - la página no carga bien
 
   - intent: consultar_contenido_curso
     examples: |
@@ -1202,6 +1159,17 @@ nlu:
       - pásame con soporte humano
       - quiero soporte humano ahora
 
+
+  - intent: pedir_humano
+    examples: |
+      - quiero hablar con un humano
+      - pásame con un asesor
+      - necesito una persona de soporte
+      - quiero soporte humano
+      - hablar con un agente
+      - necesito un agente humano
+      - contactame con una persona
+
   - intent: problema_no_resuelto
     examples: |
       - mi problema no se ha resuelto
@@ -1222,19 +1190,80 @@ nlu:
       - quiero continuar aquí
       - no quiero ser derivado
       - no deseo hablar con un agente
-      - prefiero continuar contigo
+      - prefiero continuar contig
 
-
-  - intent: pedir_humano
+  - intent: enviar_soporte
     examples: |
-      - quiero hablar con un humano
-      - pásame con un asesor
-      - necesito una persona de soporte
-      - quiero soporte humano
-      - hablar con un agente
-      - necesito un agente humano
-      - contactame con una persona
+      - quiero contactar soporte
+      - necesito ayuda con el acceso
+      - enviar ticket a soporte
+      - tengo un problema técnico y deseo reportarlo
+      - quiero que crees un ticket de soporte
+      - registra mi problema en soporte
 
+  - intent: soporte_tecnico
+    examples: |
+      - requiero soporte técnico
+      - soporte técnico por favor
+      - necesito ayuda técnica
+      - tengo un problema técnico con la plataforma
+      - necesito ayuda del área técnica
+
+  - intent: ver_link_soporte
+    examples: |
+      - ver enlace de soporte
+      - link de soporte
+      - ver link de ayuda
+      - muéstrame el enlace de soporte
+      - ver página de soporte
+
+  - intent: ver_soporte_creado_info
+    examples: |
+      - ver ticket creado
+      - ver confirmación de soporte
+      - mostrar ticket de soporte
+      - ver el soporte que ya se creó
+      - quiero ver el estado del soporte
+
+  - intent: enviar_soporte_directo
+    examples: |
+      - enviar soporte ahora
+      - enviar el ticket de soporte
+      - mandar el reporte directo
+      - enviar mi solicitud a soporte
+      - ya está listo, envíalo a soporte
+      - envía el soporte por favor
+      - confirmar envío del soporte
+
+  - intent: menu_soporte
+    examples: |
+      - soporte
+      - quiero soporte
+      - necesito ayuda de un técnico
+      - tengo un problema técnico
+      - problemas con la plataforma
+      - ayuda con el sistema
+      - abrir menú de soporte
+      - ver opciones de soporte
+
+  - intent: soporte_acceso
+    examples: |
+      - no puedo ingresar a zajuna
+      - no puedo acceder a la plataforma
+      - no me deja entrar
+      - tengo problemas de acceso
+      - error al iniciar sesión
+      - no puedo iniciar sesión en la plataforma
+      - mi usuario o contraseña no funcionan
+
+  - intent: soporte_error_plataforma
+    examples: |
+      - la plataforma está fallando
+      - me sale un error en zajuna
+      - tengo errores en la plataforma
+      - la página no carga bien
+      - algo falla en la plataforma
+      - me aparece un mensaje de error en zajuna
 
   - intent: soporte_pqrs
     examples: |
@@ -1242,6 +1271,9 @@ nlu:
       - registrarlo como PQRS
       - quiero un PQRS formal
       - enviar una pqrs
+      - quiero registrar una queja formal
+      - deseo hacer una petición formal
+      - quiero radicar una queja o reclamo
 
   - intent: soporte_interno
     examples: |
@@ -1249,3 +1281,67 @@ nlu:
       - mensaje simple a soporte
       - registrar como mensaje interno
       - no hace falta pqrs, solo mensaje
+      - solo quiero dejar un mensaje
+      - solo para registro interno
+      - que quede como mensaje interno nada más
+
+  - intent: aprender_tema
+    examples: |
+      - Quiero aprender sobre administración de recursos humanos
+      - Explícame administración de recursos humanos
+      - Enséñame sobre contabilidad
+      - Quiero estudiar algo de marketing
+      - Quiero aprender un tema académico
+      - Explícame un tema del SENA
+      - ¿Qué puedo aprender hoy?
+      - quiero aprender ciencias administrativas y contables
+      - enseñame sobre gerencia de proyectos
+      - quiero aprender sobre desarrollo de software
+      - enséñame algo de diseño gráfico
+      - quiero aprender sobre redes y telecomunicaciones
+      - explícamelo todo sobre logística
+      - quiero estudiar algo de salud ocupacional
+      - enséñame sobre gestión ambiental
+      - quiero aprender sobre turismo y hotelería
+      - explícamelo todo sobre seguridad industrial
+      - quiero aprender sobre electricidad industrial
+      - enséñame algo de mecánica automotriz
+      - quiero aprender sobre soldadura
+      - explícamelo todo sobre gastronomía
+      - enseñame algo de agricultura
+      - aprender ciencias de la salud
+      - quiero aprender sobre gestión de la calidad
+      - explícamelo todo sobre mantenimiento industrial
+      - enséñame algo de construcción
+      - quiero aprender sobre energía renovable
+      - explícamelo todo sobre electrónica
+      - quiero estudiar algo de administración de empresas
+      - enséñame sobre finanzas y contabilidad
+      - quiero aprender sobre comercio internacional
+      - explícamelo todo sobre marketing digital
+      - quiero estudiar algo de desarrollo web
+      - enséñame sobre bases de datos
+      - quiero aprender sobre ciberseguridad
+      - explícamelo todo sobre inteligencia artificial
+      - quiero estudiar algo de análisis de datos
+      - enséñame sobre gestión de proyectos ágiles
+      - quiero aprender sobre diseño UX/UI
+      - explícamelo todo sobre cloud computing
+      - quiero estudiar algo de internet de las cosas (IoT)
+      - enséñame sobre realidad aumentada y virtual
+      - quiero aprender sobre blockchain
+      - explícamelo todo sobre robótica
+      - quiero estudiar algo de impresión 3D
+      - enséñame sobre big data
+      - quiero aprender sobre machine learning
+      - explícamelo todo sobre desarrollo móvil
+      - quiero estudiar algo de automatización industrial
+      - enséñame sobre energías alternativas
+      - consultar de  ciencias de la telematica y la comunicacion
+      - quiero aprender sobre gestión de recursos humanos
+      - explícamelo todo sobre administración financiera
+      - Administración de Recursos Humanos
+      - Contabilidad básica
+      - Costos y presupuestos
+      - Servicio al cliente
+      - Emprendimiento

@@ -289,3 +289,23 @@ stories:
     - action: action_preguntar_resolucion
     - action: feedback_form
     - active_loop: feedback_form
+  
+
+- story: flujo aprender tema con LLM
+  steps:
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+  
+- story: flujo certificado directo
+  steps:
+    - intent: solicitar_certificado
+    - action: utter_info_certificado
+  
+
+- story: flujo tutor academico
+  steps:
+    - intent: menu_academico
+    - action: utter_menu_academico
+    - action: utter_preguntar_tema_academico
+    - intent: aprender_tema
+    - action: action_handle_with_llm

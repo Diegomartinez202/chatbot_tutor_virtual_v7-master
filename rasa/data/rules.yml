@@ -76,10 +76,10 @@ rules:
       - intent: enviar_credenciales
       - action: auth_login_form
       - active_loop: auth_login_form
-  
-  - rule: Fallback en cierre
+
+  - rule: Fallback explícito del usuario
     steps:
-      - intent: nlu_fallback
+      - intent: fallback
       - action: utter_fallback
 
   - rule: Despedida directa
@@ -141,11 +141,6 @@ rules:
       - action: utter_agradecimiento_satisfaccion
       - action: utter_ofrecer_continuar
 
-  - rule: Atajo rápido → Enviar soporte
-    steps:
-      - intent: enviar_soporte
-      - action: action_enviar_soporte
-      - action: utter_soporte_creado
   
   - rule: Cambiar idioma a español
     steps:
@@ -182,36 +177,6 @@ rules:
     steps:
       - intent: negar_handoff
       - action: utter_continuar_con_bot
-
-  - rule: Terminar conversación durante soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: terminar_conversacion
-      - action: action_deactivate_loop
-      - active_loop: null
-
-  - rule: Fallback dentro de soporte_form (contar intentos)
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: nlu_fallback
-      - action: action_registrar_intento_form
-      - action: action_verificar_max_intentos_form
-      - action: utter_form_fallback_warn
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Derivar a humano tras 3 fallos en soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - slot_was_set:
-          - soporte_intentos: 0    
-      - action: action_deactivate_loop
-      - active_loop: null
-      - action: utter_handoff_por_fallos
-      - action: action_derivar_humano_confirmada
   
   - rule: Usuario quiere iniciar sesión en Zajuna
     steps:
@@ -263,14 +228,6 @@ rules:
       - intent: recuperar_estado_seguridad
       - action: action_recuperar_estado_seguridad
 
-  - rule: Submit soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: soporte_form
-      - active_loop: null
-      - action: action_soporte_submit
-
   - rule: Usuario satisfecho
     steps:
       - intent: respuesta_satisfecho
@@ -302,11 +259,6 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Fallback en cierre
-    steps:
-      - intent: fallback
-      - action: utter_fallback
-
   - rule: Confirmar cierre seguro con encuesta incompleta
     condition:
       - slot_was_set:
@@ -335,23 +287,6 @@ rules:
       - active_loop: null
       - action: action_verificar_proceso_activo_autosave
   
-  - rule: Iniciar formulario de soporte cuando el usuario pide enviar mensaje
-    steps:
-      - intent: pedir_mensaje
-      - action: utter_iniciar_soporte_desde_pedir_mensaje
-      - action: soporte_form
-      - active_loop: soporte_form
-  
-  - rule: Manejar error en flujo de soporte
-    steps:
-      - intent: soporte_error
-      - action: utter_soporte_error
-  
-  - rule: Enviar soporte directo
-    steps:
-      - intent: enviar_soporte_directo
-      - action: action_enviar_soporte_directo  
-   
   - rule: Enviar correo genérico
     steps:
       - intent: enviar_correo
@@ -521,63 +456,11 @@ rules:
     steps:
       - intent: encuesta_satis_no
       - action: utter_lamentar_insatisfaccion
- 
-  - rule: Activar soporte_form cuando el usuario confirma soporte
-    steps:
-      - intent: soporte_confirmar
-      - action: soporte_form
-      - active_loop: soporte_form
-  
-  - rule: Usuario pide que el bot solicite el correo
-    steps:
-      - intent: pedir_correo
-      - action: utter_pedir_correo
-      - action: soporte_form
-      - active_loop: soporte_form
-  
-  - rule: Capturar correo explícito durante soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: enviar_correo
-      - action: soporte_form
-      - active_loop: soporte_form
-  
-  - rule: Capturar teléfono durante soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: enviar_telefono
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Capturar cédula durante soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: enviar_cedula
-      - action: soporte_form
-      - active_loop: soporte_form
   
   - rule: Capturar URL de soporte
     steps:
       - intent: enviar_url
       - action: utter_gracias_url
-  
-  - rule: Usuario pide que el bot solicite el email
-    steps:
-      - intent: pedir_email
-      - action: utter_pedir_correo
-      - action: soporte_form
-      - active_loop: soporte_form
-  
-  - rule: Capturar número (cédula) durante soporte_form
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - intent: enviar_numero
-      - action: soporte_form
-      - active_loop: soporte_form
   
   - rule: Usuario decide no continuar con el tema actual
     steps:
@@ -716,7 +599,6 @@ rules:
     steps:
       - intent: cerrar_chat
       - action: utter_cerrar_chat_confirmacion
-      - action: action_finalizar_conversacion
   
   - rule: Usuario confirma cierre
     steps:
@@ -881,6 +763,7 @@ rules:
     steps:
       - intent: menu_academico
       - action: utter_menu_academico
+      - action: utter_preguntar_tema_academico
 
   - rule: Soporte - problemas de acceso
     steps:
@@ -944,12 +827,34 @@ rules:
     steps:
       - intent: notificar_inactividad
       - action: action_guardar_estado_seguridad
+
+  - rule: manejar solicitud de certificado
+    steps:
+      - intent: solicitar_certificado
+      - action: utter_info_certificado
+
+  - rule: manejar intent sugerido por LLM para certificado
+    condition:
+      - slot_was_set:
+          - llm_suggested_intent: "solicitar_certificado"
+    steps:
+      - action: utter_info_certificado
   
-  - rule: Iniciar soporte 
+  - rule: usar LLM como tutor académico
+    steps:
+      - intent: aprender_tema
+      - action: action_handle_with_llm
+  
+  - rule: Fallback NLU con LLM
+    steps:
+      - intent: nlu_fallback
+      - action: action_handle_with_llm
+
+  - rule: Iniciar soporte desde intent principal
     steps:
       - intent: solicitar_soporte
       - action: utter_preguntar_tipo_soporte
-  
+
   - rule: Soporte como PQRS formal
     steps:
       - intent: soporte_pqrs
@@ -963,4 +868,149 @@ rules:
       - action: utter_iniciar_soporte_desde_pedir_mensaje
       - action: soporte_form
       - active_loop: soporte_form
-  
+
+  - rule: Iniciar soporte cuando el usuario pide enviar mensaje
+    steps:
+      - intent: pedir_mensaje
+      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: soporte_form
+      - active_loop: soporte_form
+
+
+  - rule: Usuario confirma creación de soporte (affirm)
+    steps:
+      - action: utter_pedir_confirmacion_soporte
+      - intent: affirm
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Usuario cancela creación de soporte (deny)
+    steps:
+      - action: utter_pedir_confirmacion_soporte
+      - intent: deny
+      - action: utter_cancelar_soporte
+
+
+  - rule: Activar soporte_form cuando el usuario confirma soporte (intent dedicado)
+    steps:
+      - intent: soporte_confirmar
+      - action: soporte_form
+      - active_loop: soporte_form
+
+
+  - rule: Usuario pide que el bot solicite el correo
+    steps:
+      - intent: pedir_correo
+      - action: utter_pedir_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Usuario pide que el bot solicite el email
+    steps:
+      - intent: pedir_email
+      - action: utter_pedir_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+
+
+  - rule: Capturar correo explícito durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_correo
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Capturar teléfono durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_telefono
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Capturar cédula durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_cedula
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Capturar número (cédula) durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: enviar_numero
+      - action: soporte_form
+      - active_loop: soporte_form
+
+
+  - rule: Submit soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_soporte_submit
+
+
+  - rule: Terminar conversación durante soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: terminar_conversacion
+      - action: action_deactivate_loop
+      - active_loop: null
+
+  - rule: Fallback dentro de soporte_form (contar intentos)
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: nlu_fallback
+      - action: action_registrar_intento_form
+      - action: action_verificar_max_intentos_form
+      - action: utter_form_fallback_warn
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Derivar a humano tras 3 fallos en soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - slot_was_set:
+          - soporte_intentos: 0
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: utter_handoff_por_fallos
+      - action: action_derivar_humano_confirmada
+
+  - rule: Atajo rápido → Enviar soporte
+    steps:
+      - intent: enviar_soporte
+      - action: action_enviar_soporte
+      - action: utter_soporte_creado
+
+  - rule: Enviar soporte directo
+    steps:
+      - intent: enviar_soporte_directo
+      - action: action_enviar_soporte_directo
+
+  - rule: Manejar error en flujo de soporte
+    steps:
+      - intent: soporte_error
+      - action: utter_soporte_error
+
+
+  - rule: Usuario confirma creación de soporte (affirm)
+    steps:
+      - action: utter_pedir_confirmacion_soporte
+      - intent: affirm
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Usuario cancela creación de soporte (deny)
+    steps:
+      - action: utter_pedir_confirmacion_soporte
+      - intent: deny
+      - action: utter_cancelar_soporte

@@ -164,6 +164,9 @@ from .acciones_admin import (
     ActionPingServidor,
     ActionSetDefaultTipoUsuario,
 )
+from .acciones_llm import (
+    ActionHandleWithOllama
+)
 
 __all__ = [
     # Validators
@@ -287,4 +290,6 @@ __all__ = [
     "ActionGuardarFeedback",
 
     "ActionAnalizarEstadoUsuario",
+
+    "ActionHandleWithOllama",
 ]

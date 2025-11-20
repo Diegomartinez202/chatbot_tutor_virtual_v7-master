@@ -130,6 +130,8 @@ intents:
   - soporte_pqrs
   - soporte_interno
   - soporte
+  - aprender_tema
+  - solicitar_certificado
 
 entities:
   - curso
@@ -159,8 +161,22 @@ entities:
   - tipo_usuario
   - emocion
   - cedula
+  - aprender_tema
+  - solicitar_certificado
 
 slots:
+  topic:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom  
+
+  llm_suggested_intent:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+
   is_authenticated:
     type: bool
     influence_conversation: true
@@ -1163,6 +1179,8 @@ responses:
           payload: "/terminar_conversacion"
         - title: "No, seguir conversando"
           payload: "/negar_cierre"
+        - title: "Comunicar con soporte"
+          payload: "/solicitar_soporte"
 
   utter_certificado_estudio_info:
     - text: >
@@ -1486,6 +1504,23 @@ responses:
         - title: "Volver al menú principal"
           payload: "/ir_menu_principal"
 
+  utter_menu_academico:
+    - text: >
+        Estás en el menú académico de Zajuna 🎓. 
+        Puedes elegir una opción del menú o escribir directamente qué quieres aprender
+        (por ejemplo: Administración de Recursos Humanos, contabilidad básica, marketing, etc.).
+      buttons:
+        - title: "👨‍🏫 Ver tutor asignado"
+          payload: "/ver_tutor_asignado"
+        - title: "📚 Contenido del curso"
+          payload: "/consultar_contenido_curso"
+        - title: "📜 Ver certificados"
+          payload: "/consultar_certificados"
+        - title: "🧾 Estado de estudiante"
+          payload: "/ver_estado_estudiante"
+        - title: "⬅️ Volver al menú principal"
+          payload: "/ir_menu_principal"
+
   utter_pedir_derivacion:
     - text: >
         Veo que prefieres atención humana. 
@@ -1552,21 +1587,12 @@ responses:
         - title: "👨‍🎓 Ver estado como estudiante"
           payload: "/estado_estudiante"
 
-  utter_menu_academico:
-    - text: "Has elegido 🎓 Académico. ¿Sobre qué quieres consultar?"
-    - text: "📚 Menú académico de Zajuna:"
-      buttons:
-        - title: "👨‍🏫 Ver tutor asignado"
-          payload: "/ver_tutor_asignado"
-        - title: "📚 Contenido del curso"
-          payload: "/consultar_contenido_curso"
-        - title: "📜 Ver certificados"
-          payload: "/consultar_certificados"
-        - title: "🧾 Estado de estudiante"
-          payload: "/ver_estado_estudiante"
-        - title: "⬅️ Volver al menú principal"
-          payload: "/ir_menu_principal"
+  utter_preguntar_tema_academico:
+    - text: >
+        ¿Qué tema académico te interesa aprender hoy?
+        Por ejemplo: Administración de Recursos Humanos, contabilidad básica, marketing, servicio al cliente, etc.
 
+        Por ejemplo: Administración de Recursos Humanos, contabilidad básica, marketing, servicio al cliente, etc.
   utter_soporte_acceso:
     - text: "🔑 Veamos tu acceso. Primero, verifica si tu usuario y contraseña son correctos. Si ya lo hiciste, dime si ves algún mensaje de error específico."
 
@@ -1604,6 +1630,11 @@ responses:
         - title: "💬 Mensaje interno"
           payload: "/soporte_interno"
 
+  utter_info_certificado:
+    - text: >
+        Para consultar o descargar tu certificado del SENA, ingresa a
+        https://certificados.sena.edu.co, selecciona el tipo de documento,
+        digita tu número y sigue las instrucciones de la plataforma.
 actions:
   - action_estado_estudiante
   - action_tutor_asignado
@@ -1682,3 +1713,4 @@ actions:
   - action_procesar_soporte
   - action_marcar_escalar_humano
   - action_handoff_en_cola
+  - action_handle_with_llm

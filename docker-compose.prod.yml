@@ -72,7 +72,26 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama2}
+      OLLAMA_MAX_TOKENS: ${OLLAMA_MAX_TOKENS:-400}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-15}
 
+  # ------------------------------------------------------------
+  # Ollama LLM Server
+  # ------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ops/ollama/data:/var/lib/ollama
+    ports: []
+    environment:
+      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+    restart: unless-stopped
+    networks:
+      - app-net
   # ------------------------------------------------------------
   # Rasa Core
   # ------------------------------------------------------------

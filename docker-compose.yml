@@ -106,7 +106,10 @@ services:
       JWT_ALG: "${JWT_ALG}"
       JWT_ISSUER: "${JWT_ISSUER}"
       JWT_AUDIENCE: "${JWT_AUDIENCE}"
-
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama2}
+      OLLAMA_MAX_TOKENS: ${OLLAMA_MAX_TOKENS:-250}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-12}
     depends_on:
       mongo:
         condition: service_healthy
@@ -134,6 +137,23 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # ------------------------------------------------------------
+  # Ollama LLM Server
+  # ------------------------------------------------------------
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ops/ollama/data:/var/lib/ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+    restart: unless-stopped
+    networks:
+      - app-net
 
    # ------------------------------------------------------------
    # Rasa (build/prod) — Tracker en Mongo y arranque robusto
