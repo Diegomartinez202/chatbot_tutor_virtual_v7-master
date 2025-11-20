@@ -102,3 +102,124 @@ __pycache__/
 # Python
 *.pyc
 *.pyo
+
+# ================
+# OLLAMA
+# ================
+# Evita subir modelos grandes o pulls de ollama
+ollama/models/
+ollama/data/
+ops/ollama/data/
+*.bin
+*.gguf
+
+# ================
+# SYSTEM / EDITOR
+# ================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ================
+# SECRETS / TOKENS
+# ================
+*.pem
+*.key
+*.crt
+*.cert
+*.json
+credentials.yml
+secrets.yml
+
+# ================
+# PYTHON / RASA
+# ================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+.env.local
+
+# Rasa models and training artifacts
+models/
+rasa/models/
+*.tar.gz
+
+# Temporary Rasa files
+rasa/cache/
+rasa/.rasa/
+rasa/results/
+rasa/actions/__pycache__/
+rasa/data/.webhook_cache/
+
+# Exclude large conversation tracking
+tracker.db
+events.db
+logs/
+logs/**
+
+# ================
+# DOCKER
+# ================
+/docker-data/
+/volumes/
+/tmp/
+/*.pid
+
+# Logs from containers
+docker_logs/
+*.log
+
+# Ignore build context for action server
+rasa_action_server/__pycache__/
+rasa_action_server/actions/__pycache__/
+
+# ================
+# NODE / REACT
+# ================
+admin_panel_react/node_modules/
+admin_panel_react/build/
+admin_panel_react/dist/
+admin_panel_react/.parcel-cache/
+admin_panel_react/.vite/
+admin_panel_react/.next/
+
+# ================
+# BACKEND (if Node or Python)
+# ================
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/__pycache__/
+
+# ================
+# OLLAMA
+# ================
+# Evita subir modelos grandes o pulls de ollama
+ollama/models/
+ollama/data/
+ops/ollama/data/
+*.bin
+*.gguf
+
+# ================
+# SECRETS / TOKENS
+# ================
+*.pem
+*.key
+*.crt
+*.cert
+*.json
+credentials.yml
+secrets.yml
+
+# ================
+# SYSTEM / EDITOR
+# ================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
