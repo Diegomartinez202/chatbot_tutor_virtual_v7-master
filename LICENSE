@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 Diego Mart�nez
+Copyright (c) 2025 Diego Martínez
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,26 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+------------------------------------------------------------
+Academic / Institutional Notice (no modifica la licencia MIT)
+------------------------------------------------------------
+
+Este software fue desarrollado en el contexto de un proyecto formativo /
+académico (modalidad proyecto productivo / I+D como requisito de grado).
+
+En consecuencia:
+
+- El código se entrega con fines educativos y de demostración técnica.
+- Una vez el sistema sea desplegado con datos reales por una entidad
+  (por ejemplo, el SENA), la responsabilidad sobre el uso, tratamiento
+  y conservación de los datos recaerá exclusivamente en dicha entidad,
+  conforme a la normativa vigente en materia de protección de datos
+  y habeas data.
+- Los autores originales no asumen responsabilidades adicionales sobre
+  el tratamiento de la información que terceros realicen al implementar,
+  adaptar o explotar este software en entornos institucionales o
+  productivos.
+
+Esta nota es de carácter explicativo y no altera los términos de la
+licencia MIT anterior.

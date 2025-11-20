@@ -1,8 +1,27 @@
 version: "3.9"
 
-name: tutorbot-prod-like
+name: tutorbot-prod
 
+# ============================
+# Redes y volúmenes
+# ============================
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:
+  action-logs:
+
+# ============================
+# Servicios
+# ============================
 services:
+
+  # ------------------------------------------------------------
+  # MongoDB
+  # ------------------------------------------------------------
   mongo:
     image: mongo:6.0
     container_name: mongo
@@ -13,11 +32,109 @@ services:
       - mongo-data:/data/db
     networks:
       - app-net
-    security_opt:
-      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ------------------------------------------------------------
+  # Redis (rate-limit / cache)
+  # ------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server","--appendonly","yes"]
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # Action Server (Rasa)
+  # ------------------------------------------------------------
+  action-server:
+    image: docker.io/diego0102/zajuna-action:${TAG:-latest}
+    container_name: action-server
+    restart: unless-stopped
+    ports:
+      - "5055:5055"   # opcional, útil para debug
+    networks:
+      - app-net
+    read_only: true
+    tmpfs:
+      - /tmp
     cap_drop:
       - ALL
+    security_opt:
+      - no-new-privileges:true
 
+  # ------------------------------------------------------------
+  # Rasa Core
+  # ------------------------------------------------------------
+  rasa:
+    image: docker.io/diego0102/zajuna-rasa:${TAG:-latest}
+    container_name: rasa
+    restart: unless-stopped
+    environment:
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+    depends_on:
+      - action-server
+      - mongo
+    ports:
+      - "5005:5005"   # opcional, para debug
+    networks:
+      - app-net
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # ------------------------------------------------------------
+  # Guardian (autosave / seguridad, Flask + Mongo)
+  # ------------------------------------------------------------
+  autosave-guardian:
+    image: docker.io/diego0102/zajuna-guardian:${TAG:-latest}
+    # Si aún no tienes imagen en registry, alternativa:
+    # build:
+    #   context: .
+    #   dockerfile: autosave_guardian/Dockerfile.guardian
+    container_name: autosave-guardian
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    ports:
+      - "8081:8080"
+    expose:
+      - "8080"   # visible dentro de app-net (lo ve Nginx/backend)
+    depends_on:
+      - mongo
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------
+  # Backend (FastAPI / Uvicorn, PROD)
+  # ------------------------------------------------------------
   backend:
     image: docker.io/diego0102/zajuna-backend:${TAG:-latest}
     container_name: backend
@@ -25,19 +142,42 @@ services:
     env_file:
       - ./backend/.env.prod
     environment:
+      # Mongo principal
       MONGO_URI: mongodb://mongo:27017/tutor_virtual
       MONGO_DB_NAME: tutor_virtual
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: tutor_virtual
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: chatbot_admin
+
+      # Rasa
       RASA_URL: http://rasa:5005
+      RASA_WS_URL: ws://rasa:5005
+
+      # CORS / frontend
       FRONTEND_SITE_URL: http://localhost:8080
       ALLOWED_ORIGINS: http://localhost:8080,http://localhost:5173
+
+      # Rate limit / cache
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PROVIDER: builtin
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+
+      # Tracker de Rasa en Mongo
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+
+      # Entorno
       APP_ENV: prod
       DEBUG: "false"
     depends_on:
       - mongo
       - rasa
-    # Puedes comentar este puerto si quieres SOLO Nginx hacia fuera
-    # ports:
-    #   - "8000:8000"
+      - redis
     networks:
       - app-net
     user: "10001:10001"
@@ -50,50 +190,17 @@ services:
       - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
+    # Si quisieras exponerlo directo, descomenta:
+    # ports:
+    #   - "8000:8000"
 
-  rasa:
-    image: docker.io/diego0102/zajuna-rasa:${TAG:-latest}
-    container_name: rasa
-    restart: unless-stopped
-    environment:
-      ACTION_SERVER_URL: http://action-server:5055/webhook
-    depends_on:
-      - action-server
-    ports:
-      - "5005:5005"   # útil para debug, puedes quitarlo si quieres solo interno
-    networks:
-      - app-net
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-
-  action-server:
-    image: docker.io/diego0102/zajuna-action:${TAG:-latest}
-    container_name: action-server
-    restart: unless-stopped
-    ports:
-      - "5055:5055"   # idem, opcional
-    networks:
-      - app-net
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-
+  # ------------------------------------------------------------
+  # Admin (frontend ya compilado, servido por Nginx)
+  # ------------------------------------------------------------
   admin:
     image: docker.io/diego0102/zajuna-admin:${TAG:-latest}
     container_name: admin
     restart: unless-stopped
-    # ❌ ya no exponemos 8080 directo, lo hará nginx
-    # ports:
-    #   - "8080:80"
     depends_on:
       - backend
     networks:
@@ -104,7 +211,9 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # 🔥 Nginx PROD (reverse proxy)
+  # ------------------------------------------------------------
+  # Nginx PROD (reverse proxy + estáticos)
+  # ------------------------------------------------------------
   nginx-prod:
     image: nginx:alpine
     container_name: nginx-prod
@@ -113,11 +222,23 @@ services:
       - backend
       - admin
       - rasa
+      - autosave-guardian
     ports:
       - "8080:80"
+      - "443:443"
     volumes:
+      # nginx.conf principal
       - ./ops/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+
+      # conf.d específicas
+      - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/nginx/conf.d/prod/prod-https.conf:/etc/nginx/conf.d/prod/prod-https.conf:ro
+      - ./ops/nginx/conf.d/prod/includes/tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro
+      - ./ops/nginx/conf.d/common/default.conf:/etc/nginx/conf.d/common/default.conf:ro
+
+      # Certificados TLS
+      - ./ops/nginx/certs:/etc/nginx/certs:ro
     networks:
       - app-net
     read_only: true
@@ -127,10 +248,14 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-
-networks:
-  app-net:
-    driver: bridge
-
-volumes:
-  mongo-data:
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      /bin/sh -c "
+      echo '[nginx] 🌐 Proxy hacia backend: http://backend:8000, Rasa: http://rasa:5005, Guardian: http://autosave-guardian:8080';
+      exec nginx -g 'daemon off;'
+      "

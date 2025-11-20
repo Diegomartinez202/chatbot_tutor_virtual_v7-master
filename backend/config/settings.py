@@ -8,7 +8,7 @@ import logging
 from typing import List, Optional, Literal, Any, Dict, Union
 
 from pydantic import Field, EmailStr
-
+from pydantic_settings import BaseSettings
 # 🔧 Compat pydantic_settings
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     rasa_domain_path: str = Field(default="rasa/domain.yml", alias="RASA_DOMAIN_PATH")
     rasa_model_path: str = Field(default="rasa/models", alias="RASA_MODEL_PATH")
     rasa_train_command: str = Field(default="rasa train", alias="RASA_TRAIN_COMMAND")
-
+    RASA_BASE_URL: str = "http://rasa:5005"
     # 📧 SMTP
     smtp_server: str = Field(default="localhost", alias="SMTP_SERVER")
     smtp_port: int = Field(default=587, alias="SMTP_PORT")

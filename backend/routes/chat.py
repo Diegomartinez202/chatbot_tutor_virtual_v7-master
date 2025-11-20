@@ -14,9 +14,13 @@ from backend.utils.logging import get_logger
 from backend.rate_limit import limit
 from backend.ext.rate_limit import limiter
 import httpx
+import os
+
 router = APIRouter()
 chat_router = APIRouter(prefix="/chat", tags=["Chat"])
 log = get_logger(__name__)
+RASA_BASE_URL = os.getenv("RASA_URL", "http://rasa:5005")
+RASA_BASE_URL = settings.RASA_BASE_URL.rstrip("/")
 
 # ==== Modelos ====
 class ChatRequest(BaseModel):
@@ -146,14 +150,17 @@ async def chat_health_embed():
     Verifica conectividad a Rasa usando un OPTIONS barato al webhook REST.
     Útil cuando el front llama /api/chat/health (por estar debajo de `chat_router`).
     """
+    rasa_url = f"{RASA_BASE_URL}/webhooks/rest/webhook"
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.options("http://rasa:5005/webhooks/rest/webhook")
-        ok = 200 <= r.status_code < 500  # Rasa suele responder 204/405/200 si está vivo
-        return {"ok": bool(ok), "rasa_url": "http://rasa:5005"}
+            r = await client.options(rasa_url)
+        # Rasa suele responder 200/204/405 si el endpoint vive.
+        ok = 200 <= r.status_code < 500
+        return {"ok": bool(ok), "rasa_url": rasa_url}
     except Exception as e:
         log.exception("chat_health_embed error: %s", e)
-        return {"ok": False, "rasa_url": "http://rasa:5005", "error": str(e)}
+        return {"ok": False, "rasa_url": rasa_url, "error": str(e)}
+
 
 @router.get("/chat/health", summary="Healthcheck de chat (Rasa /status)")
 async def chat_health_root():
@@ -161,14 +168,50 @@ async def chat_health_root():
     Verifica el estado del servidor Rasa consultando /status.
     Queda expuesto como /api/chat/health si montas este router con prefix="/api".
     """
+    status_url = f"{RASA_BASE_URL}/status"
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            r = await client.get("http://rasa:5005/status")
+            r = await client.get(status_url)
             rasa_ok = r.status_code == 200
-        return {"ok": rasa_ok, "rasa_url": "http://rasa:5005"}
+        return {"ok": rasa_ok, "rasa_url": status_url}
     except Exception as e:
-        # (opcional) log.exception("chat_health_root error: %s", e)
-        return {"ok": False, "error": str(e), "rasa_url": "http://rasa:5005"}
+        log.exception("chat_health_root error: %s", e)
+        return {"ok": False, "error": str(e), "rasa_url": status_url}
+
+
+@chat_router.get(
+    "/rasa/rest/webhook/health",
+    summary="Healthcheck REST → Rasa (via /status)",
+)
+async def rasa_rest_health():
+    """
+    Endpoint pensado para el admin-panel / widget que busca expresamente
+    /api/chat/rasa/rest/webhook/health como 'health' del canal REST.
+
+    Internamente pregunta a Rasa /status y normaliza la respuesta.
+    """
+    status_url = f"{RASA_BASE_URL}/status"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            r = await client.get(status_url)
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        log.exception("rasa_rest_health error: %s", e)
+        return {
+            "status": "down",
+            "error": str(e),
+            "rasa_url": status_url,
+        }
+
+    # Normalizamos lo que recibe el frontend
+    return {
+        "status": "ok",
+        "rasa_url": status_url,
+        "rasa_version": data.get("version"),
+        "available_projects": list(data.get("available_projects", {}).keys()),
+    }
+
 
 @chat_router.post("/rasa/rest/webhook", summary="Proxy REST → Rasa")
 async def rasa_rest_proxy(payload: dict, request: Request):
@@ -176,7 +219,7 @@ async def rasa_rest_proxy(payload: dict, request: Request):
     Reenvía el body tal cual a Rasa REST.
     Devuelve el JSON de Rasa (lista de mensajes [{text?, image?, buttons?, ...}]).
     """
-    url = "http://rasa:5005/webhooks/rest/webhook"
+    url = f"{RASA_BASE_URL}/webhooks/rest/webhook"
 
     # Log de depuración mínimo (no loguear datos sensibles)
     try:
@@ -188,14 +231,18 @@ async def rasa_rest_proxy(payload: dict, request: Request):
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.post(url, json=payload)
+
         # si upstream falla, queremos ver el texto de error del upstream
         try:
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
             detail = e.response.text if e.response is not None else str(e)
-            log.error("rasa upstream error %s: %s", e.response.status_code if e.response else "?", detail)
-            raise HTTPException(status_code=e.response.status_code if e.response else 502,
-                                detail=f"rasa_upstream_error: {detail}")
+            status_code = e.response.status_code if e.response else 502
+            log.error("rasa upstream error %s: %s", status_code, detail)
+            raise HTTPException(
+                status_code=status_code,
+                detail=f"rasa_upstream_error: {detail}",
+            )
 
         data = resp.json()
         if not isinstance(data, list):
@@ -216,5 +263,33 @@ async def rasa_rest_proxy(payload: dict, request: Request):
         log.exception("proxy fatal error: %s", e)
         raise HTTPException(status_code=500, detail=f"proxy_internal_error: {e}")
 
+@router.get("/health", summary="Healthcheck API + Rasa")
+async def health():
+    """
+    Health global del backend + Rasa.
+    Se expone como /api/health a través de nginx.
+    El frontend espera JSON → devolvemos siempre JSON.
+    """
+    status_url = f"{RASA_BASE_URL}/status"
+    rasa_ok = False
+    error = None
 
-__all__ = ["router"]
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            r = await client.get(status_url)
+            rasa_ok = (r.status_code == 200)
+    except Exception as e:
+        error = str(e)
+        log.exception("health: error consultando Rasa /status: %s", e)
+
+    response = {
+        "ok": bool(rasa_ok),       # este es el campo que el front mira
+        "backend_ok": True,        # backend respondió 200
+        "rasa_ok": bool(rasa_ok),
+        "rasa_url": status_url,
+    }
+    if error and not rasa_ok:
+        response["error"] = error
+
+    return response
+__all__ = ["router", "chat_router"]

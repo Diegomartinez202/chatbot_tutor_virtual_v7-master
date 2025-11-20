@@ -1,6 +1,16 @@
-1) README-railway.md (texto plano, pégalo tal cual)
+# Despliegue en Railway (imágenes Docker Hub)
 
-Título: Despliegue en Railway (imágenes Docker Hub diego0102/zajuna-*)
+> ⚠️ **Estado actual**
+>
+> Este documento describe un posible despliegue en la plataforma Railway
+> usando las imágenes Docker publicadas (`diego0102/zajuna-*`).
+>
+> En la entrega actual del proyecto:
+> - **No se ha realizado ni verificado un despliegue real en Railway.**
+> - El entorno soportado y probado es **Docker local** (dev/prod) con Nginx.
+>
+> Se deja este README como **guía de despliegue futuro** para quien quiera
+> publicar el chatbot en la nube.
 
 Prerrequisitos
 

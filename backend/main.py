@@ -42,7 +42,7 @@ from pymongo import MongoClient
 
 from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
 from starlette.middleware.base import BaseHTTPMiddleware
-
+from backend.routes.chat_proxy import router as chat_proxy_router
 
 # ─────────────────────────────────────────
 # Modo demo / producción
@@ -146,9 +146,11 @@ def create_app() -> FastAPI:
         prefix="/me",
         tags=["user-settings"],
     )
-
-    # IMPORTANTE: aquí solo quito el prefix extra para evitar /api/api/...
-    # No borro nada de lógica ni routers.
+    app.include_router(api_router, prefix="/api")
+    app.include_router(root_router, prefix="/api")
+    app.include_router(chat_api_router, prefix="/api")
+    app.include_router(chat_proxy_router, prefix="/api")
+ 
     app.include_router(api)
 
     # CSP adicional para frame-ancestors

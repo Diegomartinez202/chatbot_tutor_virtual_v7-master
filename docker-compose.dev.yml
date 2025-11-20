@@ -17,9 +17,11 @@ services:
     container_name: backend-dev
     working_dir: /app
     environment:
+      RASA_BASE_URL: http://host.docker.internal:5005
       APP_ENV: dev
       DEBUG: "true"
       PYTHONPATH: /app
+
       # CORS / CSP
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
       EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
@@ -28,14 +30,14 @@ services:
       RASA_URL: http://rasa:5005
     command: >
       sh -lc "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
-      #ports:
-      #- "8000:8000"
+    # Si quieres exponerlo directo:
+    # ports:
+    #   - "8000:8000"
     volumes:
-        - ./:/app
+      - ./:/app
     restart: unless-stopped
     networks:
       - app-net
-
 
   # ============================
   # Frontend DEV (Vite)
@@ -44,6 +46,7 @@ services:
     build:
       context: ./admin_panel_react
       dockerfile: Dockerfile
+      target: build
     container_name: admin-dev
     working_dir: /app
     command: >
@@ -52,6 +55,7 @@ services:
       NODE_ENV: development
       VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
       VITE_USER_SETTINGS_URL: "/api/me/settings"
+      RASA_BASE_URL: http://rasa:5005
     volumes:
       - ./admin_panel_react:/app
       - /app/node_modules
@@ -60,7 +64,6 @@ services:
     restart: unless-stopped
     networks:
       - app-net
-
 
   # ============================
   # Rasa DEV
@@ -76,6 +79,7 @@ services:
       SQLALCHEMY_WARN_20: "0"
     depends_on:
       - action-server
+      - mongo
     ports:
       - "5005:5005"
     volumes:
@@ -85,7 +89,6 @@ services:
     restart: unless-stopped
     networks:
       - app-net
-
 
   # ============================
   # Action Server Rasa DEV
@@ -103,7 +106,6 @@ services:
     restart: unless-stopped
     networks:
       - app-net
-
 
   # ============================
   # Nginx DEV (reverse proxy)
@@ -130,7 +132,80 @@ services:
     networks:
       - app-net
 
+  # ------------------------------------------------------------
+  # MongoDB (para DEV)
+  # ------------------------------------------------------------
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
+  # ------------------------------------------------------------
+  # Rasa Action Guardian (Flask API JWT + Mongo)
+  # ------------------------------------------------------------
+  autosave-guardian:
+    build:
+      context: .
+      dockerfile: autosave_guardian/Dockerfile.guardian
+    container_name: autosave-guardian
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    expose:
+      - "8080"   # visible dentro de app-net (Nginx/backend lo ven)
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------
+  # Redis DEV (rate-limit / cache)
+  # ------------------------------------------------------------
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-net
+
+# ============================
+# Redes y volúmenes
+# ============================
 networks:
   app-net:
     driver: bridge
+
+volumes:
+  mongo-data:

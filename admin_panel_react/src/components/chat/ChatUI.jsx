@@ -87,7 +87,7 @@ function UserAvatar({ user, size = 28 }) {
 export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" , avatarSrc = BOT_AVATAR, }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
-    const { rasaStatus, checkStatus } = useRasaStatus();
+    const { status: rasaStatus, checkStatus } = useRasaStatus();
 
     const [senderId] = useState(() => {
         const k = "rasa:senderId";

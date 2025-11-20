@@ -9,7 +9,8 @@ const ALLOWED_IFRAME_ORIGINS = [
 ];
 
 // 👉 que el iframe vaya a la página de inicio, no directo a /chat
-const CHAT_IFRAME_SRC = "/"; 
+//const CHAT_IFRAME_SRC = "/"; 
+const CHAT_IFRAME_SRC = "/chat?embed=1&guest=1";
 
 // 👉 ruta del avatar (archivo en public/embed/bot-avatar.png)
 const AVATAR_URL = "/bot-avatar.png";

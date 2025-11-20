@@ -1,237 +1,190 @@
-TESTING – Zajuna (FastAPI + Rasa + Frontend)
 
-Guía rápida para validar /api/chat, /chat, el X-Request-ID end-to-end y el badge del launcher/iframe.
+✅ TESTING.md – Validación del Chatbot Embebido (FastAPI + Rasa)
+0️⃣ Requisitos previos
+🔧 Backend
 
-✅ 0) Requisitos
+FastAPI corriendo (modo DEV o PROD)
 
-Backend FastAPI corriendo y accesible.
+Variable DEBUG=true (solo durante pruebas) habilita /chat/debug.
 
-Rasa (REST webhook y actions) corriendo y accesible.
+🤖 Rasa
 
-DEBUG=true para habilitar /chat/debug (solo pruebas).
+Rasa Core/API habilitado (--enable-api)
 
-VITE_ALLOWED_HOST_ORIGINS configurado en el frontend (CSV) para validar postMessage.
+Action Server activo
 
-🔧 1) Variables (frontend Vite)
+🖼 Frontend (widget embebido)
 
-Crea frontend/.env.local (o configura en Railway → Variables):
+VITE_ALLOWED_HOST_ORIGINS configurado para autorizar el dominio padre
+
+Widget accesible en /static/widget/*
+
+1️⃣ Variables requeridas (Frontend Vite)
+
+Crea el archivo:
+
+admin_panel_react/.env.local
+
+
+Con:
 
 VITE_ALLOWED_HOST_ORIGINS=https://app.zajuna.edu,http://localhost:5173
 VITE_ZAJUNA_LOGIN_URL=https://zajuna.edu/login
 VITE_CHAT_REST_URL=/api/chat
 
 
-Nota: el Badge y el launcher validan orígenes. Asegúrate de incluir el dominio del parent (panel) y del iframe si son distintos.
+Importante:
+El launcher compara orígenes estrictamente → el dominio del SPA y del iframe deben aparecer aquí.
 
-▶️ 2) Arranque local
-# Backend FastAPI
+2️⃣ Arranque local de todos los servicios
+Backend
 uvicorn backend.main:app --reload --port 8000
 
-# Rasa (en carpeta rasa/)
+Rasa
 rasa train
 rasa run --enable-api -p 5005
 rasa run actions -p 5055
 
-# Frontend (Vite)
-npm run dev   # o: pnpm dev
+Frontend (si se usa)
+npm run dev
 
-🔐 3) Handshake de auth (embed)
+Docker (alternativa)
+docker compose --profile dev up -d --build
 
-En el host (página que inyecta el launcher):
+3️⃣ Handshake de Autenticación (modo embebido)
+
+En la página host (Zajuna / externa):
 
 <script src="/chat-widget.js"
   data-chat-url="/chat-embed.html?embed=1"
-  data-allowed-origins="http://localhost:5173"
-  data-login-url="http://localhost:5173/login"
+  data-allowed-origins="https://app.zajuna.edu"
+  data-login-url="https://app.zajuna.edu/login"
   data-badge="auto"></script>
 
 <script>
-  // Simular login local:
+  // Simulación de login local
   localStorage.setItem("zajuna_token", "JWT_DE_PRUEBA");
   window.getZajunaToken = () => localStorage.getItem("zajuna_token");
 </script>
 
+Flujo esperado
 
-Flujo esperado:
+El iframe solicita contenido privado → envía auth:needed
 
-El iframe requiere contenido privado → emite auth:needed.
+El host responde con auth:token
 
-El host responde con auth:token (si encuentra token) o redirige a login.
+Si no hay token → host redirige a login
 
-🩺 4) Health checks rápidos
+Esto demuestra que el embed no expone la sesión del host, solo la puede solicitar vía postMessage (seguro).
 
+4️⃣ Health Checks básicos
 Local
+curl http://localhost:8000/health | jq
+curl http://localhost:8000/chat/health | jq
+curl http://localhost:8000/chat/debug | jq       # DEBUG debe estar en true
 
-curl -sS http://localhost:8000/health | jq
-curl -sS http://localhost:8000/chat/health | jq
-curl -sS http://localhost:8000/chat/debug | jq   # requiere DEBUG=true
-
-
-Railway
-
+Railway / Producción
 export BACKEND_URL="https://<backend>.railway.app"
-curl -sS "$BACKEND_URL/health" | jq
-curl -sS "$BACKEND_URL/chat/health" | jq
-curl -sS "$BACKEND_URL/chat/debug" | jq   # si DEBUG=true
+curl $BACKEND_URL/health | jq
+curl $BACKEND_URL/chat/health | jq
 
-🚬 5) Smoke /api/chat (sin / con token)
-
-SIN token → el backend fuerza metadata.auth.hasToken=false hacia Rasa
-
-curl -sS -X POST http://localhost:8000/api/chat \
+5️⃣ Prueba rápida de /api/chat (smoke test)
+🟥 Sin token (flujo público)
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"sender":"smoke","message":"/ver_certificados","metadata":{}}' | jq
+  -d '{"sender":"smoke","message":"hola","metadata":{}}' | jq
 
-
-CON token → el backend fuerza metadata.auth.hasToken=true
-
+🟩 Con token (flujo privado)
 TOKEN="<JWT_VALIDO>"
-curl -sS -X POST http://localhost:8000/api/chat \
-  -H "Authorization: Bearer '"$TOKEN"'" \
+
+curl -X POST http://localhost:8000/api/chat \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"sender":"smoke","message":"/ver_certificados","metadata":{}}' | jq
 
 
-Tip: en ambos casos, revisa logs/system.log (o stdout en Railway) y busca rid=<X-Request-ID> para ver la correlación.
+En logs verás: rid=<ID> propagado hacia Rasa.
 
-🆔 6) Verificación de X-Request-ID (end-to-end)
-
-A) Desde cURL
-
-curl -i -sS -X POST http://localhost:8000/api/chat \
+6️⃣ Verificación de X-Request-ID (trazabilidad completa)
+A) cURL
+curl -i -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"sender":"ridtest","message":"hola","metadata":{}}'
+  -d '{"sender":"ridtest","message":"hola"}'
 
 
-La respuesta no incluye el X-Request-ID en el body.
+En logs:
 
-El header se propaga a Rasa y queda en logs.
+rid=1ac0d.... backend → rasa
 
-Busca en logs:
+B) Navegador
 
-tail -n 200 logs/system.log | grep rid=
+Abrir DevTools → Network
 
+Mandar mensaje “hola”
 
-B) Desde navegador (DevTools)
+Observar header:
+X-Request-ID: <uuid>
 
-Abre tu SPA o /chat-embed.html.
-
-En Network, envía un mensaje (p. ej. “hola”) y abre la request a /api/chat (o /chat).
-
-En Request Headers verás: X-Request-ID: <uuid>.
-
-Valida el mismo rid en logs/system.log.
-
-🔔 7) Verificación del Badge (postMessage + orígenes)
-
-A) Comportamiento esperado
-
-En el Header (parent) usas: <Badge mode="chat" />.
-
-El iframe (ChatUI) emite:
-
-postMessage({ type: "chat:badge", count }, parentOrigin) → sube el contador.
-
-El launcher (parent) emite hacia el iframe:
-
-postMessage({ type: "chat:visibility", open: true }, frameOrigin) → el iframe resetea su contador; el Header también resetea su badge (Badge escucha el postMessage).
-
-B) Simulación rápida (consola del iframe)
-
-// ORIGEN del parent (ajústalo al del panel)
-const parentOrigin = window.location !== window.parent.location
-  ? (document.referrer && new URL(document.referrer).origin)
-  : window.location.origin;
-
-// Simula 5 sin leer
+7️⃣ Validación del Badge (contador) + postMessage
+Simulación manual desde el iframe
+Subir contador:
+const parentOrigin = new URL(document.referrer).origin;
 window.parent.postMessage({ type: "chat:badge", count: 5 }, parentOrigin);
 
-// Simula apertura (reset)
+Reset al abrir chat:
 window.parent.postMessage({ type: "chat:visibility", open: true }, parentOrigin);
 
+Configuración obligatoria
 
-C) Validación de orígenes
+VITE_ALLOWED_HOST_ORIGINS debe contener el origin exacto del host.
 
-VITE_ALLOWED_HOST_ORIGINS debe incluir el origin del parent si difiere.
+8️⃣ Evidencias para el informe técnico
 
-El launcher endurece targetOrigin al origin real del iframe y valida origin + source.
+Recomendadas:
 
-📸 8) Capturas para el informe
+Pantalla completa del embedding (1440×900, zoom 100%)
 
-Tamaño: 1440×900, zoom 100%.
+/chat-embed con cards, replies y botones
 
-Planos: vista completa + detalle (cards/botones).
+Prueba de intent privado:
 
-Rutas
+SIN token → “Iniciar sesión”
 
-/chat-embed (modo widget)
+CON token → lista de certificados
 
-/chat (vista normal)
+Vista del badge incrementando → badge reseteado
 
-Secuencia
-
-Carrusel de cursos (cards)
-Mensaje: /explorar_temas → 3 cards (Excel, Soldadura, Web) + “Inscribirme”.
-
-Recomendados
-Tras /explorar_temas: “Python Básico – Ago 2025” y “IA Educativa – Sep 2025”.
-
-Quick replies / sugerencias
-Cualquier intent que devuelva quick_replies → chips horizontales.
-
-Flujo privado (auth)
-
-SIN token → /ver_certificados → “Iniciar sesión” (custom.type=auth_needed).
-
-CON token → /ver_certificados → lista de certificados + botones.
-
-🚂 9) Scripts Railway (opcional)
-# Variables
+9️⃣ Scripts Railway (opcionales)
 export BACKEND_URL="https://<backend>.railway.app"
-export RASA_URL="https://<rasa>.railway.app/webhooks/rest/webhook"
-export ACTIONS_URL="https://<actions>.railway.app"
-export DEBUG=true
-
-# Health
 bash scripts/railway/health.sh
+bash scripts/railway/smoke_chat.sh
 
-# Smoke
-bash scripts/railway/smoke_chat.sh   # ACCESS_TOKEN opcional
+🔥 10️⃣ Problemas comunes
+❌ El badge no se actualiza
 
-🧯 10) Problemas comunes
+Revisa el postMessage en iframe
 
-El badge no aparece
+Verifica VITE_ALLOWED_HOST_ORIGINS
 
-Verifica que el iframe emite postMessage (chat:badge).
+Verifica ev.origin del parent
 
-Revisa VITE_ALLOWED_HOST_ORIGINS y que los orígenes coincidan (parent/iframe).
+❌ JWT inválido
 
-En el parent, loguea ev.origin y ev.data en el listener para depurar.
+Revisa SECRET_KEY o claves públicas
 
-JWT inválido
+Revisa JWT_ALGORITHM
 
-Asegura JWT_ALGORITHM (HS vs RS) y claves (SECRET_KEY o JWT_PUBLIC_KEY).
+❌ No aparece X-Request-ID
 
-El backend siempre fija metadata.auth.hasToken en base al Authorization real.
+Está en headers, no en body
 
-No veo X-Request-ID
+El log lo muestra como rid=...
 
-No va en el body; está en headers hacia Rasa y en logs (rid=).
-
-📁 11) Ubicación de archivos clave
-
-Este documento: TESTING.md (raíz del repo).
-
-Launcher: public/chat-widget.js (endurecido: frameOrigin + validación origin+source).
-
-Chat embed UI: src/chat/ChatUI.jsx (emite chat:badge, escucha chat:visibility).
-
-Badge unificado: src/components/Badge.jsx (<Badge mode="chat" /> en Header).
-
-Header (SPA): src/components/Header.jsx (usa Badge y tooltips Radix).
-
-Scripts Railway:
-
-scripts/railway/health.sh
-
-scripts/railway/smoke_chat.sh
+1️⃣1️⃣ Ubicación de archivos relevantes
+Componente	Archivo
+Widget principal	public/chat-widget.js
+UI embebida	static/widget/*
+Backend Chat	backend/app/api/chat.py
+CSP / Embeds	backend/app/core/security/csp.py
+Test E2E	tests/e2e/chat-embed.spec.ts
+Scripts Railway	scripts/railway/

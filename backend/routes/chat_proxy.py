@@ -1,4 +1,4 @@
-# backend/routes/chat_proxy.py
+# ba# backend/routes/chat_proxy.py
 from __future__ import annotations
 
 import os
@@ -8,15 +8,26 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import httpx
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+from backend.config.settings import settings
+from backend.utils.logging import get_logger
+
+log = get_logger(__name__)
+
+# ⚠️ OJO: NO uses /api aquí si luego montas este router con prefix="/api"
+# Así evitas terminar con /api/api/...
+router = APIRouter(prefix="/chat-proxy", tags=["Chat Proxy"])
 
 # ─────────────────────────────────────────────────────────
-# Config desde ENV (con defaults seguros para Docker compose)
+# Config Rasa: base tomado de settings + overrides por ENV
 # ─────────────────────────────────────────────────────────
+
+# Base: lo que ya usas en todo el backend
+base_url = (os.getenv("RASA_BASE_URL") or settings.RASA_BASE_URL).rstrip("/")
+
+# URL REST final (se puede sobreescribir si quieres)
 RASA_REST_URL = (
     os.getenv("RASA_REST_URL")
-    or os.getenv("RASA_HTTP")
-    or "http://rasa:5005/webhooks/rest/webhook"
+    or f"{base_url}/webhooks/rest/webhook"
 ).rstrip("/")
 
 CHAT_REQUIRE_AUTH = (os.getenv("CHAT_REQUIRE_AUTH", "false") or "false").lower() == "true"
@@ -24,8 +35,8 @@ RASA_TIMEOUT_MS = int(os.getenv("RASA_TIMEOUT_MS", "8000"))
 
 # Endpoints alternativos para health en Rasa
 RASA_STATUS_URLS = [
-    os.getenv("RASA_STATUS_URL") or f"{RASA_REST_URL.replace('/webhooks/rest/webhook','')}/status",
-    os.getenv("RASA_HEALTH_URL") or f"{RASA_REST_URL.replace('/webhooks/rest/webhook','')}/health",
+    os.getenv("RASA_STATUS_URL") or f"{base_url}/status",
+    os.getenv("RASA_HEALTH_URL") or f"{base_url}/health",
 ]
 
 # ─────────────────────────────────────────────────────────
@@ -47,13 +58,14 @@ def _get_user_from_request(request: Request) -> Optional[Dict[str, Any]]:
 
 
 # ─────────────────────────────────────────────────────────
-# Health del chat (no envía mensaje al bot)
-# GET /api/chat/health
+# Health del chat-proxy (no envía mensaje al bot)
+# GET /chat-proxy/health  → si montas con prefix="/api" => /api/chat-proxy/health
 # ─────────────────────────────────────────────────────────
 @router.get("/health")
 async def chat_health() -> Dict[str, Any]:
     last_err: Optional[str] = None
     timeout = httpx.Timeout(RASA_TIMEOUT_MS / 1000.0)
+
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
         for url in RASA_STATUS_URLS:
             try:
@@ -62,12 +74,14 @@ async def chat_health() -> Dict[str, Any]:
                     return {"ok": True, "target": url, "status": r.status_code}
             except Exception as e:
                 last_err = str(e)
+
+    log.error("chat_proxy health: Rasa no responde. last_err=%s", last_err)
     raise HTTPException(status_code=503, detail=last_err or "Rasa no responde")
 
 
 # ─────────────────────────────────────────────────────────
-# Proxy principal: POST /api/chat
-# Acepta { text | message, sender, metadata } y reenvía a Rasa
+# Proxy principal: POST /chat-proxy
+# Si lo montas con prefix="/api" → POST /api/chat-proxy
 # ─────────────────────────────────────────────────────────
 @router.post("")
 async def chat_send(body: ChatIn, request: Request) -> List[Dict[str, Any]]:
@@ -92,10 +106,12 @@ async def chat_send(body: ChatIn, request: Request) -> List[Dict[str, Any]]:
         try:
             r = await client.post(RASA_REST_URL, json=payload)
         except Exception as e:
+            log.exception("Error conectando a Rasa en %s: %s", RASA_REST_URL, e)
             raise HTTPException(status_code=502, detail=f"Error conectando a Rasa: {e}")
 
     if not (200 <= r.status_code < 300):
         detail = r.text or "error al enviar mensaje"
+        log.error("Rasa respondió status=%s body=%s", r.status_code, detail)
         raise HTTPException(status_code=r.status_code, detail=detail)
 
     try:
