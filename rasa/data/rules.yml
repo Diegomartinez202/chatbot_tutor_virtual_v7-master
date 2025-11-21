@@ -16,12 +16,6 @@ rules:
     steps:
       - intent: ping_servidor
       - action: action_ping_servidor
-  
-  - rule: Iniciar login (enviar_credenciales)
-    steps:
-      - intent: enviar_credenciales
-      - action: auth_login_form
-      - active_loop: auth_login_form
 
   - rule: Submit auth_login_form OK
     condition:
@@ -77,11 +71,6 @@ rules:
       - action: auth_login_form
       - active_loop: auth_login_form
 
-  - rule: Fallback explícito del usuario
-    steps:
-      - intent: fallback
-      - action: utter_fallback
-
   - rule: Despedida directa
     steps:
       - intent: despedida
@@ -131,7 +120,7 @@ rules:
       - intent: encuesta_satis_yes
       - action: action_set_encuesta_tipo
       - slot_was_set:
-          - encuesta_tipo: "positivo"
+          - encuesta_tipo: "positiva"
       - action: utter_agradecimiento_satisfaccion
       - action: utter_ofrecer_continuar
 
@@ -141,7 +130,6 @@ rules:
       - action: utter_agradecimiento_satisfaccion
       - action: utter_ofrecer_continuar
 
-  
   - rule: Cambiar idioma a español
     steps:
       - intent: cambiar_idioma_espanol
@@ -178,11 +166,6 @@ rules:
       - intent: negar_handoff
       - action: utter_continuar_con_bot
   
-  - rule: Usuario quiere iniciar sesión en Zajuna
-    steps:
-      - intent: ingreso_zajuna
-      - action: action_ingreso_zajuna
- 
   - rule: Verificar estado de encuesta antes de cerrar
     steps:
       - intent: terminar_conversacion_segura
@@ -233,7 +216,7 @@ rules:
       - intent: respuesta_satisfecho
       - action: action_set_encuesta_tipo
       - slot_was_set:
-          - encuesta_tipo: "positivo"
+          - encuesta_tipo: "positiva"
       - action: utter_agradecimiento_satisfaccion
       - action: utter_ofrecer_continuar
 
@@ -298,11 +281,6 @@ rules:
       - action: utter_necesita_autenticacion  
   
   - rule: Problema no resuelto -> ofrecer escalamiento
-    steps:
-      - intent: problema_resuelto_no
-      - action: utter_problema_resuelto_no
-
-  - rule: Problema no resuelto -> ofrecer opciones
     steps:
       - intent: problema_resuelto_no
       - action: utter_problema_resuelto_no
@@ -422,8 +400,8 @@ rules:
 
   - rule: Ofrecer derivación a humano
     steps:
-       - intent: necesita_humano
-       - action: utter_pedir_derivacion
+      - intent: necesita_humano
+      - action: utter_pedir_derivacion
 
   - rule: Mostrar menú principal rápido
     steps:
@@ -435,22 +413,11 @@ rules:
       - intent: pedir_nombre      
       - action: utter_ask_nombre
 
-  - rule: Notificar que se está guardando el progreso
-    steps:
-      - intent: guardar_estado
-      - action: action_guardar_estado_seguridad
-      - action: utter_guardando_progreso
-
   - rule: Reinicio confirmado
     steps:
       - intent: reiniciar_conversacion
       - action: action_reiniciar_conversacion
       - action: utter_reinicio_confirmado
-
-  - rule: Error en flujo de soporte
-    steps:
-      - intent: soporte_error
-      - action: utter_soporte_error
 
   - rule: Lamentar insatisfacción
     steps:
@@ -473,13 +440,6 @@ rules:
       - intent: saludo
       - action: utter_saludo
       - action: action_auto_resume
-  
-  - rule: Iniciar flujo de login pidiendo email
-    steps:
-      - intent: auth_login_cmd
-      - action: utter_ask_email
-      - action: auth_login_form
-      - active_loop: auth_login_form
 
   - rule: Pedir password explícitamente en login
     condition:
@@ -509,7 +469,7 @@ rules:
     condition:
       - active_loop: feedback_form
     steps:
-    - action: utter_ask_feedback_texto
+      - action: utter_ask_feedback_texto
   
   - rule: Confirmar cierre seguro
     steps:
@@ -524,11 +484,6 @@ rules:
       - action: action_cancelar_cierre_segura
       - action: utter_cierre_cancelado_seguro
       - action: action_ir_menu_principal
-
-  - rule: Problema no resuelto - mensaje base
-    steps:
-      - intent: problema_resuelto_no
-      - action: utter_problema_resuelto_no
   
   - rule: Flujo base - usuario quiere terminar conversación
     steps:
@@ -539,7 +494,7 @@ rules:
   - rule: Cierre seguro - sin encuesta activa
     condition:
       - slot_was_set:
-        - encuesta_activa: false
+          - encuesta_activa: false
     steps:
       - action: action_verificar_estado_encuesta
       - action: action_confirmar_cierre_seguro
@@ -558,12 +513,6 @@ rules:
       - action: action_cancelar_cierre
       - action: utter_cierre_cancelado
       - action: utter_volver_menu_principal
-  
-  - rule: Usuario pide hablar con tutor tras encuesta negativa
-    steps:
-      - intent: contactar_tutor
-      - action: utter_contactar_tutor_opciones
-      - action: utter_contactar_tutor_confirmacion
   
   - rule: Flujo base - cierre seguro
     steps:
@@ -604,11 +553,6 @@ rules:
     steps:
       - intent: confirmar_cierre
       - action: action_finalizar_conversacion
-  
-  - rule: Confirmar derivación a humano 
-    steps:
-      - intent: confirmacion_escalar_humano
-      - action: action_derivar_y_registrar_humano
 
   - rule: Usuario quiere ver info del estado estudiante
     steps:
@@ -684,12 +628,10 @@ rules:
       - intent: ingreso_zajuna
       - action: action_ingreso_zajuna
 
-
   # ==============================
   # 🎓 CERTIFICADOS
   # ==============================
 
-  # Usuario autenticado → el bot consulta y muestra certificados
   - rule: Consultar certificados (autenticado, intent consultar_certificados)
     condition:
       - slot_was_set:
@@ -698,7 +640,6 @@ rules:
       - intent: consultar_certificados
       - action: action_ver_certificados
 
-  # Usuario NO autenticado → se le muestran pasos para hacerlo en la plataforma
   - rule: Consultar certificados (NO autenticado, intent consultar_certificados)
     condition:
       - slot_was_set:
@@ -707,7 +648,6 @@ rules:
       - intent: consultar_certificados
       - action: utter_login_hint
 
-  # Si también tienes entrenado "ver_certificados", que haga lo mismo:
   - rule: Ver certificados (autenticado, intent ver_certificados)
     condition:
       - slot_was_set:
@@ -750,7 +690,7 @@ rules:
   - rule: Sugerencia tutor tras encuesta negativa
     condition:
       - slot_was_set:
-        - encuesta_satisfaccion: "negativa"
+          - encuesta_satisfaccion: "negativa"
     steps:
       - action: utter_ofrecer_contacto_tutor
   
@@ -812,11 +752,6 @@ rules:
       - action: utter_pedir_autenticacion
       - action: utter_login_hint
   
-  - rule: Ir a menú principal
-    steps:
-      - intent: ir_menu_principal
-      - action: action_ir_menu_principal
-  
   - rule: Usuario quiere escalar a humano
     steps:
       - intent: pedir_humano
@@ -843,11 +778,6 @@ rules:
   - rule: usar LLM como tutor académico
     steps:
       - intent: aprender_tema
-      - action: action_handle_with_llm
-  
-  - rule: Fallback NLU con LLM
-    steps:
-      - intent: nlu_fallback
       - action: action_handle_with_llm
 
   - rule: Iniciar soporte desde intent principal
@@ -876,7 +806,6 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-
   - rule: Usuario confirma creación de soporte (affirm)
     steps:
       - action: utter_pedir_confirmacion_soporte
@@ -890,13 +819,11 @@ rules:
       - intent: deny
       - action: utter_cancelar_soporte
 
-
   - rule: Activar soporte_form cuando el usuario confirma soporte (intent dedicado)
     steps:
       - intent: soporte_confirmar
       - action: soporte_form
       - active_loop: soporte_form
-
 
   - rule: Usuario pide que el bot solicite el correo
     steps:
@@ -911,7 +838,6 @@ rules:
       - action: utter_pedir_correo
       - action: soporte_form
       - active_loop: soporte_form
-
 
   - rule: Capturar correo explícito durante soporte_form
     condition:
@@ -945,7 +871,6 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-
   - rule: Submit soporte_form
     condition:
       - active_loop: soporte_form
@@ -953,7 +878,6 @@ rules:
       - action: soporte_form
       - active_loop: null
       - action: action_soporte_submit
-
 
   - rule: Terminar conversación durante soporte_form
     condition:
@@ -973,7 +897,7 @@ rules:
       - action: utter_form_fallback_warn
       - action: soporte_form
       - active_loop: soporte_form
-
+  
   - rule: Derivar a humano tras 3 fallos en soporte_form
     condition:
       - active_loop: soporte_form
@@ -1000,17 +924,24 @@ rules:
     steps:
       - intent: soporte_error
       - action: utter_soporte_error
-
-
-  - rule: Usuario confirma creación de soporte (affirm)
+  
+  - rule: Fallback general → LLM
     steps:
-      - action: utter_pedir_confirmacion_soporte
-      - intent: affirm
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Usuario cancela creación de soporte (deny)
+      - intent: nlu_fallback
+      - action: action_handle_with_llm
+  
+  - rule: Usuario pide ayuda ("fallback" explícito)
     steps:
-      - action: utter_pedir_confirmacion_soporte
-      - intent: deny
-      - action: utter_cancelar_soporte
+      - intent: fallback
+      - action: action_handle_with_llm
+  
+  - rule: Mensaje fuera de dominio → LLM
+    steps:
+      - intent: out_of_scope
+      - action: action_handle_with_llm
+
+  - rule: Ir a menú académico desde consultar_academico
+    steps:
+      - intent: consultar_academico
+      - action: utter_menu_academico
+      - action: utter_preguntar_tema_academico

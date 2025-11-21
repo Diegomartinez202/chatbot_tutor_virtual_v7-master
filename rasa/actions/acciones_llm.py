@@ -1,4 +1,7 @@
-# actions/actions_llm.py
+# ==========================================================
+# actions/actions_llm.py  (VERSIÓN OPTIMIZADA + ROBUSTA)
+# ==========================================================
+
 import os
 import re
 import logging
@@ -14,179 +17,169 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # ----------------- CONFIG DESDE ENV -----------------
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434") 
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama2")          
-OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "250"))
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "12"))
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "350"))
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "15"))
 
-# ----------------- PROMPT DEL SENA -----------------
+
+# ==========================================================
+# 🔥 PROMPT PROFESIONAL PARA UN TUTOR DEL SENA + LLM HÍBRIDO
+# ==========================================================
 PROMPT_SYSTEM = """
-Eres un Tutor Académico del SENA (Centro de Formación Profesional).
+Eres *Tutor Virtual Profesional del SENA*, especializado en formación por competencias.
+TU MISIÓN:
+- Explicar temas académicos de manera clara, didáctica y estructurada.
+- Ser amable, profesional y preciso.
+- Ajustarte al contexto educativo colombiano.
 
-RESPONSABILIDADES:
-- Proveer explicaciones pedagógicas, claras y concisas, en español neutro.
-- Ofrecer definiciones, procesos, ejemplos prácticos, pasos y referencias institucionales cuando existan.
-- No inventar normativa ni procedimientos; si no estás seguro, usa:
-  "No tengo la información exacta; puedo orientarte sobre el proceso general."
-- Si la solicitud requiere acceso a datos personales o sistemas (SofíaPlus, certificados),
-  indica el procedimiento y enlaces oficiales, sin requerir credenciales.
+REGLAS OBLIGATORIAS:
+1. Nunca inventes datos institucionales. Si no sabes, responde:
+   "No tengo la información exacta; puedo orientarte en el proceso general."
+2. No uses lenguaje técnico excesivo; prioriza comprensión del aprendiz.
+3. Si el usuario pregunta sobre certificados, estados académicos o procesos reales:
+   → NO des datos personales.
+   → Explica el procedimiento oficial.
+4. Tú solo puedes responder en uno de estos dos formatos:
+   - INTENT:<nombre_intent>
+   - RESPUESTA:<texto pedagógico>
 
-FORMATO DE RESPUESTA (OBLIGATORIO):
-- Si la respuesta debe activar una acción (inscripción, descarga, ver certificado), devuelve exactamente:
-    INTENT:<nombre_intent>
-  Ej.: INTENT:solicitar_inscripcion
+ESTRUCTURA DE RESPUESTA (cuando uses RESPUESTA):
+1) Definición breve
+2) Pasos claros
+3) Ejemplo práctico
+4) Recomendación final (siguiente paso sugerido)
 
-- Si la respuesta es texto para el usuario, devuelve exactamente:
-    RESPUESTA:<texto ciudadano>
-  Ej.: RESPUESTA:Para inscribirte en SofíaPlus, ingresa a https://oferta.senasofiaplus.edu.co y sigue los pasos...
-
-SEGUIDOR DIDÁCTICO (estructura recomendada en RESPUESTA):
-1) Definición breve (1–2 frases).
-2) Procesos / pasos (lista corta).
-3) Ejemplo práctico (1 caso pequeño aplicado al SENA).
-4) Recursos / enlaces oficiales (si aplica).
-5) Sugerencia de siguiente tema o pregunta.
-
-EJEMPLOS:
-Usuario: "Explícame Administración de Recursos Humanos"
-→ RESPUESTA:Administración de Recursos Humanos: [definición]. Pasos: 1)... Ejemplo: ... Recursos: https://oferta.senasofiaplus.edu.co
-
-Usuario: "Quiero mi certificado"
-→ INTENT:solicitar_certificado
-
-SEGURIDAD Y PRIVACIDAD:
-- ANONIMIZA cualquier dato personal (reemplaza números o correos por [NUM] / [EMAIL]).
-- No proporciones números de expediente ni enlaces privados.
+Cumple SIEMPRE esta estructura.
 """
 
-# ----------------- ANONIMIZACIÓN -----------------
+
+# ==========================================================
+# 🔒 ANONIMIZACIÓN ROBUSTA
+# ==========================================================
 def anonymize_text(text: str) -> str:
     if not text:
         return text
-    # correos
     text = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[EMAIL]", text)
-    # números de documento / teléfonos (secuencias de 6 o más dígitos)
     text = re.sub(r"\b\d{6,}\b", "[NUM]", text)
-    # tarjetas, secuencias con guiones
     text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[NUM]", text)
-    # nombres simples: mayúscula seguido de minúsculas (ojo: puede tener falsos positivos)
     text = re.sub(
         r"\b[A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s[A-ZÁÉÍÓÚ][a-záéíóú]+){0,2}\b",
-        "[NAME]",
-    )
-    # direcciones (número + calle)
+        "[NAME]", text)
     text = re.sub(
         r"\b(?:calle|cra|carrera|av|avenida|cll)\b[^\n,]{0,40}",
-        "[ADDRESS]",
-        text,
-        flags=re.IGNORECASE,
-    )
+        "[ADDRESS]", text, flags=re.IGNORECASE)
     return text
 
-# ----------------- LLAMADA A OLLAMA -----------------
+
+# ==========================================================
+# ⚡ LLAMADA A OLLAMA (MEJORADA)
+# ==========================================================
 def call_ollama(prompt: str) -> str:
     url = f"{OLLAMA_URL}/api/generate"
     payload = {
         "model": OLLAMA_MODEL,
         "prompt": prompt,
         "max_tokens": OLLAMA_MAX_TOKENS,
-        "temperature": 0.2,
-        "top_p": 0.95,
-        "repeat_penalty": 1.0,
+        "temperature": 0.15,
+        "top_p": 0.9,
+        "repeat_penalty": 1.05,
     }
+
     try:
         resp = requests.post(url, json=payload, timeout=OLLAMA_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
 
-        # parsing robusto: diferentes versiones de Ollama pueden devolver campos distintos
+        # Diferentes versiones de Ollama → manejar todos los formatos
         if isinstance(data, dict):
-            # ejemplo: {"generated": "..."} o {"response": "..."} o {"results":[{"content":"..."}]}
-            if "response" in data and isinstance(data["response"], str):
-                return data["response"].strip()
-            if "generated" in data and isinstance(data["generated"], str):
-                return data["generated"].strip()
-            if "result" in data and isinstance(data["result"], str):
-                return data["result"].strip()
-            if "results" in data and isinstance(data["results"], list) and data["results"]:
+            for key in ["response", "generated", "result"]:
+                if key in data and isinstance(data[key], str):
+                    return data[key].strip()
+
+            if "results" in data and isinstance(data["results"], list):
                 r0 = data["results"][0]
-                if isinstance(r0, dict):
-                    for key in ("content", "text", "output"):
-                        if key in r0 and isinstance(r0[key], str):
-                            return r0[key].strip()
-        # fallback: si viene texto plano
+                for key in ["content", "text", "output"]:
+                    if key in r0:
+                        return str(r0[key]).strip()
+
         if isinstance(data, str):
             return data.strip()
-        return ""
-    except Exception as e:
-        logger.exception("Error llamando a Ollama: %s", e)
+
         return ""
 
-# ----------------- PARSER RESPUESTA LLM -----------------
+    except Exception as e:
+        logger.exception("❌ Error llamando a Ollama")
+        return ""
+
+
+# ==========================================================
+# 🧠 PARSER DE RESPUESTA INTELIGENTE
+# ==========================================================
 def parse_llm_response(text: str) -> Dict[str, str]:
     if not text:
         return {"type": "raw", "value": ""}
+
     t = text.strip()
-    if t.upper().startswith("INTENT:"):
-        return {"type": "intent", "value": t.split(":", 1)[1].strip()}
-    if t.upper().startswith("RESPUESTA:"):
-        return {"type": "response", "value": t.split(":", 1)[1].strip()}
-    # intentar JSON
+
+    # Buscar INTENT aunque venga rodeado de texto adicional
+    m_int = re.search(r"INTENT\s*:\s*([a-zA-Z0-9_]+)", t, flags=re.I)
+    if m_int:
+        return {"type": "intent", "value": m_int.group(1).strip()}
+
+    # Buscar RESPUESTA: aunque venga con saltos o espacios
+    m_resp = re.search(r"RESPUESTA\s*:\s*(.+)", t, flags=re.I | re.S)
+    if m_resp:
+        return {"type": "response", "value": m_resp.group(1).strip()}
+
+    # Intentar JSON
     try:
         j = json.loads(t)
-        if isinstance(j, dict):
-            if "intent" in j:
-                return {"type": "intent", "value": j.get("intent")}
-            if "response" in j:
-                return {"type": "response", "value": j.get("response")}
-    except Exception:
+        if "intent" in j:
+            return {"type": "intent", "value": j["intent"]}
+        if "response" in j:
+            return {"type": "response", "value": j["response"]}
+    except:
         pass
+
     return {"type": "raw", "value": t}
 
-# ----------------- ACTION -----------------
+
+# ==========================================================
+# 🎯 ACCIÓN PRINCIPAL: ActionHandleWithOllama
+# ==========================================================
 class ActionHandleWithOllama(Action):
     def name(self) -> Text:
         return "action_handle_with_llm"
 
+    # ---- Construcción del prompt con historial reducido ----
     def build_prompt(self, tracker: Tracker) -> str:
-        last_user = tracker.latest_message.get("text", "") or ""
-        last_user_anon = anonymize_text(last_user)
+        user_msg = anonymize_text(tracker.latest_message.get("text", ""))
+        intent_info = tracker.latest_message.get("intent", {})
 
-        intent = tracker.latest_message.get("intent", {}) or {}
-        intent_name = intent.get("name", "unknown")
-        intent_conf = intent.get("confidence", 0.0)
-
-        # historial breve
-        last_events: List[str] = []
+        # historial corto (máx 6 turnos)
+        history = []
         for e in tracker.events[-12:]:
             if e.get("event") == "user":
-                txt = e.get("text", "")
-                last_events.append("Usuario: " + anonymize_text(txt))
+                history.append("Usuario: " + anonymize_text(e.get("text", "")))
             elif e.get("event") == "bot":
-                txt = e.get("text", "")
-                if isinstance(txt, list):
-                    txt = ". ".join(
-                        [
-                            (t.get("text") if isinstance(t, dict) else str(t))
-                            for t in txt
-                        ]
-                    )
-                last_events.append("Bot: " + (txt or ""))
+                history.append("Bot: " + str(e.get("text", "")))
 
-        hist_text = "\n".join(last_events[-8:])
+        hist_text = "\n".join(history[-6:])
 
         prompt = (
             PROMPT_SYSTEM
-            + "\n\nContexto (no inventes datos sensibles):\n"
-            + f"Último mensaje (anonimizado): {last_user_anon}\n"
-            + f"Intent detectado por Rasa: {intent_name} (conf={intent_conf})\n"
-            + f"Historial breve:\n{hist_text}\n\n"
-            + "Instrucciones: responde SOLO en el formato:\n"
-            + "INTENT:<nombre_intent>  o  RESPUESTA:<texto>.\n"
-            + "Si no estás seguro, devuelve RESPUESTA: con la orientación más útil posible.\n"
+            + "\n\n=== CONTEXTO DE LA CONVERSACIÓN ===\n"
+            + f"Último mensaje del usuario: {user_msg}\n"
+            + f"Intent detectado por Rasa: {intent_info.get('name')} "
+            + f"(conf={intent_info.get('confidence')})\n"
+            + f"Historial breve:\n{hist_text}\n"
+            + "\nResponde ÚNICAMENTE en formato:\n"
+            + "INTENT:<nombre_intent>  o  RESPUESTA:<texto>\n"
         )
         return prompt
 
+    # ---- Ejecución principal ----
     def run(
         self,
         dispatcher: CollectingDispatcher,
@@ -195,28 +188,34 @@ class ActionHandleWithOllama(Action):
     ) -> List[Dict[Text, Any]]:
 
         prompt = self.build_prompt(tracker)
-        dispatcher.utter_message(text="Procesando tu consulta...")  # opcional UX
+        logger.info(f"[LLM PROMPT] {prompt[:400]}...")
 
         raw = call_ollama(prompt)
+
         if not raw:
             dispatcher.utter_message(
-                text="No puedo procesar tu solicitud en este momento. Intenta de nuevo."
+                text="No puedo procesar tu solicitud en este momento. ¿Podrías reformularla?"
             )
             return []
 
         parsed = parse_llm_response(raw)
+        logger.info(f"[LLM PARSED] {parsed}")
 
+        # --- Si Ollama sugiere INTENT ---
         if parsed["type"] == "intent":
-            dispatcher.utter_message(text=f"Entendido. Procedo con: {parsed['value']}")
-            return [SlotSet("llm_suggested_intent", parsed["value"])]
-
-        elif parsed["type"] == "response":
-            dispatcher.utter_message(text=parsed["value"])
-            return []
-
-        else:
             dispatcher.utter_message(
-                text=parsed["value"]
-                or "Lo siento, no pude generar una respuesta segura."
+                text=f"Entendido, procederé con tu solicitud."
             )
-            return []
+            return [
+                SlotSet("llm_suggested_intent", parsed["value"]),
+                SlotSet("from_llm", True)
+            ]
+
+        # --- Si es texto normal ---
+        if parsed["type"] == "response":
+            dispatcher.utter_message(text=parsed["value"])
+            return [SlotSet("from_llm", True)]
+
+        # --- Raw fallback ---
+        dispatcher.utter_message(text=parsed["value"])
+        return [SlotSet("from_llm", True)]

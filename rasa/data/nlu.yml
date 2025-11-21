@@ -1,4 +1,3 @@
-
 version: "3.1"
 
 nlu:
@@ -87,8 +86,6 @@ nlu:
       - calendario del curso
       - horarios del semestre
 
-
-
   - intent: confirmar_autenticacion
     examples: |
       - ya inicié sesión
@@ -170,7 +167,6 @@ nlu:
       - empezar encuesta de satisfacción
       - abrir encuesta
 
-
   - intent: enviar_credenciales
     examples: |
       - voy a iniciar sesión
@@ -178,7 +174,6 @@ nlu:
       - iniciar sesión ahora
       - quiero ingresar mis datos
       - déjame entrar con mi usuario y contraseña
-
 
   - intent: affirm
     examples: |
@@ -296,7 +291,6 @@ nlu:
       - todo bien ya
       - quedó resuelto
 
-
   - intent: continuar_tema_si
     examples: |
       - sí quiero seguir
@@ -310,9 +304,6 @@ nlu:
       - quiero continuar con este tema
       - sigamos hablando de esto
       - seguir con el mismo tema
-
-
-
 
   - intent: explorar_temas
     examples: |
@@ -329,7 +320,6 @@ nlu:
       - muéstrame el catálogo
       - catálogo de cursos detallado
       - catálogo
-
 
   - intent: cambiar_idioma_ingles
     examples: |
@@ -422,7 +412,6 @@ nlu:
       - explícame el autosave
       - ayuda con snapshot
 
-
   - intent: confirmacion_escalar_humano
     examples: |
       - sí, conéctame por favor
@@ -480,7 +469,8 @@ nlu:
       - no, no escales
       - no quiero hablar con humano
       - no quiero que me pases con humano
-      
+      - no quiero que me pases con un humano
+
   - intent: fallback
     examples: |
       - no entiendo
@@ -566,8 +556,6 @@ nlu:
       - no cerrar todavía
       - prefiero seguir
 
-
-   
   - intent: guardian_pausar_conversacion
     examples: |
       - pausar conversación
@@ -623,9 +611,6 @@ nlu:
       - Restaura el progreso
       - Carga el estado anterior
 
-
-
-
   - intent: problema_no_ingreso
     examples: |
       - no puedo ingresar
@@ -637,23 +622,31 @@ nlu:
 
   - intent: pantalla_blanca
     examples: |
-      - no se carga nada
       - veo todo blanco
+      - pantalla en blanco
       - la página queda en blanco
-      - el curso no carga y queda en blanco
-      - white screen
       - se queda congelado en blanco
       - tengo la pantalla en blanco
       - se queda la pantalla en blanco
       - solo veo una pantalla blanca
       - la plataforma se queda en blanco
-      - me aparece una pantalla en blanco
       - aparece pantalla en blanco
-      - todo se ve en blanco
-      - pantalla en blanco al ingresar
       - pantalla completamente en blanco
-      - pantalla en blanco  
-       
+      - pantalla blanca al ingresar
+      - pantalla blanca al cargar el curso
+      - white screen
+      - white page
+      - blank screen
+      - la pantalla se queda blanca
+      - no carga y queda la pantalla blanca
+      - se queda la pantalla congelada en blanco
+      - pantalla negra
+      - se queda la pantalla negra
+      - veo pantalla negra
+      - black screen
+      - pantalla oscura
+      - pantalla completamente negra
+
   - intent: error_actividad
     examples: |
       - error al abrir una actividad
@@ -673,6 +666,7 @@ nlu:
       - error raro en el sistema
       - no sé qué error es
       - un problema diferente
+      - tengo otro problema técnico
 
   - intent: necesita_humano
     examples: |
@@ -692,7 +686,6 @@ nlu:
       - pásame con una persona
       - escalar a humano
       - atención personalizada
-
 
   - intent: respuesta_satisfecho
     examples: |
@@ -741,7 +734,6 @@ nlu:
       - está bien, termina guardando
       - confirma el cierre seguro
 
- 
   - intent: terminar_conversacion_segura_autosave
     examples: |
       - quiero cerrar el chat de forma segura
@@ -967,8 +959,6 @@ nlu:
       - quiero dejar un mensaje
       - quiero explicar mi problema por mensaje
 
-
-
   - intent: enviar_correo
     examples: |
       - enviar correo
@@ -1061,7 +1051,6 @@ nlu:
       - ver los certificados que tengo
       - ver certificados emitidos
 
-
   - intent: sugerir_tutor
     examples: |
       - necesito ayuda con algo más complejo
@@ -1069,7 +1058,6 @@ nlu:
       - no estoy seguro si continuar
       - no me siento conforme con esto
       - me gustaría apoyo adicional
-
 
   - intent: detectar_emocion
     examples: |
@@ -1094,8 +1082,6 @@ nlu:
       - quién es mi tutor
       - ver tutor asignado
 
-
-
   - intent: menu_administrativo
     examples: |
       - administrativo
@@ -1113,8 +1099,6 @@ nlu:
       - necesito ayuda con el curso
       - ayuda académica
       - tengo dudas de la clase
-
-
 
   - intent: consultar_contenido_curso
     examples: |
@@ -1158,7 +1142,6 @@ nlu:
     examples: |
       - pásame con soporte humano
       - quiero soporte humano ahora
-
 
   - intent: pedir_humano
     examples: |
@@ -1255,6 +1238,14 @@ nlu:
       - error al iniciar sesión
       - no puedo iniciar sesión en la plataforma
       - mi usuario o contraseña no funcionan
+      - no puedo ingresar
+      - la plataforma no me deja entrar
+      - no logro iniciar sesión
+      - no puedo acceder
+      - no puedo loguearme
+      - no puedo entrar a zajuna
+      - no me deja entrar a la plataforma
+      - tengo problemas de acceso
 
   - intent: soporte_error_plataforma
     examples: |
@@ -1345,3 +1336,23 @@ nlu:
       - Costos y presupuestos
       - Servicio al cliente
       - Emprendimiento
+
+  - intent: ayuda_certificados_detalle
+    examples: |
+      - qué tipos de certificados hay
+      - explícamelos tipos de certificados
+      - qué diferencia hay entre los certificados
+      - qué tipos de certificado manejan
+      - información detallada de los certificados
+
+  - intent: out_of_scope
+    examples: |
+      - esto no tiene nada que ver
+      - hablemos de fútbol
+      - cuéntame un chiste
+      - tema fuera del curso
+      - algo que no es de zajuna
+      - quiero hablar de otra cosa que no sea zajuna
+      - no quiero hablar de la plataforma
+      - esto es irrelevante para zajuna
+      - tengo una pregunta fuera del tema

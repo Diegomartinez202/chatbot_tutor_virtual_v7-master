@@ -2,236 +2,113 @@ version: "3.1"
 
 stories:
 
-- story: Ir al menú académico desde consulta
-  steps:
-    - intent: consultar_academico
-    - action: utter_menu_academico
+# ============================================
+# 1️⃣ SOPORTE CONVERSACIONAL + LLM
+# ============================================
 
-- story: Admin reinicia conversación
+# Usuario pide soporte de forma genérica, LLM ayuda a aclarar el problema
+- story: Soporte general con aclaración LLM
   steps:
-    - intent: reiniciar_conversacion
-    - action: action_reiniciar_conversacion
-    - action: utter_reinicio_confirmado
+    - intent: solicitar_soporte
+    - action: utter_preguntar_tipo_soporte
+    - intent: soporte_interno
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    # El usuario explica el problema de forma libre → LLM lo ayuda a estructurarlo
+    - intent: otro_problema_tecnico
+    - action: action_handle_with_llm
+    # Luego entramos al formulario de soporte normal
+    - action: soporte_form
+    - active_loop: soporte_form
 
-- story: Admin limpia sesión
+# Usuario llega diciendo directamente que tiene problema técnico, sin elegir tipo
+- story: Soporte técnico directo con LLM
   steps:
-    - intent: limpiar_sesion
-    - action: action_reiniciar_conversacion
+    - intent: soporte_tecnico
+    - action: utter_soporte_tecnico_menu
+    # El usuario describe algo raro → LLM ayuda a entenderlo
+    - intent: otro_problema_tecnico
+    - action: action_handle_with_llm
+    # El bot propone enviar mensaje a soporte
+    - intent: pedir_mensaje
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form
 
-- story: Admin muestra token
+# Usuario con pantalla blanca, luego pasamos a soporte formal
+- story: Soporte pantalla en blanco → ticket
   steps:
-    - intent: mostrar_token
-    - action: action_set_default_tipo_usuario
-    - action: action_mostrar_token
+    - intent: pantalla_blanca
+    - action: utter_pantalla_blanca_ayuda
+    # Usuario acepta reportar
+    - intent: pedir_mensaje
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form
 
-- story: Admin hace ping
+# Usuario con error en actividad, LLM pide más contexto y luego soporte_form
+- story: Error en actividad con explicación LLM
   steps:
-    - intent: ping_servidor
-    - action: action_ping_servidor
+    - intent: error_actividad
+    - action: utter_error_actividad_ayuda
+    # Usuario da detalles confusos → LLM los reorganiza
+    - intent: soporte_error
+    - action: action_handle_with_llm
+    # Bot invita a registrar soporte
+    - intent: enviar_soporte_directo
+    - action: action_enviar_soporte_directo
+
+# Soporte con emoción negativa detectada antes de abrir el caso
+- story: Soporte con emoción detectada
+  steps:
+    - intent: detectar_emocion
+    - action: action_analizar_estado_usuario
+    # Después de reconocer la emoción, el usuario pide soporte
+    - intent: solicitar_soporte
+    - action: utter_preguntar_tipo_soporte
+    - intent: soporte_pqrs
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form
+
+# Usuario insiste que el problema no se ha resuelto, se ofrece humano o seguir con bot
+- story: Problema no resuelto → LLM primero, luego decisión
+  steps:
+    - intent: problema_no_resuelto
+    - action: action_handle_with_llm
+    - action: utter_ofrecer_humano
+    - intent: affirm
+    - action: action_derivar_y_registrar_humano
+    - action: utter_handoff_iniciado
+    - action: utter_derivando_humano
+
+
+- story: Flujo soporte desde menú principal → PQRS
+  steps:
+    - intent: solicitar_soporte
+    - action: utter_preguntar_tipo_soporte
+    - intent: soporte_pqrs
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form
+
+- story: Flujo soporte como mensaje interno
+  steps:
+    - intent: solicitar_soporte
+    - action: utter_preguntar_tipo_soporte
+    - intent: soporte_interno
+    - action: utter_iniciar_soporte_desde_pedir_mensaje
+    - action: soporte_form
+    - active_loop: soporte_form
   
-- story: Login exitoso por formulario
-  steps:
-    - intent: enviar_credenciales
-    - action: auth_login_form
-    - active_loop: auth_login_form
-    - action: auth_login_form
-    - active_loop: null
-    - action: action_ingreso_zajuna
-    - action: action_set_authenticated_true
-    - action: utter_auth_ok
-
-- story: Recuperación de contraseña
-  steps:
-    - intent: recuperar_contrasena
-    - action: utter_recuperar_acceso_cta
-    - action: password_recovery_form
-    - active_loop: password_recovery_form
-    - action: password_recovery_form
-    - active_loop: null
-    - action: action_recuperar_contrasena
-    - action: action_enviar_correo_recuperacion
-    - action: utter_recuperacion_enviada
-
-- story: Fallback simple
-  steps:
-    - intent: fallback
-    - action: utter_fallback
-    
-
-- story: Usuario niega cierre directamente
-  steps:
-    - intent: negar_cierre
-    - action: action_ir_menu_principal
- 
-- story: flujo_auto_resume_si
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - action: action_auto_resume
-  
-- story: flujo_auto_resume_no
-  steps:
-    - intent: saludo
-    - action: utter_saludo
-    - action: action_auto_resume  
-
-- story: reanudar_conversacion_guardada
-  steps:
-    - intent: reanudar_conversacion
-    - action: action_cargar_autosave_mongo
-    - action: action_autoresume_conversacion
-
-- story: limpiar_autosave_datos
-  steps:
-    - intent: limpiar_autosave
-    - action: action_reset_conversacion_segura
-    - action: utter_limpiar_autosave
-  
-- story: Encuesta positiva (set tipo)
-  steps:
-    - intent: respuesta_satisfecho
-    - action: action_set_encuesta_tipo
-    - action: utter_agradecimiento_satisfaccion
-    - action: utter_ofrecer_continuar
-
-- story: Usuario pide enviar soporte
-  steps:
-    - intent: enviar_soporte
-    - action: action_enviar_soporte
-    - action: utter_soporte_creado
- 
-- story: Ir al menú principal (unificado)
-  steps:
-    - intent: ir_menu_principal
-    - action: action_ir_menu_principal
-
-- story: Ayuda de guardian
-  steps:
-    - intent: ayuda_guardian
-    - action: utter_guardian_help
-  
-- story: Derivar a humano con confirmación
+- story: Derivar a humano con confirmación (pedir_humano)
   steps:
     - intent: pedir_humano
     - action: action_marcar_escalar_humano
     - action: utter_derivar_a_humano_opciones
-
-- story: usuario va al menú principal
-  steps:
-    - intent: ir_menu_principal
-    - action: action_ir_menu_principal
-
-- story: Flujo ver estado autenticado
-  steps:
-    - intent: ver_estado_estudiante
-    - slot_was_set:
-        - is_authenticated: true
-    - action: action_ver_estado_estudiante
-
-- story: Flujo certificados no autenticado
-  steps:
-    - slot_was_set:
-        - autenticado: false
-    - intent: consultar_certificados
-    - action: utter_login_hint
+    - intent: pedir_humano_directo
+    - action: action_derivar_y_registrar_humano
   
-- story: Usuario pausa y luego reanuda
-  steps:
-    - intent: guardian_guardar_progreso
-    - action: action_guardian_guardar_progreso
-    - intent: guardian_pausar_conversacion
-    - action: action_guardian_pausar
-    - intent: guardian_reanudar_conversacion
-    - action: action_guardian_reanudar
- 
-- story: Usuario inicia feedback directo
-  steps:
-    - intent: dar_retroalimentacion
-    - action: utter_iniciar_retroalimentacion
-    - action: feedback_form
-    - active_loop: feedback_form    
-
-- story: Guardado automático por desconexión
-  steps:
-    - intent: notificar_desconexion
-    - action: action_notificar_desconexion
-    - action: action_guardar_estado_seguridad
-    - action: utter_notificar_desconexion
-
-- story: Guardado por inactividad
-  steps:
-    - intent: notificar_inactividad
-    - action: action_guardar_estado_seguridad
-
-- story: Guardado manual del estado
-  steps:
-    - intent: guardar_estado_seguridad
-    - action: action_guardar_estado_seguridad
-
-- story: Recuperación manual del estado
-  steps:
-    - intent: recuperar_estado_seguridad
-    - action: action_recuperar_estado_seguridad
-  
-- story: Usuario decide contactar tutor
-  steps:
-    - intent: enviar_correo_tutor
-    - action: action_enviar_correo_tutor
-    - action: utter_correo_enviado
-    - action: utter_preguntar_continuar_menu
-
-- story: Usuario satisfecho → continuar
-  steps:
-    - intent: respuesta_satisfecho
-    - action: action_set_encuesta_tipo
-    - action: utter_agradecimiento_satisfaccion
-    - action: utter_ofrecer_continuar
-    - intent: continuar_tema_si
-    - action: utter_continuar_tema_menu
-
-
-- story: Continuar con otra consulta
-  steps:
-    - intent: continuar_consulta
-    - action: utter_menu_principal
-  
-- story: Cierre seguro con encuesta incompleta
-  steps:
-    - intent: terminar_conversacion_segura_autosave
-    - action: action_verificar_proceso_activo_autosave
-    - slot_was_set:
-        - encuesta_incompleta: true
-    - intent: confirmar_cierre_autosave
-    - action: action_guardar_encuesta_incompleta
-    - action: action_confirmar_cierre_autosave
-
-- story: Cierre seguro sin encuesta incompleta
-  steps:
-    - intent: terminar_conversacion_segura_autosave
-    - action: action_verificar_proceso_activo_autosave
-    - slot_was_set:
-        - encuesta_incompleta: false
-    - intent: confirmar_cierre_autosave
-    - action: action_confirmar_cierre_autosave
-
-- story: Usuario cancela el cierre seguro
-  steps:
-    - intent: terminar_conversacion_segura_autosave
-    - action: action_verificar_proceso_activo_autosave
-    - intent: cancelar_cierre_autosave
-    - action: action_cancelar_cierre_autosave
-
-- story: Usuario niega cierre
-  steps:
-    - intent: negar_cierre
-    - action: action_ir_menu_principal
-
-- story: Usuario se despide directamente
-  steps:
-    - intent: despedida
-    - action: action_finalizar_conversacion
-  
-- story: Soporte con dos fallbacks y completar
+- story: Soporte con derivación a humano tras oferta
   steps:
     - intent: escalar_humano
     - action: utter_ofrecer_humano
@@ -241,7 +118,7 @@ stories:
     - action: utter_derivando_humano
     - action: soporte_form
     - active_loop: soporte_form
-
+  
 - story: Problema no resuelto y escalamiento a humano
   steps:
     - intent: problema_no_resuelto
@@ -255,57 +132,208 @@ stories:
     - action: utter_ofrecer_humano
     - intent: negar_handoff
     - action: utter_continuar_con_bot
+  
+- story: Usuario satisfecho → continuar con otro tema
+  steps:
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_ofrecer_continuar
+    - intent: continuar_tema_si
+    - action: utter_continuar_tema_menu
+  
+# ============================================
+# 2️⃣ TUTOR ACADÉMICO + FLUJOS EDUCATIVOS (LLM)
+# ============================================
 
-- story: Ayuda con certificados desde intent dedicado
-  steps:
-    - intent: ayuda_certificados
-    - action: utter_ayuda_certificados
-
-- story: Cancelar acción actual
-  steps:
-    - intent: cancelar
-    - action: utter_cancelar_accion
-  
-- story: Usuario cancela el cierre después de confirmación
-  steps:
-    - intent: cancelar_cierre
-    - action: action_cancelar_cierre
-    - action: utter_cierre_cancelado
-    - action: utter_volver_menu_principal
-  
-- story: Soporte → usuario afirma
-  steps:
-    - intent: solicitar_soporte
-    - action: utter_preguntar_tipo_soporte
-    - intent: soporte_pqrs
-    - action: utter_iniciar_soporte_desde_pedir_mensaje
-    - action: soporte_form
-    - active_loop: soporte_form 
-  
-- story: Usuario inicia encuesta de satisfacción
-  steps:
-    - intent: iniciar_encuesta
-    - action: utter_encuesta_satisfaccion
-    - action: action_preguntar_resolucion
-    - action: feedback_form
-    - active_loop: feedback_form
-  
-
-- story: flujo aprender tema con LLM
-  steps:
-    - intent: aprender_tema
-    - action: action_handle_with_llm
-  
-- story: flujo certificado directo
-  steps:
-    - intent: solicitar_certificado
-    - action: utter_info_certificado
-  
-
-- story: flujo tutor academico
+# Menú académico → escoger tema → LLM explica
+- story: Aprender tema desde menú académico con seguimiento
   steps:
     - intent: menu_academico
     - action: utter_menu_academico
     - action: utter_preguntar_tema_academico
     - intent: aprender_tema
     - action: action_handle_with_llm
+    # El usuario pide seguir con el mismo tema
+    - intent: continue
+    - action: action_handle_with_llm
+    # Luego el bot ofrece más opciones académicas
+    - intent: continuar_tema_si
+    - action: utter_continuar_tema_menu
+
+# Usuario llega directo a "aprender_tema" sin pasar por menú
+- story: Aprender tema directo con cierre elegante
+  steps:
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+    - intent: continuar_tema_no
+    - action: utter_no_continuar_tema
+    - action: utter_menu_principal
+
+# Usuario quiere ver contenido de curso y luego profundizar con LLM
+- story: Ver contenido de curso y profundizar
+  steps:
+    - intent: consultar_contenido_curso
+    - action: utter_contenido_curso_resumen
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+
+# Emoción negativa + sugerir tutor + posible contacto con tutor
+- story: Emoción negativa → apoyo académico
+  steps:
+    - intent: detectar_emocion
+    - action: action_analizar_estado_usuario
+    - intent: sugerir_tutor
+    - action: utter_ofrecer_contacto_tutor
+    - intent: contactar_tutor
+    - action: utter_contactar_tutor_opciones
+
+# Contacto con tutor vía correo, flujo completo
+- story: Contactar tutor vía correo desde menú académico
+  steps:
+    - intent: menu_academico
+    - action: utter_menu_academico
+    - intent: contactar_tutor
+    - action: utter_contactar_tutor_opciones
+    - intent: enviar_correo_tutor
+    - action: action_enviar_correo_tutor
+    - action: utter_correo_enviado
+    - action: utter_preguntar_continuar_menu
+- story: Flujo aprender tema con LLM directo
+  steps:
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+
+- story: Flujo tutor académico desde menú académico
+  steps:
+    - intent: menu_academico
+    - action: utter_menu_academico
+    - action: utter_preguntar_tema_academico
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+
+# ============================================
+# 3️⃣ ENCUESTAS, SATISFACCIÓN Y FEEDBACK "LIBRE"
+# ============================================
+
+# Usuario termina flujo y recibe encuesta sencilla, luego feedback libre
+- story: Encuesta rápida tras problema resuelto
+  steps:
+    - intent: problema_resuelto_si
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_preguntar_satisfaccion
+    - intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_agradecimiento_satisfaccion
+    - action: utter_ofrecer_continuar
+
+# Usuario expresa insatisfacción y se le abre camino a tutor o seguir
+- story: Encuesta negativa con opción de tutor
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_encuesta_negativa
+    - action: utter_ofrecer_contacto_tutor
+    - intent: contactar_tutor
+    - action: utter_contactar_tutor_opciones
+
+# Usuario insatisfecho pero decide seguir con el bot
+- story: Insatisfecho pero seguir con el bot
+  steps:
+    - intent: respuesta_insatisfecho
+    - action: action_set_encuesta_tipo
+    - action: utter_encuesta_negativa
+    - action: utter_ofrecer_contacto_tutor
+    - intent: continuar_consulta
+    - action: utter_menu_principal
+
+# Flujo de feedback directo completo (sin encuesta previa)
+- story: Feedback directo con registro
+  steps:
+    - intent: dar_retroalimentacion
+    - action: utter_iniciar_retroalimentacion
+    - action: feedback_form
+    - active_loop: feedback_form
+    - action: feedback_form
+    - active_loop: null
+    - action: action_guardar_feedback
+    - action: utter_gracias_retroalimentacion
+
+# Encuesta de satisfacción más estructurada, con form
+- story: Encuesta de satisfacción multi-paso
+  steps:
+    - intent: iniciar_encuesta
+    - action: utter_encuesta_satisfaccion
+    - action: action_preguntar_resolucion
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - action: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_registrar_encuesta
+    - action: utter_agradecimiento_satisfaccion
+
+# ============================================
+# 4️⃣ FALLBACK INTELIGENTE + LLM
+# ============================================
+
+# Usuario pide "ayuda" genérica (intent fallback), LLM responde y luego se ofrece menú
+- story: Ayuda genérica → LLM + menú
+  steps:
+    - intent: fallback
+    - action: action_handle_with_llm
+    - intent: ir_menu_principal
+    - action: action_ir_menu_principal
+
+# Mensaje fuera de dominio → LLM explica límites y redirige al contexto Zajuna
+- story: Mensaje fuera de dominio con reconducción
+  steps:
+    - intent: out_of_scope
+    - action: action_handle_with_llm
+    - intent: ir_menu_principal
+    - action: action_ir_menu_principal
+
+# Fallback durante conversación educativa: reconducir a tema académico
+- story: Fallback en tutor académico
+  steps:
+    - intent: aprender_tema
+    - action: action_handle_with_llm
+    - intent: nlu_fallback
+    - action: action_handle_with_llm
+    - intent: menu_academico
+    - action: utter_menu_academico
+    - action: utter_preguntar_tema_academico
+
+# ============================================
+# 5️⃣ CIERRE SEGURO + AUTOSAVE (VERSIÓN HUMANA)
+# ============================================
+
+# Usuario quiere terminar, pero bot le ofrece guardar y luego encuesta sencilla
+- story: Terminar conversación con cierre seguro conversacional
+  steps:
+    - intent: terminar_conversacion
+    - action: action_verificar_proceso_activo_autosave
+    - action: utter_despedida_profesional
+    - intent: terminar_conversacion_segura_autosave
+    - action: action_verificar_proceso_activo_autosave
+    - intent: confirmar_cierre_autosave
+    - action: action_guardar_encuesta_incompleta
+    - action: action_confirmar_cierre_autosave
+
+# Usuario inicia cierre seguro y luego se arrepiente
+- story: Cierre seguro cancelado con retorno al menú
+  steps:
+    - intent: terminar_conversacion_segura_autosave
+    - action: action_verificar_proceso_activo_autosave
+    - intent: cancelar_cierre_autosave
+    - action: action_cancelar_cierre_autosave
+    - action: utter_cierre_cancelado_seguro
+    - action: action_ir_menu_principal
+
+- story: Usuario pausa y luego reanuda con Guardian
+  steps:
+    - intent: guardian_guardar_progreso
+    - action: action_guardian_guardar_progreso
+    - intent: guardian_pausar_conversacion
+    - action: action_guardian_pausar
+    - intent: guardian_reanudar_conversacion
+    - action: action_guardian_reanudar

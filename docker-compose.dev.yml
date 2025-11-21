@@ -86,6 +86,7 @@ services:
       - ./rasa:/app/rasa
       - ./rasa/models:/app/models
       - ./rasa/data:/app/data
+      - ./rasa/endpoints.yml:/app/endpoints.yml
     restart: unless-stopped
     networks:
       - app-net

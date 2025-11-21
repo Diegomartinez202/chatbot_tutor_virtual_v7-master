@@ -105,7 +105,12 @@ services:
       - action-server
       - mongo
     ports:
-      - "5005:5005"   # opcional, para debug
+      - "5005:5005"
+    volumes:
+      - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/endpoints.yml:/app/endpoints.yml
     networks:
       - app-net
     read_only: true

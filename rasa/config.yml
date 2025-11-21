@@ -47,17 +47,19 @@ pipeline:
     epochs: 80
     constrain_similarities: true
 
+  # 👇 Aquí ya está bien el FallbackClassifier (esto va en pipeline, NO en policies)
   - name: FallbackClassifier
-    threshold: 0.40
-    ambiguity_threshold: 0.05
+    threshold: 0.4
+    ambiguity_threshold: 0.10
 
 # ============================================
 # 🧠 POLÍTICAS DE DECISIÓN (CORE)
 # ============================================
 policies:
+  # 👇 Cambiamos para que el fallback core llame a action_handle_with_llm
   - name: RulePolicy
     core_fallback_threshold: 0.30
-    core_fallback_action_name: "action_default_fallback"
+    core_fallback_action_name: "action_handle_with_llm"
     enable_fallback_prediction: true
     check_for_contradictions: true
 
