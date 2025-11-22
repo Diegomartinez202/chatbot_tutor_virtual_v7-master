@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from backend.main import app
 from backend.utils.jwt_manager import create_access_token  # ✅ Necesario
 from backend.dependencies.auth import verify_token, require_role
 client = TestClient(app)

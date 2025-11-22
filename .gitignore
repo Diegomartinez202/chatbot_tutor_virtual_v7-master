@@ -223,3 +223,13 @@ secrets.yml
 .idea/
 .DS_Store
 Thumbs.db
+
+*_compose_config_output*.txt
+_effective*.yml
+*_container_*.yml
+
+# === Reportes de pruebas (pytest / coverage) ===
+reports/
+.coverage
+htmlcov/
+.pytest_cache/

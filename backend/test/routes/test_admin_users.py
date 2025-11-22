@@ -42,7 +42,7 @@ def test_admin_users_list_and_crud_flow(client: TestClient, admin_auth_override)
     assert r2.status_code == 200, r2.text
     updated = r2.json()
     assert updated.get("nombre") == "Actualizado"
-    assert updated.get("rol") in ("soporte", "support", "soporte".lower())  # tolerante
+    assert updated.get("rol") in ("soporte", "support")
 
     # DELETE
     r3 = client.delete(f"/api/admin/users/{uid}", headers={"Authorization": "Bearer demo"})
@@ -69,3 +69,36 @@ def test_admin_users_export_csv(client: TestClient, admin_auth_override):
     assert "attachment;" in cd
     assert ".csv" in cd
     assert "id,email" or "email"  # lectura la hace Excel; con BOM puede variar
+
+def _login(client: TestClient, email: str, password: str) -> str:
+    r = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert r.status_code == 200, r.text
+    return r.json()["access_token"]
+
+
+def test_admin_puede_listar_usuarios_real_auth(client: TestClient, seed_user_admin):
+    """
+    Versión moderna de test_admin_puede_listar_usuarios:
+    usa login real, no tokens inventados.
+    Asumimos que 'seed_user_admin' crea un admin válido.
+    """
+    access = _login(client, seed_user_admin["email"], seed_user_admin["password"])
+    r = client.get(
+        "/api/admin/users",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_usuario_normal_no_puede_listar_usuarios(client: TestClient, seed_user):
+    """
+    Versión moderna de test_invitado_no_puede_listar_usuarios:
+    un usuario normal intenta usar endpoint de admin → 403 / 401.
+    """
+    access = _login(client, seed_user["email"], seed_user["password"])
+    r = client.get(
+        "/api/admin/users",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert r.status_code in (401, 403)

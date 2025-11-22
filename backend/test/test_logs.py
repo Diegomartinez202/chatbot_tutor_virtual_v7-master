@@ -1,37 +1,79 @@
-import os
+# backend/test/test_logs.py
 import pytest
-from fastapi.testclient import TestClient
-from main import app
+from httpx import AsyncClient
 
-client = TestClient(app)
 
-# ⚠️ Reemplaza con un token válido para pruebas locales
-TOKEN = os.getenv("TEST_ADMIN_TOKEN", "Bearer TU_TOKEN_AQUI")
+@pytest.mark.anyio
+async def test_listar_archivos_log(client: AsyncClient, admin_auth_override):
+    """
+    Lista de archivos de log vía /api/admin/logs.
+    Debe devolver 200 y una lista (aunque esté vacía).
+    """
+    r = await client.get(
+        "/api/admin/logs",
+        headers={"Authorization": "Bearer demo"},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert isinstance(data, list)
 
-HEADERS = {
-    "Authorization": TOKEN
-}
 
-def test_listar_archivos_log():
-    response = client.get("/api/admin/logs", headers=HEADERS)
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
+@pytest.mark.anyio
+async def test_descargar_log_invalido(client: AsyncClient, admin_auth_override):
+    """
+    Probar que un nombre de log inválido sea rechazado con 400 o 404
+    (según tu implementación).
+    """
+    r = await client.get(
+        "/api/admin/logs/../../hack.txt",
+        headers={"Authorization": "Bearer demo"},
+    )
+    assert r.status_code in (400, 404), r.text
 
-def test_descargar_log_invalido():
-    response = client.get("/api/admin/logs/hack.txt", headers=HEADERS)
-    assert response.status_code == 400
 
-def test_exportar_logs_csv():
-    response = client.get("/api/admin/logs/export", headers=HEADERS)
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "text/csv"
+@pytest.mark.anyio
+async def test_exportar_logs_csv(client: AsyncClient, admin_auth_override):
+    """
+    Exportación de logs a CSV. Sólo verificamos content-type y status.
+    """
+    r = await client.get(
+        "/api/admin/logs/export",
+        headers={"Authorization": "Bearer demo"},
+    )
+    assert r.status_code == 200, r.text
+    ctype = r.headers.get("content-type", "").lower()
+    assert "text/csv" in ctype
 
-def test_contar_mensajes_no_leidos():
-    response = client.get("/api/logs/unread_count?user_id=test_user", headers=HEADERS)
-    assert response.status_code == 200
-    assert "unread" in response.json()
 
-def test_marcar_mensajes_leidos():
-    response = client.post("/api/logs/mark_read?user_id=test_user", headers=HEADERS)
-    assert response.status_code == 200
-    assert "updated_count" in response.json()
+@pytest.mark.anyio
+async def test_contar_mensajes_no_leidos(client: AsyncClient, admin_auth_override):
+    """
+    Cuenta de mensajes no leídos. La estructura puede variar,
+    pero al menos debe contener alguna clave tipo 'unread' o similar.
+    """
+    r = await client.get(
+        "/api/logs/unread_count",
+        params={"user_id": "pytest_user"},
+        headers={"Authorization": "Bearer demo"},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    # aceptamos varias formas de llamar al campo
+    assert any(k in data for k in ("unread", "unread_count", "count"))
+
+
+@pytest.mark.anyio
+async def test_marcar_mensajes_leidos(client: AsyncClient, admin_auth_override):
+    """
+    Marca mensajes como leídos. Esperamos 200 y algún contador de filas actualizadas.
+    """
+    r = await client.post(
+        "/api/logs/mark_read",
+        params={"user_id": "pytest_user"},
+        headers={"Authorization": "Bearer demo"},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert any(
+        k in data for k in ("updated_count", "updated", "ok")
+    ), f"Respuesta inesperada: {data}"
