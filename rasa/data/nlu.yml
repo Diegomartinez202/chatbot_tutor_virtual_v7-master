@@ -616,9 +616,13 @@ nlu:
       - no puedo ingresar
       - la plataforma no me deja entrar
       - no logro iniciar sesión
-      - no puedo acceder
+      - no pude acceder
       - al entrar me da error
-      - no puedo loguearme
+      - no pude loguearme
+      - no me deja entrar a mi cuenta
+      - no puedo iniciar sesión
+      - no logro entrar a la plataforma
+      - no supe loguearme
 
   - intent: pantalla_blanca
     examples: |
@@ -989,15 +993,6 @@ nlu:
       - ya terminé
       - finalizar conversación
 
-  - intent: problema_resuelto_no
-    examples: |
-      - no, el problema no se resolvió
-      - no se solucionó
-      - sigo con el problema
-      - no quedó resuelto
-      - aún tengo el mismo problema
-      - necesito más ayuda
-
   - intent: cancelar
     examples: |
       - cancelar
@@ -1086,7 +1081,7 @@ nlu:
     examples: |
       - administrativo
       - quiero hacer un trámite administrativo
-      - necesito un certificado
+      - facilitame mi certificado
       - quiero ver arbol administrativo
       - trámites administrativos
       - necesito información administrativa
@@ -1158,6 +1153,13 @@ nlu:
       - mi problema no se ha resuelto
       - sigue sin funcionar
       - eso no me ayudó
+      - problema_resuelto_no
+      - no, el problema no se resolvió
+      - no se solucionó
+      - sigo con el problema
+      - no quedó resuelto
+      - aún tengo el mismo problema
+      - necesito más ayuda
 
   - intent: negar_handoff
     examples: |
@@ -1238,9 +1240,8 @@ nlu:
       - error al iniciar sesión
       - no puedo iniciar sesión en la plataforma
       - mi usuario o contraseña no funcionan
-      - no puedo ingresar
-      - la plataforma no me deja entrar
-      - no logro iniciar sesión
+      - la plataforma no da opcion de entrar
+      - no logre iniciar sesión
       - no puedo acceder
       - no puedo loguearme
       - no puedo entrar a zajuna
@@ -1356,3 +1357,40 @@ nlu:
       - no quiero hablar de la plataforma
       - esto es irrelevante para zajuna
       - tengo una pregunta fuera del tema
+
+  - intent: solicitar_certificado
+    examples: |
+      - necesito un certificado
+      - instrucciones para descargar mi certificado
+      - cómo saco mi certificado del SENA
+      - muuestrame ver mis certificados
+
+  - intent: resumir_clase
+    examples: |
+      - hazme un resumen de la clase
+      - resume lo que vimos en la lección
+      - dame un resumen del contenido
+      - quiero un resumen de la lección
+      - haz un resumen de lo aprendido
+      - resume los puntos clave de la clase
+      - dame un resumen de los temas vistos
+      - quiero un resumen del material del curso
+      - hazme un resumen del tema estudiado
+      - resume lo más importante de la lección
+      - dame un resumen del contenido del curso
+      - quiero un resumen de lo que aprendí
+      - haz un resumen de los conceptos principales
+      - resume los aspectos más relevantes de la clase
+      - dame un resumen de los puntos principales del tema
+      - quiero un resumen de los contenidos vistos
+      - hazme un resumen de los temas tratados
+      - resume lo esencial de la lección
+      - dame un resumen de lo fundamental del curso
+      - quiero un resumen de los conocimientos adquiridos 
+      - resúmeme la clase
+      - haz un resumen de lo que vimos
+      - podrías resumir esta explicación
+      - resume la sesión anterior
+      - haz un resumen del tema
+      - dame un resumen de la clase de hoy
+      - resúmeme todo lo que explicaste

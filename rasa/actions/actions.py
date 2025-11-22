@@ -21,3 +21,4 @@ from .acciones_enviar_soporte import *
 from .acciones_menu_estado_certificados import *
 from .acciones_admin import *
 from .acciones_llm import *
+from .acciones_sesion_segura import *

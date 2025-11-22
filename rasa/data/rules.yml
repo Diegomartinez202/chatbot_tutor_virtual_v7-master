@@ -33,8 +33,8 @@ rules:
     steps:
       - intent: deny
       - action: utter_auth_fail
-
-  - rule: Confirmar autenticación directa
+  
+  - rule: Confirmar autenticación directa 
     steps:
       - intent: confirmar_autenticacion
       - action: action_set_authenticated_true
@@ -70,11 +70,6 @@ rules:
       - intent: enviar_credenciales
       - action: auth_login_form
       - active_loop: auth_login_form
-
-  - rule: Despedida directa
-    steps:
-      - intent: despedida
-      - action: action_finalizar_conversacion
 
   - rule: Reanudar encuesta si hay pendiente
     condition:
@@ -124,11 +119,11 @@ rules:
       - action: utter_agradecimiento_satisfaccion
       - action: utter_ofrecer_continuar
 
-  - rule: Problema resuelto
+  - rule: Problema resuelto (con encuesta rápida)
     steps:
       - intent: problema_resuelto_si
       - action: utter_agradecimiento_satisfaccion
-      - action: utter_ofrecer_continuar
+      - action: utter_preguntar_satisfaccion
 
   - rule: Cambiar idioma a español
     steps:
@@ -165,11 +160,6 @@ rules:
     steps:
       - intent: negar_handoff
       - action: utter_continuar_con_bot
-  
-  - rule: Verificar estado de encuesta antes de cerrar
-    steps:
-      - intent: terminar_conversacion_segura
-      - action: action_verificar_estado_encuesta
   
   - rule: Guardar progreso explícito
     steps:
@@ -242,24 +232,13 @@ rules:
       - action: soporte_form
       - active_loop: soporte_form
 
-  - rule: Confirmar cierre seguro con encuesta incompleta
-    condition:
-      - slot_was_set:
-          - encuesta_incompleta: true
-    steps:
-      - intent: confirmar_cierre_autosave
-      - action: action_guardar_encuesta_incompleta
-      - action: action_confirmar_cierre_autosave
 
-  - rule: Confirmar cierre seguro sin encuesta incompleta
-    steps:
-      - intent: confirmar_cierre_autosave
-      - action: action_confirmar_cierre_autosave
-
-  - rule: Cancelar cierre seguro con autosave
+  - rule: Cancelar cierre seguro con autosave (alineada con stories)
     steps:
       - intent: cancelar_cierre_autosave
       - action: action_cancelar_cierre_autosave
+      - action: utter_cierre_cancelado_seguro
+      - action: action_ir_menu_principal
   
   - rule: Terminar conversación segura con autosave dentro de soporte_form
     condition:
@@ -270,6 +249,15 @@ rules:
       - active_loop: null
       - action: action_verificar_proceso_activo_autosave
   
+  - rule: Confirmar cierre con autosave cuando hay encuesta incompleta (unificada v3.1)
+    condition:
+      - active_loop: null
+      - slot_was_set:
+          - encuesta_incompleta: true
+    steps:
+      - intent: terminar_conversacion_segura_autosave
+      - action: utter_confirmar_cierre_con_autosave
+  
   - rule: Enviar correo genérico
     steps:
       - intent: enviar_correo
@@ -279,11 +267,6 @@ rules:
     steps:
       - intent: necesita_auth
       - action: utter_necesita_autenticacion  
-  
-  - rule: Problema no resuelto -> ofrecer escalamiento
-    steps:
-      - intent: problema_resuelto_no
-      - action: utter_problema_resuelto_no
 
   - rule: Usuario NO quiere escalar
     steps:
@@ -300,11 +283,12 @@ rules:
       - intent: confirmar_derivacion
       - action: utter_confirmar_derivacion
 
-  - rule: Usuario quiere contactar a su tutor
+  - rule: Problema no resuelto -> LLM + ofrecer escalamiento (unificada v3.1)
     steps:
-      - intent: contactar_tutor
-      - action: utter_contactar_tutor_opciones
-      - action: utter_contactar_tutor_confirmacion
+      - intent: problema_no_resuelto
+      - action: action_handle_with_llm
+      - action: utter_problema_resuelto_no
+      - action: utter_ofrecer_humano
 
   - rule: Usuario quiere continuar con otro tema (continuar_tema_si)
     steps:
@@ -342,11 +326,6 @@ rules:
     steps:
       - intent: negar_autenticacion
       - action: utter_negar_autenticacion
-  
-  - rule: Usuario reporta otro problema técnico
-    steps:
-      - intent: otro_problema_tecnico
-      - action: utter_otro_problema_tecnico
   
   - rule: Usuario reporta pantalla blanca
     steps:
@@ -395,8 +374,8 @@ rules:
       - intent: iniciar_encuesta
       - action: utter_encuesta_satisfaccion
       - action: action_preguntar_resolucion
-      - action: feedback_form
-      - active_loop: feedback_form
+      - action: encuesta_satisfaccion_form
+      - active_loop: encuesta_satisfaccion_form
 
   - rule: Ofrecer derivación a humano
     steps:
@@ -514,7 +493,7 @@ rules:
       - action: utter_cierre_cancelado
       - action: utter_volver_menu_principal
   
-  - rule: Flujo base - cierre seguro
+  - rule: Flujo base - cierre seguro (unificada v3.1)
     steps:
       - intent: terminar_conversacion_segura
       - action: action_verificar_estado_encuesta
@@ -523,15 +502,8 @@ rules:
     steps:
       - intent: pedir_humano_directo
       - action: action_derivar_y_registrar_humano
-
-  - rule: Usuario insatisfecho - marcar tipo y responder
-    steps:
-      - intent: respuesta_insatisfecho
-      - action: action_set_encuesta_tipo
-      - slot_was_set:
-          - encuesta_tipo: "negativa"
-      - action: utter_encuesta_negativa
-      - action: utter_ofrecer_contacto_tutor
+      - action: utter_handoff_iniciado
+      - action: utter_derivando_humano
   
   - rule: Asignar usuario si no se especifica
     steps:
@@ -548,11 +520,6 @@ rules:
     steps:
       - intent: cerrar_chat
       - action: utter_cerrar_chat_confirmacion
-  
-  - rule: Usuario confirma cierre
-    steps:
-      - intent: confirmar_cierre
-      - action: action_finalizar_conversacion
 
   - rule: Usuario quiere ver info del estado estudiante
     steps:
@@ -693,11 +660,6 @@ rules:
           - encuesta_satisfaccion: "negativa"
     steps:
       - action: utter_ofrecer_contacto_tutor
-  
-  - rule: Analizar emociones del usuario
-    steps:
-      - intent: detectar_emocion
-      - action: action_analizar_estado_usuario
 
   - rule: Ir a menú académico
     steps:
@@ -774,35 +736,12 @@ rules:
           - llm_suggested_intent: "solicitar_certificado"
     steps:
       - action: utter_info_certificado
-  
-  - rule: usar LLM como tutor académico
-    steps:
-      - intent: aprender_tema
-      - action: action_handle_with_llm
-
-  - rule: Iniciar soporte desde intent principal
-    steps:
-      - intent: solicitar_soporte
-      - action: utter_preguntar_tipo_soporte
-
-  - rule: Soporte como PQRS formal
-    steps:
-      - intent: soporte_pqrs
-      - action: utter_iniciar_soporte_desde_pedir_mensaje
-      - action: soporte_form
-      - active_loop: soporte_form
-
-  - rule: Soporte como mensaje interno
-    steps:
-      - intent: soporte_interno
-      - action: utter_iniciar_soporte_desde_pedir_mensaje
-      - action: soporte_form
-      - active_loop: soporte_form
-
+ 
   - rule: Iniciar soporte cuando el usuario pide enviar mensaje
     steps:
       - intent: pedir_mensaje
-      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: utter_iniciar_soporte_desde_pedir_mensaje  
+      - action: utter_ask_email_contacto
       - action: soporte_form
       - active_loop: soporte_form
 
@@ -920,28 +859,112 @@ rules:
       - intent: enviar_soporte_directo
       - action: action_enviar_soporte_directo
 
-  - rule: Manejar error en flujo de soporte
+  - rule: Manejar error en flujo de soporte (unificada v3.1)
     steps:
       - intent: soporte_error
       - action: utter_soporte_error
-  
-  - rule: Fallback general → LLM
-    steps:
-      - intent: nlu_fallback
-      - action: action_handle_with_llm
-  
-  - rule: Usuario pide ayuda ("fallback" explícito)
-    steps:
-      - intent: fallback
-      - action: action_handle_with_llm
-  
-  - rule: Mensaje fuera de dominio → LLM
-    steps:
-      - intent: out_of_scope
       - action: action_handle_with_llm
 
   - rule: Ir a menú académico desde consultar_academico
     steps:
       - intent: consultar_academico
       - action: utter_menu_academico
-      - action: utter_preguntar_tema_academico
+      - action: utter_pedir_tema
+  
+  - rule: Fallback general → LLM (unificada v3.1)
+    condition:
+      - active_loop: null
+    steps:
+       - intent: nlu_fallback
+       - action: action_handle_with_llm
+  
+  - rule: Manejar out_of_scope con LLM y mensaje estándar (unificada v3.1)
+    steps:
+      - intent: out_of_scope
+      - action: utter_out_of_scope
+      - action: action_handle_with_llm
+  
+  - rule: Flujo aprender_tema completo (unificada v3.1)
+    steps:
+      - intent: aprender_tema
+      - action: action_memory_wrapper
+      - action: action_handle_with_llm
+  
+  - rule: Despedida del usuario (unificada v3.1)
+    steps:
+      - intent: despedida
+      - action: utter_despedida_final
+      - action: action_finalizar_conversacion
+ 
+  - rule: Manejar emoción detectada (unificada v3.1)
+    steps:
+      - intent: detectar_emocion
+      - action: action_analizar_estado_usuario
+  
+  - rule: Ayuda detalle certificados (unificada v3.1)
+    steps:
+      - intent: ayuda_certificados_detalle
+      - action: action_mostrar_certificados_carousel
+      - action: utter_ayuda_certificados_detalle
+  
+  - rule: Usuario insatisfecho - marcar tipo y responder
+    steps:
+      - intent: respuesta_insatisfecho
+      - action: action_set_encuesta_tipo
+      - slot_was_set:
+          - encuesta_tipo: "negativa"
+      - action: utter_encuesta_insatisfaccion
+      - action: utter_ofrecer_contacto_tutor
+
+  - rule: Iniciar soporte desde intent principal
+    steps:
+      - intent: solicitar_soporte
+      - action: utter_preguntar_tipo_soporte
+  
+  - rule: Soporte como PQRS formal (unificada v3.1)
+    steps:
+      - intent: soporte_pqrs
+      - action: utter_iniciar_soporte_desde_pedir_mensaje
+      - action: utter_ask_email_contacto
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Soporte como mensaje interno (unificada v3.1)
+    steps:
+     - intent: soporte_interno
+     - action: utter_iniciar_soporte_desde_pedir_mensaje
+
+  - rule: Avisar cuando el formulario falle varias veces
+    steps:
+      - action: action_verificar_max_intentos_form
+      - action: utter_intento_form_fallido
+  
+  - rule: Responder negación genérica
+    steps:
+      - intent: deny
+      - action: utter_deny
+  
+  - rule: Fallback explícito del usuario (unificada v3.1)
+    steps:
+      - intent: fallback
+      - action: utter_fallback
+      - action: action_handle_with_llm
+  
+  - rule: Resumir clase con LLM
+    steps:
+      - intent: resumir_clase
+      - action: utter_resumir_clase        
+      - action: action_memory_wrapper      
+      - action: action_handle_with_llm
+  
+  - rule: Usuario reporta otro problema técnico (mensaje + LLM v3.1)
+    steps:
+      - intent: otro_problema_tecnico
+      - action: utter_otro_problema_tecnico
+      - action: action_handle_with_llm
+  
+  - rule: Confirmar cierre seguro con autosave (unificada v3.1)
+    steps:
+      - intent: confirmar_cierre_autosave
+      - action: action_guardar_encuesta_incompleta
+      - action: action_confirmar_cierre_autosave

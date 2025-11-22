@@ -1,9 +1,5 @@
 version: "3.1"
 
-session_config:
-  session_expiration_time: 60
-  carry_over_slots_to_new_session: true
-
 intents:
   - consultar_academico
   - consultar_certificados
@@ -73,7 +69,6 @@ intents:
   - notificar_desconexion
   - notificar_inactividad
   - notificar_reconexion
-  - guardar_estado_seguridad
   - recuperar_estado_seguridad
   - soporte_tecnico
   - problema_no_ingreso
@@ -97,7 +92,6 @@ intents:
   - consulta_por_identificacion
   - consulta_por_solicitud
   - consulta_por_tipo
-  - problema_resuelto_no
   - pedir_mensaje
   - soporte_error
   - enviar_soporte_directo
@@ -132,11 +126,12 @@ intents:
   - consultar_contenido_curso
   - soporte_pqrs
   - soporte_interno
-  - soporte
   - aprender_tema
   - solicitar_certificado
   - ayuda_certificados_detalle
   - out_of_scope
+  - resumir_clase
+  - guardar_estado_seguridad
 
 entities:
   - curso
@@ -168,34 +163,61 @@ entities:
   - cedula
   - aprender_tema
   - solicitar_certificado
+  - tema
+  - llm_suggested_intent
 
 slots:
-  topic:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: custom
-
-  llm_suggested_intent:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: custom
 
   is_authenticated:
     type: bool
     influence_conversation: true
     initial_value: false
     mappings:
-      - type: from_trigger_intent
-        value: true
-        intent: confirmar_autenticacion
-      - type: from_trigger_intent
-        value: false
-        intent: negar_autenticacion
-      - type: from_trigger_intent
-        value: false
-        intent: deny
+      - type: custom  
+
+  llm_suggested_intent:
+    type: text
+    influence_conversation: false     #
+    mappings:
+      - type: custom  
+  
+  from_llm:
+    type: bool
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  topic:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  tema_actual:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: tema
+      - type: from_text
+        intent: aprender_tema
+
+  memoria_semantica:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: null
+  
+  emocion_detectada:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: emocion
+      - type: from_text
+        intent: detectar_emocion
 
   proceso_activo:
     type: bool
@@ -315,27 +337,24 @@ slots:
 
   encuesta_tipo:
     type: categorical
-    values: ["positiva", "negativa", "neutra"]
+    values:
+      - positiva
+      - negativa
+      - neutra
     influence_conversation: true
     mappings:
+      - type: from_intent
+        intent: respuesta_satisfecho
+        value: positiva
+      - type: from_intent
+        intent: respuesta_insatisfecho
+        value: negativa
       - type: from_entity
         entity: encuesta_tipo
       - type: from_text
         conditions:
           - active_loop: encuesta_satisfaccion_form
             requested_slot: encuesta_tipo
-      - type: from_text
-
-  nivel_satisfaccion:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_entity
-        entity: nivel_satisfaccion
-      - type: from_text
-        conditions:
-          - active_loop: encuesta_satisfaccion_form
-            requested_slot: nivel_satisfaccion
 
   usuario:
     type: text
@@ -445,13 +464,13 @@ slots:
 
   mensaje:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
-      - type: from_entity
-        entity: mensaje
       - type: from_text
         conditions:
           - active_loop: soporte_form
+            requested_slot: mensaje
+          - active_loop: feedback_form
             requested_slot: mensaje
 
   session_activa:
@@ -511,11 +530,24 @@ slots:
       - type: from_entity
         entity: tipo_usuario
 
-  emocion_detectada:
+  tema_previsto:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        intent: aprender_tema
+      - type: custom
+ 
+  nivel_satisfaccion:
     type: text
     influence_conversation: true
     mappings:
-      - type: custom
+      - type: from_entity
+        entity: nivel_satisfaccion
+      - type: from_text
+        conditions:
+          - active_loop: encuesta_satisfaccion_form
+            requested_slot: nivel_satisfaccion
 
   autenticado:
     type: bool
@@ -550,6 +582,20 @@ slots:
       - type: from_intent
         value: "interno"
         intent: soporte_interno
+  correo:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: email
+
+  historial_academico:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        intent: informar_historial_academico  
+      - type: custom
 
 forms:
   auth_login_form:
@@ -565,6 +611,7 @@ forms:
     required_slots:
       - feedback_texto
       - usuario
+      - mensaje
 
   encuesta_satisfaccion_form:
     required_slots:
@@ -636,9 +683,6 @@ responses:
         - title: "🔁 Volver al menú"
           payload: "/ir_menu_principal"
 
-  utter_cerrar_chat:
-    - text: "✅ Conversación finalizada. Cuando quieras, vuelve a escribirme."
-
   utter_derivando_humano:
     - text: "Te conecto con un asesor humano. ⏳ Por favor, espera un momento."
 
@@ -650,9 +694,6 @@ responses:
 
   utter_cierre_cancelado_seguro:
     - text: "Entendido, seguimos donde estabas. 😊"
-
-  utter_reanudar_conversacion:
-    - text: "Parece que tenías una encuesta pendiente. ¿Deseas continuarla?"
 
   utter_limpiar_autosave:
     - text: "Los datos temporales fueron limpiados correctamente."
@@ -729,9 +770,6 @@ responses:
     - text: >
         Parece que hubo un problema al procesar tu solicitud de soporte. 
         ¿Quieres que lo intentemos de nuevo o prefieres que te derive a un agente humano?
-
-  utter_affirm:
-    - text: "¡Perfecto! 👍 ¿Deseas hacer algo más?"
 
   utter_deny:
     - text: "Entendido. Si necesitas algo más, me dices. 🙂"
@@ -943,66 +981,6 @@ responses:
             title: "❌ Terminar"
             payload: "/terminar_conversacion"
 
-  utter_certificados_carousel:
-    - text: |
-        📜 **Tus certificados disponibles**
-        1) *Introducción a Programación* — 2024-06-10  
-           • [Ver PDF](https://zajuna.sena.edu.co/cert/123)  
-           • [Descargar](https://zajuna.sena.edu.co/cert/123/download)
-
-        2) *Bases de Datos* — 2025-03-15  
-           • [Ver PDF](https://zajuna.sena.edu.co/cert/456)  
-           • [Descargar](https://zajuna.sena.edu.co/cert/456/download)
-      buttons:
-        - title: "🔐 Iniciar sesión Zajuna"
-          payload: "/auth_login_cmd"
-        - title: "🏠 Menú principal"
-          payload: "/ir_menu_principal"
-
-    - channel: "socketio"
-      text: |
-        📜 Certificados:
-        • Introducción a Programación (2024-06-10)  
-          Ver: https://zajuna.sena.edu.co/cert/123  
-          Descargar: https://zajuna.sena.edu.co/cert/123/download
-
-        • Bases de Datos (2025-03-15)  
-          Ver: https://zajuna.sena.edu.co/cert/456  
-          Descargar: https://zajuna.sena.edu.co/cert/456/download
-      buttons:
-        - title: "🔐 Login"
-          payload: "/auth_login_cmd"
-        - title: "🏠 Menú"
-          payload: "/ir_menu_principal"
-
-    - channel: "facebook"
-      custom:
-        attachment:
-          type: "template"
-          payload:
-            template_type: "generic"
-            elements:
-              - title: "Introducción a Programación"
-                subtitle: "Emitido: 2024-06-10"
-                image_url: "https://tu-cdn/certificados/programacion.png"
-                buttons:
-                  - type: "web_url"
-                    url: "https://zajuna.sena.edu.co/cert/123"
-                    title: "Ver PDF"
-                  - type: "web_url"
-                    url: "https://zajuna.sena.edu.co/cert/123/download"
-                    title: "Descargar"
-              - title: "Bases de Datos"
-                subtitle: "Emitido: 2025-03-15"
-                image_url: "https://tu-cdn/certificados/bd.png"
-                buttons:
-                  - type: "web_url"
-                    url: "https://zajuna.sena.edu.co/cert/456"
-                    title: "Ver PDF"
-                  - type: "web_url"
-                    url: "https://zajuna.sena.edu.co/cert/456/download"
-                    title: "Descargar"
-
   utter_cierre_confirmado_seguro:
     - text: "✅ Conversación finalizada de forma segura y se guardará tu progreso actual, ¡Gracias por usar el asistente Zajuna! 🌟"
 
@@ -1012,17 +990,11 @@ responses:
   utter_notificar_desconexion:
     - text: "⚠️ Se detectó una desconexión. Guardando tu progreso..."
 
-  utter_notificar_inactividad:
-    - text: "😴 Has estado inactivo por un tiempo. Guardando el estado actual..."
-
   utter_notificar_reconexion:
     - text: "🔄 Bienvenido de nuevo, restaurando tu sesión previa..."
 
   utter_ask_mensaje:
     - text: "Cuéntame brevemente tu problema o solicitud."
-
-  utter_encuesta_negativa:
-    - text: "Lamentamos que tu experiencia no haya sido la mejor. Podemos contactar a tu tutor para ayudarte."
 
   utter_ofrecer_contacto_tutor:
     - text: "¿Deseas contactar a tu tutor?"
@@ -1646,6 +1618,31 @@ responses:
         - title: "Volver al menú principal"
           payload: "/ir_menu_principal"
 
+  utter_pedir_tema:
+    - text: "Cuéntame, ¿sobre qué tema del SENA quieres aprender? Por ejemplo: contabilidad, logística, desarrollo de software, marketing digital, etc."
+
+  # Ejemplo de respuesta para un intent concreto sugerido por el LLM
+  utter_aprender_tema:
+    - text: "Perfecto, hablemos sobre ese tema. ¿Quieres una explicación básica, intermedia o avanzada?"
+
+  utter_default:
+    - text: "No estoy seguro de haber entendido. ¿Podrías reformular tu pregunta o darme más contexto?"
+
+  utter_out_of_scope:
+    - text: "Esa pregunta está fuera de lo que puedo responder como Tutor del SENA, pero puedo ayudarte con temas académicos y de formación."
+
+  utter_resumen_generado:
+    - text: "Aquí tienes un resumen claro de lo que vimos:"
+
+  utter_emocion_detectada:
+    - text: "Entiendo cómo te sientes. Estoy aquí para ayudarte."
+  
+  utter_auth_denegada:
+    - text: "Entendido, no continuaremos con la autenticación por ahora."
+  
+  utter_resumir_clase:
+    - text: "Puedo ayudarte a resumir la clase. ¿Qué parte o mensaje quieres que resuma exactamente?"
+  
 actions:
   - action_estado_estudiante
   - action_tutor_asignado
@@ -1725,3 +1722,5 @@ actions:
   - action_marcar_escalar_humano
   - action_handoff_en_cola
   - action_handle_with_llm
+  - action_route_llm_intent
+  - action_memory_wrapper

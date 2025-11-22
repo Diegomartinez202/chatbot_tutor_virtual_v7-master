@@ -13,7 +13,9 @@ from .acciones_soporte import (
     ValidateSoporteForm,
     ActionEnviarSoporte,
     ActionSoporteSubmit,
+    ActionEnviarCorreoTutor,
     ActionDerivarYRegistrarHumano,
+    ActionProcesarSoporte,
     ActionMarcarEscalarHumano,
 )
 
@@ -22,28 +24,24 @@ from .acciones_autenticacion import (
     ValidatePasswordRecoveryForm,
     ActionCheckAuth,
     ActionIngresoZajuna,
-    ActionSetAuthenticatedTrue,
     ActionRecuperarContrasena,
     ActionEnviarCorreoRecuperacion,
-    ActionEnviarSoporte,
-    ActionDerivarYRegistrarHumano,
-    ActionConectarHumano,
-    ActionPreguntarResolucion,
+    ActionSetAuthenticatedTrue,
 )
 
 # ======= Académico =======
 from .acciones_academico import (
     ActionEstadoEstudiante,
-    ActionVerCertificados,
-    ActionListarCertificados,
     ActionTutorAsignado,
+    ActionListarCertificados,
+    ActionVerCertificados,
     ActionIngresoZajuna,
     ActionRecuperarContrasena,
     ZajunaGetCertificados,
     ZajunaGetEstadoEstudiante,
     ActionVerEstadoEstudiante,
-)
 
+)
 # ======= Encuesta =======
 from .acciones_encuesta import (
     ActionRegistrarEncuesta,
@@ -51,6 +49,7 @@ from .acciones_encuesta import (
     ActionVerificarEstadoEncuesta,
     ValidateEncuestaSatisfaccionForm,
     ActionGuardarFeedback,
+    ActionSetEncuestaTipo,
 )
 
 # ======= Menú / Acciones de acceso rápido =======
@@ -84,12 +83,12 @@ from .acciones_terminar_conversacion_segura_autosave import (
 
 # ======= Conversación segura (guardian/autosave) =======
 from .acciones_conversacion_segura import (
-    ActionResetConversacionSegura,
-    ActionAutoresumeConversacion,
-    ActionCargarAutosaveMongo,
-    ActionGuardarAutosaveMongo,
-    ActionAutosaveEncuesta,
     ActionConfirmarCierreSeguro,
+    ActionAutosaveEncuesta,
+    ActionCargarAutosaveMongo,
+    ActionAutosaveEncuesta,
+    ActionAutoresumeConversacion,
+    ActionResetConversacionSegura,
 )
 
 from .acciones_seguridad import (
@@ -154,18 +153,21 @@ from .acciones_guardian import (
 )
 from .acciones_enviar_soporte import (
     ActionEnviarSoporte,
+    ActionEnviarSoporteDirecto,
 )
 from .acciones_menu_estado_certificados import (
     ActionConsultarCertificados,
 )
 from .acciones_admin import (
     ActionReiniciarConversacion,
-    ActionMostrarToken,
     ActionPingServidor,
     ActionSetDefaultTipoUsuario,
+    ActionMostrarToken,
 )
 from .acciones_llm import (
-    ActionHandleWithOllama
+    ActionHandleWithOllama,
+    ActionRouteLLMIntent,
+    ActionMemoryWrapper,
 )
 
 __all__ = [
@@ -292,4 +294,11 @@ __all__ = [
     "ActionAnalizarEstadoUsuario",
 
     "ActionHandleWithOllama",
+    "ActionRouteLLMIntent",
+    "ActionMemoryWrapper",
+    "ActionEnviarCorreoTutor",
+    "ActionProcesarSoporte",
+    "ActionMarcarEscalarHumano",
+
+    "ActionSetEncuestaTipo",
 ]

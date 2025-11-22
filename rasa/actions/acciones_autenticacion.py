@@ -76,27 +76,9 @@ class ActionEnviarCorreoRecuperacion(Action):
             dispatcher.utter_message(text="No pude enviar el correo porque el email no es válido.")
         return []
 
-# ====== PLACEHOLDERS (si ya existen en otros módulos, no molestan) ======
-class ActionEnviarSoporte(Action):
-    def name(self) -> Text: return "action_enviar_soporte"
-    def run(self, dispatcher, tracker, domain):
-        dispatcher.utter_message(text="✅ He enviado tu solicitud de soporte. Un agente te contactará.")
-        return []
+class ActionSetAuthenticatedTrue(Action):
+    def name(self) -> str:
+        return "action_set_authenticated_true"
 
-class ActionDerivarYRegistrarHumano(Action):
-    def name(self) -> Text: return "action_derivar_y_registrar_humano"
     def run(self, dispatcher, tracker, domain):
-        dispatcher.utter_message(text="Derivando tu caso a un agente humano…")
-        return []
-
-class ActionConectarHumano(Action):
-    def name(self) -> Text: return "action_conectar_humano"
-    def run(self, dispatcher, tracker, domain):
-        dispatcher.utter_message(text="Conexión iniciada. Un asesor responderá aquí mismo.")
-        return []
-
-class ActionPreguntarResolucion(Action):
-    def name(self) -> Text: return "action_preguntar_resolucion"
-    def run(self, dispatcher, tracker, domain):
-        dispatcher.utter_message(response="utter_preguntar_resolucion")
-        return []
+        return [SlotSet("is_authenticated", True)]
