@@ -1,5 +1,5 @@
 Param(
-    [switch]$OnlyAdapted  # si lo usas, corre solo backend/test_adapted
+    [switch]$OnlyAdapted  # si lo usas, corre solo backend/test/test_adapted
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,41 +29,53 @@ python -m pip install -U pip
 python -m pip install pytest pytest-html coverage
 
 # 4) Construir comando base de pytest
+$pytestHtml = Join-Path $reportsDir "pytest-report.html"
+
+# Si $OnlyAdapted: apuntamos solo a backend/test/test_adapted
+# Si NO: dejamos que pytest use pytest.ini y descubra TODO (sin ruta explícita)
 if ($OnlyAdapted) {
-    $testPath = "backend/test_adapted"
+    $pytestArgs = @(
+        "-m", "pytest",
+        "backend/test/test_adapted",
+        "--maxfail=1",
+        "--disable-warnings",
+        "--tb=short",
+        "--html=$pytestHtml",
+        "--self-contained-html"
+    )
 } else {
-    # puedes cambiar esto si quieres que incluya TODO backend/test
-    $testPath = "backend/test_adapted"
+    $pytestArgs = @(
+        "-m", "pytest",
+        "--maxfail=1",
+        "--disable-warnings",
+        "--tb=short",
+        "--html=$pytestHtml",
+        "--self-contained-html"
+    )
 }
 
-$pytestHtml = Join-Path $reportsDir "pytest-report.html"
-$pytestCmd = @(
-    "-m", "pytest",
-    $testPath,
-    "--maxfail=1",
-    "--disable-warnings",
-    "--tb=short",
-    "--html=$pytestHtml",
-    "--self-contained-html"
-)
-
 Write-Host ">> Ejecutando pytest con reporte HTML..." -ForegroundColor DarkCyan
-Write-Host "python $($pytestCmd -join ' ')" -ForegroundColor DarkGray
+Write-Host "python $($pytestArgs -join ' ')" -ForegroundColor DarkGray
 
-python $pytestCmd
+python $pytestArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Algunas pruebas fallaron. Revisa el reporte: $pytestHtml" -ForegroundColor Red
 } else {
     Write-Host "✅ Pytest finalizado sin errores." -ForegroundColor Green
 }
 
-# 5) coverage.py sobre los tests adaptados
-$covFile = Join-Path $reportsDir ".coverage"
+# 5) coverage.py
 $covHtmlDir = Join-Path $reportsDir "htmlcov_adapted"
 
-Write-Host ">> Ejecutando coverage sobre $testPath ..." -ForegroundColor DarkCyan
-# coverage run -m pytest backend/test_adapted
-coverage run --source=backend -m pytest $testPath
+Write-Host ">> Ejecutando coverage..." -ForegroundColor DarkCyan
+
+if ($OnlyAdapted) {
+    # Solo sobre los tests adaptados
+    coverage run --source=backend -m pytest backend/test/test_adapted
+} else {
+    # Sobre toda la suite que descubra pytest.ini
+    coverage run --source=backend -m pytest
+}
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠ Coverage detectó fallos en las pruebas. Revisa la salida de pytest." -ForegroundColor Yellow

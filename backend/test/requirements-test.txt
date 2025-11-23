@@ -3,7 +3,6 @@ pytest-timeout
 pytest-html
 pytest-metadata
 pytest-asyncio
-pytest.mark.asyncio
 requests
 python-dotenv
 pyjwt
@@ -11,3 +10,4 @@ httpx
 respx
 fastapi
 backend
+coverage

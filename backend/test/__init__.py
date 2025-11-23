@@ -1,2 +1,1 @@
-# Crea el archivo si no existe:
-touch backend/tests/__init__.py
+# init for test package
