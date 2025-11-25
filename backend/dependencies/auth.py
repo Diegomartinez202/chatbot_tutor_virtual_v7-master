@@ -123,7 +123,6 @@ def _decode(token: str) -> Dict[str, Any]:
             audience=JWT_AUDIENCE if JWT_AUDIENCE else None,
             issuer=JWT_ISSUER if JWT_ISSUER else None,
             options=options,
-            leeway=int(JWT_LEEWAY_SECONDS or 0),  # 👉 leeway correcto en jose
         )
 
         if not JWT_ACCEPT_TYPELESS:
