@@ -28,11 +28,20 @@ services:
 
       # Rasa
       RASA_URL: http://rasa:5005
+
+      # Admin técnico para pruebas (bootstrap)
+      ADMIN_EMAIL: "admin.demo@sena.edu.co"
+      ADMIN_BOOTSTRAP_PASSWORD: "AdminDemo123*"
+
+      # JWT
+      SECRET_KEY: "cambia-esta-clave-en-produccion"
+      JWT_ALGORITHM: "HS256"
+
     command: >
       sh -lc "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
-    # Si quieres exponerlo directo:
-    # ports:
-    #   - "8000:8000"
+    
+    ports:
+      - "8000:8000"
     volumes:
       - ./:/app
     restart: unless-stopped
