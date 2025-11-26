@@ -20,6 +20,7 @@ from backend.services.auth_service import (
     login_user,
 )
 from backend.services.user_service import crear_usuario_si_no_existe
+from fastapi.security import OAuth2PasswordRequestForm
 
 logger = get_logger(__name__)
 
@@ -103,7 +104,44 @@ def login_user_route(data: RegisterRequest, request: Request):
     _set_refresh_cookie(response, refresh_token)
     return response
 
+# ========================
+# Login estilo OAuth2 (para Swagger /oauth2/password)
+# ========================
+@router.post("/token")
+@limit("10/minute")
+def login_token_route(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),  # 👈 AQUÍ el cambio importante
+):
+    """
+    Endpoint compatible con OAuth2PasswordBearer.
+    Swagger y clientes OAuth2 mandan 'username' y 'password' como formulario
+    (application/x-www-form-urlencoded). Usamos username como email.
+    """
+    email = form_data.username
+    password = form_data.password
 
+    user = login_user(email, password)
+    if not user:
+        logger.warning(f"Login OAuth2 fallido: {email}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Credenciales invalidas")
+
+    access_token = create_access_token(user)
+    refresh_token = create_refresh_token(user)
+
+    from fastapi.responses import JSONResponse
+    from .auth import _set_refresh_cookie  # o importa arriba según lo tengas
+
+    response = JSONResponse(
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+    )
+    _set_refresh_cookie(response, refresh_token)
+    return response
 # ========================
 # Perfil autenticado
 # ========================
@@ -245,4 +283,49 @@ def logout_route():
     """Borra la cookie httpOnly de refresh para cerrar sesión en el navegador."""
     response = JSONResponse(content={"ok": True})
     _clear_refresh_cookie(response)
+    return response
+
+@router.post("/oauth2/token", summary="Login OAuth2 (form-data, Swagger)", include_in_schema=False)
+def login_token_route(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    request: Request = None,
+):
+    """
+    Endpoint compatible con OAuth2PasswordBearer.
+    Swagger manda 'username' y 'password' como formulario.
+    Aquí usamos username como email.
+    """
+    email = form_data.username
+    password = form_data.password
+
+    user = login_user(email, password)
+    if not user:
+        logger.warning(f"Login OAuth2 fallido: {email}")
+        raise HTTPException(status_code=401, detail="Credenciales invalidas")
+
+    access_token = create_access_token(user)
+    refresh_token = create_refresh_token(user)
+    registrar_login_exitoso(request, user)
+
+    response = JSONResponse(
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+    )
+
+    # misma lógica de cookie que usas en /auth/login
+    cookie_name = settings.refresh_cookie_name or "rt"
+    secure_cookie = False if (getattr(settings, "app_env", "dev") == "dev") else True
+    response.set_cookie(
+        key=cookie_name,
+        value=refresh_token,
+        httponly=True,
+        secure=secure_cookie,
+        samesite="lax",
+        max_age=7 * 24 * 3600,
+        path="/api/auth",
+    )
+
     return response

@@ -40,15 +40,30 @@ def _to_public_user(doc: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convierte un documento Mongo a un dict público:
     - _id -> id (str)
-    - oculta password si viniera por error
+    - oculta password
+    - convierte datetime -> ISO string
     """
     if not doc:
         return {}
-    out = dict(doc)
-    if "_id" in out:
-        out["id"] = str(out["_id"])
-        out.pop("_id", None)
-    out.pop("password", None)
+
+    out: Dict[str, Any] = {}
+
+    for k, v in doc.items():
+        # id
+        if k == "_id":
+            out["id"] = str(v)
+            continue
+
+        # nunca exponemos password
+        if k == "password":
+            continue
+
+        # convertir datetime a string
+        if isinstance(v, datetime):
+            out[k] = v.isoformat()
+        else:
+            out[k] = v
+
     return out
 
 
@@ -177,7 +192,6 @@ def crear_usuario_si_no_existe(nombre: str, email: str, password: str, rol: str 
     except Exception as e:
         logger.error(f"[users] Error en crear_usuario_si_no_existe({email}): {e}")
         return None
-
 
 def update_user(user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """

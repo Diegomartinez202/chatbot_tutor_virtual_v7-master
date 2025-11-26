@@ -23,8 +23,8 @@ SECRET_KEY: str = settings.secret_key or ""
 ALGORITHM: str = settings.jwt_algorithm or "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(getattr(settings, "access_token_expire_minutes", 60))
 
-# Documentación OAuth2 en /docs: el login real está montado como /api/auth/login
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# Documentación OAuth2 en /docs: el login real está montado como /api/auth/token
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/oauth2/token")
 
 JWT_ISSUER: Optional[str] = getattr(settings, "jwt_issuer", None)
 JWT_AUDIENCE: Optional[str] = getattr(settings, "jwt_audience", None)
