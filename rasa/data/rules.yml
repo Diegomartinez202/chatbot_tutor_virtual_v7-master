@@ -213,6 +213,7 @@ rules:
   - rule: Enviar correo a tutor
     steps:
       - intent: enviar_correo_tutor
+      - action: utter_contactar_tutor_confirmacion
       - action: action_enviar_correo_tutor
       - action: utter_correo_enviado
       - action: utter_preguntar_continuar_menu

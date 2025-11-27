@@ -30,7 +30,7 @@ services:
     # - ./mongo/initdb.d:/docker-entrypoint-initdb.d:ro
    networks:
      - app-net
-   # ✅ Healthcheck para coordinar arranque del backend
+  
    healthcheck:
      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
      interval: 10s

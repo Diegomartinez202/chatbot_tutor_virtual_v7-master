@@ -387,40 +387,40 @@ class ActionHandleWithOllama(Action):
     def name(self) -> Text:
         return "action_handle_with_llm"
 
-def build_prompt(
-    self,
-    tracker: Tracker,
-    memoria: str,
-    perfil: str
-) -> str:
-    raw_msg = tracker.latest_message.get("text", "")
-    clean_msg = normalize_chat_text(raw_msg)
-    user_msg = anonymize_text(clean_msg)
-    intent_info = tracker.latest_message.get("intent", {})
+    def build_prompt(
+        self,
+        tracker: Tracker,
+        memoria: str,
+        perfil: str
+    ) -> str:
+        raw_msg = tracker.latest_message.get("text", "")
+        clean_msg = normalize_chat_text(raw_msg)
+        user_msg = anonymize_text(clean_msg)
+        intent_info = tracker.latest_message.get("intent", {})
 
-    # historial corto (máx 6 turnos)
-    history: List[str] = []
-    for e in tracker.events[-12:]:
-        if e.get("event") == "user":
-            history.append("Usuario: " + anonymize_text(e.get("text", "")))
-        elif e.get("event") == "bot":
-            history.append("Bot: " + str(e.get("text", "")))
+        # historial corto (máx 6 turnos)
+        history: List[str] = []
+        for e in tracker.events[-12:]:
+            if e.get("event") == "user":
+                history.append("Usuario: " + anonymize_text(e.get("text", "")))
+            elif e.get("event") == "bot":
+                history.append("Bot: " + str(e.get("text", "")))
 
-    hist_text = "\n".join(history[-6:])
+        hist_text = "\n".join(history[-6:])
 
-    prompt = (
-        PROMPT_SYSTEM
-        + f"\n\n=== PERFIL DETECTADO ===\n{perfil}\n"
-        + f"\n=== MEMORIA SEMÁNTICA ===\n{memoria}\n"
-        + "\n=== CONTEXTO DE LA CONVERSACIÓN ===\n"
-        + f"Último mensaje del usuario: {user_msg}\n"
-        + f"Intent detectado por Rasa: {intent_info.get('name')} "
-        + f"(conf={intent_info.get('confidence')})\n"
-        + f"Historial breve:\n{hist_text}\n"
-        + "\nResponde ÚNICAMENTE en formato:\n"
-        + "INTENT:<nombre_intent>  o  RESPUESTA:<texto>\n"
-    )
-    return prompt
+        prompt = (
+            PROMPT_SYSTEM
+            + f"\n\n=== PERFIL DETECTADO ===\n{perfil}\n"
+            + f"\n=== MEMORIA SEMÁNTICA ===\n{memoria}\n"
+            + "\n=== CONTEXTO DE LA CONVERSACIÓN ===\n"
+            + f"Último mensaje del usuario: {user_msg}\n"
+            + f"Intent detectado por Rasa: {intent_info.get('name')} "
+            + f"(conf={intent_info.get('confidence')})\n"
+            + f"Historial breve:\n{hist_text}\n"
+            + "\nResponde ÚNICAMENTE en formato:\n"
+            + "INTENT:<nombre_intent>  o  RESPUESTA:<texto>\n"
+        )
+        return prompt
 
     # ---- Ejecución principal ----
     def run(
@@ -439,7 +439,7 @@ def build_prompt(
         if prev:
             memoria = f"Continuación del tema anterior: {prev['text']}"
         else:
-           memoria = "Nuevo tema."
+            memoria = "Nuevo tema."
 
         # 2) Guardar en memoria el mensaje normalizado
         store_message(clean_msg)
@@ -471,7 +471,7 @@ def build_prompt(
             return [
                 SlotSet("llm_suggested_intent", intent_name),
                 SlotSet("from_llm", True),
-                FollowupAction("action_route_llm_intent"),  
+                FollowupAction("action_route_llm_intent"),
             ]
 
         # --- Si es texto explicativo (RESPUESTA) ---
@@ -482,6 +482,7 @@ def build_prompt(
         # --- Raw fallback ---
         dispatcher.utter_message(text=parsed["value"])
         return [SlotSet("from_llm", True)]
+
 
 class ActionRouteLLMIntent(Action):
     def name(self) -> Text:
@@ -609,9 +610,9 @@ class ActionMemoryWrapper(Action):
         if prev:
             logger.info(f"[MEMORIA] Mensaje similar encontrado: {prev['text']}")
             # Si quisieras avisar al usuario, puedes activar esto:
-            # dispatcher.utter_message(
-            #     text=f"Veo que estás retomando un tema relacionado con: '{prev['text']}'"
-            # )
+            dispatcher.utter_message(
+                text=f"Veo que estás retomando un tema relacionado con: '{prev['text']}'"
+            )
 
         # 2) Guardar el mensaje actual en la memoria
         store_message(user_msg)

@@ -152,15 +152,6 @@ stories:
     - action: action_memory_wrapper
     - action: action_handle_with_llm
 
-- story: Emoción negativa → apoyo académico
-  steps:
-    - intent: detectar_emocion
-    - action: action_analizar_estado_usuario
-    - intent: sugerir_tutor
-    - action: utter_ofrecer_contacto_tutor
-    - intent: contactar_tutor
-    - action: utter_contactar_tutor_opciones
-
 - story: Flujo aprender tema con LLM directo
   steps:
     - intent: aprender_tema
@@ -189,17 +180,17 @@ stories:
     - action: action_set_encuesta_tipo
     - action: utter_agradecimiento_satisfaccion
     - action: utter_ofrecer_continuar
-
-- story: Emoción negativa → apoyo académico
+  
+- story: Emoción negativa → apoyo académico y contacto por correo
   steps:
     - intent: detectar_emocion
     - action: action_analizar_estado_usuario
     - intent: sugerir_tutor
     - action: utter_ofrecer_contacto_tutor
     - intent: contactar_tutor
-    - action: utter_contactar_tutor_opciones
-    - action: utter_contactar_tutor_confirmacion
+    - action: utter_contactar_tutor_opciones  
 
+  
 - story: Insatisfecho pero seguir con el bot
   steps:
     - intent: respuesta_insatisfecho
@@ -322,15 +313,3 @@ stories:
     - action: utter_ofrecer_humano
     - intent: negar_handoff
     - action: utter_continuar_con_bot
-
-
-- story: Contactar tutor vía correo
-  steps:
-    - intent: contactar_tutor
-    - action: utter_contactar_tutor_opciones
-    - action: utter_contactar_tutor_confirmacion
-    - intent: enviar_correo_tutor
-    - action: action_enviar_correo_tutor
-    - action: utter_correo_enviado
-    - action: utter_preguntar_continuar_menu
-

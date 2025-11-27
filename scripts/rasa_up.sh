@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # ===== Config por defecto (puedes sobreescribir por ENV) =====
@@ -11,7 +11,7 @@ mkdir -p "${STATE_DIR}"
 ACTIONS_PID_FILE="${STATE_DIR}/actions.pid"
 RASA_PID_FILE="${STATE_DIR}/rasa.pid"
 
-echo "ðŸ§¹ Limpiando procesos previos (si existen)..."
+echo " Limpiando procesos previos (si existen)..."
 if [[ -f "${ACTIONS_PID_FILE}" ]]; then
   xargs -r kill < "${ACTIONS_PID_FILE}" || true
   rm -f "${ACTIONS_PID_FILE}"

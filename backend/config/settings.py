@@ -86,9 +86,9 @@ class Settings(BaseSettings):
     mongo_db: Optional[str] = Field(default=None, alias="MONGO_DB")
 
     # 🔐 JWT (HS* y compat RS*)
-    secret_key: Optional[str] = Field(default=None, alias="SECRET_KEY")  # HS*
-    jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  # RS* (PEM)
-    jwt_jwks_url: Optional[str] = Field(default=None, alias="JWT_JWKS_URL")      # RS* (JWKS remoto)
+    secret_key: Optional[str] = Field(default=None, alias="SECRET_KEY") 
+    jwt_public_key: Optional[str] = Field(default=None, alias="JWT_PUBLIC_KEY")  
+    jwt_jwks_url: Optional[str] = Field(default=None, alias="JWT_JWKS_URL")      
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
@@ -251,7 +251,7 @@ class Settings(BaseSettings):
     @classmethod
     def _norm_frame_ancestors(cls, v):
         fa = cls._parse_json_or_csv(v, default=["'self'"])
-        # normaliza self => 'self'
+      
         out = []
         for x in fa:
             s = x.strip()
@@ -260,7 +260,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_conditional_requirements(self):
-        # Redis requerido si backend=redis
+       
         if (
             self.rate_limit_enabled
             and self.rate_limit_backend == "redis"
@@ -271,7 +271,6 @@ class Settings(BaseSettings):
                 "Se requiere REDIS_URL (o RATE_LIMIT_STORAGE_URI) cuando RATE_LIMIT_BACKEND='redis'"
             )
 
-        # JWT coherente (HS o RS + clave/jwks)
         alg = (self.jwt_algorithm or "").upper().strip()
         if alg.startswith("RS"):
             if not (
@@ -298,7 +297,6 @@ class Settings(BaseSettings):
 
     @property
     def rasa_rest_base(self) -> str:
-        # Si definiste RASA_REST_URL explícito, úsalo; si no, base en RASA_URL
         return self.rasa_rest_url or self.rasa_url
 
     @property

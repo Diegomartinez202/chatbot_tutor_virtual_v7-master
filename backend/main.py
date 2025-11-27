@@ -95,8 +95,8 @@ def create_app() -> FastAPI:
         title="Zajuna Chat Backend",
         description="Backend para intents, autenticación, logs y estadísticas",
         version="2.0.0",
-        docs_url=None,   # usamos /docs custom
-        redoc_url=None,  # usamos /redoc custom
+        docs_url=None,  
+        redoc_url=None,  
     )
 
     # Permissions-Policy

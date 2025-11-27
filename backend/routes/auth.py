@@ -131,7 +131,7 @@ def login_token_route(
     refresh_token = create_refresh_token(user)
 
     from fastapi.responses import JSONResponse
-    from .auth import _set_refresh_cookie  # o importa arriba según lo tengas
+    from .auth import _set_refresh_cookie  
 
     response = JSONResponse(
         content={

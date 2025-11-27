@@ -509,7 +509,25 @@ nlu:
       - hola, qué tal?
       - qué onda
       - hola, soy [María Gómez](nombre)
-
+      - hola!
+      - hola
+      - hola, ¿cómo estás?
+      - hola, como estas
+      - hola, qué tal
+      - buenas noches!
+      - buenas tardes!
+      - buenas días!
+      - que tal te va
+      - qué hay de nuevo
+      - holaa
+      - holaaa
+      - que hay de nuevo?
+      - que me cuentas?
+      - qué tal todo?
+      - que me cuentas
+      - qué tal todo
+       
+ 
   - intent: ver_login_hint
     examples: |
       - ¿cómo inicio sesión?

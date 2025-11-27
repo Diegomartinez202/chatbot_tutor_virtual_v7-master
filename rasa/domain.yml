@@ -1134,6 +1134,7 @@ responses:
       payload: /certificado_laboral
     - title: Otro tipo
       payload: /certificado_otro
+
   utter_contactar_tutor_opciones:
   - text: 'Puedo ayudarte a contactar a tu tutor.   ¿Cómo prefieres hacerlo?
 
@@ -1528,6 +1529,8 @@ actions:
 - zajuna_get_estado_estudiante
 - action_reiniciar_conversacion
 - action_mostrar_token
+- action_handle_with_llm
+- action_route_llm_intent
 - action_ping_servidor
 - action_enviar_soporte
 - action_derivar_y_registrar_humano
@@ -1595,6 +1598,4 @@ actions:
 - action_procesar_soporte
 - action_marcar_escalar_humano
 - action_handoff_en_cola
-- action_handle_with_llm
-- action_route_llm_intent
 - action_memory_wrapper
