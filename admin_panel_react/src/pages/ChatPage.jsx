@@ -71,7 +71,7 @@ async function fetchUserSettingsIfPossible(token) {
 export default function ChatPage({
     forceEmbed = false,
     title = "Asistente Tutor Virtual",
-    subtitle = "Tutor Virtual Zajuna · v7.3",
+    subtitle = null,
     connectFn,
     embedHeight = "560px",
     children,
@@ -129,7 +129,6 @@ export default function ChatPage({
         setStatus("connecting");
         setDegraded(false);
 
-        // watchdog: si se demora, seguimos igual en ready
         let forced = false;
         const watchdog = setTimeout(() => {
             forced = true;
@@ -168,14 +167,13 @@ export default function ChatPage({
         connect();
     }, [connect]);
 
-    // auth requerida en modo no-embed
+   
     useEffect(() => {
         if (!isEmbed && CHAT_REQUIRE_AUTH && !isAuthenticated) {
             navigate("/login", { replace: true });
         }
     }, [isEmbed, isAuthenticated, navigate]);
 
-    // aplicar preferencias al estar listo
     useEffect(() => {
         if (status !== "ready" || !isAuthenticated) return;
         let token = null;
@@ -189,7 +187,7 @@ export default function ChatPage({
         })();
     }, [status, isAuthenticated, i18n]);
 
-    // lang en <html>
+   
     useEffect(() => {
         try {
             const html = document.documentElement;
@@ -199,7 +197,7 @@ export default function ChatPage({
         } catch { }
     }, [i18n.language]);
 
-    // autoscroll al enfocar
+ 
     useEffect(() => {
         const el = document.querySelector(".chat-messages");
         if (!el) return;
@@ -212,7 +210,7 @@ export default function ChatPage({
         return () => window.removeEventListener("focusin", onFocus);
     }, []);
 
-    // mensajes del host
+   
     useEffect(() => {
         const handler = (e) => {
             const { data } = e;
@@ -237,7 +235,7 @@ export default function ChatPage({
         return () => window.removeEventListener("message", handler);
     }, [i18n]);
 
-    // auto minimizar en embed
+  
     useEffect(() => {
         if (isEmbed && AUTO_MINIMIZE) {
             const timer = setTimeout(() => {
@@ -255,12 +253,13 @@ export default function ChatPage({
         return null;
     }
 
-    /* ------- Layout responsivo y alto completo ------- */
     const wrapperClass = wantFullScreen
-        ? "p-0 min-h-[100dvh] flex flex-col"
-        : "p-4 md:p-6 min-h-[90dvh] flex flex-col";
-    const bodyClass =
-        "flex-1 bg-white rounded border shadow overflow-hidden min-h-[60dvh]";
+        ? "p-0 h-screen flex flex-col overflow-hidden min-h-0"
+        : "p-4 md:p-6 min-h-screen flex flex-col min-h-0";
+
+    const bodyClass = wantFullScreen
+        ? "flex-1 flex flex-col overflow-hidden min-h-0"  
+        : "flex-1 bg-white rounded border shadow overflow-hidden min-h-[60dvh] min-h-0";
 
     const wrapperStyle = isEmbed ? { height: embedHeight || "100vh" } : undefined;
 
@@ -294,37 +293,46 @@ export default function ChatPage({
             {/* NAVBAR (modo normal, no embed) */}
             {!isEmbed && (
                 <header className="mb-3 md:mb-4">
-                    <div className="max-w-5xl mx-auto w-full px-3 py-2 rounded-xl bg-indigo-700 text-white shadow-sm flex items-center justify-between gap-3">
-                        {/* Botón salir / volver al inicio */}
-                        <button
-                            type="button"
-                            onClick={() => navigate("/")}
-                            className="inline-flex items-center gap-1 text-xs sm:text-sm px-3 py-1.5 rounded-full bg-indigo-800 hover:bg-indigo-900 border border-white/40 focus:outline-none focus:ring-2 focus:ring-white/60"
-                        >
-                            <span>←</span>
-                            <span>Salir</span>
-                        </button>
-
-                        {/* Título + subtítulo centrado */}
-                        <div className="flex flex-col items-center justify-center text-center flex-1 min-w-0">
-                            <h1 className="text-sm sm:text-lg md:text-xl font-semibold tracking-tight text-gray-50 break-words">
-                                {title}
-                            </h1>
-                            {subtitle ? (
-                                <p className="mt-0.5 text-[11px] sm:text-xs text-indigo-100 truncate max-w-full">
-                                    {subtitle}
-                                </p>
-                            ) : null}
+                    <div
+                        className="
+        max-w-5xl mx-auto w-full px-3 py-2 rounded-xl
+        bg-indigo-700 text-white shadow-sm
+        flex items-center justify-between gap-3
+      "
+                    >
+                        {/* Configuración (aquí dentro ya tienes la opción 'Salir del chat') */}
+                        <div className="flex items-center gap-2">
+                            <ChatConfigMenu />
                         </div>
 
-                        {/* Estado del bot + Configuración a la derecha */}
-                        <div className="flex items-center justify-end gap-2 min-w-[150px]">
-                            <ChatbotStatusMini status={degraded ? "warning" : status} />
-                            <ChatConfigMenu />
+                        {/* Título centrado */}
+                        <div className="flex flex-col items-center justify-center text-center flex-1 min-w-0">
+                            <h1
+                                className="
+            font-semibold tracking-tight text-gray-50 break-words
+            text-[clamp(1.1rem,3.6vw,1.8rem)]
+          "
+                            >
+                                {title}
+                            </h1>
+                        </div>
+
+                        {/* Estado del bot a la derecha */}
+                        <div className="flex items-center justify-end">
+                            <ChatbotStatusMini
+                                status={degraded ? "warning" : status}
+                                sizeClass="
+            w-8 h-8
+            sm:w-9 sm:h-9
+            md:w-10 md:h-10
+            lg:w-11 lg:h-11
+            xl:w-12 xl:h-12
+          "
+                                className="shrink-0"
+                            />
                         </div>
                     </div>
 
-                    {/* Aviso de modo degradado debajo del navbar */}
                     {degraded && (
                         <div className="max-w-5xl mx-auto px-3 pt-1">
                             <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 flex items-center gap-2 text-amber-700 text-xs sm:text-sm">
@@ -345,19 +353,38 @@ export default function ChatPage({
                 style={isEmbed && SHOW_EMBED_TOPBAR ? { paddingTop: 36 } : undefined}
             >
                 {status === "connecting" && (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6">
-                        <div style={{ maxWidth: 160 }}>
-                            <ChatbotLoading
-                                label={t("chat.connecting", "Conectando…")}
-                            />
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6">
+                        <div className="flex items-center justify-center w-full">
+                            <div className="max-w-[220px] sm:max-w-[260px] md:max-w-[300px]">
+                                <ChatbotLoading
+                                    label={t("chat.connecting", "Conectando…")}
+                                />
+                            </div>
                         </div>
-                        <ChatbotStatusMini status="connecting" />
+
+                        {/* mini estado debajo, pequeñito */}
+                        <ChatbotStatusMini
+                            status="connecting"
+                            sizeClass="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9"
+                        />
                     </div>
                 )}
 
                 {status === "ready" && (
-                    <div className="w-full h-full">
-                        {children ?? <ChatUI embed={isEmbed} />}
+                    <div className="w-full h-full flex justify-center">
+                        {/* Contenedor del bot: ancho máximo y layout vertical */}
+                        <div
+                            className="
+        w-full
+        max-w-md          /* ancho tipo móvil */
+        md:max-w-lg
+        h-full            /* 👈 ocupa todo el alto del body */
+        flex flex-col
+        bg-[#050816]
+      "
+                        >
+                            {children ?? <ChatUI embed={isEmbed} />}
+                        </div>
                     </div>
                 )}
 

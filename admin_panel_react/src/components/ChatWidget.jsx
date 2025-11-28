@@ -26,12 +26,11 @@ export default function ChatWidget({
         await checkStatus();
     }, [checkStatus]);
 
-    // 🔄 Se ejecuta al abrir el widget
+  
     useEffect(() => {
         if (open) connect();
     }, [open, connect]);
 
-    // (NO CAMBIA NADA desde aquí ↓)
     useEffect(() => {
         if (!open) return;
         const onEsc = (e) => e.key === "Escape" && setOpen(false);

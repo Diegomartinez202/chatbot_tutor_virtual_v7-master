@@ -1,5 +1,5 @@
 // src/components/chat/ChatUI.jsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Send, User as UserIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,12 +12,12 @@ import "./ChatUI.css";
 import QuickActions from "@/components/chat/QuickActions";
 import { sendToRasaREST } from "./rasa/restClient.js";
 import useRasaStatus from "../../hooks/useRasaStatus";
-import ChatbotStatusBar from "../ChatbotStatusBar";
+// import ChatbotStatusBar from "../ChatbotStatusBar";
 
 const BOT_AVATAR = import.meta.env.VITE_BOT_AVATAR || "/bot-avatar.png";
 const USER_AVATAR_FALLBACK = import.meta.env.VITE_USER_AVATAR || "/user-avatar.png";
 
-/* --- Avatares --- */
+
 function BotAvatar({ size = 28, src = BOT_AVATAR }) {
     const [err, setErr] = useState(false);
     return (
@@ -40,7 +40,7 @@ function BotAvatar({ size = 28, src = BOT_AVATAR }) {
 }
 
 function UserAvatar({ user, size = 28 }) {
-    // Si NO hay sesión -> icono de persona
+  
     if (!user) {
         return (
             <div
@@ -84,11 +84,11 @@ function UserAvatar({ user, size = 28 }) {
     );
 }
 
-export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…" , avatarSrc = BOT_AVATAR, }) {
+export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaje…", avatarSrc = BOT_AVATAR, }) {
     const { user } = useAuth();
     const { t: tChat } = useTranslation("chat");
     const { status: rasaStatus, checkStatus } = useRasaStatus();
-
+    const messagesContainerRef = useRef(null);
     const [senderId] = useState(() => {
         const k = "rasa:senderId";
         try {
@@ -138,6 +138,15 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     const [typing, setTyping] = useState(false);
     const [showQuick, setShowQuick] = useState(true);
     const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false);
+    
+
+    useEffect(() => {
+        const el = messagesContainerRef.current;
+        if (!el) return;
+
+        // desplaza hasta el último mensaje
+        el.scrollTop = el.scrollHeight;
+    }, [messages.length]);
 
     useEffect(() => {
         if (storeToken) setAuthToken(storeToken);
@@ -304,8 +313,41 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
             const rsp = await sendToRasaREST(senderId, text, authToken || undefined);
             await appendBotMessages(rsp);
         } catch (e) {
-            setError(e?.message || tChat("errorSending"));
-        } finally {
+            console.error("Error enviando al bot:", e);
+
+            // Mensaje base genérico
+            let friendly =
+                tChat(
+                    "errorSending",
+                    "Hubo un problema al conectar con el bot. Inténtalo de nuevo."
+                );
+
+            // Si restClient marcó códigos específicos:
+            if (e?.code === "BOT_PROXY_ERROR") {
+                friendly =
+                    "El servidor del bot no responde en este momento. Por favor, inténtalo de nuevo en unos segundos.";
+            } else if (e?.code === "NETWORK_DOWN") {
+                friendly =
+                    "Parece que no hay conexión con el servidor del bot. Revisa tu conexión e inténtalo más tarde.";
+            } else if (e?.message) {
+                // Si el backend devolvió un detail más específico
+                // (por ejemplo: proxy_network_error: upstream timeout)
+                friendly = friendly + " Detalle técnico: " + e.message;
+            }
+
+            // Mostrar el error en rojo debajo del input (opcional)
+            setError(friendly);
+
+            // 👇 Mostrar el error como burbuja del BOT en el chat
+            setMessages((m) => [
+                ...m,
+                {
+                    id: `b-${Date.now()}-error`,
+                    role: "bot",
+                    text: friendly,
+                },
+            ]);
+           }finally {
             setSending(false);
             if (!hasSentFirstMessage) setHasSentFirstMessage(true);
         }
@@ -337,19 +379,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
     );
 
     return (
-        <div className="h-full flex flex-col chat-container">
-            <ChatbotStatusBar
-                status={rasaStatus}
-                message={
-                    rasaStatus === "connecting" ? "Conectando con Rasa..." :
-                        rasaStatus === "ready" ? "Rasa conectado" :
-                            "Error conectando a Rasa"
-                }
-                onRetry={checkStatus}
-                className="px-3 py-2 border-b bg-gray-50"
-            />
+      <div className="h-full min-h-0 flex flex-col chat-container">
             {/* Mensajes */}
-            <div className="chat-messages px-3 py-4">
+            <div className="chat-messages flex-1 min-h-0 overflow-y-auto px-3 py-4"
+                ref={messagesContainerRef}>
                 {showQuick && (
                     <QuickActions
                         show

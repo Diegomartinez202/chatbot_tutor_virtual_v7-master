@@ -51,7 +51,7 @@ function mergeAppSettings(patch) {
 /** Pequeños helpers visuales para que todo se vea uniforme  */
 function SectionTitle({ children }) {
     return (
-        <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+        <div className="px-1 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-indigo-100 uppercase opacity-90">
             {children}
         </div>
     );
@@ -76,20 +76,32 @@ function MenuButton({
         <button
             type="button"
             onClick={onClick}
-            className={`w-full flex ${justify} items-center gap-2 px-3 py-2.5 text-sm rounded-lg transition-colors
-      ${danger ? "text-rose-300 hover:bg-rose-500/10" : "text-slate-100 hover:bg-slate-700/60"}`}
+            className={`
+        w-full flex ${justify} items-center gap-2
+        px-3 py-1.5               /* 👈 más bajos */
+        text-[13px]               /* 👈 texto un poco más pequeño */
+        rounded-xl
+        border shadow-sm transition-all
+        mb-3                      /* 👈 más espacio entre botones */
+        ${danger
+                    ? "bg-rose-500 text-white border-rose-300 hover:bg-rose-400"
+                    : "bg-indigo-500 text-white border-indigo-300 hover:bg-indigo-400"
+                }
+      `}
         >
             <span className="inline-flex items-center gap-2">
                 {Icon && <Icon className="w-4 h-4 shrink-0" />}
-                <span>{label}</span>
+                <span className="font-medium">{label}</span>
             </span>
+
             {helper && (
-                <span className="text-[11px] text-slate-400 font-medium">{helper}</span>
+                <span className="text-[11px] text-indigo-50/90 font-medium">
+                    {helper}
+                </span>
             )}
         </button>
     );
 }
-
 export default function ChatConfigMenu({ className = "" }) {
     const [open, setOpen] = useState(false);
     const [theme, setTheme] = useState("light");
@@ -212,7 +224,10 @@ export default function ChatConfigMenu({ className = "" }) {
     // Login/Registro local (app)
     const goLoginApp = () => navigate("/login");
     const goRegisterApp = () => navigate("/register");
-
+    const handleExitChat = () => {
+        setOpen(false);
+        navigate("/", { replace: true });
+    };
     const langLabel = lang === "en" ? "English" : "Español";
     const themeLabel = theme === "dark" ? "Oscuro" : "Claro";
     const contrastLabel = highContrast
@@ -226,12 +241,11 @@ export default function ChatConfigMenu({ className = "" }) {
                 type="button"
                 ref={btnRef}
                 onClick={() => setOpen((v) => !v)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/60 bg-white/5 text-xs sm:text-sm text-white hover:bg-white/15 backdrop-blur shadow-sm"
+                className="inline-flex items-center px-4 py-1.5 rounded-full border border-white/50 bg-white/10 text-xs sm:text-sm font-medium text-white hover:bg-white/20 backdrop-blur shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={open}
             >
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Configuración</span>
+                Configuración
             </button>
 
             {open && (
@@ -239,29 +253,30 @@ export default function ChatConfigMenu({ className = "" }) {
                     ref={menuRef}
                     role="menu"
                     className="
-                      absolute mt-2
-                      left-1/2 -translate-x-1/2
-                      md:left-auto md:right-0 md:translate-x-0
-                      w-72 max-w-[calc(100vw-2.5rem)]
-                      bg-white border rounded-xl shadow-2xl p-1 z-50
-                   "
+      absolute mt-2 left-0
+      w-72 max-w-[min(18rem,calc(100vw-1.5rem))]
+      rounded-2xl
+      border-2 border-indigo-300
+      bg-indigo-700 text-indigo-50
+      shadow-2xl
+      p-3
+      z-50
+      space-y-3
+    "
                 >
-                    {/* Cabecera del panel */}
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700/70 bg-slate-900/80">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
-                            <Settings className="w-4 h-4" />
-                            <span>Configuración</span>
-                        </div>
+                    {/* CABECERA */}
+                    <div className="flex items-center justify-between pb-2 border-b border-indigo-300/60">
+                        <span className="text-[12px] font-semibold tracking-wide uppercase">
+                            Ajustes del chat
+                        </span>
                         <button
                             type="button"
                             onClick={() => setOpen(false)}
-                            className="p-1 rounded hover:bg-slate-700/80"
-                            aria-label="Cerrar panel de configuración"
+                            className="px-2 py-1 text-[11px] rounded-full bg-indigo-500 hover:bg-indigo-400 text-white transition"
                         >
-                            ✕
+                            Cerrar
                         </button>
                     </div>
-
                     {/* === ACCESIBILIDAD (tema, contraste, idioma) === */}
                     <SectionTitle>Accesibilidad</SectionTitle>
 
@@ -279,83 +294,103 @@ export default function ChatConfigMenu({ className = "" }) {
                         onClick={toggleContrast}
                     />
 
-                    <div className="px-3 pb-2 pt-1 flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-2 text-sm text-slate-100">
-                            <Languages className="w-4 h-4" />
+                    <div className="px-1 pt-2 pb-1 flex items-center justify-between gap-2">
+                        <span className="text-[13px] text-indigo-50 font-semibold">
                             Idioma
                         </span>
-                        <div className="flex gap-1">
+
+                        <div className="flex gap-2">
                             <button
                                 type="button"
                                 aria-label="Cambiar a Español"
                                 onClick={() => changeLang("es")}
-                                className={`px-2 py-1 text-[11px] rounded-full border transition ${lang === "es"
-                                        ? "bg-indigo-500 text-white border-indigo-500"
-                                        : "bg-slate-900 text-slate-200 border-slate-600 hover:bg-slate-700"
-                                    }`}
+                                className={`
+        px-3 py-1.5 text-[11px] rounded-full border
+        transition-all font-semibold
+        ${lang === "es"
+                                        ? "bg-white text-indigo-600 border-white shadow-sm"
+                                        : "bg-indigo-500 text-indigo-50 border-indigo-300 hover:bg-indigo-400"
+                                    }
+      `}
                             >
                                 ES
                             </button>
+
                             <button
                                 type="button"
                                 aria-label="Switch to English"
                                 onClick={() => changeLang("en")}
-                                className={`px-2 py-1 text-[11px] rounded-full border transition ${lang === "en"
-                                        ? "bg-indigo-500 text-white border-indigo-500"
-                                        : "bg-slate-900 text-slate-200 border-slate-600 hover:bg-slate-700"
-                                    }`}
+                                className={`
+        px-3 py-1.5 text-[11px] rounded-full border
+        transition-all font-semibold
+        ${lang === "en"
+                                        ? "bg-white text-indigo-600 border-white shadow-sm"
+                                        : "bg-indigo-500 text-indigo-50 border-indigo-300 hover:bg-indigo-400"
+                                    }
+      `}
                             >
                                 EN
                             </button>
                         </div>
                     </div>
 
+
                     <div className="px-3 pb-2 text-[11px] text-slate-400">
-                        Actual: {langLabel}
+                         {langLabel}
                     </div>
 
-                    <div className="h-px bg-slate-700/70 mx-2 my-1" />
+                    <div className="h-px bg-indigo-300/50 mx-1 my-2 rounded-full" />
 
                     {/* === CHATBOT: autenticarse con Zajuna para el bot === */}
                     <SectionTitle>Chatbot</SectionTitle>
 
                     <MenuButton
-                        icon={Shield}
                         label="Autenticarse con Zajuna"
-                        helper="Vincular sesión"
                         onClick={goZajuna}
+                        align="center"
                     />
 
-                    <div className="h-px bg-slate-700/70 mx-2 my-1" />
+                    <div className="h-px bg-indigo-300/50 mx-1 my-2 rounded-full" />
 
                     {/* === PANEL ADMINISTRATIVO (app) === */}
                     <SectionTitle>Panel administrativo</SectionTitle>
 
                     <MenuButton
-                        icon={LogIn}
-                        label="Iniciar sesión (app)"
+                        label="Iniciar sesión"
                         onClick={goLoginApp}
+                        align="center"
                     />
 
                     <MenuButton
-                        icon={UserPlus}
-                        label="Registrarse (app)"
+                        label="Registrarse"
                         onClick={goRegisterApp}
+                        align="center"
                     />
-
+                    <MenuButton
+                        label="Registrarse / ingresar con Zajuna"
+                        onClick={goZajuna}
+                        align="center"
+                    />
                     {isAuthenticated && (
                         <>
-                            <div className="h-px bg-slate-700/70 mx-2 my-1" />
+                            <div className="h-px bg-indigo-300/50 mx-1 my-2 rounded-full" />
                             <MenuButton
-                                icon={LogOut}
                                 label="Cerrar sesión"
                                 danger
                                 onClick={handleLogout}
                             />
                         </>
                     )}
+                    <div className="h-px bg-indigo-300/50 mx-1 my-2 rounded-full" />
+                            <SectionTitle>Chat</SectionTitle>
+
+                    <MenuButton
+                        label="Salir del chat"
+                        onClick={handleExitChat}
+                        align="center"
+                    />
                 </div>
             )}
-        </div>
+        </div >
     );
 }

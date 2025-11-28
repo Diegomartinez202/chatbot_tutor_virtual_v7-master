@@ -33,12 +33,17 @@ export default function ChatbotLoading({
             <div className="relative flex items-center justify-center">
                 <IconTooltip label={label} side="top">
                     <div
-                        className="
-                            rounded-full shadow-md overflow-hidden bg-white flex items-center justify-center
-                            w-20 h-20 
-                            sm:w-24 sm:h-24 
-                            md:w-28 md:h-28
-                        "
+                      className="
+                        rounded-full overflow-hidden bg-white shadow-lg
+                        border border-slate-200
+                        flex items-center justify-center
+                        mx-auto
+                        w-24 h-24          /* móvil ≈ 96px */
+                        sm:w-28 sm:h-28    /* tablet pequeña */
+                        md:w-32 md:h-32    /* tablet / portátil */
+                        lg:w-36 lg:h-36    /* escritorio */
+                        xl:w-40 xl:h-40    /* monitores grandes */
+                      "
                         aria-busy={useSpinner}
                     >
                         {imgError ? (
@@ -49,11 +54,7 @@ export default function ChatbotLoading({
                             <img
                                 src={avatarSrc}
                                 alt="Avatar del chatbot"
-                                className="
-                                    object-contain 
-                                    w-full h-full 
-                                    p-1
-                                "
+                                className="object-contain w-full h-full"
                                 loading="eager"
                                 onError={() => setImgError(true)}
                             />
@@ -64,14 +65,15 @@ export default function ChatbotLoading({
                 {useSpinner && (
                     <Loader2
                         className="
-                            absolute -bottom-2 -right-2 
-                            h-5 w-5 md:h-6 md:w-6 
-                            animate-spin text-indigo-600 bg-white rounded-full p-0.5
+                          absolute -bottom-3 -right-3 
+                          h-6 w-6 md:h-7 md:w-7 
+                          animate-spin text-indigo-600 bg-white rounded-full p-0.5 shadow
                         "
                         aria-hidden="true"
                     />
-                )}
-            </div>
+                 )}
+             </div>
+
 
             {/* Texto + badge */}
             <div className="flex flex-col items-center gap-1">

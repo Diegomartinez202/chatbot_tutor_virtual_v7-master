@@ -9,7 +9,7 @@
         window.__DISABLE_CHAT_WIDGET__ = false;
         document.documentElement.setAttribute('data-app-context', 'hybrid');
     </script>
-    <!-- La CSP real la controlas desde Nginx; aquí solo estilos mínimos para la demo -->
+  
     <style>
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
@@ -30,7 +30,6 @@
             padding: 16px;
         }
 
-        /* --- Lanzador de la burbuja (botón) --- */
         .bubble-launch {
             position: fixed;
             right: 18px;
@@ -153,21 +152,12 @@
 
     <main>
         <h1>Bienvenido</h1>
-        <p>Esta página embeberá el chat en modo invitado y pedirá token solo cuando una acción lo requiera.</p>
-
-        <div class="row">
-            <button id="btn-set-token" class="btn">Simular guardar token en localStorage</button>
-            <button id="btn-clear-token" class="btn">Borrar token</button>
-        </div>
-        <div class="row">
-            <small>Token actual: <code id="token-view">(sin token)</code></small>
-        </div>
+        <p>Esta página embeberá el chat en modo invitado</p>
     </main>
-
-    <!-- 🔹 Botón con avatar -->
+    
     <button id="launcher" class="bubble-launch">
         <span class="bubble-avatar">
-            <!-- Asegúrate de tener public/bot-avatar.png accesible en /bot-avatar.png -->
+          
             <img src="/bot-avatar.png" alt="Tutor Virtual" />
         </span>
         <span class="bubble-label"></span>
@@ -182,7 +172,7 @@
             </div>
         </div>
         <div class="body">
-            <!-- Abrimos la landing principal del chat web -->
+           
             <iframe id="chatFrame"
                     src="/"
                     title="Chat Zajuna"

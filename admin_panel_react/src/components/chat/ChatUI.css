@@ -1,14 +1,12 @@
 /* === Chat Web: layout robusto sin tocar lógica === */
 
-/* El contenedor del chat ocupa toda la altura disponible.
-   Usamos dvh/svh para que en móviles no se esconda el input
-   cuando aparece/oculta el teclado virtual. */
 .chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 100svh; /* iOS */
-    min-height: 100dvh; /* Android/Chromium */
+    min-height: 0; /* ✅ */
+    max-height: 100%;
+    overflow: hidden;
     background: var(--color-bg, #0b1220);
 }
 
@@ -18,7 +16,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    /*scroll-behavior: smooth;*/
     display: flex;
     flex-direction: column;
     gap: 10px;
