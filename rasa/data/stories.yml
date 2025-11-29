@@ -10,6 +10,7 @@ stories:
   steps:
     - intent: solicitar_soporte
     - action: utter_preguntar_tipo_soporte
+    - action: action_incrementar_turnos_conversacion 
     - intent: soporte_interno
     - action: utter_iniciar_soporte_desde_pedir_mensaje
     - intent: otro_problema_tecnico
@@ -49,8 +50,8 @@ stories:
     - intent: error_actividad
     - action: utter_error_actividad_ayuda
     - intent: soporte_error
-    - action: utter_soporte_error          # ← añadido
-    - action: action_handle_with_llm       # ← se mantiene
+    - action: utter_soporte_error         
+    - action: action_handle_with_llm       
     - intent: enviar_soporte_directo
     - action: action_enviar_soporte_directo
 
@@ -60,6 +61,7 @@ stories:
     - action: action_analizar_estado_usuario
     - intent: solicitar_soporte
     - action: utter_preguntar_tipo_soporte
+    - action: action_incrementar_turnos_conversacion
     - intent: soporte_pqrs
     - action: utter_iniciar_soporte_desde_pedir_mensaje
     - action: utter_ask_email_contacto
@@ -70,6 +72,7 @@ stories:
   steps:
     - intent: solicitar_soporte
     - action: utter_preguntar_tipo_soporte
+    - action: action_incrementar_turnos_conversacion
     - intent: soporte_pqrs
     - action: utter_iniciar_soporte_desde_pedir_mensaje
     - action: utter_ask_email_contacto
@@ -80,6 +83,7 @@ stories:
   steps:
     - intent: solicitar_soporte
     - action: utter_preguntar_tipo_soporte
+    - action: action_incrementar_turnos_conversacion
     - intent: soporte_interno
     - action: utter_iniciar_soporte_desde_pedir_mensaje
     - intent: pedir_mensaje
@@ -130,6 +134,7 @@ stories:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
+    - action: action_incrementar_turnos_conversacion 
     - intent: continue
     - action: utter_continuar_tema_menu
     - intent: continuar_tema_si
@@ -140,6 +145,7 @@ stories:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
+    - action: action_incrementar_turnos_conversacion
     - intent: continuar_tema_no
     - action: utter_no_continuar_tema
     - action: utter_menu_principal
@@ -151,13 +157,15 @@ stories:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
+    - action: action_incrementar_turnos_conversacion 
 
 - story: Flujo aprender tema con LLM directo
   steps:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
-
+    - action: action_incrementar_turnos_conversacion
+  
 - story: Flujo tutor académico desde menú académico
   steps:
     - intent: menu_academico
@@ -166,10 +174,7 @@ stories:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
-
-# ============================================
-# 3️⃣ ENCUESTAS, SATISFACCIÓN Y FEEDBACK "LIBRE"
-# ============================================
+    - action: action_incrementar_turnos_conversacion
 
 - story: Encuesta rápida tras problema resuelto
   steps:
@@ -223,10 +228,6 @@ stories:
     - action: action_registrar_encuesta
     - action: utter_agradecimiento_satisfaccion
 
-# ============================================
-# 4️⃣ FALLBACK INTELIGENTE + LLM
-# ============================================
-
 - story: Ayuda genérica → LLM + menú
   steps:
     - intent: fallback
@@ -248,26 +249,12 @@ stories:
     - intent: aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
+    - action: action_incrementar_turnos_conversacion
     - intent: nlu_fallback
     - action: action_handle_with_llm
     - intent: menu_academico
     - action: utter_menu_academico
     - action: utter_preguntar_tema_academico
-
-# ============================================
-# 5️⃣ CIERRE SEGURO + AUTOSAVE (VERSIÓN HUMANA)
-# ============================================
-
-- story: Terminar conversación con cierre seguro conversacional
-  steps:
-    - intent: terminar_conversacion
-    - action: action_verificar_proceso_activo_autosave
-    - action: utter_despedida_profesional
-    - intent: terminar_conversacion_segura_autosave
-    - action: action_verificar_proceso_activo_autosave
-    - intent: confirmar_cierre_autosave
-    - action: action_guardar_encuesta_incompleta
-    - action: action_confirmar_cierre_autosave
 
 - story: Cierre seguro cancelado con retorno al menú
   steps:

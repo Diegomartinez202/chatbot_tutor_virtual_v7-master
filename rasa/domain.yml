@@ -131,6 +131,7 @@ intents:
 - out_of_scope
 - resumir_clase
 - guardar_estado_seguridad
+
 entities:
 - curso
 - certificado
@@ -163,6 +164,7 @@ entities:
 - solicitar_certificado
 - tema
 - llm_suggested_intent
+
 slots:
   is_authenticated:
     type: bool
@@ -553,6 +555,21 @@ slots:
     - type: from_text
       intent: informar_historial_academico
     - type: custom
+  
+  turnos_conversacion:
+    type: float
+    influence_conversation: false
+    initial_value: 0
+    mappings:
+      - type: custom
+
+  sesion_larga:
+    type: bool
+    influence_conversation: false
+    initial_value: false
+    mappings:
+      - type: custom
+
 forms:
   auth_login_form:
     required_slots:
@@ -1599,3 +1616,6 @@ actions:
 - action_marcar_escalar_humano
 - action_handoff_en_cola
 - action_memory_wrapper
+- action_resumen_sesion_llm
+- action_incrementar_turnos_conversacion
+- action_reset_turnos_conversacion

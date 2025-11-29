@@ -310,7 +310,10 @@ export default function ChatUI({ embed = false, placeholder = "Escribe tu mensaj
         setShowQuick(false);
 
         try {
-            const rsp = await sendToRasaREST(senderId, text, authToken || undefined);
+            const rsp = await sendToRasaREST(senderId, text, {
+                authToken: authToken || undefined,
+                isEmbed: embed,
+            });
             await appendBotMessages(rsp);
         } catch (e) {
             console.error("Error enviando al bot:", e);

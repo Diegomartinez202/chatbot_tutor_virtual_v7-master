@@ -1,6 +1,9 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Text
-
+from rasa_sdk import Action, Tracker
+from rasa_sdk.executor import CollectingDispatcher
+from rasa_sdk.events import SlotSet, EventType
+from typing import Any, Dict, List, Text
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
@@ -18,8 +21,8 @@ class ActionReiniciarConversacion(Action):
     ) -> List[EventType]:
         """
         Reinicio "lógico" de la conversación:
-        - Aquí podrías limpiar slots críticos.
-        - Por ahora enviamos un mensaje y reseteamos algunos básicos.
+        - Envía mensaje de confirmación.
+        - Limpia slots básicos de estado y también el contador de turnos.
         """
         dispatcher.utter_message(response="utter_reinicio_confirmado")
 
@@ -28,9 +31,12 @@ class ActionReiniciarConversacion(Action):
             SlotSet("encuesta_incompleta", False),
             SlotSet("proceso_activo", None),
             SlotSet("confirmacion_cierre", None),
+            # 👇 NUEVO: reset de contador y flag de sesión larga
+            SlotSet("turnos_conversacion", 0),
+            SlotSet("sesion_larga", False),
         ]
 
-        # Aquí podrías añadir más SlotSet si lo necesitas, por ejemplo:
+        # Si quisieras, aquí podrías también limpiar autenticación, etc.
         # events.append(SlotSet("is_authenticated", False))
 
         return events
@@ -103,3 +109,23 @@ class ActionMostrarToken(Action):
             )
 
         return []
+class ActionResetTurnosConversacion(Action):
+    """
+    Acción independiente para resetear solo el contador de turnos y la marca de sesión larga.
+    Útil si quieres llamarla en reglas específicas (p.ej. al iniciar una nueva sesión).
+    """
+
+    def name(self) -> Text:
+        return "action_reset_turnos_conversacion"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[EventType]:
+
+        return [
+            SlotSet("turnos_conversacion", 0),
+            SlotSet("sesion_larga", False),
+        ]

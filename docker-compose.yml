@@ -107,9 +107,9 @@ services:
       JWT_ISSUER: "${JWT_ISSUER}"
       JWT_AUDIENCE: "${JWT_AUDIENCE}"
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama2}
+      OLLAMA_MODEL: llama3.1:latest
       OLLAMA_MAX_TOKENS: ${OLLAMA_MAX_TOKENS:-250}
-      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-12}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-60}
     depends_on:
       mongo:
         condition: service_healthy

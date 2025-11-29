@@ -11,16 +11,11 @@ from rasa_sdk.events import (
     EventType,
 )
 
-# ------- Helpers mínimos (simulan persistencia en memoria) -------
-# En producción, reemplaza este "store" por Mongo/Redis.
 _INMEM_AUTOSAVE: Dict[str, Dict[str, Any]] = {}
 
 
 def _sender_id(tracker: Tracker) -> str:
     return tracker.sender_id or "anon"
-
-
-# --------------- Acciones -----------------------------
 
 
 class ActionConfirmarCierreSeguro(Action):
@@ -35,12 +30,10 @@ class ActionConfirmarCierreSeguro(Action):
     ) -> List[EventType]:
         encuesta_activa = bool(tracker.get_slot("encuesta_activa"))
 
-        # Si hay encuesta activa, usamos la versión "segura" que avisa que hay datos sin guardar
         if encuesta_activa:
             dispatcher.utter_message(response="utter_confirmar_cierre_seguro")
             return []
 
-        # Si NO hay encuesta activa, podemos cerrar directamente de forma segura
         dispatcher.utter_message(response="utter_cierre_confirmado_seguro")
         return [ConversationPaused()]
 
@@ -55,13 +48,13 @@ class ActionAutosaveEncuesta(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
-        # Marca que hay algo que guardar (si no lo estaba ya)
         dispatcher.utter_message(response="utter_guardando_progreso")
         return [SlotSet("encuesta_activa", True)]
 
 
 class ActionGuardarAutosaveMongo(Action):
     """Simula guardar en Mongo. Cambia por tu integración real."""
+
     def name(self) -> Text:
         return "action_guardar_autosave_mongo"
 
@@ -84,6 +77,7 @@ class ActionGuardarAutosaveMongo(Action):
 
 class ActionCargarAutosaveMongo(Action):
     """Simula carga desde Mongo. Cambia por tu integración real."""
+
     def name(self) -> Text:
         return "action_cargar_autosave_mongo"
 
@@ -104,7 +98,9 @@ class ActionCargarAutosaveMongo(Action):
             dispatcher.utter_message(text="📂 He cargado tu progreso guardado.")
             dispatcher.utter_message(response="utter_reanudar_conversacion")
         else:
-            dispatcher.utter_message(text="ℹ️ No encontré progreso previo para reanudar.")
+            dispatcher.utter_message(
+                text="ℹ️ No encontré progreso previo para reanudar."
+            )
 
         return events
 
@@ -120,11 +116,15 @@ class ActionAutoresumeConversacion(Action):
         domain: Dict[Text, Any],
     ) -> List[EventType]:
         if tracker.get_slot("encuesta_activa"):
-            dispatcher.utter_message(text="🔄 Retomando tu proceso donde lo dejaste…")
+            dispatcher.utter_message(
+                text="🔄 Retomando tu proceso donde lo dejaste…"
+            )
             dispatcher.utter_message(response="utter_reanudar_conversacion")
             return [ConversationResumed()]
 
-        dispatcher.utter_message(text="No hay nada pendiente. Continuamos normalmente.")
+        dispatcher.utter_message(
+            text="No hay nada pendiente. Continuamos normalmente."
+        )
         return []
 
 
@@ -138,11 +138,12 @@ class ActionResetConversacionSegura(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
-        # Limpia flags y el autosave en memoria
         sid = _sender_id(tracker)
         _INMEM_AUTOSAVE.pop(sid, None)
 
-        dispatcher.utter_message(text="🧹 Se ha limpiado el estado de la conversación segura.")
+        dispatcher.utter_message(
+            text="🧹 Se ha limpiado el estado de la conversación segura."
+        )
 
         return [
             SlotSet("encuesta_activa", False),

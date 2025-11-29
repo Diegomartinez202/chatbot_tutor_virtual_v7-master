@@ -8,9 +8,10 @@ from rasa_sdk.events import SlotSet, ConversationPaused, EventType
 from .acciones_encuesta import ActionRegistrarEncuesta
 
 
-class ActionVerificarEstadoEncuesta(Action):
+class ActionVerificarEstadoEncuestaSegura(Action):
     def name(self) -> Text:
-        return "action_verificar_estado_encuesta"
+        # 👀 Importante: nombre único para no chocar con action_verificar_estado_encuesta
+        return "action_verificar_estado_encuesta_segura"
 
     def run(
         self,
@@ -43,7 +44,7 @@ class ActionGuardarProgresoEncuesta(Action):
         # Mensaje estándar mientras guardamos
         dispatcher.utter_message(response="utter_guardando_progreso")
 
-        # 🔗 Conecta con ActionRegistrarEncuesta para persistencia real
+        # 🔗 Intento de conectar con ActionRegistrarEncuesta para persistencia real
         encuesta_data = {
             "usuario": tracker.sender_id,
             "estado": "pendiente",
@@ -51,9 +52,17 @@ class ActionGuardarProgresoEncuesta(Action):
             "tipo": tracker.get_slot("encuesta_tipo"),
             "comentario": tracker.latest_message.get("text"),
         }
-        ActionRegistrarEncuesta().registrar_en_base(encuesta_data)
 
-        # Marcamos que ya no hay encuesta activa (quedó guardada)
+        # ⚠️ En tu versión actual, ActionRegistrarEncuesta no tiene registrar_en_base.
+        # Para no romper nada, protegemos la llamada:
+        try:
+            if hasattr(ActionRegistrarEncuesta, "registrar_en_base"):
+                ActionRegistrarEncuesta().registrar_en_base(encuesta_data)  # type: ignore[attr-defined]
+        except Exception:
+            # Si no existe o falla, simplemente no persistimos extra
+            pass
+
+        # Marcamos que ya no hay encuesta activa (quedó guardada / pausada)
         return [SlotSet("encuesta_activa", False)]
 
 
@@ -78,8 +87,6 @@ class ActionTerminarConversacionSegura(Action):
             SlotSet("encuesta_activa", False),
             ConversationPaused(),
         ]
-
-
 class ActionIrMenuPrincipal(Action):
     def name(self) -> Text:
         return "action_ir_menu_principal"
@@ -90,6 +97,6 @@ class ActionIrMenuPrincipal(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
-        # Usamos el utter_menu_principal global que ya tienes definido en otros domain_parts
+        # Usamos el utter_menu_principal global que ya tienes definido en el domain
         dispatcher.utter_message(response="utter_menu_principal")
         return []

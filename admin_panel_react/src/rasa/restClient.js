@@ -1,24 +1,40 @@
-// admin_panel_react/src/rasa/restClient.js
 import { buildRasaMetadata } from "./meta.js";
 
 const RASA_REST_URL = `${window.location.origin}/rasa/webhooks/rest/webhook`;
 
-export async function sendToRasaREST(senderId, text) {
+/**
+ * @param {string} senderId
+ * @param {string} text
+ * @param {Object} [options]
+ * @param {string} [options.authToken] - token del panel/admin (si existe)
+ * @param {boolean} [options.isEmbed]  - si el chat está embebido
+ */
+export async function sendToRasaREST(senderId, text, options = {}) {
+    const { authToken, isEmbed } = options || {};
+
+    const metadata = buildRasaMetadata({
+        isEmbed: typeof isEmbed === "boolean" ? isEmbed : true,
+        hasPanelToken: !!authToken,
+    });
+
     const body = {
         sender: String(senderId || "web"),
         message: String(text || ""),
-        metadata: buildRasaMetadata(),
+        metadata,
     };
 
     try {
         const res = await fetch(RASA_REST_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                // ⚠️ Si ALGÚN día deciden enviar token de panel al backend de Rasa:
+                // Authorization: authToken ? `Bearer ${authToken}` : undefined,
+            },
             credentials: "include",
             body: JSON.stringify(body),
         });
 
-        // ⛔ Si la respuesta NO es OK, procesamos el error real
         if (!res.ok) {
             let detail = "";
             try {
@@ -28,14 +44,12 @@ export async function sendToRasaREST(senderId, text) {
                 // por si no es JSON
                 detail = await res.text();
             }
-
-            // Construimos un error más informativo hacia arriba
+         
             const err = new Error(detail || `Error REST ${res.status}`);
             err.status = res.status;
             throw err;
         }
 
-        // ⛔ Si no es JSON válido
         try {
             return await res.json();
         } catch (jsonErr) {
@@ -43,7 +57,7 @@ export async function sendToRasaREST(senderId, text) {
         }
 
     } catch (err) {
-        // ⛔ Error de red (proxy caído, timeout, CORS, caída del bot...)
+       
         if (err?.message?.includes("proxy_network_error")) {
             const friendly = new Error(
                 "El servidor del bot no responde en este momento. Inténtalo nuevamente."
@@ -60,7 +74,6 @@ export async function sendToRasaREST(senderId, text) {
             throw friendly;
         }
 
-        // Re-lanzamos error normal
         throw err;
     }
 }

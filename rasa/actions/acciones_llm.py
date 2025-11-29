@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "350"))
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "15"))
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 
 # ==========================================================
@@ -112,6 +112,7 @@ def normalize(text: str) -> str:
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
     return text.lower()
 
+
 # ==========================================================
 # 🧹 NORMALIZACIÓN "DE CHAT": ERRORES TÍPICOS, TILDES, ETC.
 # ==========================================================
@@ -141,30 +142,54 @@ COMMON_CHAT_CORRECTIONS = {
     "digitla": "digital",
 }
 
-
+def strip_accents(text: str) -> str:
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
 def normalize_chat_text(text: str) -> str:
     """
     Normaliza texto de usuario para que el bot entienda aunque escriba
-    con errores: tildes, letras repetidas, abreviaturas típicas de chat.
+    con errores:
+    - tildes
+    - letras repetidas
+    - abreviaturas típicas de chat
+    - SIN deformar palabras por reemplazos de caracteres sueltos
     """
     if not text:
         return ""
 
-    # 1) Minúsculas + quitar tildes (reusa tu normalize)
+    # 1) Tu normalización base (minúsculas + quitar tildes, etc.)
     t = normalize(text)
 
-    # 2) Colapsar letras repetidas: "holaaaa" -> "hola"
-    #    dejamos máximo 2 repeticiones para no matar expresividad
+    # 2) Colapsar letras repetidas: "holaaaa" -> "holaa" (o según tu criterio)
     t = re.sub(r"(.)\1{2,}", r"\1\1", t)
 
-    # 3) Reemplazos directos de jerga / typos frecuentes
-    for wrong, right in COMMON_CHAT_CORRECTIONS.items():
-        t = t.replace(wrong, right)
+    # 3) Tokenizar por palabras
+    tokens = t.split()
 
-    # 4) Limpieza básica de espacios
+    # 4) Correcciones específicas por palabra (evita el problema "k" → "queuiero")
+    slang_map = {
+        "k": "que",
+        "xq": "porque",
+        "xk": "porque",
+        "kiero": "quiero",
+        "aprnder": "aprender",
+        # aquí puedes ir añadiendo más correcciones
+    }
+
+    # 5) Integramos también COMMON_CHAT_CORRECTIONS, pero por palabra
+    #    (si utiliza las mismas claves, slang_map tiene prioridad)
+    for wrong, right in COMMON_CHAT_CORRECTIONS.items():
+        if wrong not in slang_map:
+            slang_map[wrong] = right
+
+    normalized_tokens = [slang_map.get(tok, tok) for tok in tokens]
+
+    # 6) Reconstruir texto y limpiar espacios
+    t = " ".join(normalized_tokens)
     t = re.sub(r"\s+", " ", t).strip()
     return t
-
 # ==========================================================
 # 🧩 CATEGORIZACIÓN DE MATERIAS (AMPLIADA)
 # ==========================================================
@@ -276,14 +301,38 @@ MATERIAS: Dict[str, str] = {
     "tema del sena": "Tutor General del SENA → Relaciona el tema con programas de formación.",
 }
 
-def detectar_materia(text: str) -> str:
-    # Antes: t = normalize(text)
-    t = normalize_chat_text(text)
 
+# ==========================================================
+# 📝 PROMPT PARA RESUMIR / MEJORAR REDACCIÓN (NO INVENTAR DATOS)
+# ==========================================================
+SUMMARIZE_SYSTEM_PROMPT = """
+Eres un asistente de redacción para el Tutor Virtual de Zajuna/SENA.
+
+TU ÚNICA TAREA:
+- Reescribir mensajes técnicos en un texto claro, amable y profesional.
+- NO debes inventar ni cambiar datos de negocio (estado académico, notas, certificados, tickets, etc.).
+
+REGLAS:
+- Usa SIEMPRE español.
+- Respeta todos los hechos: no cambies estados, fechas, cantidades, cursos, ni resultados.
+- No inventes certificados, notas, accesos ni números de ticket.
+- No des diagnósticos médicos, psicológicos ni legales.
+- Si el texto base está claro, solo mejóralo ligeramente (tono más humano, mejor orden).
+
+FORMATO DE SALIDA:
+- Devuelve ÚNICAMENTE el texto final para el usuario.
+- No incluyas etiquetas como 'INTENT:' ni 'RESPUESTA:'.
+- No expliques qué estás haciendo, solo entrega el mensaje listo para mostrar.
+"""
+
+
+def detectar_materia(text: str) -> str:
+    t = normalize_chat_text(text)
     for m, desc in MATERIAS.items():
         if m in t:
             return desc
     return "Tutor General del SENA"
+
 
 # ==========================================================
 # 🔒 ANONIMIZACIÓN ROBUSTA
@@ -296,16 +345,17 @@ def anonymize_text(text: str) -> str:
     text = re.sub(r"\b(?:\d[ -]*?){13,19}\b", "[NUM]", text)
     text = re.sub(
         r"\b[A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s[A-ZÁÉÍÓÚ][a-záéíóú]+){0,2}\b",
-        "[NAME]", text)
+        "[NAME]",
+        text,
+    )
     text = re.sub(
         r"\b(?:calle|cra|carrera|av|avenida|cll)\b[^\n,]{0,40}",
-        "[ADDRESS]", text, flags=re.IGNORECASE)
+        "[ADDRESS]",
+        text,
+        flags=re.IGNORECASE,
+    )
     return text
 
-
-# ==========================================================
-# ⚡ LLAMADA A OLLAMA (MEJORADA)
-# ==========================================================
 def call_ollama(prompt: str) -> str:
     url = f"{OLLAMA_URL}/api/generate"
     payload = {
@@ -322,7 +372,6 @@ def call_ollama(prompt: str) -> str:
         resp.raise_for_status()
         data = resp.json()
 
-        # Diferentes versiones de Ollama → manejar todos los formatos
         if isinstance(data, dict):
             for key in ["response", "generated", "result"]:
                 if key in data and isinstance(data[key], str):
@@ -343,10 +392,80 @@ def call_ollama(prompt: str) -> str:
         logger.exception("❌ Error llamando a Ollama")
         return ""
 
+def llm_summarize_with_ollama(texto_base: str, contexto: Dict[str, Any]) -> str:
+    """
+    PERFIL:
+    - Usa Ollama SOLO para mejorar redacción / estructura.
+    - NO crea datos de negocio, NO decide autenticación, NO llama endpoints.
+    """
+    if not texto_base:
+        return texto_base
 
-# ==========================================================
-# 🧠 PARSER DE RESPUESTA INTELIGENTE
-# ==========================================================
+    texto_anon = anonymize_text(texto_base)
+
+    safe_pairs: List[str] = []
+    for k, v in (contexto or {}).items():
+        if v is None:
+            continue
+        k_str = str(k).lower()
+        if any(
+            s in k_str
+            for s in ["token", "cedula", "documento", "password", "contrasena", "correo", "email"]
+        ):
+            continue
+        safe_pairs.append(f"- {k}: {v}")
+
+    contexto_str = "\n".join(safe_pairs) if safe_pairs else "Sin contexto adicional relevante."
+
+    prompt = (
+        SUMMARIZE_SYSTEM_PROMPT
+        + "\n\n=== MENSAJE BASE (NO MODIFICAR HECHOS) ===\n"
+        + texto_anon
+        + "\n\n=== CONTEXTO NO SENSIBLE ===\n"
+        + contexto_str
+        + "\n\n=== INSTRUCCIONES ===\n"
+        + "- Mejora el tono y la claridad del MENSAJE BASE.\n"
+        + "- Mantén todos los datos, estados y resultados exactamente como están.\n"
+        + "- No agregues información nueva.\n"
+        + "- Devuelve solo el texto final para el usuario.\n"
+    )
+
+    raw = call_ollama(prompt)
+    if not raw:
+        return texto_base
+
+    txt = raw.strip()
+    txt = re.sub(r"^(RESPUESTA\s*:\s*)", "", txt, flags=re.IGNORECASE).strip()
+
+    return txt or texto_base
+
+
+def build_auth_required_message_for_action(nombre_proceso: str, base_url: str) -> str:
+    """
+    Construye un mensaje estándar de "esta acción requiere autenticación",
+    con pasos claros para iniciar sesión en Zajuna, y lo pasa por el LLM
+    solo para mejorar redacción.
+    """
+    texto_base = (
+        f"Esta acción requiere que inicies sesión en la plataforma Zajuna para poder {nombre_proceso} "
+        "y mostrarte datos reales asociados a tu usuario.\n\n"
+        "Pasos para iniciar sesión en Zajuna:\n"
+        f"1) Abre el portal: {base_url}/login\n"
+        "2) Ingresa tu usuario o correo y tu contraseña.\n"
+        "3) Si olvidaste tu contraseña, usa la opción \"¿Olvidé mi contraseña?\".\n"
+        "4) Una vez dentro, vuelve a este chat y realiza de nuevo la misma consulta.\n\n"
+        "Mientras tanto, puedo explicarte de forma general cómo funciona este proceso, "
+        "pero no podré mostrarte aún tus datos personales."
+    )
+
+    contexto = {
+        "flujo": "autenticacion_requerida",
+        "proceso": nombre_proceso,
+    }
+
+    return llm_summarize_with_ollama(texto_base, contexto)
+
+
 def parse_llm_response(text: str) -> Dict[str, str]:
     if not text:
         return {"type": "raw", "value": ""}
@@ -358,11 +477,10 @@ def parse_llm_response(text: str) -> Dict[str, str]:
     if m_int:
         return {"type": "intent", "value": m_int.group(1).strip()}
 
-    # Buscar RESPUESTA: aunque venga con saltos o espacios
+    # Buscar RESPUESTA:
     m_resp = re.search(r"RESPUESTA\s*:\s*(.+)", t, flags=re.I | re.S)
     if m_resp:
         value = m_resp.group(1).strip()
-        # Si por alguna razón el modelo mezcla cosas, cortamos si aparece un INTENT después
         value = re.split(r"\bINTENT\s*:", value, maxsplit=1)[0].strip()
         return {"type": "response", "value": value}
 
@@ -380,9 +498,14 @@ def parse_llm_response(text: str) -> Dict[str, str]:
     return {"type": "raw", "value": t}
 
 
-# ==========================================================
-# 🎯 ACCIÓN PRINCIPAL: ActionHandleWithOllama
-# ==========================================================
+def _is_auth(tracker: Tracker) -> bool:
+    """
+    Helper simple para unificar la lógica de autenticación.
+    """
+    is_auth_slot = tracker.get_slot("is_authenticated")
+    autenticado_slot = tracker.get_slot("autenticado")
+    return bool(is_auth_slot or autenticado_slot)
+
 class ActionHandleWithOllama(Action):
     def name(self) -> Text:
         return "action_handle_with_llm"
@@ -391,7 +514,7 @@ class ActionHandleWithOllama(Action):
         self,
         tracker: Tracker,
         memoria: str,
-        perfil: str
+        perfil: str,
     ) -> str:
         raw_msg = tracker.latest_message.get("text", "")
         clean_msg = normalize_chat_text(raw_msg)
@@ -422,7 +545,6 @@ class ActionHandleWithOllama(Action):
         )
         return prompt
 
-    # ---- Ejecución principal ----
     def run(
         self,
         dispatcher: CollectingDispatcher,
@@ -430,28 +552,20 @@ class ActionHandleWithOllama(Action):
         domain: Dict[Text, Any],
     ) -> List[Dict[Text, Any]]:
 
-        # Texto actual del usuario
         raw_msg = tracker.latest_message.get("text", "")
         clean_msg = normalize_chat_text(raw_msg)
 
-        # 1) Buscar si ya se habló de lo mismo (memoria semántica) con texto limpio
         prev = retrieve_similar(clean_msg)
         if prev:
             memoria = f"Continuación del tema anterior: {prev['text']}"
         else:
             memoria = "Nuevo tema."
 
-        # 2) Guardar en memoria el mensaje normalizado
         store_message(clean_msg)
-
-        # 3) Detectar materia / perfil didáctico con texto limpio
         perfil = detectar_materia(clean_msg)
-
-        # 4) Construir prompt completo (build_prompt solo usa estos valores)
         prompt = self.build_prompt(tracker, memoria, perfil)
         logger.info(f"[LLM PROMPT] {prompt[:400]}...")
 
-        # 5) Llamar a Ollama
         raw = call_ollama(prompt)
 
         if not raw:
@@ -463,7 +577,6 @@ class ActionHandleWithOllama(Action):
         parsed = parse_llm_response(raw)
         logger.info(f"[LLM PARSED] {parsed}")
 
-        # --- Si Ollama sugiere INTENT ---
         if parsed["type"] == "intent":
             intent_name = parsed["value"]
             logger.info(f"[LLM] Intent sugerido: {intent_name}")
@@ -474,12 +587,10 @@ class ActionHandleWithOllama(Action):
                 FollowupAction("action_route_llm_intent"),
             ]
 
-        # --- Si es texto explicativo (RESPUESTA) ---
         if parsed["type"] == "response":
             dispatcher.utter_message(text=parsed["value"])
             return [SlotSet("from_llm", True)]
 
-        # --- Raw fallback ---
         dispatcher.utter_message(text=parsed["value"])
         return [SlotSet("from_llm", True)]
 
@@ -498,17 +609,14 @@ class ActionRouteLLMIntent(Action):
         suggested = tracker.get_slot("llm_suggested_intent")
 
         if not suggested:
-            # Si por alguna razón no hay intent sugerido, hacer fallback suave
             dispatcher.utter_message(
                 text="No pude identificar claramente tu intención. ¿Podrías explicarme un poco más qué necesitas?"
             )
             return []
 
-        # Normalizar
         suggested = str(suggested).strip()
         logger.info(f"[LLM ROUTER] llm_suggested_intent = {suggested}")
 
-        # 1) INTENTS DE SISTEMA -> acciones concretas
         SYSTEM_INTENT_TO_ACTION: Dict[str, str] = {
             # 📄 CERTIFICADOS
             "consultar_certificados": "action_consultar_certificados",
@@ -560,30 +668,25 @@ class ActionRouteLLMIntent(Action):
                 SlotSet("from_llm", False),
             ]
 
-        # 2) TEMAS ACADÉMICOS / GENÉRICOS -> no exigimos utter_ por cada uno
-        responses = domain.get("responses", {})  # dict con utter_... si existen
+        responses = domain.get("responses", {})
         utter_name = f"utter_{suggested}"
 
-        events: List = [
+        events: List[Dict[Text, Any]] = [
             SlotSet("tema_previsto", suggested),
             SlotSet("llm_suggested_intent", None),
             SlotSet("from_llm", False),
         ]
 
         if utter_name in responses:
-            # Si existe un utter específico para este tema, lo usamos como UX
             logger.info(f"[LLM ROUTER] Encontrado utter específico: {utter_name}")
             events.insert(0, FollowupAction(utter_name))
         else:
-            # Sin utter específico -> UX genérica + seguimos con el LLM
             logger.info(f"[LLM ROUTER] Tema académico genérico, sin utter específico: {suggested}")
             dispatcher.utter_message(
                 text="Perfecto, sigamos con ese tema. Te lo explicaré paso a paso de forma clara."
             )
 
-        # Luego volvemos a mandar al LLM para que desarrolle el tema
         events.append(FollowupAction("action_handle_with_llm"))
-
         return events
 
 
@@ -601,23 +704,156 @@ class ActionMemoryWrapper(Action):
         user_msg = tracker.latest_message.get("text", "")
 
         if not user_msg:
-            # Nada que guardar
             return []
 
-        # 1) Buscar mensaje similar en la memoria semántica
         prev = retrieve_similar(user_msg)
 
         if prev:
             logger.info(f"[MEMORIA] Mensaje similar encontrado: {prev['text']}")
             # Si quisieras avisar al usuario, puedes activar esto:
-            dispatcher.utter_message(
-                text=f"Veo que estás retomando un tema relacionado con: '{prev['text']}'"
-            )
+            # dispatcher.utter_message(
+            #     text=f"Veo que estás retomando un tema relacionado con: '{prev['text']}'"
+            # )
 
-        # 2) Guardar el mensaje actual en la memoria
         store_message(user_msg)
         logger.info(f"[MEMORIA] Mensaje almacenado: {user_msg}")
 
-        # Aquí opcionalmente puedes setear algún slot como 'tema_previsto'
-        # o 'historial_academico', según tu lógica
         return []
+
+
+class ActionResumenSesionLLM(Action):
+    """
+    Genera un resumen amable de la sesión actual, SIN inventar datos sensibles.
+    Usa solo slots y eventos ya ocurridos, y los pasa por llm_summarize_with_ollama
+    para mejorar redacción.
+    """
+
+    def name(self) -> Text:
+        return "action_resumen_sesion_llm"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+
+        temas: List[str] = []
+
+        # ¿Hubo soporte?
+        motivo = tracker.get_slot("motivo_soporte")
+        tipo_soporte = tracker.get_slot("tipo_soporte")
+        if motivo or tipo_soporte:
+            if tipo_soporte == "pqrs":
+                temas.append("Se registró una solicitud de PQRS o soporte formal.")
+            elif tipo_soporte == "interno":
+                temas.append("Se registró una solicitud de soporte interno en la plataforma.")
+            else:
+                temas.append("Hablamos sobre un problema técnico o de acceso a la plataforma.")
+
+        # ¿Hubo consulta académica?
+        if _is_auth(tracker):
+            temas.append("Consultaste información académica personalizada (estado y/o certificados).")
+        else:
+            # Usuario sin auth que preguntó por academia
+            try:
+                latest_intent = (
+                    tracker.get_intent_of_latest_message()
+                    if hasattr(tracker, "get_intent_of_latest_message")
+                    else (tracker.latest_message.get("intent") or {}).get("name")
+                )
+            except Exception:
+                latest_intent = (tracker.latest_message.get("intent") or {}).get("name")
+
+            if latest_intent in [
+                "estado_estudiante",
+                "ver_estado_estudiante",
+                "consultar_certificados",
+                "ver_certificados",
+            ]:
+                temas.append(
+                    "Revisamos cómo consultar tu estado académico o certificados desde la plataforma."
+                )
+
+        # ¿Encuesta de satisfacción?
+        nivel_satisfaccion = tracker.get_slot("nivel_satisfaccion")
+        if nivel_satisfaccion:
+            temas.append(
+                f"Completaste una encuesta de satisfacción y calificaste la atención como: {nivel_satisfaccion}."
+            )
+        elif tracker.get_slot("encuesta_incompleta"):
+            temas.append("Iniciaste una encuesta de satisfacción que quedó pendiente.")
+
+        # Tema académico genérico
+        tema_actual = tracker.get_slot("tema_actual") or tracker.get_slot("tema_previsto")
+        if tema_actual:
+            temas.append(f"Conversamos sobre el tema académico: {tema_actual}.")
+
+        if not temas:
+            temas.append("Tuviste una sesión breve de consulta con el asistente Zajuna.")
+
+        texto_base = "Resumen de tu sesión con el asistente Zajuna:\n"
+        for t in temas:
+            texto_base += f"- {t}\n"
+
+        texto_base += (
+            "\nEn la siguiente sesión, podrás retomar estos temas o iniciar nuevas consultas "
+            "sobre tu formación, soporte técnico o trámites académicos."
+        )
+
+        contexto_llm = {
+            "flujo": "resumen_sesion",
+            "tuvo_soporte": bool(motivo or tipo_soporte),
+            "tuvo_encuesta": bool(nivel_satisfaccion),
+            "autenticado": _is_auth(tracker),
+        }
+
+        try:
+            mensaje = llm_summarize_with_ollama(texto_base, contexto_llm)
+        except Exception:
+            logger.exception("Error generando resumen de sesión con LLM.")
+            mensaje = texto_base
+
+        dispatcher.utter_message(text=mensaje)
+        return []
+
+class ActionIncrementarTurnosConversacion(Action):
+    """
+    Incrementa el contador de turnos de conversación y marca la sesión como 'larga'
+    cuando supera cierto umbral (por defecto 8 turnos).
+
+    No toca ningún dato sensible, solo slots métricos.
+    """
+
+    UMBRAL_SESION_LARGA = int(os.getenv("SESION_LARGA_UMBRAL", "8"))
+
+    def name(self) -> Text:
+        return "action_incrementar_turnos_conversacion"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+
+        actual = tracker.get_slot("turnos_conversacion") or 0
+
+        try:
+            actual_int = int(actual)
+        except Exception:
+            actual_int = 0
+
+        nuevo_valor = min(actual_int + 1, 9999)
+
+        sesion_larga = tracker.get_slot("sesion_larga")
+        sesion_larga_bool = bool(sesion_larga)
+
+        # Si aún no estaba marcada como larga y superamos el umbral → la marcamos
+        if not sesion_larga_bool and nuevo_valor >= self.UMBRAL_SESION_LARGA:
+            sesion_larga_bool = True
+
+        return [
+            SlotSet("turnos_conversacion", nuevo_valor),
+            SlotSet("sesion_larga", sesion_larga_bool),
+        ]

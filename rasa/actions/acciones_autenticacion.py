@@ -7,14 +7,13 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType, FollowupAction
 from rasa_sdk.types import DomainDict
 
-# ====== Fallbacks seguros si no existe .common ======
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _has_auth(tracker: Tracker) -> bool:
     """Determina si el usuario está autenticado a partir del slot is_authenticated."""
     return bool(tracker.get_slot("is_authenticated"))
 
-# ====== VALIDACIONES (si usas forms con validadores personalizados, opcional) ======
 class ValidatePasswordRecoveryForm(Action):
     """Validador simple para password_recovery_form (Rasa 3 permite FormValidationAction,
     pero para reducir dependencias usamos Action normal con prompts claros)."""
@@ -24,7 +23,6 @@ class ValidatePasswordRecoveryForm(Action):
         # Este validador es opcional; puedes omitirlo si no lo llamas en rules.
         return []
 
-# ====== ACCIONES DE AUTENTICACIÓN ======
 class ActionCheckAuth(Action):
     def name(self) -> Text: return "action_check_auth"
 
@@ -75,10 +73,3 @@ class ActionEnviarCorreoRecuperacion(Action):
         else:
             dispatcher.utter_message(text="No pude enviar el correo porque el email no es válido.")
         return []
-
-class ActionSetAuthenticatedTrue(Action):
-    def name(self) -> str:
-        return "action_set_authenticated_true"
-
-    def run(self, dispatcher, tracker, domain):
-        return [SlotSet("is_authenticated", True)]

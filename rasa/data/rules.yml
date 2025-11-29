@@ -93,6 +93,7 @@ rules:
       - intent: confirmar_cierre
       - action: action_autosave_encuesta
       - action: action_guardar_autosave_mongo
+      - action: action_resumen_sesion_llm
       - action: utter_cierre_confirmado
       - action: action_reset_conversacion_segura
 
@@ -102,6 +103,7 @@ rules:
           - encuesta_activa: false
     steps:
       - intent: confirmar_cierre
+      - action: action_resumen_sesion_llm
       - action: action_finalizar_conversacion
 
   - rule: Limpiar autosave
@@ -420,7 +422,8 @@ rules:
       - intent: saludo
       - action: utter_saludo
       - action: action_auto_resume
-
+      - action: action_incrementar_turnos_conversacion 
+  
   - rule: Pedir password explícitamente en login
     condition:
       - active_loop: auth_login_form
@@ -454,7 +457,8 @@ rules:
   - rule: Confirmar cierre seguro
     steps:
       - intent: confirmar_cierre_segura
-      - action: action_guardar_progreso_encuesta   
+      - action: action_guardar_progreso_encuesta 
+      - action: action_resumen_sesion_llm 
       - action: action_confirmar_cierre_seguro
       - action: utter_cierre_confirmado_seguro
 
@@ -469,6 +473,7 @@ rules:
     steps:
       - intent: terminar_conversacion
       - action: action_verificar_proceso_activo_autosave
+      - action: action_resumen_sesion_llm
       - action: utter_despedida_profesional
   
   - rule: Cierre seguro - sin encuesta activa
@@ -581,10 +586,6 @@ rules:
     steps:
       - intent: descargar_certificado
       - action: utter_descargar_certificado
-  
-  # ==============================
-  # 🔐 Login / ayuda para login
-  # ==============================
 
   - rule: Mostrar guía de login (deep-links)
     steps:
@@ -596,10 +597,6 @@ rules:
       - intent: ingreso_zajuna
       - action: action_ingreso_zajuna
 
-  # ==============================
-  # 🎓 CERTIFICADOS
-  # ==============================
-
   - rule: Consultar certificados (autenticado, intent consultar_certificados)
     condition:
       - slot_was_set:
@@ -607,7 +604,8 @@ rules:
     steps:
       - intent: consultar_certificados
       - action: action_ver_certificados
-
+      - action: action_incrementar_turnos_conversacion
+  
   - rule: Consultar certificados (NO autenticado, intent consultar_certificados)
     condition:
       - slot_was_set:
@@ -615,7 +613,8 @@ rules:
     steps:
       - intent: consultar_certificados
       - action: utter_login_hint
-
+      - action: action_incrementar_turnos_conversacion
+  
   - rule: Ver certificados (autenticado, intent ver_certificados)
     condition:
       - slot_was_set:
@@ -640,7 +639,8 @@ rules:
     steps:
       - intent: ver_estado_estudiante
       - action: action_ver_estado_estudiante
-
+      - action: action_incrementar_turnos_conversacion 
+  
   - rule: Ver estado estudiante (NO autenticado)
     condition:
       - slot_was_set:
@@ -649,7 +649,8 @@ rules:
       - intent: ver_estado_estudiante
       - action: utter_pedir_autenticacion
       - action: utter_login_hint
-
+      - action: action_incrementar_turnos_conversacion 
+  
   - rule: Sugerir contacto con tutor
     steps:
       - intent: sugerir_tutor
@@ -871,6 +872,7 @@ rules:
       - intent: consultar_academico
       - action: utter_menu_academico
       - action: utter_pedir_tema
+      - action: action_incrementar_turnos_conversacion
   
   - rule: Fallback general → LLM (unificada v3.1)
     condition:
@@ -890,10 +892,12 @@ rules:
       - intent: aprender_tema
       - action: action_memory_wrapper
       - action: action_handle_with_llm
+      - action: action_incrementar_turnos_conversacion
   
   - rule: Despedida del usuario (unificada v3.1)
     steps:
       - intent: despedida
+      - action: action_resumen_sesion_llm
       - action: utter_despedida_final
       - action: action_finalizar_conversacion
  
@@ -921,6 +925,7 @@ rules:
     steps:
       - intent: solicitar_soporte
       - action: utter_preguntar_tipo_soporte
+      - action: action_incrementar_turnos_conversacion
   
   - rule: Soporte como PQRS formal (unificada v3.1)
     steps:
@@ -968,4 +973,5 @@ rules:
     steps:
       - intent: confirmar_cierre_autosave
       - action: action_guardar_encuesta_incompleta
-      - action: action_confirmar_cierre_autosave
+      - action: action_confirmar_cierre_autosave 
+      - action: action_resumen_sesion_llm
