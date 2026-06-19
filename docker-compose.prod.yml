@@ -1,0 +1,334 @@
+version: "3.9"
+
+name: tutorbot-prod
+
+# ============================
+# Redes y volúmenes
+# ============================
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:
+  action-logs:
+
+# ============================
+# Servicios
+# ============================
+services:
+
+  # ------------------------------------------------------------
+  # MongoDB
+  # ------------------------------------------------------------
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ------------------------------------------------------------
+  # Redis (rate-limit / cache)
+  # ------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server","--appendonly","yes"]
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # Action Server (Rasa)
+  # ------------------------------------------------------------
+  action-server:
+    build:
+      context: .
+      dockerfile: rasa_action_server/Dockerfile
+    image: zajuna-action-server:latest
+    container_name: action-server
+    restart: unless-stopped
+    ports:
+      - "5055:5055" 
+    volumes:
+      - ./rasa:/app/rasa
+      - ./data/semantic_memory.json:/app/data/semantic_memory.json 
+    working_dir: /app
+    networks:
+      - app-net
+    read_only: false
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      PYTHONPATH: /app
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: phi3:mini
+      LLM_MODEL: phi3:mini
+      LLM_URL: http://ollama:11434/api/generate
+      OLLAMA_TIMEOUT: 60
+      OLLAMA_WARMUP_TIMEOUT: 120
+      OLLAMA_MAX_TOKENS: 160
+      EMBEDDING_URL: http://embedding-service:9000/embed
+      HELPDESK_TOKEN: ${HELPDESK_TOKEN}
+      MONGO_URI: mongodb://mongo:27017
+      GUARDIAN_URL: http://autosave-guardian:8080
+      GUARDIAN_USER: admin
+      GUARDIAN_PASSWORD: admin123
+      SEMANTIC_MEMORY_FILE: /app/data/semantic_memory.json
+    depends_on:
+      - mongo
+      - redis
+      - ollama
+      - embedding-service
+  # ------------------------------------------------------------
+  # Ollama LLM Server
+  # ------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ops/ollama/data:/var/lib/ollama
+    ports: []
+    environment:
+      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+    restart: unless-stopped
+    networks:
+      - app-net
+  # ------------------------------------------------------------
+  # Rasa Core
+  # ------------------------------------------------------------
+  rasa:
+
+    build:
+      context: ./rasa
+      dockerfile: Dockerfile
+    image: zajuna-rasa:lates
+    container_name: rasa
+    restart: unless-stopped
+    environment:
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+    depends_on:
+      - action-server
+      - mongo
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/endpoints.yml:/app/endpoints.yml
+    networks:
+      - app-net
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # ------------------------------------------------------------
+  # Guardian (autosave / seguridad, Flask + Mongo)
+  # ------------------------------------------------------------
+  autosave-guardian:
+    build:
+      context: .
+      dockerfile: autosave_guardian/Dockerfile.guardian
+    image: zajuna-guardian:latest
+    container_name: autosave-guardian
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    ports:
+      - "8081:8080"
+    expose:
+      - "8080"   # visible dentro de app-net (lo ve Nginx/backend)
+    depends_on:
+      - mongo
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------
+  # Backend (FastAPI / Uvicorn, PROD)
+  # ------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+      args:
+        REQUIREMENTS_PATH: backend/requirements.txt
+        APP_UID: 10001
+        APP_GID: 10001
+        APP_USER: appuser
+    image: zajuna-backend:latest
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB_NAME: tutor_virtual
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: tutor_virtual
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: chatbot_admin
+      RASA_URL: http://rasa:5005
+      RASA_WS_URL: ws://rasa:5005
+      FRONTEND_SITE_URL: http://localhost:8080
+      ALLOWED_ORIGINS: http://localhost:8080,http://localhost:5173
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PROVIDER: builtin
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+      APP_ENV: prod
+      DEBUG: "false"
+    depends_on:
+      - mongo
+      - rasa
+      - redis
+    networks:
+      - app-net
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    # Si quisieras exponerlo directo, descomenta:
+    # ports:
+    #   - "8000:8000"
+
+  # ------------------------------------------------------------
+  # Admin (frontend ya compilado, servido por Nginx)
+  # ------------------------------------------------------------
+  admin:
+    build:
+      context: ./admin_panel_react
+      dockerfile: Dockerfile
+    image: zajuna-admin:latest
+    container_name: admin
+    restart: unless-stopped
+    user: "101:101" # ← Obliga al Nginx interno de admin a correr sin root
+    entrypoint: []
+    environment:
+      ACTIONS_PING_HELPDESK: "false"
+      HELPDESK_WEBHOOK: ""
+      EMBEDDING_URL: http://embedding-service:9000/embed
+      HELPDESK_TOKEN: ${HELPDESK_TOKEN}
+    depends_on:
+      - backend
+    networks:
+      - app-net
+    read_only: true
+    tmpfs:
+      - /tmp:size=10M,mode=0777
+      - /var/run:size=1M,mode=0777
+      - /var/cache/nginx:size=100M,mode=0777
+    command: ["nginx", "-g", "daemon off;"]
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # ------------------------------------------------------------
+  # Nginx PROD (reverse proxy + estáticos)
+  # ------------------------------------------------------------
+  nginx-prod:
+    image: nginx:alpine
+    container_name: nginx-prod
+    restart: unless-stopped
+    user: "101:101"
+    entrypoint: []
+    depends_on:
+      - backend
+      - admin
+      - rasa
+      - autosave-guardian
+    ports:
+     - "8080:80"
+     - "80:80"
+     - "443:443"
+    networks:
+      - app-net
+    read_only: true
+    volumes:
+      - ./admin_panel_react/dist:/usr/share/nginx/html:ro
+      - ./ops/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+      - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/nginx/conf.d/prod/prod-https.conf:/etc/nginx/conf.d/prod/prod-https.conf:ro
+      - ./ops/nginx/conf.d/prod/includes/tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro
+      - ./ops/nginx/conf.d/common/includes/locations.inc:/etc/nginx/conf.d/common/includes/locations.inc:ro
+      - ./ops/nginx/conf.d/common/default.conf:/etc/nginx/conf.d/common/default.conf:ro
+      - ./ops/nginx/certs:/etc/nginx/certs:ro
+    tmpfs:
+      - /tmp:size=10M,mode=0777
+      - /var/run:size=1M,mode=0777
+      - /var/cache/nginx:size=100M,mode=0777 
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command: ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    
+
+  embedding-service:
+    build:
+      context: ./embeddings_service
+    container_name: embedding-service
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+    networks:
+      - app-net

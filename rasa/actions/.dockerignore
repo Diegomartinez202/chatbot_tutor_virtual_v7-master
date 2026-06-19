@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+.git/
+.gitignore
+.DS_Store
+.idea/
+.vscode/
+
+# Si generas artefactos aquí
+actions/__pycache__/

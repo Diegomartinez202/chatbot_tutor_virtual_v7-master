@@ -1,0 +1,71 @@
+version: "3.1"
+
+stories:
+
+  # ────────────────────────────────────────────────
+  # 🔐 ESTADO ESTUDIANTE — SIN TOKEN
+  # Expectativa: el bot detecta metadata.auth.hasToken=false
+  # y responde con utter_need_auth (CTA doble: login + abrir chat autenticado)
+  # ────────────────────────────────────────────────
+  - story: hybrid_estado_sin_token
+    steps:
+      - user: "/estado_estudiante"
+        intent: estado_estudiante
+        metadata:
+          auth:
+            hasToken: false
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  # ────────────────────────────────────────────────
+  # 🔐 ESTADO ESTUDIANTE — CON TOKEN
+  # Expectativa: action_sync_auth_from_metadata setea has_token=true
+  # y el bot ejecuta la acción real (action_estado_estudiante)
+  # ────────────────────────────────────────────────
+  - story: hybrid_estado_con_token
+    steps:
+      - user: "/estado_estudiante"
+        intent: estado_estudiante
+        metadata:
+          auth:
+            hasToken: true
+            token: "demo-token-abc123"
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_estado_estudiante
+
+  # ────────────────────────────────────────────────
+  # 📜 VER CERTIFICADOS — SIN TOKEN
+  # Expectativa: utter_need_auth (pide login antes de mostrar info sensible)
+  # ────────────────────────────────────────────────
+  - story: hybrid_certificados_sin_token
+    steps:
+      - user: "/ver_certificados"
+        intent: ver_certificados
+        metadata:
+          auth:
+            hasToken: false
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: false
+      - action: utter_need_auth
+
+  # ────────────────────────────────────────────────
+  # 📜 VER CERTIFICADOS — CON TOKEN
+  # Expectativa: ejecuta la acción protegida (action_ver_certificados)
+  # ────────────────────────────────────────────────
+  - story: hybrid_certificados_con_token
+    steps:
+      - user: "/ver_certificados"
+        intent: ver_certificados
+        metadata:
+          auth:
+            hasToken: true
+            token: "jwt-demo-12345"
+      - action: action_sync_auth_from_metadata
+      - slot_was_set:
+          - has_token: true
+      - action: action_ver_certificados

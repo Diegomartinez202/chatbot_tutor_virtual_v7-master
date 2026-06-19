@@ -1,0 +1,33 @@
+server {
+  # Railway/Compose inyectan $PORT; por defecto 8080 en local
+  listen       ${PORT};
+  listen       [::]:${PORT};
+  server_name  _;
+
+  # Raíz de la SPA (Vite build)
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Seguridad básica: NO fijamos X-Frame-Options aquí para no romper el embed.
+  # Si quieres CSP, hazlo en backend/API o añade con cuidado aquí:
+  # add_header Content-Security-Policy "frame-ancestors 'self' https://app.zajuna.edu" always;
+
+  # gzip y HSTS se cargan desde /etc/nginx/conf.d/*.conf
+
+  # Archivos estáticos con caché agresiva
+  location ~* \.(?:js|css|woff2?|ttf|otf|eot|jpg|jpeg|png|gif|svg|ico)$ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  # Resto de rutas → SPA fallback
+  location / {
+    try_files $uri /index.html;
+  }
+
+  # Salud simple (útil para Railway)
+  location = /healthz {
+    return 200 'ok';
+    add_header Content-Type text/plain;
+  }
+}

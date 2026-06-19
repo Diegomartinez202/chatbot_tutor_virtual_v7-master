@@ -1,0 +1,105 @@
+/* =========================================================
+   🌟 Mini-Kit de Animaciones - Proyecto Chatbot/Panel
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   Fade In / Fade Out
+--------------------------------------------------------- */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease-in-out forwards;
+}
+
+.animate-fadeOut {
+    animation: fadeOut 0.2s ease-in-out forwards;
+}
+
+/* ---------------------------------------------------------
+   Pulse (efecto de latido)
+--------------------------------------------------------- */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 1s infinite;
+}
+
+/* ---------------------------------------------------------
+   Bounce (rebote sutil)
+--------------------------------------------------------- */
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.animate-bounce {
+    animation: bounce 0.5s infinite;
+}
+
+/* ---------------------------------------------------------
+   Spin / Loading
+--------------------------------------------------------- */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ---------------------------------------------------------
+   Dark mode compatible
+   Se pueden añadir colores, sombras o intensidades según tema
+--------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+    .animate-fadeIn,
+    .animate-fadeOut,
+    .animate-pulse,
+    .animate-bounce,
+    .animate-spin {
+        /* Opcional: ajustar suavidad o sombra en dark mode */
+    }
+}

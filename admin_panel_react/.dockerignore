@@ -1,0 +1,29 @@
+# VCS / IDE
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Node artefactos
+node_modules
+dist
+.vite
+coverage
+playwright-report
+test-results
+playwright/.cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Entornos (no subas secretos al contexto)
+.env
+.env.*
+!.env.example
+
+# Asegura que estos sí se copien si existen
+!package.json
+!package-lock.json
+!nginx.conf
+!public/

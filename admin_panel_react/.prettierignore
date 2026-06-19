@@ -1,0 +1,17 @@
+# Carpetas que no deben formatearse
+node_modules
+dist
+build
+coverage
+public
+
+# Archivos de configuración y lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+vite.config.js
+*.config.js
+
+# Otros posibles
+*.log
+.DS_Store

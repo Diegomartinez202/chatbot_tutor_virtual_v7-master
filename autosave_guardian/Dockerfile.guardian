@@ -1,0 +1,38 @@
+# autosave_guardian/Dockerfile.guardian
+# syntax=docker/dockerfile:1.6
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH="/app:${PYTHONPATH}"
+
+WORKDIR /app
+
+# Dependencias de sistema mínimas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# ---- Dependencias Python (versiones fijas) ----
+COPY autosave_guardian/requirements.txt /tmp/requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
+
+# ---- Tu código de la API ----
+# Estructura esperada:
+# autosave_guardian/
+#   ├─ app.py           (Flask app con /ping y endpoints JWT)
+#   └─ requirements.txt
+COPY autosave_guardian /app
+
+EXPOSE 8080
+
+# Healthcheck robusto sin 'grep'
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8080/ping || exit 1
+
+# Arranque con Gunicorn (producción)
+# -w 2 workers, --timeout 60s; ajusta según carga
+CMD ["gunicorn", "-w", "2", "--timeout", "60", "-b", "0.0.0.0:8080", "app:app"]

@@ -1,0 +1,13 @@
+pytest
+pytest-timeout
+pytest-html
+pytest-metadata
+pytest-asyncio
+requests
+python-dotenv
+pyjwt
+httpx
+fastapi
+backend
+coverage
+respx==0.22.0

@@ -1,0 +1,182 @@
+version: "3.1"
+
+stories:
+ 
+- story: consultar estado estudiante
+  steps:
+    - intent: ver_estado_estudiante
+    - action: action_ver_estado_estudiante
+
+- story: explicacion academica
+  steps:
+    - intent: explicacion_academica
+    - action: action_handle_with_llm
+    - action: action_ofrecer_continuar_tema
+- story: Flujo de salida exitoso - El usuario resolvió su duda
+  steps:
+    - action: action_verificar_estado_encuesta
+    - slot_was_set:
+        - encuesta_activa: true
+    - action: action_preguntar_resolucion
+    - intent: respuesta_satisfecho
+    - action: action_procesar_respuesta_resolucion
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_registrar_encuesta
+
+- story: Flujo de salida con mitigación - El usuario NO resolvió su duda
+  steps:
+    - action: action_verificar_estado_encuesta
+    - slot_was_set:
+        - encuesta_activa: true
+    - action: action_preguntar_resolucion
+    - intent: respuesta_insatisfecho
+    - action: action_procesar_respuesta_resolucion
+
+- story: aprender tema academico
+  steps:
+    - intent: aprender_tema
+    - action: action_aprender_tema
+    - action: action_handle_with_llm
+    - action: utter_control_conversacion
+
+- story: Flujo de Encuesta por Respuesta Satisfecha
+  steps:
+    - intent: iniciar_encuesta
+    - action: action_preguntar_resolucion
+    - user: "Sí, quedó resuelto"
+      intent: respuesta_satisfecho
+    - action: action_set_encuesta_tipo
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - action: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_registrar_encuesta
+
+- story: Flujo de Encuesta por Respuesta Insatisfecha
+  steps:
+    - intent: iniciar_encuesta
+    - action: action_preguntar_resolucion
+    - user: "No, sigo con dudas"
+      intent: respuesta_insatisfecho
+    - action: action_set_encuesta_tipo
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - action: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_registrar_encuesta
+
+- story: consultar certificados
+
+  steps:
+    - intent: consultar_certificados
+    - action: action_render_certificados
+    - action: action_ofrecer_continuar_tema
+  
+- story: soporte tecnico guiado
+  steps:
+    - intent: soporte_tecnico
+    - action: action_soporte_tecnico_llm
+ 
+- story: crear ticket soporte
+  steps:
+    - intent: solicitar_soporte
+    - action: soporte_form
+    - active_loop: soporte_form
+  
+- story: soporte completado
+  steps:
+    - active_loop: soporte_form
+    - active_loop: null
+    - action: action_soporte_submit   
+  
+ 
+- story: consultar tutor
+  steps:
+    - intent: ver_tutor_asignado
+    - action: action_tutor_asignado
+  
+- story: consultar horarios
+  steps:
+    - intent: consultar_horarios_clases
+    - action: action_consultar_horarios_clases
+  
+- story: Estudiante interactúa con su historial académico
+  steps:
+    - intent: historial_academico
+    - action: action_historial_academico
+    - action: utter_control_conversacion
+
+  
+- story: consultar progreso
+  steps:
+    - intent: consultar_progreso_curso
+    - action: action_consultar_progreso_curso
+ 
+- story: historial academico
+  steps:
+    - intent: historial_academico
+    - action: action_historial_academico
+  
+- story: crear pqrs
+  steps:
+    - intent: pqrs
+    - action: action_pqrs_llm
+  
+- story: preguntas frecuentes plataforma
+
+  steps:
+    - intent: preguntas_frecuentes
+    - action: action_preguntas_frecuentes_llm
+ 
+  
+- story: enviar correo tutor
+  steps:
+    - intent: contactar_tutor
+    - action: action_enviar_correo_tutor
+
+  
+- story: derivacion humano aceptada
+  steps:
+    - intent: pedir_humano
+    - action: action_ofrecer_humano
+    - intent: afirmar
+    - action: action_derivar_y_registrar_humano
+    - action: action_handoff_en_cola
+  
+- story: derivacion humano cancelada
+  steps:
+    - intent: pedir_humano
+    - action: action_ofrecer_humano
+    - intent: negar
+    - action: action_cancelar_derivacion
+
+- story: Diagnóstico administrativo y reinicio por el usuario
+  steps:
+    - intent: solicitar_ping
+    - action: action_ping_servidor
+    - intent: ver_token
+    - action: action_mostrar_token
+    - intent: solicitar_reinicio
+    - action: action_reiniciar_conversacion
+ 
+- story: Intento de acceso exitoso a servicios protegidos
+  steps:
+    - intent: estado_estudiante
+    - action: action_check_auth
+
+- story: Cierre de conversación con detección de frustración académica
+  steps:
+    - intent: forzar_salida
+    - action: action_analizar_estado_usuario
+    - action: action_verificar_estado_encuesta
+ 
+- story: Persistencia de estado preventivo durante navegación académica
+  steps:
+    - intent: forzar_salida
+    - action: action_autosave_snapshot
+    - action: action_confirmar_cierre_seguro
+
+  
+     

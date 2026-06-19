@@ -1,0 +1,88 @@
+﻿name: E2E Prod (Playwright)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "admin_panel_react/**"
+      - ".github/workflows/e2e-prod.yml"
+
+concurrency:
+  group: e2e-prod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-prod:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin_panel_react
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ secrets.PROD_FRONTEND_URL }}
+      PROD_BACKEND_CHAT_BASE: ${{ secrets.PROD_BACKEND_CHAT_BASE }}
+      CHAT_BASE: ${{ secrets.PROD_BACKEND_CHAT_BASE }}   # para health.spec.ts
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          test -n "$PLAYWRIGHT_BASE_URL" || (echo "Missing secret PROD_FRONTEND_URL" && exit 1)
+          test -n "$PROD_BACKEND_CHAT_BASE" || (echo "Missing secret PROD_BACKEND_CHAT_BASE" && exit 1)
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: admin_panel_react/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright (browsers + deps)
+        run: npx playwright install --with-deps
+
+      - name: Smoke check Frontend
+        run: |
+          echo "Hitting $PLAYWRIGHT_BASE_URL"
+          for i in {1..20}; do
+            code=$(curl -sk -o /dev/null -w "%{http_code}" "$PLAYWRIGHT_BASE_URL")
+            if [ "$code" = "200" ] || [ "$code" = "304" ]; then
+              echo "Frontend OK ($code)"; break;
+            fi
+            echo "Waiting frontend... ($i)"; sleep 3
+          done
+
+      - name: Smoke check Backend health
+        run: |
+          for path in "/health" "/api/chat/health" "/chat/health"; do
+            echo "Checking $PROD_BACKEND_CHAT_BASE$path"
+            curl -sk --fail "$PROD_BACKEND_CHAT_BASE$path" && ok=1 && break || true
+          done
+          test "$ok" = "1" || (echo "Backend health failed" && exit 1)
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Check for flaky tests
+        run: node scripts/check-no-flaky.js ./playwright-report/results.json
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-prod
+          path: admin_panel_react/playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload test results (blob)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-prod
+          path: admin_panel_react/test-results
+          if-no-files-found: ignore

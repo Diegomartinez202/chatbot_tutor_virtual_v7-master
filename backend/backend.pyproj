@@ -1,0 +1,33 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- El proyecto vive dentro de la carpeta backend -->
+    <ProjectHome>.</ProjectHome>
+
+    <!-- Archivo de inicio -->
+    <StartupFile>main.py</StartupFile>
+
+    <!-- Intérprete del venv (RELATIVO a backend\) -->
+    <InterpreterPath>..\ .venv\Scripts\python.exe</InterpreterPath>
+
+    <!-- Directorio de trabajo: la RAÍZ del repo (para que backend.main resuelva) -->
+    <WorkingDirectory>..\</WorkingDirectory>
+
+    <!-- Argumentos: ejecuta Uvicorn -->
+    <CommandLineArguments>-m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000</CommandLineArguments>
+
+    <!-- Añade la raíz al PYTHONPATH -->
+    <SearchPath>..\</SearchPath>
+
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <Name>backend</Name>
+    <ConfigurationType>Python</ConfigurationType>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Muestra main.py; VS listará el resto al expandir la carpeta -->
+    <Compile Include="main.py" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets')" />
+</Project>

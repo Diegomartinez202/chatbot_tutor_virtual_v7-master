@@ -1,0 +1,48 @@
+version: "3.1"
+
+stories:
+
+# 🟢 Flujo positivo: usuario satisfecho y continúa
+- story: flujo_encuesta_positiva
+  steps:
+    - intent: problema_resuelto_si
+    - action: utter_encuesta_satisfaccion
+    - intent: encuesta_satis_yes
+    - action: action_guardar_encuesta
+    - action: utter_gracias_feedback
+    - action: utter_agradecimiento_satisfaccion
+    - action: action_ofrecer_continuar_tema
+    - intent: affirm
+    - action: utter_volver_menu
+
+# 🔴 Flujo negativo: problema no resuelto → soporte humano
+- story: flujo_encuesta_negativa
+  steps:
+    - intent: problema_resuelto_no
+    - action: utter_ofrecer_soporte
+    - action: utter_despedida_final
+
+# 📝 Flujo con formulario de encuesta completo
+- story: flujo_encuesta_formulario
+  steps:
+    - intent: iniciar_encuesta
+    - action: utter_encuesta_inicio
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - intent: dar_retroalimentacion
+    - action: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_guardar_encuesta
+    - action: utter_gracias_feedback
+    - action: utter_agradecimiento_final
+
+# 📧 Flujo negativo con contacto al tutor
+- story: flujo_encuesta_contactar_tutor
+  steps:
+    - intent: encuesta_satis_no
+    - action: utter_lamentar_insatisfaccion
+    - intent: contactar_tutor
+    - action: action_enviar_correo_tutor
+    - action: utter_gracias_feedback
+    - intent: terminar_conversacion
+    - action: utter_despedida_final

@@ -1,0 +1,15 @@
+# 🤖 Rasa (Core/NLU) 3.6.x
+# Usa la versión que ya confirmaste en tu entorno
+FROM rasa/rasa:3.6.10
+
+WORKDIR /app
+
+# Copiamos el proyecto Rasa completo (domain.yml, data/, config.yml, rules.yml, endpoints.yml, actions/, etc.)
+COPY rasa /app
+
+# El entrenamiento/arranque lo hace docker-compose:
+#   command: bash -c "rasa train && rasa run --enable-api --cors '*' --debug"
+# Si quisieras un default aquí, descomenta:
+# CMD ["rasa", "run", "--enable-api", "--cors", "*", "--port", "5005", "--debug"]
+
+EXPOSE 5005

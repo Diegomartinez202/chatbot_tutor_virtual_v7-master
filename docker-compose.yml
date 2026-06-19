@@ -1,0 +1,881 @@
+# version: "3.9"
+name: tutorbot-local
+
+# ============================================================
+# Redes y volúmenes
+# ============================================================
+networks:
+  app-net:
+    driver: bridge
+    name: tutorbot-local_app-net
+
+# ============================================================
+# Servicios
+# ============================================================
+services:
+
+  # ------------------------------------------------------------
+  # MongoDB (común a build/prod)
+  # ------------------------------------------------------------
+  mongo:
+   profiles: ["build","prod","interactive"]
+   image: mongo:6
+   container_name: mongo
+   restart: unless-stopped
+   ports:
+     - "27017:27017"  
+   volumes:
+     - mongo-data:/data/db
+    # Si quieres inicializar índices/seed la primera vez:
+    # - ./mongo/initdb.d:/docker-entrypoint-initdb.d:ro
+   networks:
+     - app-net
+  
+   healthcheck:
+     test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+     interval: 10s
+     timeout: 5s
+     retries: 10
+     start_period: 10s
+  # 🔐 (OPCIONAL) Habilitar autenticación de Mongo cuando lo necesites:
+  # environment:
+  #   MONGO_INITDB_ROOT_USERNAME: root
+  #   MONGO_INITDB_ROOT_PASSWORD: supersegura
+  #   MONGO_INITDB_DATABASE: tutor_virtual
+
+  # ------------------------------------------------------------
+  # MongoDB (perfil: vanilla) — con autenticación
+  # ------------------------------------------------------------
+  ctv_mongo:
+    profiles: ["vanilla"]
+    image: mongo:6.0
+    container_name: ctv_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-admin123}
+    ports:
+      - "27018:27017"
+    volumes:
+      - _docker_data_mongo:/data/db
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  # ------------------------------------------------------------
+  # Rasa Action Server (build/prod)
+  # ------------------------------------------------------------
+  action-server:
+    profiles: ["build", "prod", "interactive"]
+    build:
+      context: .
+      dockerfile: rasa_action_server/Dockerfile
+    container_name: action-server
+    restart: unless-stopped
+    env_file:
+      - ./.env.local
+      
+    environment:
+      ACTIONS_LOG_LEVEL: "INFO"
+      HELPDESK_WEBHOOK: "http://backend:8000/api/helpdesk/tickets"
+      HELPDESK_TOKEN: ""
+      ACTIONS_HTTP_TIMEOUT: "10"
+      ACTIONS_HTTP_RETRIES: "2"
+      SMTP_SERVER: "smtp.office365.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "bot@ejemplo.com"
+      SMTP_PASS: "contraseña_real"
+      EMAIL_FROM: "bot@ejemplo.com"
+      RESET_URL_BASE: "https://zajuna.edu"
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+      MONGO_URI: "${MONGO_URI}"
+      MONGO_DB: "${MONGO_DB}"
+      MONGO_AUTOSAVE_COLLECTION: "${MONGO_AUTOSAVE_COLLECTION}"
+      MONGO_SECURITY_LOGS_COLLECTION: "${MONGO_SECURITY_LOGS_COLLECTION}"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_ALG: "${JWT_ALG}"
+      JWT_ISSUER: "${JWT_ISSUER}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE}"
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: phi3:mini
+      LLM_MODEL: phi3:mini
+      LLM_URL: http://ollama:11434/api/generate
+      OLLAMA_TIMEOUT: 10
+      OLLAMA_WARMUP_TIMEOUT: 120
+      OLLAMA_MAX_TOKENS: 160
+      EMBEDDING_URL: http://embedding-service:9000/embed
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./rasa/actions:/app/actions
+      - ./rasa/utils:/app/utils 
+      - action-logs:/app/logs
+    networks:
+      - app-net
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+         import urllib.request,sys
+         try:
+             r = urllib.request.urlopen("http://127.0.0.1:5055/health", timeout=3)
+             sys.exit(0 if r.getcode()==200 else 1)
+         except Exception:
+             sys.exit(1)
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ------------------------------------------------------------
+  # Ollama LLM Server
+  # ------------------------------------------------------------
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ops/ollama/data:/var/lib/ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+    restart: unless-stopped
+    networks:
+      - app-net
+
+   # ------------------------------------------------------------
+   # Rasa (build/prod) — Tracker en Mongo y arranque robusto
+   # ------------------------------------------------------------
+  rasa:
+      profiles: ["build","prod"]
+      build:
+        context: ./rasa
+        dockerfile: Dockerfile
+      image: tutorbot-local-rasa
+      container_name: rasa
+      restart: unless-stopped
+      env_file:
+        - ./.env.local
+      environment:
+        ACTION_SERVER_URL: http://action-server:5055/webhook
+        RASA_PORT: "5005"
+        RASA_AUTOTRAIN: "true"
+        ENDPOINTS_TEMPLATE: "mongo"
+        RASA_MODEL: /app/models
+        TRACKER_MONGO_URL: "mongodb://mongo:27017"
+        TRACKER_MONGO_DB: "rasa"
+        RASA_MODELS_COLLECTION: "trained_models"
+        TRACKER_MONGO_COLLECTION: "conversations"
+        SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+        SQLALCHEMY_WARN_20: "0"
+        RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+        TZ: America/Bogota
+        RASA_INTERACTIVE_PATH: /app/data/interactive
+      depends_on:
+        mongo:
+          condition: service_healthy
+        action-server:
+          condition: service_healthy
+      ports:
+        - "5005:5005"
+      networks:
+        - app-net
+      volumes:
+        - ./rasa:/app               
+        - ./rasa/models:/app/models
+        - ./rasa/data:/app/data
+        - ./rasa/domain.yml:/app/domain.yml:ro
+        - ./rasa/config.yml:/app/config.yml:ro
+        - ./rasa/credentials.yml:/app/credentials.yml:ro
+        - ./rasa/data/interactive:/app/data/interactive
+      command: >
+        bash -lc "
+          set -euo pipefail;
+          # Generar endpoints.yml válido (tracker_store mongo)
+          cat > /app/endpoints.yml << 'YML'
+          action_endpoint:
+            url: ${ACTION_SERVER_URL}
+
+          tracker_store:
+            type: mongo
+            url: ${TRACKER_MONGO_URL}
+            db: ${TRACKER_MONGO_DB}
+            collection: ${TRACKER_MONGO_COLLECTION}
+          YML
+
+          echo '[rasa] endpoints.yml generado:'; cat /app/endpoints.yml; echo;
+          echo '[🚀] Iniciando Rasa...';
+
+          # Si tu imagen tiene un entrypoint custom, úsalo.
+          # Si NO existe /entrypoint_with_log.sh, hacemos fallback a 'rasa run'.
+          if [ -x /entrypoint_with_log.sh ]; then
+            exec /entrypoint_with_log.sh --credentials /app/credentials.yml
+          else
+            exec rasa run \
+              --enable-api \
+              --cors "*" \
+              --endpoints /app/endpoints.yml \
+              --credentials /app/credentials.yml \
+              --debug
+          fi
+        "
+      healthcheck:
+        test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:5005/status | grep -q 'model_file'"]
+        interval: 30s
+        timeout: 5s
+        start_period: 60s
+        retries: 5
+
+                   
+  # ------------------------------------------------------------
+  # Rasa dev (Redis) — puerto distinto para no chocar con prod
+  # ------------------------------------------------------------
+  rasa_dev:
+    image: rasa/rasa:3.6.20-full
+    container_name: rasa_dev
+    profiles: ["dev"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      action-server:
+        condition: service_healthy
+    working_dir: /app
+    volumes:
+      - ./rasa:/app
+    entrypoint: ["/bin/sh","-lc"]
+    command:
+      - >
+        printf '%s\n' \
+          'action_endpoint:' \
+          '  url: http://action-server:5055/webhook' \
+          '' \
+          'tracker_store:' \
+          '  type: redis' \
+          '  url: redis' \
+          '  port: 6379' \
+          '  db: 0' \
+          '  password: null' \
+          '' \
+          'assistant_id: "tutorbot-local"' \
+        > /app/endpoints.yml
+        && echo '[rasa_dev] endpoints.yml (Redis) generado:' && cat /app/endpoints.yml && echo
+        && exec rasa run --enable-api --cors "*" --port 5005
+    ports:
+      - "5006:5005"   # ← prod usa 5005, dev expone 5006
+    networks:
+      - app-net
+
+
+  # ------------------------------------------------------------
+  # Rasa (perfil: vanilla)
+  # ------------------------------------------------------------
+  ctv_rasa:
+    profiles: ["vanilla"]
+    image: rasa/rasa:3.6.19
+    container_name: ctv_rasa
+    restart: unless-stopped
+    command: >
+      rasa run
+      --enable-api
+      --cors "*"
+      --port ${RASA_PORT:-5005}
+    working_dir: /app/rasa
+    environment:
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+      RASA_MODEL: /app/models
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"  
+    env_file:
+      - ./.env.local
+    volumes:
+      - ./rasa:/app/rasa
+      - rasa-models:/app/models
+    ports:
+      - "${RASA_PORT:-5005}:5005"
+    depends_on:
+      - ctv_mongo
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "wget -qO- http://127.0.0.1:5005/status | grep -q 'model_file'"]
+      interval: 30s
+      timeout: 5s
+      start_period: 600s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # Rasa Action Server (perfil: vanilla)
+  # ------------------------------------------------------------
+  ctv_rasa_actions:
+    profiles: ["vanilla"]
+    image: rasa/rasa-sdk:3.6.2
+    container_name: ctv_rasa_actions
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python", "-m", "rasa_sdk", "--actions", "actions"]
+    volumes:
+      - ./rasa/actions:/app/actions
+    ports:
+      - "5055:5055"
+    depends_on:
+      - ctv_rasa
+      - service_healthy
+    networks:
+      - app-net
+    env_file:
+      - ./.env.local
+    environment:
+      ACTIONS_LOG_LEVEL: "INFO"
+      HELPDESK_WEBHOOK: "http://ctv_fastapi:${FASTAPI_PORT:-8000}/api/helpdesk/tickets"
+      HELPDESK_TOKEN: ""
+      ACTIONS_HTTP_TIMEOUT: "10"
+      ACTIONS_HTTP_RETRIES: "2"
+      SMTP_SERVER: "smtp.office365.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "bot@ejemplo.com"
+      SMTP_PASS: "contraseña_real"
+      EMAIL_FROM: "bot@ejemplo.com"
+      RESET_URL_BASE: "https://zajuna.edu"
+      ACTION_SERVER_URL: "http://action-server:5055/webhook"
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+      ACTIONS_CORS: "*"
+      RASA_REST_URL: "http://rasa:5005/webhooks/rest/webhook"
+
+# ------------------------------------------------------------
+# 🧑‍🏫 Rasa Interactive (perfil 'interactive')
+# ------------------------------------------------------------
+  rasa_interactive:
+    networks: [app-net]
+    profiles: ["interactive"]
+    image: tutorbot-local-rasa
+    #image: tutorbot-local-rasa
+    container_name: rasa_interactive
+    working_dir: /app
+    depends_on:
+      mongo:
+        condition: service_healthy
+      action-server:
+        condition: service_started
+    env_file:
+      - ./.env.local
+    environment:
+      TZ: America/Bogota
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_INTERACTIVE_PATH: /app/data/interactive
+    volumes:
+      - ./rasa:/app
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/domain.yml:/app/domain.yml:ro
+      - ./rasa/config.yml:/app/config.yml:ro
+      - ./rasa/credentials.yml:/app/credentials.yml:ro
+      - ./rasa/data/interactive:/app/data/interactive
+    ports:
+      - "5006:5005"
+    tty: true
+    stdin_open: true
+    entrypoint: ["/bin/sh","-lc","sh /app/scripts/interactive_entrypoint.sh"]
+
+  # ------------------------------------------------------------
+  # Rasa Action guardian (Flask API JWT + Mongo)
+  # ------------------------------------------------------------
+  autosave-guardian:
+    profiles: ["prod","interactive"]
+    build:
+      context: .
+      dockerfile: autosave_guardian/Dockerfile.guardian
+    container_name: autosave-guardian
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    restart: unless-stopped
+    ports:
+     - "8081:8080"
+    expose:
+      - "8080"          # ← visible dentro de app-net (Nginx lo ve)
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ============================================================
+  # Backend DEV (hot reload)
+  # ============================================================
+  backend-dev:
+    profiles: ["build"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        REQUIREMENTS_PATH: requirements.txt
+        APP_UID: ${UID-10001}
+        APP_GID: ${GID-10001}
+        APP_USER: appuser
+    container_name: backend-dev
+    restart: unless-stopped
+    user: "${UID-10001}:${GID-10001}"
+    env_file:
+    - ./.env
+    - ${BACKEND_ENV_FILE:-backend/.env.dev}
+    environment:
+
+      # ✅ CORS / EMBED / CSP (formato compatible con docker-compose)
+      
+      EMBED_ALLOWED_ORIGINS: "'self', https://tu-frontend.com, http://localhost:8080, http://localhost:5173"
+      FRAME_ANCESTORS: '["http://localhost","http://localhost:8080","http://localhost:5173"]'
+      ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://localhost"]'
+    
+      # ✅ Mongo
+      MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
+      MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: chatbot_tutor_virtual_v7_3
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: chatbot_admin
+ 
+      RASA_URL: http://rasa:5005
+      RASA_WS_URL: ws://rasa:5005
+
+      # ✅ Rate limit
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_PROVIDER: builtin
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://redis:6379/0
+
+      # ✅ Entorno
+    
+      DEBUG: "true"
+      FRONTEND_SITE_URL: http://localhost:5173
+
+      # ✅ Uvicorn DEV
+      UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
+      UVICORN_PORT: ${UVICORN_PORT:-8000}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+
+      TRACKER_MONGO_URL: "mongodb://mongo:27017"
+      TRACKER_MONGO_DB: "rasa"
+      TRACKER_MONGO_COLLECTION: "conversations"
+      RASA_PORT: "5005"
+      RASA_MODELS_COLLECTION: "trained_models"
+
+      # ✅ Polling para entornos con FS montado
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
+      APP_ENV: ${APP_ENV:-dev}
+      PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+     rasa:
+      condition: service_healthy
+     mongo:
+      condition: service_healthy
+     redis:
+      condition: service_started
+    ports:
+      - "8001:8000"  
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/health || curl -fsS http://127.0.0.1:8000/chat/health || curl -fsS http://127.0.0.1:8000/api/chat/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    command: >
+      bash -lc "
+       echo '[backend-dev] ⚙️ Modo activo: '${MODE:-unknown};
+       echo '[backend-dev] 📄 BACKEND_ENV_FILE='${BACKEND_ENV_FILE:-unset};
+       echo '[backend-dev] 🧩 COMPOSE_PROFILES='${COMPOSE_PROFILES:-unset};
+       echo '[backend-dev] 🗄️ Mongo='${MONGO_URI:-unset};
+       echo '[backend-dev] 🤖 Rasa='${RASA_URL:-unset};
+       if command -v node >/dev/null 2>&1 && [ -f /app/build-tailwind.js ]; then
+         echo '[backend-dev] Node presente: ejecutando build Tailwind...';
+         node /app/build-tailwind.js || true;
+      else
+        echo '[backend-dev] Node NO presente: omitiendo build Tailwind';
+      fi;
+      exec uvicorn backend.main:app --reload --host ${UVICORN_HOST:-0.0.0.0} --port ${UVICORN_PORT:-8000}"
+  # ============================================================ 
+  # Backend PROD (Uvicorn)
+  # ============================================================
+  backend:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        REQUIREMENTS_PATH: requirements.txt
+        APP_UID: ${UID-10001}
+        APP_GID: ${GID-10001}
+        APP_USER: appuser
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+    - ./.env
+    - ${BACKEND_ENV_FILE:-backend/.env.production}
+    environment:
+        UVICORN_HOST: ${UVICORN_HOST:-0.0.0.0}
+        UVICORN_PORT: ${UVICORN_PORT:-8000}
+        UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+        DEBUG: "false"
+
+       # ✅ Mongo
+        MONGO_URI: mongodb://mongo:27017/chatbot_tutor_virtual_v2
+        MONGO_DB_NAME: chatbot_tutor_virtual_v7_3
+        MONGODB_URL: mongodb://mongo:27017
+        MONGODB_DB: chatbot_tutor_virtual_v7_3
+        MONGO_URL: mongodb://mongo:27017
+        MONGO_DB: chatbot_admin
+ 
+        RASA_URL: http://rasa:5005
+        RASA_WS_URL: ws://rasa:5005
+
+        # ✅ Rate limit
+        RATE_LIMIT_ENABLED: "true"
+        RATE_LIMIT_PROVIDER: builtin
+        RATE_LIMIT_BACKEND: redis
+        REDIS_URL: redis://redis:6379/0
+
+        #✅ CORS / EMBED / CSP (formato compatible con docker-compose)
+        FRAME_ANCESTORS: '["http://localhost","http://localhost:8080","http://localhost:5173"]'
+        ALLOWED_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://localhost"]'
+        FRONTEND_SITE_URL: http://localhost:5173
+
+        TRACKER_MONGO_URL: "mongodb://mongo:27017"
+        TRACKER_MONGO_DB: "rasa"
+        TRACKER_MONGO_COLLECTION: "conversations"
+        RASA_PORT: "5005"
+        RASA_MODELS_COLLECTION: "trained_models"
+        LOG_FORMAT: ${LOG_FORMAT:-text}  # Establecer por defecto "text"
+        APP_ENV: ${APP_ENV:-prod}
+        PERMISSIONS_POLICY: ${PERMISSIONS_POLICY}
+    depends_on:
+      rasa:
+       condition: service_healthy
+      mongo:
+       condition: service_healthy
+      redis:
+       condition: service_started
+    ports:
+      - "8000:8000"
+    networks:
+      - app-net
+    volumes:
+      - ./backend:/app/backend
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8000/api/health || curl -fsS http://127.0.0.1:8000/chat/health || curl -fsS http://127.0.0.1:8000/api/chat/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    command: >
+      bash -lc "
+        exec uvicorn backend.main:app
+          --host ${UVICORN_HOST}
+          --port ${UVICORN_PORT}
+          --workers ${UVICORN_WORKERS}
+          --proxy-headers
+          --forwarded-allow-ips='*'
+      "
+  # ------------------------------------------------------------
+  # Redis (rate-limit/cache)
+  # ------------------------------------------------------------
+  redis:
+    profiles: ["build","prod"]
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server","--appendonly","yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # Redis dev(rate-limit/cache)
+  # ------------------------------------------------------------
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis
+    profiles: ["dev"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-net
+
+  # ============================================================
+  # Frontend (solo BUILD) — sirve dist con "serve"
+  # ============================================================
+  frontend:
+    profiles: ["build"]
+    image: node:18-alpine
+    container_name: frontend
+    working_dir: /app
+    command: sh -lc "npm ci && npm run build && npx --yes serve -s dist -l 8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    depends_on:
+      - backend-dev
+    networks:
+      - app-net
+
+  # ============================================================
+  # Frontend Builder (solo en PROD) — genera ./dist para Nginx
+  # ============================================================
+  admin-builder:
+    profiles: ["prod"]
+    image: node:18-alpine
+    container_name: admin-builder
+    working_dir: /app
+    restart: "no"
+    command: >
+      sh -lc "
+        echo '[admin-builder] 🧱 Construyendo panel (Vite)...';
+        npm ci &&
+        npm run build &&
+        echo '[admin-builder] ✅ Build listo en /app/dist';
+      "
+    # Si tienes .env.production en el repo, Vite lo usará automáticamente
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    networks:
+      - app-net
+
+  # ============================================================
+  # **Nginx PROD** — ÚNICO en PROD (sirve dist + proxy)
+  # ============================================================
+  nginx-prod:
+    profiles: ["prod"]
+    image: nginx:alpine
+    container_name: nginx-prod
+    restart: unless-stopped
+    depends_on:
+      - backend        
+      - rasa
+      - admin-builder
+    ports:       
+      - "8080:80" 
+      - "443:443"    
+    volumes:
+      - ./admin_panel_react/dist:/usr/share/nginx/html:ro
+      - ./ops/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+      - ./ops/nginx/conf.d/prod/prod-https.conf:/etc/nginx/conf.d/prod-https.conf:ro
+      - ./ops/nginx/conf.d/prod/includes/tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro
+      - ./ops/nginx/conf.d/common/default.conf:/etc/nginx/conf.d/common/default.conf:ro
+      - ./ops/nginx/certs:/etc/nginx/certs:ro
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-net
+    command: >
+      /bin/sh -c "
+      echo '[nginx] ⚙️ Modo activo: '${MODE:-unknown};
+      echo '[nginx] 🌐 Proxying hacia backend: http://backend:8000 y Rasa: http://rasa:5005';
+      exec nginx -g 'daemon off;';"
+  # ------------------------------------------------------------
+  # Backend "vanilla"
+  # ------------------------------------------------------------
+  ctv_fastapi:
+    profiles: ["vanilla"]
+    image: python:3.11-slim
+    container_name: ctv_fastapi
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - ./.env.local
+    environment:
+      PYTHONUNBUFFERED: "1"
+      MONGO_URI: "mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@ctv_mongo:27017/${MONGO_DB:-chatbot}?authSource=admin"
+      RASA_BASE_URL: "http://ctv_rasa:${RASA_PORT:-5005}"
+    volumes:
+      - ./backend:/app/backend
+    command: >
+      bash -lc "
+        pip install --no-cache-dir --upgrade pip setuptools wheel &&
+        if [ -f backend/requirements.txt ]; then pip install --no-cache-dir -r backend/requirements.txt; fi &&
+        python -m uvicorn backend.main:app --host 0.0.0.0 --port ${FASTAPI_PORT:-8000}
+      "
+    ports:
+      - "${FASTAPI_PORT:-8000}:8000"
+    depends_on:
+      - ctv_mongo
+      - ctv_rasa
+    networks:
+      - app-net
+
+# ------------------------------------------------------------
+# 🔁 Entrenamiento on-demand (valida + entrena y sale)
+# ------------------------------------------------------------
+  rasa_train_once:
+    profiles: ["train"]
+    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    working_dir: /app
+    command: >
+      bash -lc "
+        echo '[train] Validando...' &&
+        rasa data validate
+          --config /app/config.yml
+          --domain /app/domain_parts
+          --stories /app/data
+          --nlu /app/data &&
+        echo '[train] Entrenando...' &&
+        rasa train
+          --config /app/config.yml
+          --domain /app/domain_parts
+          --data /app/data
+          --out /app/models
+      "
+    volumes:
+      - ./rasa:/app
+    networks:
+      - app-net
+    depends_on:
+      action-server:
+        condition: service_started
+      mongo:
+        condition: service_healthy
+# ============================================================
+# Rasa validacion only
+# ============================================================
+  rasa_validate_only:
+    profiles: ["train"]
+    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    working_dir: /app
+    command: >
+      bash -lc "
+        rasa data validate
+          --config /app/config.yml
+          --domain /app/domain_parts
+          --stories /app/data
+          --nlu /app/data
+      "
+
+# ------------------------------------------------------------
+# 🧪 Pruebas NLU/Core con reportes en ./rasa/results
+# ------------------------------------------------------------
+  rasa_tests:
+    profiles: ["tests"]
+    image: ${RASA_IMAGE:-rasa/rasa:3.6.20-full}
+    container_name: rasa_tests
+    working_dir: /app
+    environment:
+      TZ: America/Bogota
+    volumes:
+      - ./rasa:/app
+      - ./rasa/results:/app/results
+    networks:
+      - app-net
+    entrypoint: ["/bin/bash","-lc"]
+    command: |
+      set -e
+      echo "[tests] 🔎 Validando datos..."
+      rasa data validate \
+        --domain /app/domain_parts \
+        --data /app/data \
+        --config /app/config.yml
+
+      echo "[tests] 🧪 Ejecutando pruebas..."
+      mkdir -p /app/results
+      rasa test --nlu --core \
+        --config /app/config.yml \
+        --domain /app/domain_parts \
+        --stories /app/data \
+        --out /app/results \
+        --reports /app/results
+
+      echo "[tests] ✅ Listo. Reportes en /app/results"  
+
+  embedding-service:
+    build:
+      context: ./embeddings_service
+    container_name: embedding-service
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+    networks:
+      - app-net
+
+# ============================================================
+# 💾 Volúmenes persistentes del proyecto
+# ============================================================
+volumes:
+  # 🧠 Mongo principal (build/prod)
+  mongo-data:
+
+  # 🔐 Mongo autenticado (perfil vanilla)
+  _docker_data_mongo:
+
+  # ⚡ Redis cache/rate limit
+  redis-data:
+
+  # 🤖 Modelos y data de Rasa (NLU entrenado)
+  rasa-models:
+  rasa-data:
+
+  # 🛠️ Logs del Action Server (opcional)
+  action-logs:
+  
+  volumes:
+  mongo_data: 

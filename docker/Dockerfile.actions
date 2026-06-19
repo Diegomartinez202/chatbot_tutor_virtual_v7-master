@@ -1,0 +1,19 @@
+# 🧠 Rasa Action Server 3.6.x
+FROM rasa/rasa-sdk:3.6.2
+
+WORKDIR /app
+
+# Copiamos solo las actions
+COPY rasa/actions /app/actions
+
+# (Opcional) Requisitos de actions (requests, pymongo, etc.)
+# Si tienes un requirements específico de actions:
+# RUN pip install --no-cache-dir -r /app/actions/requirements.txt || true
+
+# Asegura que Python pueda resolver /app
+ENV PYTHONPATH=/app
+
+EXPOSE 5055
+
+# Arranque del action server
+CMD ["rasa", "run", "actions", "--debug", "--port", "5055"]

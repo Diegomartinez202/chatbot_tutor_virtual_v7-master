@@ -1,0 +1,20 @@
+# endpoints.mongo.tpl.yml
+
+# Endpoint de acciones
+action_endpoint:
+  url: "http://action-server:5055/webhook"
+
+# Tracker store en MongoDB (con soporte de autenticación por ENV)
+tracker_store:
+  # Usa la clase explícita para evitar warnings
+  type: rasa.core.tracker_store.MongoTrackerStore
+  url: "mongodb://mongo:27017"
+  db: "rasa"
+  collection: "conversations"
+  # Auth opcional (dejar vacíos si no se usan)
+  username: "${TRACKER_MONGO_USERNAME}"
+  password: "${TRACKER_MONGO_PASSWORD}"
+  auth_source: "${TRACKER_MONGO_AUTHSOURCE}"
+
+assistant_id: "tutorbot-local"
+

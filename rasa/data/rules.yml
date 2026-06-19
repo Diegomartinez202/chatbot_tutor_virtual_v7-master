@@ -1,0 +1,419 @@
+version: "3.1"
+
+rules:
+  
+  - rule: ayuda global
+    steps:
+    - intent: ayuda
+    - action: action_ir_menu_principal 
+  
+  - rule: salir global
+    steps:
+    - intent: salir
+    - action: action_confirmar_cierre
+
+  - rule: volver menu anterior
+    steps:
+    - intent: volver
+    - action: action_ir_menu_principal
+  
+  - rule: Iniciar login
+    steps:
+        - intent: auth_login_cmd
+        - action: auth_login_form
+        - active_loop: auth_login_form
+
+  - rule: Finalizar login
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: auth_login_form
+      - active_loop: null
+      - action: action_check_auth
+  
+  - rule: Ir menú principal
+    steps:
+      - intent: ir_menu_principal
+      - action: action_ir_menu_principal
+
+  - rule: Ir menú soporte
+    steps:
+      - intent: ir_menu_soporte
+      - action: action_ir_menu_soporte
+
+  - rule: Ir menú administrativo
+    steps:
+      - intent: ir_menu_administrativo
+      - action: action_ir_menu_administrativo
+
+  - rule: Reiniciar conversación
+    steps:
+      - intent: reiniciar_conversacion
+      - action: action_reiniciar_conversacion
+
+  - rule: Iniciar feedback
+    steps:
+      - intent: dar_feedback
+      - action: feedback_form
+      - active_loop: feedback_form
+
+  - rule: Finalizar feedback
+    condition:
+      - active_loop: feedback_form
+    steps:
+      - action: feedback_form
+      - active_loop: null
+      - action: action_guardar_feedback
+  
+  - rule: Finalizar encuesta
+    condition:
+      - active_loop: encuesta_satisfaccion_form
+    steps:
+      - action: encuesta_satisfaccion_form
+      - active_loop: null
+      - action: action_registrar_encuesta
+  
+  - rule: Iniciar soporte
+    steps:
+      - intent: solicitar_soporte
+      - action: soporte_form
+      - active_loop: soporte_form
+
+  - rule: Finalizar soporte
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - action: soporte_form
+      - active_loop: null
+      - action: action_soporte_submit
+  
+  - rule: Solicitar humano
+    steps:
+      - intent: pedir_humano
+      - action: action_ofrecer_humano
+  
+  - rule: Iniciar cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_verificar_proceso_activo
+
+  - rule: Confirmar cierre seguro
+    steps:
+      - intent: confirmar_cierre_segura
+      - action: action_confirmar_cierre_seguro_final
+
+  - rule: Cierre seguro inmediato a solicitud del usuario
+    steps:
+      - intent: forzar_salida
+      - action: action_confirmar_cierre_seguro
+
+
+  - rule: Cancelar cierre seguro
+    steps:
+      - intent: cancelar_cierre_segura
+      - action: action_cancelar_cierre_seguro
+  
+  - rule: Guardar progreso guardian
+    steps:
+      - intent: guardian_guardar_progreso
+      - action: action_guardian_guardar_progreso
+
+  - rule: Pausar guardian
+    steps:
+      - intent: guardian_pausar_conversacion
+      - action: action_guardian_pausar
+
+  - rule: Reanudar guardian
+    steps:
+      - intent: guardian_reanudar_conversacion
+      - action: action_guardian_reanudar
+
+  - rule: Reset guardian
+    steps:
+      - intent: reset_guardian
+      - action: action_guardian_reset
+  
+  - rule: Desconexión detectada
+    steps:
+      - intent: desconexion_usuario
+      - action: action_notificar_desconexion
+
+  - rule: Inactividad detectada
+    steps:
+      - intent: inactividad_usuario
+      - action: action_notificar_inactividad
+
+  - rule: Reconexión detectada
+    steps:
+      - intent: reconexion_usuario
+      - action: action_notificar_reconexion
+  
+  - rule: Guardar autosave
+    steps:
+      - intent: guardar_autosave
+      - action: action_guardar_autosave
+  
+  - rule: Ping servidor
+    steps:
+      - intent: ping_servidor
+      - action: action_ping_servidor
+  
+
+  - rule: Cancelar auth_login_form
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
+
+  - rule: Cancelar soporte_form
+    condition:
+      - active_loop: soporte_form
+    steps:
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
+
+  - rule: Cancelar encuesta_satisfaccion_form
+    condition:
+      - active_loop: encuesta_satisfaccion_form
+    steps:
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
+
+  - rule: Cancelar feedback_form
+    condition:
+      - active_loop: feedback_form
+    steps:
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
+  
+  - rule: Reanudar conversación
+    steps:
+      - intent: reanudar_auto_si
+      - action: action_autoresume_conversacion
+
+  - rule: No reanudar conversación
+    steps:
+      - intent: reanudar_auto_no
+      - action: action_reset_conversacion_segura
+  
+  - rule: Limpieza total de persistencia segura
+    steps:
+      - intent: solicitar_reinicio
+      - action: action_reset_conversacion_segura
+
+  - rule: Guardar estado seguridad
+    steps:
+      - intent: guardar_estado_seguridad
+      - action: action_guardar_estado_seguridad
+
+  - rule: Recuperar estado seguridad
+    steps:
+      - intent: recuperar_estado_seguridad
+      - action: action_recuperar_estado_seguridad
+  
+  - rule: Cargar progreso guardian
+    steps:
+      - intent: cargar_progreso
+      - action: action_guardian_cargar_progreso
+  
+  - rule: Incrementar turnos
+    steps:
+      - action: action_incrementar_turnos_conversacion
+  
+  - rule: enviar correo recuperacion
+    steps:
+      - intent: enviar_correo_recuperacion
+      - action: action_enviar_correo_recuperacion
+      
+  - rule: recuperar contraseña
+    steps:
+      - intent: recuperar_contrasena
+      - action: password_recovery_form
+      - active_loop: password_recovery_form
+  
+  - rule: submit password recovery
+    condition:
+      - active_loop: password_recovery_form
+    steps:
+      - action: password_recovery_form
+      - active_loop: null
+      - action: action_enviar_correo_recuperacion
+  
+  - rule: saludo inicial
+    steps:
+      - intent: saludo
+      - action: utter_saludo
+  
+  - rule: Desplegar Menú Principal al inicio o petición
+    steps:
+      - intent: saludo
+      - action: utter_saludo_principal
+
+  - rule: Forzar regreso al Menú Principal
+    steps:
+      - intent: menu_principal
+      - action: utter_saludo_principal
+
+  - rule: Ir al menú Académico
+    steps:
+      - intent: menu_academico
+      - action: utter_menu_academico
+  
+      
+
+
+  - rule: Submit de la encuesta (Guardado Exitoso)
+    condition:
+      - active_loop: encuesta_satisfaccion_form
+    steps:
+      - action: encuesta_satisfaccion_form
+      - active_loop: null
+      - slot_was_set:
+          - requested_slot: null
+      - action: action_registrar_encuesta
+  
+  - rule: Intercepcion de seguridad al intentar salir
+    steps:
+      - intent: salir
+      - action: action_verificar_estado_encuesta
+
+  - rule: Flujo de Salida Directa (Disparar Encuesta General)
+    steps:
+      - intent: salir
+      - action: action_determinar_encuesta_final
+
+  - rule: Intercepcion de seguridad al intentar salir
+    steps:
+      - intent: salir
+      - action: action_verificar_estado_encuesta
+
+  - rule: Usuario solicita salir del sistema
+    steps:
+      - intent: salir
+      - action: action_verificar_estado_encuesta
+  
+  - rule: Activacion automatica de encuesta de satisfaccion
+    steps:
+      - intent: iniciar_encuesta
+      - action: action_preguntar_resolucion
+      - action: action_set_encuesta_tipo
+      - action: encuesta_satisfaccion_form
+      - active_loop: encuesta_satisfaccion_form
+  
+  - rule: Procesar la respuesta a la resolución de la duda
+    steps:
+      - action: action_preguntar_resolucion
+      - action: action_procesar_respuesta_resolucion
+
+  - rule: El usuario decide rendirse y salir definitivamente desde el menú del NO
+    steps:
+      - intent: forzar_salida
+      - action: action_lanzar_encuesta_general
+  
+  - rule: Guardar encuesta general y despedirse
+    steps:
+      - intent: calificar_bot
+      - action: action_guardar_encuesta_general
+      - utter_despedida_final
+
+  - rule: Procesar reinicio inmediato de la conversación
+    steps:
+      - intent: solicitar_reinicio
+      - action: action_reiniciar_conversacion
+
+  - rule: Responder al Healthcheck del servidor (Ping)
+    steps:
+      - intent: solicitar_ping
+      - action: action_ping_servidor
+
+  - rule: Mostrar token de seguridad a solicitud
+    steps:
+      - intent: ver_token
+      - action: action_mostrar_token
+
+  - rule: Activar formulario de inicio de sesión
+    steps:
+      - intent: ingresar_zajuna
+      - action: auth_login_form
+      - active_loop: auth_login_form
+
+  - rule: Procesar credenciales al completar el formulario
+    condition:
+      - active_loop: auth_login_form
+    steps:
+      - action: auth_login_form
+      - active_loop: null
+      - slot_was_set:
+          - requested_slot: null
+      - action: action_set_authenticated_true
+
+  - rule: Ejecutar recuperación de contraseña
+    steps:
+      - intent: solicitar_recuperacion
+      - action: action_enviar_correo_recuperacion
+
+  
+  - rule: Guardar snapshot de seguridad antes de transferir a un humano
+    steps:
+      - intent: solicitar_humano
+      - action: action_autosave_snapshot
+      - action: action_conectar_humano
+
+  - rule: Ejecución remota de HealthCheck general
+    steps:
+      - intent: solicitar_ping
+      - action: action_health_check
+
+  - rule: Cancelar desvío a humano de forma directa
+    steps:
+      - intent: cancelar_handoff
+      - action: action_handoff_cancelar
+
+  - rule: Confirmar derivación a soporte técnico
+    steps:
+      - intent: confirmar_handoff
+      - action: action_derivar_humano_confirmada
+
+  - rule: Activación del Tutor Académico Inteligente
+    steps:
+      - intent: aprender_tema
+      - action: action_memory_wrapper
+      - action: action_handle_with_llm
+
+  - rule: Manejo de consultas generales fuera del árbol de diálogos
+    steps:
+      - intent: nlu_fallback
+      - action: action_handle_with_llm
+
+  - rule: Despliegue del menú principal en cualquier momento
+    steps:
+      - intent: ver_menu_principal
+      - action: action_ir_menu_principal
+
+  - rule: Intento de salida forzada por el usuario
+    steps:
+      - intent: forzar_salida
+      - action: action_verificar_estado_encuesta_segura
+
+  - rule: Confirmación de guardado y cierre definitivo
+    steps:
+      - intent: confirmar_guardado_salida
+      - action: action_guardar_progreso_encuesta
+      - action: action_terminar_conversacion_segura
+
+  - rule: Intentar cerrar conversación con procesos pendientes
+    steps:
+      - intent: solicitar_cierre
+      - action: action_verificar_proceso_activo
+      
+
+

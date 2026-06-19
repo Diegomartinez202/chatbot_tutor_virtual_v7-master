@@ -1,0 +1,55 @@
+###############################################################################
+# Normalize line endings
+###############################################################################
+* text=auto
+
+###############################################################################
+# Binary merge behavior for Visual Studio projects (si usaras .NET algún día)
+###############################################################################
+#*.sln       merge=binary
+#*.csproj    merge=binary
+
+###############################################################################
+# Binary behavior for common media files
+###############################################################################
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mp4 binary
+*.mov binary
+
+###############################################################################
+# Diff as text for some document formats (si subes documentación)
+###############################################################################
+*.pdf diff=astextplain
+*.doc diff=astextplain
+*.docx diff=astextplain
+*.rtf diff=astextplain
+
+dockerignore
+Copiar
+Editar
+# Ignorar archivos que no necesitas copiar al contenedor
+.git
+.gitignore
+.gitattributes
+Dockerfile*
+docker-compose.yml
+README.md
+LICENSE
+.env
+.env.*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+node_modules/
+venv/
+.env.local
+*.swp
+.rasa/
+models/

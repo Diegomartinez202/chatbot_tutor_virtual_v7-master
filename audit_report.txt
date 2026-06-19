@@ -1,0 +1,33 @@
+rasa.actions.acciones
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_admin
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_certificados
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_guardian
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_orchestrator
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_session_start
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.acciones_tracking
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.actions
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.actions_semantic_memory
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.memory
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+
+rasa.actions.text_normalization
+ImportError: cannot import name 'backend_call' from 'rasa.actions.core.tools' (C:\Users\USUARIO\Desktop\Documentos_Diego\Proyectos\chatbot_tutor_virtual_v7-master\rasa\actions\core\tools.py)
+

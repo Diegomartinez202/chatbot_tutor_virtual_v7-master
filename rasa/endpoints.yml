@@ -1,0 +1,8 @@
+action_endpoint:
+  url: http://action-server:5055/webhook
+  timeout: 60
+tracker_store:
+  type: rasa.core.tracker_store.MongoTrackerStore
+  url: mongodb://mongo:27017
+  db: rasa
+  collection: conversations

@@ -1,0 +1,180 @@
+version: "3.1"
+
+rules:
+  
+  - rule: ayuda global
+  
+  - rule: salir global
+  
+  - rule: volver menu anterior
+  
+  
+  - rule: Iniciar login
+   
+
+  - rule: Finalizar login
+    
+  
+  - rule: Ir menú principal
+   
+  - rule: Ir menú académico
+   
+
+  - rule: Ir menú soporte
+   
+
+  - rule: Ir menú administrativo
+   
+  - rule: Reiniciar conversación
+    
+
+  - rule: Iniciar feedback
+    
+
+  - rule: Finalizar feedback
+    
+  
+  - rule: Iniciar encuesta
+    
+    
+  - rule: Finalizar encuesta
+   
+  
+  - rule: Iniciar soporte
+    
+
+  - rule: Finalizar soporte
+    
+  
+  - rule: Solicitar humano
+   
+  
+  - rule: Iniciar cierre seguro
+   
+
+  - rule: Confirmar cierre seguro
+    
+
+  - rule: Cancelar cierre seguro
+   
+  - rule: Guardar progreso guardian
+   
+
+  - rule: Pausar guardian
+   
+
+  - rule: Reanudar guardian
+   
+
+  - rule: Reset guardian
+   
+  
+  - rule: Desconexión detectada
+    
+  - rule: Inactividad detectada
+   
+
+  - rule: Reconexión detectada
+    
+  
+  - rule: Guardar autosave
+   
+  - rule: Ping servidor
+  
+
+  - rule: Cancelar auth_login_form
+   
+
+  - rule: Cancelar soporte_form
+    
+
+  - rule: Cancelar encuesta_satisfaccion_form
+   
+  - rule: Cancelar feedback_form
+   
+  - rule: Reanudar conversación
+    
+
+  - rule: No reanudar conversación
+   
+  
+  - rule: Guardar estado seguridad
+  
+  - rule: Recuperar estado seguridad
+   
+  - rule: Cargar progreso guardian
+    
+  
+  - rule: Incrementar turnos
+   
+  
+  - rule: enviar correo recuperacion
+   
+      
+  - rule: recuperar contraseña
+   
+  - rule: submit password recovery
+  
+  
+  - rule: saludo inicial
+   
+  - rule: Desplegar Menú Principal al inicio o petición
+    
+  - rule: Forzar regreso al Menú Principal
+   
+
+  - rule: Ir al menú Académico
+   
+
+  - rule: Flujo de Salida Directa (Disparar Encuesta General)
+   
+
+
+   version: "3.1"
+
+stories:
+
+
+- story: explicacion academica
+
+
+- story: aprender tema academico
+
+- story: consultar certificados
+  
+- story: soporte tecnico guiado
+
+ 
+- story: crear ticket soporte
+
+  
+- story: soporte completado
+ 
+  
+ 
+- story: consultar tutor
+
+  
+- story: consultar horarios
+
+  
+- story: consultar progreso
+
+ 
+- story: historial academico
+
+  
+- story: crear pqrs
+
+  
+- story: preguntas frecuentes plataforma
+
+  
+- story: enviar correo tutor
+
+  
+- story: derivacion humano aceptada
+
+  
+- story: derivacion humano cancelada
+

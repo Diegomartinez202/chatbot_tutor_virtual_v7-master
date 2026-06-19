@@ -1,0 +1,256 @@
+version: "3.9"
+
+name: tutorbot-dev-full
+
+services:
+
+  # ============================
+  # Backend DEV (FastAPI + reload)
+  # ============================
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        REQUIREMENTS_PATH: backend/requirements.txt
+    container_name: backend-dev
+    working_dir: /app
+    environment:
+      RASA_BASE_URL: http://host.docker.internal:5005
+      APP_ENV: dev
+      DEBUG: "true"
+      PYTHONPATH: /app
+
+      # CORS / CSP
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+      EMBED_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:5173"
+
+      # Rasa
+      RASA_URL: http://rasa:5005
+
+      # Admin técnico para pruebas (bootstrap)
+      ADMIN_EMAIL: "admin.demo@sena.edu.co"
+      ADMIN_BOOTSTRAP_PASSWORD: "AdminDemo123*"
+
+      # JWT
+      SECRET_KEY: "cambia-esta-clave-en-produccion"
+      JWT_ALGORITHM: "HS256"
+
+    command: >
+      sh -lc "uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+    
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  # ============================
+  # Frontend DEV (Vite)
+  # ============================
+  admin-dev:
+    build:
+      context: ./admin_panel_react
+      dockerfile: Dockerfile
+      target: build
+    container_name: admin-dev
+    working_dir: /app
+    command: >
+      sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      NODE_ENV: development
+      VITE_ALLOWED_HOST_ORIGINS: "http://localhost:8080,http://localhost:5173"
+      VITE_USER_SETTINGS_URL: "/api/me/settings"
+      RASA_BASE_URL: http://rasa:5005
+    volumes:
+      - ./admin_panel_react:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  # ============================
+  # Rasa DEV
+  # ============================
+  rasa:
+    container_name: rasa
+    build:
+      context: ./rasa
+      dockerfile: Dockerfile
+    environment:
+      ACTION_SERVER_URL: http://action-server:5055/webhook
+      SQLALCHEMY_SILENCE_UBER_WARNING: "1"
+      SQLALCHEMY_WARN_20: "0"
+    depends_on:
+      - action-server
+      - mongo
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./rasa:/app/rasa
+      - ./rasa/models:/app/models
+      - ./rasa/data:/app/data
+      - ./rasa/endpoints.yml:/app/endpoints.yml
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  # ============================
+  # Action Server Rasa DEV
+  # ============================
+  action-server:
+    container_name: action-server
+    build:
+      context: ./rasa
+      dockerfile: actions/Dockerfile
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./rasa:/app/rasa
+      - ./rasa/actions:/app/actions
+    restart: unless-stopped
+    networks:
+      - app-net
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: phi3:mini
+      LLM_MODEL: phi3:mini
+      LLM_URL: http://ollama:11434/api/generate
+      OLLAMA_TIMEOUT: 10
+      OLLAMA_WARMUP_TIMEOUT: 120
+      OLLAMA_MAX_TOKENS: 160
+      EMBEDDING_URL: http://embedding-service:9000/embed
+
+  # ------------------------------------------------------------
+  # Ollama LLM Server
+  # ------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ops/ollama/data:/var/lib/ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+    restart: unless-stopped
+    networks:
+      - app-net
+
+  # ============================
+  # Nginx DEV (reverse proxy)
+  # ============================
+  nginx-dev:
+    image: nginx:alpine
+    container_name: nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+      - admin-dev
+      - rasa
+    ports:
+      - "8080:80"
+    volumes:
+      # nginx.conf principal
+      - ./ops/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+
+      # conf.d donde vive default.conf
+      - ./ops/nginx/conf.d/dev:/etc/nginx/conf.d:ro
+
+      # mime.types
+      - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+    networks:
+      - app-net
+
+  # ------------------------------------------------------------
+  # MongoDB (para DEV)
+  # ------------------------------------------------------------
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ------------------------------------------------------------
+  # Rasa Action Guardian (Flask API JWT + Mongo)
+  # ------------------------------------------------------------
+  autosave-guardian:
+    build:
+      context: .
+      dockerfile: autosave_guardian/Dockerfile.guardian
+    container_name: autosave-guardian
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: chatbot_tutor_virtual
+      MONGO_AUTOSAVE_COLLECTION: autosaves
+      MONGO_SECURITY_LOGS_COLLECTION: seguridad_logs
+      JWT_SECRET: ${JWT_SECRET:-cambia-esto-en-produccion}
+      JWT_ISSUER: guardian-api
+      JWT_AUDIENCE: zajuna-client
+      GUARDIAN_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8080"
+    networks:
+      - app-net
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    expose:
+      - "8080"   # visible dentro de app-net (Nginx/backend lo ven)
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-lc", "curl -fsS http://127.0.0.1:8080/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------
+  # Redis DEV (rate-limit / cache)
+  # ------------------------------------------------------------
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-net
+
+  embedding-service:
+    build:
+      context: ./embeddings_service
+    container_name: embedding-service
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+    networks:
+      - app-net
+
+# ============================
+# Redes y volúmenes
+# ============================
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mongo-data:

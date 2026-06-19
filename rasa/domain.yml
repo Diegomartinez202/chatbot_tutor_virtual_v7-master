@@ -1,0 +1,919 @@
+version: '3.1'
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+
+intents:
+- afirmar
+- negar
+- cancelar
+- volver
+- ayuda
+- salir
+- consultar_certificados
+- ver_estado_estudiante
+- horarios_calendario
+- ir_menu_principal
+- confirmar_autenticacion
+- negar_autenticacion
+- ver_tutor_asignado
+- consultar_horarios_clases
+- consultar_progreso_curso
+- historial_academico
+- reiniciar_conversacion
+- ping_servidor
+- mostrar_token
+- auth_login_cmd
+- recuperar_contrasena
+- reanudar_auto_si
+- reanudar_auto_no
+- terminar_conversacion_segura
+- confirmar_cierre_segura
+- cancelar_cierre_segura
+- iniciar_encuesta
+- dar_retroalimentacion
+- pedir_humano
+- continuar_tema_si
+- guardar_snapshot
+- solicitar_soporte
+- soporte_tecnico
+- pqrs
+- contactar_tutor
+- guardian_guardar_progreso
+- guardian_pausar_conversacion
+- guardian_reanudar_conversacion
+- ayuda_guardian
+- notificar_desconexion
+- notificar_inactividad
+- notificar_reconexion
+- guardar_progreso
+- cargar_progreso
+- pausar_conversacion
+- reset_guardian
+- registrar_encuesta
+- guardar_autosave
+- desconexion_usuario
+- inactividad_usuario
+- reconexion_usuario
+- guardar_estado_seguridad
+- recuperar_estado_seguridad
+- aprender_tema
+- ir_menu_academico
+- ir_menu_soporte
+- ir_menu_administrativo
+- dar_feedback
+- encuesta_satisfaccion
+- enviar_correo_recuperacion
+- explicacion_academica
+- preguntas_frecuentes
+- saludo
+- respuesta_satisfecho
+- respuesta_insatisfecho
+- calificar_bot
+- continuar_tema
+- menu_principal
+- forzar_salida
+
+entities:
+- email
+- emocion
+- satisfaccion
+- comentario
+- nivel_satisfaccion
+- problema_resuelto
+- calificacion_numerica
+- nombre
+- motivo_soporte
+- prefer_contacto
+- telefono
+- mensaje
+- cedula
+- nota
+
+slots:
+
+  historial_academico:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        intent: informar_historial_academico
+      - type: custom
+
+
+  session_activa:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  encuesta_incompleta:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: custom
+
+  proceso_activo:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+
+
+  turnos_conversacion:
+    type: float
+    initial_value: 0.0
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  sesion_larga:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  user_token:
+      type: text
+      influence_conversation: false
+      mappings:
+        - type: custom
+
+  slot_tipo_usuario:
+      type: text
+      influence_conversation: false
+      mappings:
+        - type: custom
+
+  auth_state:
+    type: categorical
+    values:
+    - inactive
+    - active
+    influence_conversation: false
+    initial_value: inactive
+    mappings:
+    - type: custom
+
+  is_authenticated:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+    - type: custom
+
+  email:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_entity
+      entity: email
+    - type: custom
+
+    - type: from_text
+      conditions:
+        - active_loop: auth_login_form
+          requested_slot: email
+
+    - type: from_text
+      conditions:
+        - active_loop: password_recovery_form
+          requested_slot: email
+
+  password:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: auth_login_form
+          requested_slot: password
+
+
+  certificados:
+    type: any
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  emocion_detectada:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: emocion
+      - type: from_text
+        intent: detectar_emocion
+
+  encuesta_activa:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+    - type: custom
+
+  encuesta_tipo:
+    type: categorical
+    values:
+    - positiva
+    - negativa
+    - neutra
+    influence_conversation: true
+    mappings:
+    - type: custom
+
+  proceso_activa:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+
+  autosave_estado:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+
+  nivel_satisfaccion:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: encuesta_satisfaccion_form
+          requested_slot: nivel_satisfaccion
+
+
+  problema_resuelto:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: encuesta_satisfaccion_form
+          requested_slot: problema_resuelto
+
+
+  calificacion_numerica:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: encuesta_satisfaccion_form
+          requested_slot: calificacion_numerica
+
+  comentario:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: encuesta_satisfaccion_form
+          requested_slot: comentario
+
+  satisfaccion:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: custom
+
+  feedback_texto:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_text
+      conditions:
+        - active_loop: feedback_form
+          requested_slot: feedback_texto
+
+
+  reanudar_pendiente:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+    - type: custom
+  
+  feedback_tipo:
+    type: categorical
+    influence_conversation: false
+    values:
+      - sugerencia
+      - queja
+      - felicitacion
+      - error
+    mappings:
+      - type: from_text
+        conditions:
+          - active_loop: feedback_form
+            requested_slot: feedback_tipo
+
+
+  nombre:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: nombre
+      - type: custom
+
+  motivo_soporte:
+    type: categorical
+    values:
+      - acceso
+      - calificaciones
+      - certificados
+      - tecnico
+      - otro
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: motivo_soporte
+      - type: custom
+
+  prefer_contacto:
+    type: categorical
+    values:
+      - email
+      - whatsapp
+      - ninguno
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: prefer_contacto
+      - type: custom
+
+  telefono:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: telefono
+      - type: custom
+
+  derivacion_humano:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  tipo_soporte:
+    type: categorical
+    values:
+      - interno
+      - externo
+      - tecnico
+      - academico
+      - administrativo
+      - otro
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  menu_actual:
+    type: categorical
+    values:
+      - principal
+      - academico
+      - administrativo
+      - soporte
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  evento_seguridad:
+    type: categorical
+    influence_conversation: false
+    values:
+      - desconexion
+      - inactividad
+    mappings:
+      - type: custom
+
+  auth_token:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  cedula:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  soporte_mensaje:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  escalar_humano:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  soporte_form_fallback_count:
+    type: float
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  confirmacion_cierre:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+
+  tema_consulta:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+        intent: aprender_tema
+
+  materia_detectada:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: materia
+
+
+  rol_academico:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  mensaje:
+      type: text
+      influence_conversation: false
+      mappings:
+      - type: from_entity
+        entity: mensaje
+      - type: from_text
+        conditions:
+        - active_loop: soporte_form
+          requested_slot: mensaje
+
+forms:
+
+  auth_login_form:
+    required_slots:
+      - email
+      - password
+
+  encuesta_satisfaccion_form:
+    required_slots:
+      - nivel_satisfaccion
+      - problema_resuelto
+      - calificacion_numerica
+      - comentario
+
+  feedback_form:
+    required_slots:
+      - feedback_tipo
+      - feedback_texto
+
+  soporte_form:
+    required_slots:
+      - nombre
+      - email
+      - mensaje
+
+  password_recovery_form:
+    required_slots:
+      - email
+
+responses:
+  utter_saludo_principal:
+    - text: "¡Hola! Soy tu asistente Zajuna 👋 Este es el menú principal. ¿Qué deseas hacer?"
+      buttons:
+        - title: "🎓 Académico"
+          payload: "/menu_academico"
+        - title: "🛠 Soporte técnico"
+          payload: "/menu_soporte"
+        - title: "🏫 Trámites académicos / administrativos"
+          payload: "/menu_tramites"
+  
+  utter_control_conversacion:
+  - text: "¿Deseas realizar otra consulta o terminar nuestra interacción?"
+    buttons:
+      - title: "🔄 Seguir consultando"
+        payload: "/menu_principal"
+      - title: "🚪 Terminar conversación"
+        payload: "/salir"
+
+  utter_exigir_login:
+  - text: "Para continuar, inicia sesión en la plataforma."
+    buttons:
+      - title: "🔐 Iniciar sesión (panel) Zajuna"
+        url: "https://localhost/login"
+      - title: "🏠 Menú principal"
+        payload: "/menu_principal"
+          
+  utter_reinicio_confirmado:
+    - text: "🔄 La sesión ha sido reiniciada con éxito. Todos los parámetros de seguridad y contexto se han limpiado."
+
+
+  utter_ping_ok:
+    - text: "⚡ [PONG] El servidor de acciones personalizadas se encuentra activo y respondiendo correctamente."
+  
+  utter_token_actual:
+    - text: "🔐 Tu token de sesión actual es: {user_token}"
+  
+  utter_token_admin:
+    - text: "🛡️ [MODO ADMINISTRADOR] Token de acceso verificado: {user_token}"
+
+  utter_need_auth:
+  - text: "Necesitas iniciar sesión para acceder a esta información."
+
+  utter_certificados_carousel:
+   - text: "🎓 Actualmente no registras certificados disponibles para descarga."
+  
+  utter_ofrecer_contacto_tutor:
+  - text: "📌 Noto que la sesión académica ha sido compleja. Si lo deseas, puedo generar un ticket de soporte técnico o enviarle un reporte detallado de tus dudas a tu Tutor Asignado para que te contacte directamente."
+
+  utter_reanudar_auto:
+  - text: >
+      Detecté una actividad pendiente.
+      ¿Deseas continuar donde la dejaste?
+
+  utter_reanudar_conversacion:
+   - text: >
+      🔄 Encontré una sesión previa.
+      ¿Deseas continuar donde la dejaste?
+     buttons:
+      - title: ✅ Sí
+        payload: /reanudar_auto_si
+      - title: ❌ No
+        payload: /reanudar_auto_no
+
+  utter_iniciar_encuesta:
+   - text: "Antes de finalizar, ¿te gustaría responder una breve encuesta de satisfacción?"
+  utter_encuesta_satisfaccion:
+   - text: "¿Cómo calificarías tu experiencia con la atención recibida?"
+
+  utter_encuesta_resolucion:
+   - text: "¿Tu consulta o problema quedó resuelto?"
+
+  utter_encuesta_gracias:
+   - text: "Gracias por compartir tu opinión. Tu retroalimentación nos ayuda a mejorar."
+
+  utter_encuesta_feedback:
+   - text: "Si deseas, puedes dejar un comentario adicional sobre tu experiencia."
+
+  utter_encuesta_finalizada:
+   - text: "Encuesta finalizada correctamente. Gracias por tu participación."
+
+  utter_ofrecer_continuar:
+  - text: >
+      ¿Deseas continuar profundizando en este tema o prefieres realizar otra consulta?
+    buttons:
+      - title: ✅ Continuar tema
+        payload: /continuar_tema_si
+      - title: 🏠 Menú principal
+        payload: /ir_menu_principal
+      - title: 👋 Finalizar
+        payload: /terminar_conversacion_segura
+
+  utter_ofrecer_humano:
+  - text: "🤝 Veo que requieres asistencia especializada. ¿Deseas que transfiera esta sesión a un agente humano del SENA?
+      ¿Deseas que realice la solicitud?"
+    buttons:
+      - title: ✅ Sí
+        payload: /pedir_humano
+      - title: ❌ No
+        payload: /continuar_tema_si
+
+  utter_menu_academico:
+  - text: "📚 Has ingresado al Menú Académico. Aquí puedes consultar sobre tus asignaturas, guías de aprendizaje y resolver dudas temáticas con el LLM."
+    buttons:
+      - title: 📚 Aprender un tema
+        payload: /aprender_tema
+
+      - title: 📜 Certificados
+        payload: /consultar_certificados
+
+      - title: 📊 Estado estudiante
+        payload: /ver_estado_estudiante
+
+      - title: 👨‍🏫 Tutor asignado
+        payload: /ver_tutor_asignado
+
+      - title: 📚 Progreso curso
+        payload: /consultar_progreso_curso
+
+      - title: 📅 Horarios
+        payload: /consultar_horarios_clases
+
+      - title: "⏳ Historial Académico" 
+        payload: "/historial_academico"
+
+
+      - title: 🏠 Menú principal
+        payload: /ir_menu_principal
+
+  utter_derivacion_cancelada:
+  - text: >
+        De acuerdo. Continuaremos la atención desde el asistente virtual.
+
+  utter_derivar_humano_en_progreso:
+  - text: "⏳ Procesando tu solicitud de transferencia. Por favor no cierres el chat..."
+
+  utter_derivando_humano:
+  - text: "🚀 Conectando con los canales de soporte en vivo de Zajuna..."
+
+  utter_handoff_en_cola:
+  - text: "📌 Te encuentras en la cola de atención técnica. Un asesor se comunicará contigo en breves momentos."
+
+  utter_necesita_autenticacion:
+  - text: >
+        Necesitas iniciar sesión para consultar tus certificados.
+
+  utter_login_hint:
+  - text: >
+        Puedes autenticarte utilizando tu correo electrónico y contraseña.
+
+  utter_confirmar_cierre_seguro:
+  - text: "⚠️ Tienes un proceso o encuesta pendiente por responder. ¿Estás seguro de que deseas salir del sistema ahora?"
+
+    buttons:
+      - title: 💾 Guardar y salir
+        payload: /confirmar_cierre_segura
+      - title: ↩️ Continuar conversación
+        payload: /cancelar_cierre_segura
+
+
+  utter_cierre_confirmado_seguro:
+  - text: "🔒 La conversación ha sido pausada y guardada de forma segura. ¡Gracias por usar el Tutor Virtual del SENA! Puedes escribir de nuevo cuando desees reactivar el chat."
+
+
+  utter_menu_principal:
+  - text: >
+      🏠 Has regresado al menú principal.
+      ¿Qué deseas hacer ahora?
+    buttons:
+
+      - title: 🎓 Menú Académico
+        payload: /ir_menu_academico
+
+      - title: 📋 Menú Administrativo
+        payload: /ir_menu_administrativo
+
+      - title: 🛠️ Menú Soporte
+        payload: /ir_menu_soporte
+
+  utter_confirmar_cierre:
+  - text: "Tienes un proceso activo. ¿Deseas salir y guardar tu progreso antes de cerrar la conversación?"
+  - text: "¿Estás seguro de que deseas finalizar la conversación?"
+
+  utter_cierre_confirmado:
+  - text: "La conversación ha sido cerrada correctamente. Podrás retomarla más adelante."
+
+  - text: "💾 Guardando tus respuestas de forma segura en los servidores de la plataforma..."
+
+  utter_notificar_desconexion:
+  - text: "⚠️ Se detectó una interrupción en tu conexión de red. Guardando estado actual de la sesión..."
+
+  utter_notificar_inactividad:
+  - text: "⏰ Tu sesión ha estado inactiva por un momento. Para proteger tu progreso, tus datos temporales se han guardado."
+
+  utter_notificar_reconexion:
+  - text: " Bienvenido nuevamente. Verificando si existe una sesión previa.⚡ ¡Conexión restablecida con éxito!"
+
+  utter_preguntar_satisfaccion:
+  - text: "¿Cómo calificarías la atención recibida?"
+
+  utter_correo_enviado:
+  - text: "✅ El correo fue enviado correctamente al tutor."
+
+  utter_soporte_error:
+  - text: "⚠️ Ocurrió un problema procesando tu solicitud."
+
+  utter_form_fallback_warn:
+  - text: "Parece que estamos teniendo dificultades para completar la información requerida."
+
+  utter_menu_soporte:
+  - text: |
+      🔧 Menú de Soporte Técnico. 
+      "Puedo ayudarte con problemas de acceso a Zajuna, restablecimiento de credenciales o transferirte a un asesor humano."
+
+      Selecciona una opción:
+    buttons:
+
+      - title: 🎫 Crear caso
+        payload: /solicitar_soporte
+
+      - title: 💬 Hablar con asesor
+        payload: /pedir_humano
+
+      - title: 🔑 Recuperar contraseña
+        payload: /recuperar_contrasena
+
+      - title: 📧 Contactar tutor
+        payload: /contactar_tutor
+
+      - title: 🏠 Menú principal
+        payload: /ir_menu_principal
+
+  utter_menu_administrativo:
+  - text: |
+      📋 Menú Administrativo
+
+      Selecciona una opción:
+    buttons:
+
+      - title: 📜 Certificados
+        payload: /consultar_certificados
+
+      - title: 🔑 Recuperar contraseña
+        payload: /recuperar_contrasena
+
+      - title: 📧 Enviar solicitud
+        payload: /recuperar_contrasena
+
+      - title: 🏠 Menú principal
+        payload: /ir_menu_principal
+
+  utter_despedida_profesional:
+  - text: "Gracias por utilizar el asistente virtual. Estaremos disponibles cuando necesites ayuda nuevamente."
+
+  utter_cierre_cancelado:
+  - text: >
+      👌 Perfecto, seguimos aquí.
+      ¿En qué más puedo ayudarte?
+    buttons:
+      - title: 🏠 Menú principal
+        payload: /ir_menu_principal
+      - title: 📄 Certificados
+        payload: /consultar_certificados
+      - title: 📊 Estado académico
+        payload: /ver_estado_estudiante
+
+  utter_volver_menu:
+  - text: |
+      ¿A dónde deseas ir?
+    buttons:
+
+      - title: 🎓 Menú Académico
+        payload: /ir_menu_academico
+
+      - title: 📋 Menú Administrativo
+        payload: /ir_menu_administrativo
+
+      - title: 🛠️ Menú Soporte
+        payload: /ir_menu_soporte
+
+      - title: 🏠 Menú Principal
+        payload: /ir_menu_principal
+
+  utter_confirmar_cierre_con_autosave:
+  - text: "Detecté información pendiente de guardar. Puedo conservar tu progreso antes de cerrar la conversación. ¿Deseas continuar?"
+
+  utter_despedida_final:
+  - text: " Gracias por utilizar el asistente virtual. Cuando regreses podremos continuar donde lo dejaste."
+  - text: "La conversación se cerró correctamente."
+
+  utter_despedida_sin_guardar:
+  - text: " La conversación ha sido cerrada. La información pendiente no fue conservada."
+
+  utter_cancelar_cierre:
+  - text: "La operación fue cancelada."
+  - text: "Perfecto, continuaré atendiendo tu solicitud."
+
+  utter_ask_feedback_tipo:
+  - text: |
+      ¿Qué tipo de retroalimentación deseas registrar?
+
+      • sugerencia
+      • queja
+      • felicitacion
+      • error
+  utter_ask_feedback_texto:
+  - text: "Por favor describe tu comentario."
+  
+  utter_esta_resuelto:
+  - text: "Antes de finalizar, ¿tu consulta o problema quedó resuelto en la plataforma?"
+
+  utter_ask_nivel_satisfaccion:
+  - text: "¿Cómo calificarías tu experiencia con la atención recibida? (Excelente, buena, regular o mala)"
+  
+  utter_ask_problema_resuelto:
+  - text: "¿Tu inconveniente se solucionó por completo? (Sí / No)"
+
+  utter_ask_calificacion_numerica:
+  - text: "En una escala de 1 a 5, donde 1 es muy poco satisfecho y 5 es muy satisfecho, ¿qué nota nos das?"
+
+  utter_ask_comentario:
+  - text: "Por favor, déjanos un breve comentario o sugerencia para seguir mejorando nuestro servicio."
+  
+  utter_gracias_retroalimentacion:
+  - text: "Muchas gracias por tu retroalimentación. Hemos guardado tus comentarios de forma segura. ¡Tu opinión nos ayuda a crecer! 🙌"
+
+  utter_saludo_inicial:
+  - text: "👋 ¡Hola! Soy tu Tutor Virtual del SENA. Estoy aquí para asistirte en tus procesos de formación académica, soporte en la plataforma Zajuna y trámites administrativos. ¿En qué puedo ayudarte hoy?"
+
+actions:
+- action_ver_estado_estudiante
+- action_tutor_asignado
+- action_consultar_horarios_clases
+- action_consultar_progreso_curso
+- action_historial_academico
+- action_aprender_tema
+- action_reiniciar_conversacion
+- action_ping_servidor
+- action_set_default_tipo_usuario
+- action_mostrar_token
+- action_reset_turnos_conversacion
+- validate_auth_login_form
+- action_check_auth
+- action_ingreso_zajuna
+- action_set_authenticated_true
+- action_enviar_correo_recuperacion
+- action_render_certificados
+- action_analizar_estado_usuario
+- action_confirmar_cierre_seguro
+- action_cargar_autosave_mongo
+- action_autoresume_conversacion
+- action_reset_conversacion_segura
+- action_registrar_encuesta
+- action_guardar_feedback
+- action_lanzar_encuesta_general
+- action_preguntar_resolucion
+- action_procesar_respuesta_resolucion
+- action_set_encuesta_tipo
+- validate_encuesta_satisfaccion_form
+- action_verificar_estado_encuesta
+- action_enviar_correo
+- action_conectar_humano
+- action_health_check
+- action_ofrecer_continuar_tema
+- action_autosave_snapshot
+- action_ofrecer_humano
+- action_handoff_cancelar
+- action_derivar_humano_confirmada
+- action_cancelar_derivacion
+- action_derivar_y_registrar_humano
+- action_handoff_en_cola
+- action_handle_with_llm
+- action_ir_menu_principal
+- action_ir_menu_academico
+- action_ir_menu_soporte
+- action_ir_menu_administrativo
+- action_orchestrator_entry
+- action_verificar_estado_encuesta_segura
+- action_guardar_progreso_encuesta
+- action_terminar_conversacion_segura
+- action_guardian_guardar_progreso
+- action_guardian_cargar_progreso
+- action_guardian_pausar
+- action_guardian_reanudar
+- action_guardian_reset
+- action_registrar_encuesta_guardian
+- action_guardar_autosave
+- action_notificar_desconexion
+- action_notificar_inactividad
+- action_notificar_reconexion
+- action_guardar_estado_seguridad
+- action_recuperar_estado_seguridad
+- action_session_start
+- validate_soporte_form
+- action_enviar_soporte
+- action_soporte_submit
+- action_enviar_correo_tutor
+- action_procesar_soporte
+- action_marcar_escalar_humano
+- action_registrar_intento_form
+- action_verificar_max_intentos_form
+- action_preguntas_frecuentes_llm
+- action_soporte_tecnico_llm
+- action_confirmar_cierre
+- action_finalizar_conversacion
+- action_cancelar_cierre
+- action_verificar_proceso_activo
+- action_confirmar_cierre_seguro_final
+- action_cancelar_cierre_seguro
+- action_verificar_proceso_activo_autosave
+- action_guardar_encuesta_incompleta
+- action_confirmar_cierre_autosave
+- action_cancelar_cierre_autosave
+- action_incrementar_turnos_conversacion
+- validate_feedback_form
+- action_pqrs_llm
+- action_memory_wrapper
+- zajuna_get_estado_estudiante
+- action_enviar_correo
+
+
+
+

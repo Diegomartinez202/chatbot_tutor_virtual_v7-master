@@ -1,0 +1,65 @@
+﻿name: E2E Preview (Playwright + local dev server)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "admin_panel_react/**"
+      - ".github/workflows/e2e-preview.yml"
+  push:
+    branches: [ "feature/**", "fix/**" ]
+    paths:
+      - "admin_panel_react/**"
+      - ".github/workflows/e2e-preview.yml"
+
+concurrency:
+  group: e2e-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-preview:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin_panel_react
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: admin_panel_react/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright (browsers + deps)
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests (auto webServer from config)
+        run: npx playwright test
+
+      - name: Check for flaky tests
+        run: node scripts/check-no-flaky.js ./playwright-report/results.json
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-preview
+          path: admin_panel_react/playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload test results (blob)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-preview
+          path: admin_panel_react/test-results
+          if-no-files-found: ignore

@@ -1,0 +1,42 @@
+{
+  "name": "Chatbot Tutor Virtual",
+  "short_name": "TutorBot",
+  "description": "Asistente virtual para consultas y soporte.",
+  "lang": "es",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Abrir chat",
+      "short_name": "Chat",
+      "description": "Abrir el chatbot rápidamente",
+      "url": "/?openChat=true"
+    }
+  ],
+  "categories": [ "productivity", "education", "utilities" ],
+  "prefer_related_applications": false
+}

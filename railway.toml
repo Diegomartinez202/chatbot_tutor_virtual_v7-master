@@ -1,0 +1,5 @@
+[build]
+builder = "NIXPACKS"  # Aunque usamos docker-compose, este campo puede dejarse así o eliminarse
+
+[deploy]
+startCommand = "docker compose up --build"
