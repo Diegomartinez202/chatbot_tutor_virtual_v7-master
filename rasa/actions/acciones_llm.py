@@ -32,6 +32,15 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
 
+        requires_auth = tracker.get_slot("requires_auth")
+        if requires_auth:
+            return f"""
+            El usuario intenta acceder a información privada pero no está autenticado.
+            Tu respuesta debe ser:
+            1. Explicar brevemente que por seguridad no puedes mostrar datos personales sin login.
+            2. Dar los pasos exactos para autenticarse en: https://tu-plataforma.com/login
+            3. No inventes datos del estudiante.
+            """
         latest = tracker.latest_message or {}
         last_user = latest.get("text", "") or ""
         intent_name = latest.get("intent", {}).get("name", "")
@@ -43,7 +52,6 @@ class ActionHandleWithLLM(Action):
                 or detectar_materia(last_user)
             )
 
-            # MEJORA: Evitar fallos de inicialización si materia viene vacía o nula
             materia_key = str(materia).lower() if materia else "general"
 
             rol = (
@@ -69,9 +77,25 @@ class ActionHandleWithLLM(Action):
 
         latest = tracker.latest_message or {}
         last_user = latest.get("text", "") or ""
+        intent_data = latest.get("intent") or {}
+        intent_name = intent_data.get("name", "desconocido")
+        intent_conf = intent_data.get("confidence", 0.0)
+
+        if intent_name == "ayuda":
+           
+            historial = self._get_formatted_history(tracker) 
+            return f"""
+            {PROMPT_SYSTEM}
+            El usuario ha solicitado ayuda. Como tutor virtual, explícale brevemente:
+            1. Qué tipo de consultas académicas puedes resolver.
+            2. Cómo puede consultar su estado (si está autenticado).
+            3. Invítalo a hacer una pregunta específica sobre cualquier tema.
+            
+            Historial reciente para dar contexto:
+            {historial}
+            """
 
         contexto_memoria = ""
-
         prev = None
 
         if last_user:
@@ -83,15 +107,9 @@ class ActionHandleWithLLM(Action):
                 f"{prev.get('text','')}"
             )
 
-
-        intent_data = latest.get("intent") or {}
-        intent_name = intent_data.get("name", "desconocido")
-        intent_conf = intent_data.get("confidence", 0.0)
-
         history = []
         raw_events = tracker.events or []
 
-        # MEJORA: Validación segura del esquema de eventos para prevenir fallos por objetos no mutables
         for event in raw_events[-12:]:
             if not isinstance(event, dict):
                 continue
@@ -182,7 +200,7 @@ Usa lenguaje claro y educativo.
             dispatcher.utter_message(
                 text="Ocurrió un problema al procesar tu solicitud."
             )
-            return []
+            return [SlotSet("requires_auth", None)]
 
 
 class ActionMemoryWrapper(Action):

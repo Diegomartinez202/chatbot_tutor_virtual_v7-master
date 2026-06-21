@@ -1,7 +1,13 @@
 version: "3.1"
 
 nlu:
-
+- intent: negar_encuesta
+  examples: |
+    - No quiero hacer ninguna encuesta
+    - No me interesa responder nada
+    - Salta la encuesta
+    - No quiero calificar nada
+    - Prefiero no responder
 
 - intent: consultar_certificados
   examples: |
@@ -161,54 +167,15 @@ nlu:
     - quién lleva mi proceso
     - quiero saber quién es mi tutor
 
-
-- intent: respuesta_satisfecho
-  examples: |
-    - sí, quedó resuelto
-    - si, muchas gracias
-    - claro que sí
-    - todo bien
-    - correcto
-    - sí resolvió mi duda
-
-- intent: respuesta_insatisfecho
-  examples: |
-    - no quedé satisfecho
-    - no, todavía tengo dudas
-    - no del todo
-    - sigo con la duda
-    - no resolvió mi problema
-    - la verdad no
-
-- intent: calificar_bot
-  examples: |
-    - /calificar_bot{"nota": "5"}
-    - /calificar_bot{"nota": "4"}
-    - /calificar_bot{"nota": "3"}
-    - /calificar_bot{"nota": "2"}
-    - /calificar_bot{"nota": "1"}
-    - calificar con [5](nota)
-    - le doy un [4](nota)
-    - [3](nota) estrellas
-
 - intent: solicitar_reinicio
   examples: |
-    - reiniciar conversación
     - /action_reiniciar_conversacion
     - resetear bot
     - comenzar de nuevo
     - borrar historial y reiniciar
     - reiniciar sistema
 
-- intent: solicitar_ping
-  examples: |
-    - ping
-    - test servidor
-    - /action_ping_servidor
-    - comprobar conexion
-    - estado del servidor
-
-- intent: ver_token
+- intent: mostrar_token
   examples: |
     - mostrar mi token
     - ver credenciales
@@ -224,21 +191,6 @@ nlu:
     - iniciar sesión
     - ingresar a la plataforma
 
-- intent: solicitar_recuperacion
-  examples: |
-    - olvidé mi contraseña
-    - recuperar clave
-    - /action_enviar_correo_recuperacion
-    - no puedo entrar por mi contraseña
-    - restablecer credenciales
-
-- intent: ver_certificados
-  examples: |
-    - deseo ver mis certificados del sena
-    - mis diplomas
-    - descargar certificaciones académicas
-    - /action_render_certificados
-    - mostrar mis certificados de zajuna
 
 - intent: forzar_salida
   examples: |
@@ -247,13 +199,6 @@ nlu:
     - adios
     - /action_confirmar_cierre_seguro
     - cerrar tutor sena
-
-- intent: reanudar_conversacion
-  examples: |
-    - quiero continuar donde iba
-    - recuperar mi sesion anterior
-    - /action_autoresume_conversacion
-    - reanudar proceso
 
 - intent: consultar_horarios_clases
   examples: |
@@ -404,7 +349,7 @@ nlu:
     - explícame paso a paso
     - ayúdame a entender este tema
     - qué significa este concepto
-    - cómo funciona esto
+    - cómo se desarrolla este tema
     - necesito entender este contenido
     - explícame mejor
     - tengo dudas sobre este tema
@@ -470,15 +415,14 @@ nlu:
 - intent: solicitar_soporte
   examples: |
     - necesito ayuda
-    - necesito soporte
+    - necesito soporte rapido
     - requiero asistencia
     - necesito colaboración
     - pueden ayudarme
     - tengo una inquietud
-    - necesito orientación
     - quisiera recibir ayuda
     - requiero acompañamiento
-    - tengo una duda
+    - tengo una emergencia
     - necesito asistencia general
     - me pueden orientar
     - busco ayuda
@@ -488,9 +432,9 @@ nlu:
     - podrían ayudarme
     - requiero información
     - necesito resolver una situación
-    - necesito apoyo
+    - necesito apoyo tecnico
     - quiero recibir asistencia
-    - necesito atención personalizada
+    - necesito atención inmediata
     - alguien puede ayudarme
     - necesito que me orienten
     - requiero soporte general
@@ -566,8 +510,6 @@ nlu:
     - quiero reportar una inconformidad
     - necesito gestionar una pqrs
 
-
-
 - intent: preguntas_frecuentes
   examples: |
     - tengo una pregunta frecuente
@@ -593,7 +535,7 @@ nlu:
     - consultar ayuda
     - centro de ayuda
     - manual de usuario
-    - soporte general
+    - soporte consultas frecuentes
     - información de funcionamiento
     - cómo utilizar la plataforma
     - guía rápida
@@ -612,7 +554,8 @@ nlu:
     - no puedo ingresar a mi cuenta
     - necesito cambiar mi contraseña
     - recuperar acceso
-    - enviar enlace de recuperación
+    - enviar limk de recuperación
+    - enviar enlace recuperación
     - restablecer contraseña
     - ayuda con mi contraseña
     - olvidé la clave
@@ -623,9 +566,6 @@ nlu:
     - no puedo iniciar sesión
     - recuperar acceso a la plataforma
     - necesito una nueva contraseña
-
-
-
 
 
 - intent: pedir_humano
@@ -641,7 +581,7 @@ nlu:
     - comunicarme con soporte humano
     - pasar con un asesor
     - hablar con un operador
-    - necesito atención personalizada
+    - necesito atención priorizada
     - quiero que me atienda una persona
     - deseo hablar con un representante
     - atención por un humano
@@ -665,21 +605,21 @@ nlu:
 - intent: ayuda
   examples: |
     - ayuda
-    - necesito ayuda
+    - necesito ayuda sos
     - puedes ayudarme
     - requiero ayuda
     - necesito asistencia
     - ayúdame por favor
     - tengo una duda
     - necesito orientación
-    - soporte
     - ayuda por favor
     - necesito información
     - no sé qué hacer
-    - tengo una consulta
+    - tengo una situación
     - me ayudas
     - puedes orientarme
-    - requiero asistencia
+    - requiero ayuda rapida
+    - requiero ayuda express
     - necesito apoyo
     - cómo funciona esto
     - tengo preguntas
@@ -687,7 +627,6 @@ nlu:
 
 - intent: salir
   examples: |
-    - salir
     - cerrar
     - quiero salir
     - finalizar
@@ -752,11 +691,19 @@ nlu:
     - salir de este formulario
     - detener formulario
     - cancelar trámite
+- intent: solicitar_cierre
+  examples: |
+    - Quiero cerrar sesión
+    - Terminar conversación
+    - Ya no necesito nada más
+    - Adiós, cerrar
+    - Finalizar este proceso
+    - Salir
 
 - intent: reiniciar_conversacion
   examples: |
     - reiniciar conversación
-    - comenzar de nuevo
+    - comenzar desde el inicio
     - empezar nuevamente
     - reiniciar chat
     - volver a empezar
@@ -766,12 +713,12 @@ nlu:
     - quiero empezar otra vez
     - reiniciar todo
     - limpiar conversación
-    - volver al inicio
+    - volver al inicio conversación
     - empezar desde cero
     - reiniciar proceso
     - nuevo comienzo
     - resetear chat
-    - reiniciar sistema
+    - reiniciar emvio mensajes
     - comenzar otra vez
     - volver a iniciar
     - reiniciar por completo
@@ -861,36 +808,18 @@ nlu:
     - quiero terminar
     - deseo finalizar
     - cerrar chat
-    - terminar chat
+    - terminar envio de mensajes
     - finalizar sesión
     - quiero salir definitivamente
     - cerrar todo
     - terminar asistencia
     - finalizar atención
     - concluir conversación
-    - terminar proceso
+    - terminar memsajes
     - cerrar la conversación
     - cerrar chat definitivamente
     - finalizar asistencia
     - terminar sesión
-
-- intent: confirmar_cierre_segura
-  examples: |
-    - sí cerrar
-    - confirmar cierre
-    - sí finalizar
-    - confirmar
-    - estoy seguro
-    - sí deseo salir
-    - sí terminar
-    - correcto cerrar
-    - aceptar cierre
-    - confirmar salida
-    - sí continuar con el cierre
-    - cerrar definitivamente
-    - sí por favor
-    - confirmar terminación
-    - proceder con el cierre
 
 - intent: cancelar_cierre_segura
   examples: |
@@ -946,24 +875,6 @@ nlu:
     - expresar opinión
     - comentar servicio
 
-- intent: encuesta_satisfaccion
-  examples: |
-    - encuesta de satisfacción
-    - satisfacción
-    - evaluar servicio
-    - calificar atención
-    - evaluar experiencia
-    - responder satisfacción
-    - medir satisfacción
-    - encuesta servicio
-    - calificación del servicio
-    - evaluar chatbot
-    - valorar atención
-    - evaluar soporte
-    - encuesta de experiencia
-    - opinión del servicio
-    - evaluación de satisfacción
-
 - intent: afirmar
   examples: |
     - sí
@@ -978,7 +889,8 @@ nlu:
     - ok
     - okay
     - vale
-    - sí por favor
+    - sí, por favor
+    - por favor
     - efectivamente
     - seguro
     - acepto
@@ -1007,11 +919,10 @@ nlu:
     - rechazar
     - no acepto
 
-
-
 - intent: reanudar_auto_si
   examples: |
-    - continuar
+    - continuar con la reanudacion de conversación
+    - continuar con la reanudaciom
     - reanudar
     - quiero continuar
     - continuar donde iba
@@ -1022,40 +933,15 @@ nlu:
 
 - intent: reanudar_auto_no
   examples: |
-    - no
+    - no reanudar conversación
+    - no continuar con la reanudación
+    - no reanudar
     - empezar de nuevo
     - nueva conversación
     - borrar progreso
     - no continuar
     - reiniciar
     - comenzar desde cero
-
-
-- intent: continuar_tema_si
-  examples: |
-    - continuar tema
-    - seguir con esto
-    - sí continuar
-    - quiero seguir
-    - continúa
-    - más información
-    - seguir aprendiendo
-
-- intent: continuar_tema
-  examples: |
-    - deseo seguir con el tema actual
-    - continuar con la lección
-    - /action_ofrecer_continuar_tema
-    - sigamos aprendiendo
-
-- intent: solicitar_humano
-  examples: |
-    - quiero hablar con un asesor
-    - pásame a un humano
-    - hablar con soporte técnico
-    - /action_conectar_humano
-    - asesor humano por favor
-
 
 - intent: enviar_correo_recuperacion
   examples: |
@@ -1070,39 +956,124 @@ nlu:
     - mandar enlace para recuperar acceso
     - recuperar contraseña por correo
 
-
 - intent: confirmar_cierre_segura
   examples: |
     - sí cerrar
     - confirmar cierre
     - sí finalizar
-    - sí terminar
     - confirmar
+    - estoy seguro
+    - sí deseo salir
+    - sí terminar
+    - correcto cerrar
     - aceptar cierre
+    - confirmar salida
+    - sí continuar con el cierre
     - cerrar definitivamente
+    - sí por favor
+    - confirmar terminación
     - proceder con el cierre
-    - deseo cerrar
-    - sí salir
 
-- intent: cancelar_cierre_segura
+
+- intent: auth_login_cmd
   examples: |
-    - no cerrar
-    - cancelar cierre
-    - continuar conversación
-    - seguir conversando
-    - no salir
-    - deseo continuar
-    - cancelar salida
-    - seguir en el chat
-    - quedarme aquí
-    - volver a la conversación
+    - quiero iniciar sesión
+    - necesito ingresar a mi cuenta
+    - abrir mi sesión
+    - /auth_login_cmd
 
+- intent: cancelar_handoff
+  examples: |
+    - cancelar soporte
+    - no necesito ayuda humana
+    - seguir con el bot
+    - continuar aquí
 
+- intent: confirmar_handoff
+  examples: |
+    - sí quiero hablar con soporte
+    - confirmar atención humana
+    - pasar con un asesor
+    - quiero un tutor
 
+- intent: cargar_progreso
+  examples: |
+    - recuperar mi progreso
+    - continuar donde quedé
+    - cargar mi sesión anterior
+    - quiero retomar
 
+- intent: desconexion_usuario
+  examples: |
+    - me desconecté
+    - cerré sesión
+    - perdí conexión
 
+- intent: guardar_autosave
+  examples: |
+    - guardar progreso
+    - guarda mi avance
+    - hacer respaldo
+    - almacenar mi estado actual
 
+- intent: guardar_estado_seguridad
+  examples: |
+    - guarda mi progreso
+    - quiero guardar mi estado actual
+    - necesito guardar la sesión
+    - /guardar_estado_seguridad
 
+- intent: inactividad_usuario
+  examples: |
+    - estuve mucho tiempo sin usarlo
+    - se cerró por inactividad
+    - mi sesión quedó inactiva
+    - /inactividad_usuario
 
+- intent: ping_servidor
+  examples: |
+    - /ping_servidor
+    - ping
+    - prueba de conexión
+    - verifica el servidor
+    - comprueba el estado del sistema
+    - el servidor está activo
 
+- intent: reconexion_usuario
+  examples: |
+    - volví a entrar
+    - reconectar sesión
+    - regresé al sistema
+
+- intent: recuperar_estado_seguridad
+  examples: |
+    - quiero recuperar mi progreso
+    - cargar mi sesión anterior
+    - continuar donde quedé
+    - /recuperar_estado_seguridad
+
+- intent: guardian_guardar_progreso
+  examples: |
+    - guarda mi progreso actual
+    - quiero guardar mi avance
+    - salva la información que llevo
+    - guardar progreso
+
+- intent: guardian_pausar_conversacion
+  examples: |
+    - pausa la conversación
+    - detén el chat un momento
+    - quiero pausar
+
+- intent: guardian_reanudar_conversacion
+  examples: |
+    - reanuda la conversación
+    - vuelve a empezar
+    - continuar el chat
+
+- intent: reset_guardian
+  examples: |
+    - reiniciar el sistema
+    - resetear guardian
+    - borrar configuración
 

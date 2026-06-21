@@ -12,16 +12,15 @@ from rasa_sdk.events import (
     SlotSet,
     ConversationPaused,
     ConversationResumed,
-    EventType,  # MEJORA: Importación para tipado de retornos explícitos
+    EventType,
 )
-
+from rasa_sdk.events import FollowupAction,Restarted
 from .core.llm_engine import run_llm
 
 logger = logging.getLogger(__name__)
 
 
 class ActionVerificarProcesoActivo(Action):
-
     def name(self) -> str:
         return "action_verificar_proceso_activo"
 
@@ -30,26 +29,24 @@ class ActionVerificarProcesoActivo(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: DomainDict,
-    ) -> List[EventType]:  # MEJORA: Estandarización del tipo de retorno a List[EventType]
-
+    ) -> List[EventType]:
+        
+        # 1. Detectar si hay un formulario (loop) activo o un flag de proceso
+        active_loop = tracker.active_loop.get("name")
         proceso_activo = tracker.get_slot("proceso_activo")
 
-        if proceso_activo:
+        # 2. Si hay algo pendiente, avisamos al usuario
+        if active_loop or proceso_activo:
             dispatcher.utter_message(
-                text=(
-                    "Tienes un proceso activo. "
-                    "¿Seguro que quieres terminar la conversación?"
-                )
+                text="⚠️ Tienes un proceso pendiente. ¿Estás seguro de que quieres cerrar la conversación y perder los datos?"
             )
-        else:
-            dispatcher.utter_message(
-                text=(
-                    "No hay procesos activos, "
-                    "puedo cerrar la conversación con seguridad."
-                )
-            )
-
-        return []
+            return []
+        
+        dispatcher.utter_message(
+            text="👋 Entendido. La conversación ha finalizado. ¡Que tengas un excelente día!"
+        )
+        
+        return [Restarted(), FollowupAction("action_session_start")]
 
 
 class ActionConfirmarCierreSeguroFinal(Action):
@@ -61,8 +58,8 @@ class ActionConfirmarCierreSeguroFinal(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Cambio de Dict[Text, Any] a DomainDict
-    ) -> List[EventType]:  # MEJORA: Cambio de List[Dict[Text, Any]] a List[EventType]
+        domain: DomainDict,
+    ) -> List[EventType]:
 
         latest = tracker.latest_message or {}
 
@@ -165,11 +162,11 @@ class ActionConfirmarCierreSeguroFinal(Action):
             ):
                 dispatcher.utter_message(text=mensaje_llm.strip())
             else:
-                dispatcher.utter_message(response="utter_despedida_final")
+                dispatcher.utter_message(response="utter_despedida")
 
         except Exception:
             logger.exception("[CIERRE_SEGURO] llm error")
-            dispatcher.utter_message(response="utter_despedida_final")
+            dispatcher.utter_message(response="utter_despedida")
 
         return [
             SlotSet("session_activa", False),

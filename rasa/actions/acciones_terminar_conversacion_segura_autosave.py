@@ -193,7 +193,7 @@ class ActionConfirmarCierreAutosave(Action):
         # RETORNO DE EVENTOS SEGÚN ESTADO DE LA ENCUESTA
         # =====================================================
         if encuesta_incompleta:
-            dispatcher.utter_message(response="utter_despedida_final")
+            dispatcher.utter_message(response="utter_despedida")
             return [
                 SlotSet("session_activa", False),
                 SlotSet("confirmacion_cierre", None),

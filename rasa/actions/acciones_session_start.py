@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Text, Optional
 import logging
-
+from rasa_sdk.events import FollowupAction
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
@@ -114,7 +114,9 @@ class ActionSessionStart(Action):
         # FLUJO INICIAL
         # ==========================================================
         # Disparamos la acción de saludo inicial de forma explícita
-        events.append(ActionExecuted("utter_saludo_inicial"))
+        events.append(
+            FollowupAction("action_ir_menu_principal")
+        )
         
         # NOTA DE REFACCIÓN: Se remueve el retorno manual de 'action_listen' para permitir 
         # que Rasa Core maneje de forma nativa la predicción del ciclo de escucha.

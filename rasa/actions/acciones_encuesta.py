@@ -11,6 +11,7 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
 from rasa_sdk.forms import FormValidationAction
+from rasa_sdk.events import SlotSet, FollowupAction
 
 from .core.llm_engine import run_llm
 import hashlib
@@ -492,3 +493,17 @@ class ActionVerificarEstadoEncuesta(Action):
         eventos.append(SlotSet("encuesta_incompleta", encuesta_pendiente))
 
         return eventos
+class ActionDeterminarEncuestaFinal(Action):
+    def name(self) -> str:
+        return "action_determinar_encuesta_final"
+
+    def run(self, dispatcher, tracker, domain):
+        # Preguntamos si desea responder
+        dispatcher.utter_message(
+            text="Antes de finalizar, ¿te gustaría responder una breve encuesta de satisfacción?",
+            buttons=[
+                {"title": "Sí, claro", "payload": "/iniciar_encuesta"},
+                {"title": "No, gracias", "payload": "/negar_encuesta"}
+            ]
+        )
+        return []

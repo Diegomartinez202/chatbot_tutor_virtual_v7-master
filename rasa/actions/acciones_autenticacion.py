@@ -34,48 +34,7 @@ def _safe_text(value: Any, default: str = "") -> str:
 
 
 # ================================================================
-# 📧 AUTH FORM (THIN VALIDATION LAYER)
-# ================================================================
-class ValidateAuthLoginForm(FormValidationAction):
-
-    def name(self) -> str:
-        return "validate_auth_login_form"
-
-    def validate_email(
-        self,
-        value: Any,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> Dict[str, Any]:
-
-        email = _safe_text(value).lower()
-
-        if not _is_valid_email(email):
-            dispatcher.utter_message(text="📧 Ingresa un correo válido.")
-            return {"email": None}
-
-        return {"email": email}
-
-    def validate_password(
-        self,
-        value: Any,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> Dict[str, Any]:
-
-        password = _safe_text(value)
-
-        if len(password) < 4:
-            dispatcher.utter_message(text="🔑 Contraseña inválida.")
-            return {"password": None}
-
-        return {"password": password}
-
-
-# ================================================================
-# 📌 AUTH ROUTER (ORCHESTRATOR V2 COMPATIBLE)
+# 📌 AUTH ROUTER 
 # ================================================================
 class ActionCheckAuth(Action):
 
@@ -89,11 +48,27 @@ class ActionCheckAuth(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
-        # MEJORA: Extracción segura con get para evitar colapsos si tracker.latest_message es None
+        email = tracker.get_slot("email")
+        password = tracker.get_slot("password")
+        is_authenticated = bool(tracker.get_slot("is_authenticated"))
+        
         mensaje_actual = tracker.latest_message or {}
         intent = mensaje_actual.get("intent", {}).get("name", "") if isinstance(mensaje_actual, dict) else ""
 
-        is_authenticated = bool(tracker.get_slot("is_authenticated"))
+
+        if email and password and not is_authenticated:
+            
+            es_valido = True 
+            if es_valido:
+                dispatcher.utter_message(text="✅ ¡Login exitoso! Ya puedes consultar tu información.")
+                return [
+                    SlotSet("is_authenticated", True), 
+                    SlotSet("requires_auth", None),
+                    SlotSet("email", email)
+                ]
+            else:
+                dispatcher.utter_message(text="❌ Credenciales incorrectas. Por favor, intenta de nuevo.")
+                return [SlotSet("is_authenticated", False), SlotSet("email", None), SlotSet("password", None)]
 
         logger.info(
             f"[AUTH_ROUTER] user={tracker.sender_id} "
@@ -109,18 +84,17 @@ class ActionCheckAuth(Action):
 
         action_to_execute = protected_intents.get(intent)
 
-        # ❌ Intent no protegido o desconocido
         if not action_to_execute:
             dispatcher.utter_message(text="⚠️ Acción no reconocida.")
             return []
 
-        # 🔐 No autenticado → bloqueo controlado
         if not is_authenticated:
-            dispatcher.utter_message(response="utter_need_auth")
-            return []
+            return [
+                SlotSet("requires_auth", True), 
+                FollowupAction("action_handle_with_llm")
+            ]
 
         return [FollowupAction(action_to_execute)]
-
 
 # ================================================================
 # 🚀 AUTH FLOW (ENTRY POINT)

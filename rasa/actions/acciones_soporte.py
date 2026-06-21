@@ -593,6 +593,6 @@ class ActionSoporteTecnicoLLM(Action):
             )
         )
 
-        dispatcher.utter_message(response="utter_menu_soporte_tecnico")
+        dispatcher.utter_message(response="utter_menu_soporte")
 
         return [FollowupAction("action_handle_with_llm")]

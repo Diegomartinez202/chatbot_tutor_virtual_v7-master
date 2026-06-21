@@ -1,95 +1,81 @@
-version: '3.1'
+version: "3.1"
 
 session_config:
   session_expiration_time: 60
   carry_over_slots_to_new_session: true
 
 intents:
-- afirmar
-- negar
-- cancelar
-- volver
-- ayuda
-- salir
-- consultar_certificados
-- ver_estado_estudiante
-- horarios_calendario
-- ir_menu_principal
-- confirmar_autenticacion
-- negar_autenticacion
-- ver_tutor_asignado
-- consultar_horarios_clases
-- consultar_progreso_curso
-- historial_academico
-- reiniciar_conversacion
-- ping_servidor
-- mostrar_token
-- auth_login_cmd
-- recuperar_contrasena
-- reanudar_auto_si
-- reanudar_auto_no
-- terminar_conversacion_segura
-- confirmar_cierre_segura
-- cancelar_cierre_segura
-- iniciar_encuesta
-- dar_retroalimentacion
-- pedir_humano
-- continuar_tema_si
-- guardar_snapshot
-- solicitar_soporte
-- soporte_tecnico
-- pqrs
-- contactar_tutor
-- guardian_guardar_progreso
-- guardian_pausar_conversacion
-- guardian_reanudar_conversacion
-- ayuda_guardian
-- notificar_desconexion
-- notificar_inactividad
-- notificar_reconexion
-- guardar_progreso
-- cargar_progreso
-- pausar_conversacion
-- reset_guardian
-- registrar_encuesta
-- guardar_autosave
-- desconexion_usuario
-- inactividad_usuario
-- reconexion_usuario
-- guardar_estado_seguridad
-- recuperar_estado_seguridad
-- aprender_tema
-- ir_menu_academico
-- ir_menu_soporte
-- ir_menu_administrativo
-- dar_feedback
-- encuesta_satisfaccion
-- enviar_correo_recuperacion
-- explicacion_academica
-- preguntas_frecuentes
-- saludo
-- respuesta_satisfecho
-- respuesta_insatisfecho
-- calificar_bot
-- continuar_tema
-- menu_principal
-- forzar_salida
-
+  - afirmar
+  - negar
+  - cancelar
+  - volver
+  - ayuda
+  - salir
+  - consultar_certificados
+  - ver_estado_estudiante
+  - ir_menu_principal
+  - ver_tutor_asignado
+  - consultar_horarios_clases
+  - consultar_progreso_curso
+  - historial_academico
+  - reiniciar_conversacion
+  - ping_servidor
+  - mostrar_token
+  - recuperar_contrasena
+  - reanudar_auto_si
+  - reanudar_auto_no
+  - terminar_conversacion_segura
+  - confirmar_cierre_segura
+  - cancelar_cierre_segura
+  - negar_encuesta
+  - pedir_humano
+  - solicitar_soporte
+  - soporte_tecnico
+  - pqrs
+  - contactar_tutor
+  - reset_guardian
+  - aprender_tema
+  - ir_menu_academico
+  - ir_menu_soporte
+  - ir_menu_administrativo
+  - dar_feedback
+  - enviar_correo_recuperacion
+  - explicacion_academica
+  - preguntas_frecuentes
+  - saludo
+  - forzar_salida
+  - solicitar_reinicio
+  - ingresar_zajuna
+  - auth_login_cmd
+  - cancelar_handoff
+  - cargar_progreso
+  - confirmar_handoff
+  - desconexion_usuario
+  - guardar_autosave
+  - guardar_estado_seguridad
+  - guardian_reanudar_conversacion
+  - inactividad_usuario
+  - reconexion_usuario
+  - recuperar_estado_seguridad
+  - guardian_pausar_conversacion
+  - iniciar_encuesta
+  - solicitar_cierre
+  - guardian_guardar_progreso
 entities:
-- email
-- emocion
-- satisfaccion
-- comentario
-- nivel_satisfaccion
-- problema_resuelto
-- calificacion_numerica
-- nombre
-- motivo_soporte
-- prefer_contacto
-- telefono
-- mensaje
-- cedula
-- nota
+  - email
+  - emocion
+  - satisfaccion
+  - comentario
+  - nivel_satisfaccion
+  - problema_resuelto
+  - calificacion_numerica
+  - nombre
+  - motivo_soporte
+  - prefer_contacto
+  - telefono
+  - mensaje
+  - cedula
+  - nota
 
 slots:
 
@@ -216,23 +202,6 @@ slots:
     mappings:
     - type: custom
 
-  encuesta_tipo:
-    type: categorical
-    values:
-    - positiva
-    - negativa
-    - neutra
-    influence_conversation: true
-    mappings:
-    - type: custom
-
-  proceso_activa:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: custom
-
-
   autosave_estado:
     type: text
     influence_conversation: false
@@ -248,6 +217,16 @@ slots:
         - active_loop: encuesta_satisfaccion_form
           requested_slot: nivel_satisfaccion
 
+  encuesta_tipo:
+    type: categorical
+    values:
+      - positiva
+      - negativa
+      - neutra
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: encuesta_tipo
 
   problema_resuelto:
     type: text
@@ -495,31 +474,28 @@ forms:
       - email
 
 responses:
+  utter_cierre_confirmado_seguro:
+  - text: "Cierre confirmado. Tu información ha sido gestionada y la sesión se ha cerrado correctamente. ¡Hasta pronto!"
+  utter_respeto_decision:
+  - text: "Entiendo tu decisión, respetaré tu espacio."
+ 
   utter_saludo_principal:
-    - text: "¡Hola! Soy tu asistente Zajuna 👋 Este es el menú principal. ¿Qué deseas hacer?"
-      buttons:
-        - title: "🎓 Académico"
-          payload: "/menu_academico"
-        - title: "🛠 Soporte técnico"
-          payload: "/menu_soporte"
-        - title: "🏫 Trámites académicos / administrativos"
-          payload: "/menu_tramites"
+  - text: "¡Hola! Soy tu asistente Zajuna 👋 Este es el menú principal. ¿Qué deseas hacer?"
+    buttons:
+      - title: "🎓 Académico"
+        payload: "/menu_academico"
+      - title: "🛠 Soporte técnico"
+        payload: "/menu_soporte"
+      - title: "🏫 Trámites académicos / administrativos"
+        payload: "/menu_tramites"
   
   utter_control_conversacion:
   - text: "¿Deseas realizar otra consulta o terminar nuestra interacción?"
     buttons:
       - title: "🔄 Seguir consultando"
-        payload: "/menu_principal"
+        payload: "/ir_menu_principal"
       - title: "🚪 Terminar conversación"
         payload: "/salir"
-
-  utter_exigir_login:
-  - text: "Para continuar, inicia sesión en la plataforma."
-    buttons:
-      - title: "🔐 Iniciar sesión (panel) Zajuna"
-        url: "https://localhost/login"
-      - title: "🏠 Menú principal"
-        payload: "/menu_principal"
           
   utter_reinicio_confirmado:
     - text: "🔄 La sesión ha sido reiniciada con éxito. Todos los parámetros de seguridad y contexto se han limpiado."
@@ -534,94 +510,72 @@ responses:
   utter_token_admin:
     - text: "🛡️ [MODO ADMINISTRADOR] Token de acceso verificado: {user_token}"
 
-  utter_need_auth:
-  - text: "Necesitas iniciar sesión para acceder a esta información."
-
   utter_certificados_carousel:
    - text: "🎓 Actualmente no registras certificados disponibles para descarga."
   
   utter_ofrecer_contacto_tutor:
   - text: "📌 Noto que la sesión académica ha sido compleja. Si lo deseas, puedo generar un ticket de soporte técnico o enviarle un reporte detallado de tus dudas a tu Tutor Asignado para que te contacte directamente."
 
-  utter_reanudar_auto:
-  - text: >
-      Detecté una actividad pendiente.
-      ¿Deseas continuar donde la dejaste?
-
   utter_reanudar_conversacion:
-   - text: >
+  - text: >
       🔄 Encontré una sesión previa.
       ¿Deseas continuar donde la dejaste?
-     buttons:
-      - title: ✅ Sí
-        payload: /reanudar_auto_si
-      - title: ❌ No
-        payload: /reanudar_auto_no
+    buttons:
+      - title: "✅ Sí"
+        payload: "/reanudar_auto_si"
+      - title: "❌ No"
+        payload: "/reanudar_auto_no"
 
-  utter_iniciar_encuesta:
-   - text: "Antes de finalizar, ¿te gustaría responder una breve encuesta de satisfacción?"
   utter_encuesta_satisfaccion:
-   - text: "¿Cómo calificarías tu experiencia con la atención recibida?"
-
-  utter_encuesta_resolucion:
-   - text: "¿Tu consulta o problema quedó resuelto?"
-
-  utter_encuesta_gracias:
-   - text: "Gracias por compartir tu opinión. Tu retroalimentación nos ayuda a mejorar."
-
-  utter_encuesta_feedback:
-   - text: "Si deseas, puedes dejar un comentario adicional sobre tu experiencia."
-
-  utter_encuesta_finalizada:
-   - text: "Encuesta finalizada correctamente. Gracias por tu participación."
+  - text: "¿Cómo calificarías tu experiencia con la atención recibida?"
 
   utter_ofrecer_continuar:
   - text: >
       ¿Deseas continuar profundizando en este tema o prefieres realizar otra consulta?
     buttons:
-      - title: ✅ Continuar tema
-        payload: /continuar_tema_si
-      - title: 🏠 Menú principal
-        payload: /ir_menu_principal
-      - title: 👋 Finalizar
-        payload: /terminar_conversacion_segura
+      - title: "✅ Continuar tema"
+        payload: "/continuar_tema_si"
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+      - title: "👋 Finalizar"
+        payload: "/terminar_conversacion_segura"
 
   utter_ofrecer_humano:
   - text: "🤝 Veo que requieres asistencia especializada. ¿Deseas que transfiera esta sesión a un agente humano del SENA?
       ¿Deseas que realice la solicitud?"
     buttons:
-      - title: ✅ Sí
-        payload: /pedir_humano
-      - title: ❌ No
-        payload: /continuar_tema_si
+      - title: "✅ Sí"
+        payload: "/pedir_humano"
+      - title: "❌ No"
+        payload: "/continuar_tema_si"
 
   utter_menu_academico:
   - text: "📚 Has ingresado al Menú Académico. Aquí puedes consultar sobre tus asignaturas, guías de aprendizaje y resolver dudas temáticas con el LLM."
     buttons:
-      - title: 📚 Aprender un tema
-        payload: /aprender_tema
+      - title: "📚 Aprender un tema"
+        payload: "/aprender_tema"
 
-      - title: 📜 Certificados
-        payload: /consultar_certificados
+      - title: "📜 Certificados"
+        payload: "/consultar_certificados"
 
-      - title: 📊 Estado estudiante
-        payload: /ver_estado_estudiante
+      - title: "📊 Estado estudiante"
+        payload: "/ver_estado_estudiante"
 
-      - title: 👨‍🏫 Tutor asignado
-        payload: /ver_tutor_asignado
+      - title: "👨‍🏫 Tutor asignado"
+        payload: "/ver_tutor_asignado"
 
-      - title: 📚 Progreso curso
-        payload: /consultar_progreso_curso
+      - title: "📚 Progreso curso"
+        payload: "/consultar_progreso_curso"
 
-      - title: 📅 Horarios
-        payload: /consultar_horarios_clases
+      - title: "📅 Horarios"
+        payload: "/consultar_horarios_clases"
 
       - title: "⏳ Historial Académico" 
         payload: "/historial_academico"
 
 
-      - title: 🏠 Menú principal
-        payload: /ir_menu_principal
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
 
   utter_derivacion_cancelada:
   - text: >
@@ -636,10 +590,6 @@ responses:
   utter_handoff_en_cola:
   - text: "📌 Te encuentras en la cola de atención técnica. Un asesor se comunicará contigo en breves momentos."
 
-  utter_necesita_autenticacion:
-  - text: >
-        Necesitas iniciar sesión para consultar tus certificados.
-
   utter_login_hint:
   - text: >
         Puedes autenticarte utilizando tu correo electrónico y contraseña.
@@ -648,15 +598,10 @@ responses:
   - text: "⚠️ Tienes un proceso o encuesta pendiente por responder. ¿Estás seguro de que deseas salir del sistema ahora?"
 
     buttons:
-      - title: 💾 Guardar y salir
-        payload: /confirmar_cierre_segura
-      - title: ↩️ Continuar conversación
-        payload: /cancelar_cierre_segura
-
-
-  utter_cierre_confirmado_seguro:
-  - text: "🔒 La conversación ha sido pausada y guardada de forma segura. ¡Gracias por usar el Tutor Virtual del SENA! Puedes escribir de nuevo cuando desees reactivar el chat."
-
+      - title: "💾 Guardar y salir"
+        payload: "/confirmar_cierre_segura"
+      - title: "Continuar conversación"
+        payload: "/cancelar_cierre_segura"
 
   utter_menu_principal:
   - text: >
@@ -664,14 +609,14 @@ responses:
       ¿Qué deseas hacer ahora?
     buttons:
 
-      - title: 🎓 Menú Académico
-        payload: /ir_menu_academico
+      - title: "🎓 Menú Académico"
+        payload: "/ir_menu_academico"
 
-      - title: 📋 Menú Administrativo
-        payload: /ir_menu_administrativo
+      - title: "📋 Menú Administrativo"
+        payload: "/ir_menu_administrativo"
 
-      - title: 🛠️ Menú Soporte
-        payload: /ir_menu_soporte
+      - title: "🛠️ Menú Soporte"
+        payload: "/ir_menu_soporte"
 
   utter_confirmar_cierre:
   - text: "Tienes un proceso activo. ¿Deseas salir y guardar tu progreso antes de cerrar la conversación?"
@@ -711,20 +656,20 @@ responses:
       Selecciona una opción:
     buttons:
 
-      - title: 🎫 Crear caso
-        payload: /solicitar_soporte
+      - title: "🎫 Crear caso"
+        payload: "/solicitar_soporte"
 
-      - title: 💬 Hablar con asesor
-        payload: /pedir_humano
+      - title: "💬 Hablar con asesor"
+        payload: "/pedir_humano"
 
-      - title: 🔑 Recuperar contraseña
-        payload: /recuperar_contrasena
+      - title: "🔑 Recuperar contraseña"
+        payload: "/recuperar_contrasena"
 
-      - title: 📧 Contactar tutor
-        payload: /contactar_tutor
+      - title: "📧 Contactar tutor"
+        payload: "/contactar_tutor"
 
-      - title: 🏠 Menú principal
-        payload: /ir_menu_principal
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
 
   utter_menu_administrativo:
   - text: |
@@ -733,96 +678,70 @@ responses:
       Selecciona una opción:
     buttons:
 
-      - title: 📜 Certificados
-        payload: /consultar_certificados
+      - title: "📜 Certificados"
+        payload: "/consultar_certificados"
 
-      - title: 🔑 Recuperar contraseña
-        payload: /recuperar_contrasena
+      - title: "🔑 Recuperar contraseña"
+        payload: "/recuperar_contrasena"
 
-      - title: 📧 Enviar solicitud
-        payload: /recuperar_contrasena
+      - title: "📧 Enviar solicitud"
+        payload: "/recuperar_contrasena"
 
-      - title: 🏠 Menú principal
-        payload: /ir_menu_principal
-
-  utter_despedida_profesional:
-  - text: "Gracias por utilizar el asistente virtual. Estaremos disponibles cuando necesites ayuda nuevamente."
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
 
   utter_cierre_cancelado:
   - text: >
       👌 Perfecto, seguimos aquí.
       ¿En qué más puedo ayudarte?
     buttons:
-      - title: 🏠 Menú principal
-        payload: /ir_menu_principal
-      - title: 📄 Certificados
-        payload: /consultar_certificados
-      - title: 📊 Estado académico
-        payload: /ver_estado_estudiante
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+      - title: "📄 Certificados"
+        payload: "/consultar_certificados"
+      - title: "📊 Estado académico"
+        payload: "/ver_estado_estudiante"
 
   utter_volver_menu:
   - text: |
       ¿A dónde deseas ir?
     buttons:
 
-      - title: 🎓 Menú Académico
-        payload: /ir_menu_academico
+      - title: "🎓 Menú Académico"
+        payload: "/ir_menu_academico"
 
-      - title: 📋 Menú Administrativo
-        payload: /ir_menu_administrativo
+      - title: "📋 Menú Administrativo"
+        payload: "/ir_menu_administrativo"
 
-      - title: 🛠️ Menú Soporte
-        payload: /ir_menu_soporte
+      - title: "🛠️ Menú Soporte"
+        payload: "/ir_menu_soporte"
 
-      - title: 🏠 Menú Principal
-        payload: /ir_menu_principal
+      - title: "🏠 Menú Principal"
+        payload: "/ir_menu_principal"
 
   utter_confirmar_cierre_con_autosave:
   - text: "Detecté información pendiente de guardar. Puedo conservar tu progreso antes de cerrar la conversación. ¿Deseas continuar?"
 
-  utter_despedida_final:
-  - text: " Gracias por utilizar el asistente virtual. Cuando regreses podremos continuar donde lo dejaste."
-  - text: "La conversación se cerró correctamente."
-
-  utter_despedida_sin_guardar:
-  - text: " La conversación ha sido cerrada. La información pendiente no fue conservada."
-
   utter_cancelar_cierre:
   - text: "La operación fue cancelada."
   - text: "Perfecto, continuaré atendiendo tu solicitud."
-
-  utter_ask_feedback_tipo:
-  - text: |
-      ¿Qué tipo de retroalimentación deseas registrar?
-
-      • sugerencia
-      • queja
-      • felicitacion
-      • error
-  utter_ask_feedback_texto:
-  - text: "Por favor describe tu comentario."
   
   utter_esta_resuelto:
   - text: "Antes de finalizar, ¿tu consulta o problema quedó resuelto en la plataforma?"
 
-  utter_ask_nivel_satisfaccion:
-  - text: "¿Cómo calificarías tu experiencia con la atención recibida? (Excelente, buena, regular o mala)"
-  
-  utter_ask_problema_resuelto:
-  - text: "¿Tu inconveniente se solucionó por completo? (Sí / No)"
-
-  utter_ask_calificacion_numerica:
-  - text: "En una escala de 1 a 5, donde 1 es muy poco satisfecho y 5 es muy satisfecho, ¿qué nota nos das?"
-
-  utter_ask_comentario:
-  - text: "Por favor, déjanos un breve comentario o sugerencia para seguir mejorando nuestro servicio."
-  
   utter_gracias_retroalimentacion:
   - text: "Muchas gracias por tu retroalimentación. Hemos guardado tus comentarios de forma segura. ¡Tu opinión nos ayuda a crecer! 🙌"
+  
+  utter_despedida:
+  - text: "Gracias por utilizar el Tutor Virtual de la plataforma Zajuna. Estaremos disponibles cuando necesites ayuda nuevamente. ¡Hasta pronto! 👋"
 
-  utter_saludo_inicial:
-  - text: "👋 ¡Hola! Soy tu Tutor Virtual del SENA. Estoy aquí para asistirte en tus procesos de formación académica, soporte en la plataforma Zajuna y trámites administrativos. ¿En qué puedo ayudarte hoy?"
-
+  utter_despedida_sin_guardar:
+  - text: >
+      ⚠️ La sesión fue finalizada sin guardar el progreso actual.
+      Si regresas más tarde podrías perder parte de la información de esta conversación.
+      ¡Hasta pronto! 👋
+  utter_guardando_progreso:
+  - text: "Guardando tu progreso..."
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -911,9 +830,8 @@ actions:
 - validate_feedback_form
 - action_pqrs_llm
 - action_memory_wrapper
-- zajuna_get_estado_estudiante
-- action_enviar_correo
-
+- action_determinar_encuesta_final
+- action_guardar_encuesta_general
 
 
 

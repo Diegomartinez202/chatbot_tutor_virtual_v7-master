@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Text, Dict, List
+from typing import Text, List
 
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
@@ -152,18 +152,22 @@ class ActionFinalizarConversacion(Action):
             ):
                 dispatcher.utter_message(text=resumen_llm.strip())
             else:
-                dispatcher.utter_message(response="utter_despedida_profesional")
+                dispatcher.utter_message(response="utter_despedida")
 
         except Exception:
             logger.exception("[FIN_CONVERSACION] llm cierre error")
-            dispatcher.utter_message(response="utter_despedida_profesional")
-
+            dispatcher.utter_message(response="utter_despedida")
+            
+            logger.info(
+                "[FIN_CONVERSACION] conversation paused user=%s",
+                tracker.sender_id,
+            )
         return [
             SlotSet("session_activa", False),
             SlotSet("confirmacion_cierre", None),
             SlotSet("encuesta_activa", None),
             SlotSet("escalar_humano", False),
-            ConversationPaused(),  # Congela el tracker de Rasa ante nuevas entradas del canal
+            ConversationPaused(),
         ]
 
 
@@ -175,8 +179,8 @@ class ActionCancelarCierre(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Tipado oficial con DomainDict
-    ) -> List[EventType]:  # MEJORA: Firma tipada correctamente a List[EventType]
+        domain: DomainDict, 
+    ) -> List[EventType]: 
 
         dispatcher.utter_message(response="utter_confirmar_cierre")
         dispatcher.utter_message(response="utter_cierre_cancelado")
