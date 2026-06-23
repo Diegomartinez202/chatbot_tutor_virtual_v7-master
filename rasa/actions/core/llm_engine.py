@@ -21,14 +21,20 @@ LLM_BASE_URL = os.getenv(
 )
 
 # MEJORA: Aumento defensivo del timeout por defecto a 30s para mitigar picos de latencia en frío
-LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "30"))
+LLM_TIMEOUT = int(
+    os.getenv(
+        "LLM_TIMEOUT",
+        os.getenv("OLLAMA_TIMEOUT", "120")
+    )
+)
 
 PRIMARY_MODEL = os.getenv("LLM_MODEL", "llama3")
 FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "phi3:mini")
 logger.info(
-    "[LLM CONFIG] URL=%s MODEL=%s",
+    "[LLM CONFIG] URL=%s MODEL=%s TIMEOUT=%s",
     LLM_BASE_URL,
-    PRIMARY_MODEL
+    PRIMARY_MODEL,
+    LLM_TIMEOUT,
 )
 
 # ================================================================

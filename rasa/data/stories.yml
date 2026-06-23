@@ -49,12 +49,6 @@ stories:
     - intent: consultar_horarios_clases
     - action: action_consultar_horarios_clases
   
-- story: Estudiante interactúa con su historial académico
-  steps:
-    - intent: historial_academico
-    - action: action_historial_academico
-    - action: utter_control_conversacion 
-
 - story: consultar progreso
   steps:
     - intent: consultar_progreso_curso

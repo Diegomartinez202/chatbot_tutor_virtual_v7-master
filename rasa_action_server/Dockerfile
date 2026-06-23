@@ -29,12 +29,19 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY rasa/actions /app/actions
 COPY rasa/utils /app/utils
 
+COPY rasa_action_server/entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
 RUN adduser --disabled-password \
     --gecos "" \
     --uid 10002 \
     appuser
 
 RUN chown -R appuser:appuser /app
+
+RUN mkdir -p /app/data && \
+    chown -R appuser:appuser /app/data
 
 USER appuser
 
@@ -45,4 +52,4 @@ HEALTHCHECK --interval=30s \
            --retries=3 \
   CMD curl -fsS http://127.0.0.1:5055/health || exit 1
 
-CMD ["python","-m","rasa_sdk","--actions","actions","--port","5055"]
+ENTRYPOINT ["/entrypoint.sh"]

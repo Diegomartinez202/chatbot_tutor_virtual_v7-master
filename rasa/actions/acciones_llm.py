@@ -99,7 +99,10 @@ class ActionHandleWithLLM(Action):
         prev = None
 
         if last_user:
-            prev = retrieve_similar(last_user)
+            prev = retrieve_similar(
+                text=last_user,
+                user_id=tracker.sender_id
+            )
 
         if prev:
             contexto_memoria = (
@@ -221,7 +224,10 @@ class ActionMemoryWrapper(Action):
 
             if user_msg:
                 
-                prev = retrieve_similar(user_msg)
+                prev = retrieve_similar(
+                    text=user_msg,
+                    user_id=tracker.sender_id
+                )
 
                 contexto_memoria = ""
 
@@ -236,7 +242,20 @@ class ActionMemoryWrapper(Action):
                 )
 
 
-                store_message(user_msg)
+                store_message(
+                    text=user_msg,
+                    user_id=tracker.sender_id,
+                    session_id=tracker.get_slot("session_id"),
+                    metadata={
+                        "intent": tracker.latest_message
+                            .get("intent", {})
+                            .get("name"),
+
+                        "confidence": tracker.latest_message
+                            .get("intent", {})
+                            .get("confidence", 0.0)
+    }
+)
 
         except Exception as e:
             logger.warning(

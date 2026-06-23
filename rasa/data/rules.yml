@@ -8,6 +8,12 @@ rules:
         - action: auth_login_form
         - active_loop: auth_login_form
 
+  - rule: consultar historial academico
+
+    steps:
+      - intent: historial_academico
+      - action: action_historial_academico
+        
   - rule: Finalizar login
     condition:
       - active_loop: auth_login_form

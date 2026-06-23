@@ -9,8 +9,8 @@ import logging
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import EventType
-
-from rasa.utils.guardian_client import GuardianClient
+from utils.mongo_semantic_memory import collection
+from utils.guardian_client import GuardianClient
 from .core.llm_engine import run_llm
 
 logger = logging.getLogger(__name__)

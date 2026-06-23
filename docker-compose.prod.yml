@@ -13,7 +13,7 @@ volumes:
   mongo-data:
   redis-data:
   action-logs:
-
+  semantic_memory:
 # ============================
 # Servicios
 # ============================
@@ -69,8 +69,7 @@ services:
     ports:
       - "5055:5055" 
     volumes:
-      - ./rasa:/app/rasa
-      - ./data/semantic_memory.json:/app/data/semantic_memory.json 
+      - ./rasa/data:/app/data 
     working_dir: /app
     networks:
       - app-net
@@ -87,7 +86,8 @@ services:
       OLLAMA_MODEL: phi3:mini
       LLM_MODEL: phi3:mini
       LLM_URL: http://ollama:11434/api/generate
-      OLLAMA_TIMEOUT: 60
+      OLLAMA_TIMEOUT: 120
+      LLM_TIMEOUT: 120
       OLLAMA_WARMUP_TIMEOUT: 120
       OLLAMA_MAX_TOKENS: 160
       EMBEDDING_URL: http://embedding-service:9000/embed

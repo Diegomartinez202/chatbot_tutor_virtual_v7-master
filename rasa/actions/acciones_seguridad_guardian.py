@@ -16,8 +16,8 @@ from rasa_sdk.events import (
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 
-from rasa.utils.mongo_autosave import guardar_autosave, log_event
-from rasa.utils.guardian_client import GuardianClient
+from utils.mongo_autosave import guardar_autosave, log_event
+from utils.guardian_client import GuardianClient
 import logging
 
 logger = logging.getLogger(__name__)

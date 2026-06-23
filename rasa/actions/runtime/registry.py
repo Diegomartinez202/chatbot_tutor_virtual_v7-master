@@ -14,7 +14,7 @@ from .handlers.estado_estudiante_handler import handler as estado_estudiante_han
 from .handlers.tutor_handler import handler as tutor_handler
 from .handlers.horarios_handler import handler as horarios_handler
 from .handlers.progreso_handler import handler as progreso_handler
-
+from .handlers.historial_academico_handler import handler as historial_academico_handler
 logger = logging.getLogger(__name__)
 
 Handler = Callable[[CollectingDispatcher, Tracker, Dict[str, Any]], Any]
@@ -64,7 +64,8 @@ class ActionRegistry:
         self.register("tutor_asignado", tutor_handler)
         self.register("progreso", progreso_handler)
         self.register("horarios", horarios_handler)
-
+        self.register("historial_academico", historial_academico_handler
+)
         # ========================================================
         # 📜 CERTIFICADOS
         # ========================================================

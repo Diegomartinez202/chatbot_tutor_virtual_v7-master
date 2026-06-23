@@ -76,6 +76,8 @@ entities:
   - mensaje
   - cedula
   - nota
+  - encuesta_tipo
+  - materia
 
 slots:
 
@@ -223,10 +225,8 @@ slots:
       - positiva
       - negativa
       - neutra
-    influence_conversation: true
     mappings:
-      - type: from_entity
-        entity: encuesta_tipo
+      - type: custom
 
   problema_resuelto:
     type: text
@@ -411,7 +411,6 @@ slots:
     mappings:
       - type: custom
 
-
   tema_consulta:
     type: text
     influence_conversation: false
@@ -423,8 +422,7 @@ slots:
     type: text
     influence_conversation: true
     mappings:
-      - type: from_entity
-        entity: materia
+      - type: custom
 
 
   rol_academico:
@@ -443,6 +441,12 @@ slots:
         conditions:
         - active_loop: soporte_form
           requested_slot: mensaje
+
+  requires_auth:
+    type: bool
+    influence_conversation: false
+    mappings:
+      - type: custom
 
 forms:
 
@@ -483,7 +487,7 @@ responses:
   - text: "¡Hola! Soy tu asistente Zajuna 👋 Este es el menú principal. ¿Qué deseas hacer?"
     buttons:
       - title: "🎓 Académico"
-        payload: "/menu_academico"
+        payload: "/ir_menu_academico"
       - title: "🛠 Soporte técnico"
         payload: "/menu_soporte"
       - title: "🏫 Trámites académicos / administrativos"
@@ -754,7 +758,6 @@ actions:
 - action_set_default_tipo_usuario
 - action_mostrar_token
 - action_reset_turnos_conversacion
-- validate_auth_login_form
 - action_check_auth
 - action_ingreso_zajuna
 - action_set_authenticated_true

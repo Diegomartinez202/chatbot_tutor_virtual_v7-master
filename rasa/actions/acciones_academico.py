@@ -32,8 +32,8 @@ except Exception:
 
 
 def validar_autenticacion(dispatcher: CollectingDispatcher, tracker: Tracker) -> bool:
-    # Verificamos si el slot 'user_authenticated' es True
-    if tracker.get_slot("user_authenticated") is not True:
+
+    if tracker.get_slot("is_authenticated") is not True:
         msg = (
             "🔒 **Acceso restringido**\n\n"
             "Para consultar esta información personal, debes estar autenticado.\n\n"
@@ -124,6 +124,30 @@ class ActionConsultarProgresoCurso(Action):
             return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
         return _exec("progreso", dispatcher, tracker)
         
+class ActionHistorialAcademico(Action):
+
+    def name(self) -> str:
+        return "action_historial_academico"
+
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain
+    ):
+
+        if not tracker.get_slot("is_authenticated"):
+            return [
+                SlotSet("requires_auth", True),
+                FollowupAction("action_handle_with_llm")
+            ]
+
+        return _exec(
+            "historial_academico",
+            dispatcher,
+            tracker
+        )
 
 class ActionAprenderTema(Action):
 
