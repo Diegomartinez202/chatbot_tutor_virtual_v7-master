@@ -30,6 +30,13 @@ LLM_TIMEOUT = int(
 
 PRIMARY_MODEL = os.getenv("LLM_MODEL", "llama3")
 FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "phi3:mini")
+MAX_TOKENS = int(
+    os.getenv(
+        "OLLAMA_MAX_TOKENS",
+        "160"
+    )
+)
+
 logger.info(
     "[LLM CONFIG] URL=%s MODEL=%s TIMEOUT=%s",
     LLM_BASE_URL,
@@ -61,6 +68,10 @@ def _call_model(model: str, prompt: str) -> str:
                 "model": model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "num_predict": MAX_TOKENS,
+                    "temperature": 0.3,
+                },
             },
             timeout=LLM_TIMEOUT,
         )
@@ -108,7 +119,10 @@ def run_llm(
             tracker=tracker,
             context=context_data
         )
-
+        logger.info(
+            "[DEBUG] PROMPT PREVIEW:\n%s",
+            final_prompt[:2000]
+        )
         logger.info(
             "[LLM] Ejecutando inferencia. Prompt final len=%s para usuario=%s",
             len(final_prompt),

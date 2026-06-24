@@ -33,6 +33,7 @@ class ActionHandleWithLLM(Action):
     ) -> str:
 
         requires_auth = tracker.get_slot("requires_auth")
+
         if requires_auth:
             return f"""
             El usuario intenta acceder a información privada pero no está autenticado.
@@ -41,6 +42,7 @@ class ActionHandleWithLLM(Action):
             2. Dar los pasos exactos para autenticarse en: https://tu-plataforma.com/login
             3. No inventes datos del estudiante.
             """
+
         latest = tracker.latest_message or {}
         last_user = latest.get("text", "") or ""
         intent_name = latest.get("intent", {}).get("name", "")
@@ -52,7 +54,11 @@ class ActionHandleWithLLM(Action):
                 or detectar_materia(last_user)
             )
 
-            materia_key = str(materia).lower() if materia else "general"
+            materia_key = (
+                str(materia).lower()
+                if materia
+                else "general"
+            )
 
             rol = (
                 tracker.get_slot("rol_academico")
@@ -77,62 +83,107 @@ class ActionHandleWithLLM(Action):
 
         latest = tracker.latest_message or {}
         last_user = latest.get("text", "") or ""
+
         intent_data = latest.get("intent") or {}
-        intent_name = intent_data.get("name", "desconocido")
-        intent_conf = intent_data.get("confidence", 0.0)
+        intent_name = intent_data.get(
+            "name",
+            "desconocido"
+        )
+        intent_conf = intent_data.get(
+            "confidence",
+            0.0
+        )
+
+        # =====================================================
+        # AYUDA
+        # =====================================================
 
         if intent_name == "ayuda":
-           
-            historial = self._get_formatted_history(tracker) 
+
+            historial = self._get_formatted_history(
+                tracker
+            )
+
             return f"""
-            {PROMPT_SYSTEM}
-            El usuario ha solicitado ayuda. Como tutor virtual, explícale brevemente:
-            1. Qué tipo de consultas académicas puedes resolver.
-            2. Cómo puede consultar su estado (si está autenticado).
-            3. Invítalo a hacer una pregunta específica sobre cualquier tema.
-            
-            Historial reciente para dar contexto:
-            {historial}
-            """
+El usuario ha solicitado ayuda.
+
+Como tutor virtual:
+
+1. Explica qué tipo de consultas académicas puedes resolver.
+2. Explica cómo puede consultar su estado académico si está autenticado.
+3. Invítalo a realizar una pregunta específica sobre cualquier tema.
+
+Historial reciente:
+
+{historial}
+"""
+
+        # =====================================================
+        # MEMORIA SEMÁNTICA
+        # =====================================================
 
         contexto_memoria = ""
         prev = None
 
         if last_user:
+
             prev = retrieve_similar(
                 text=last_user,
-                user_id=tracker.sender_id
+                user_id=tracker.sender_id,
+                session_id=tracker.get_slot("session_id")
             )
 
         if prev:
+
             contexto_memoria = (
                 "\n\nContexto previo relevante:\n"
-                f"{prev.get('text','')}"
+                f"{prev.get('text', '')}"
             )
+
+        # =====================================================
+        # HISTORIAL
+        # =====================================================
 
         history = []
         raw_events = tracker.events or []
 
         for event in raw_events[-12:]:
+
             if not isinstance(event, dict):
                 continue
 
             event_type = event.get("event")
 
             if event_type == "user":
-                text = event.get("text", "")
-                history.append(f"Usuario: {anonymize_text(text)}")
+
+                text = event.get(
+                    "text",
+                    ""
+                )
+
+                history.append(
+                    f"Usuario: {anonymize_text(text)}"
+                )
 
             elif event_type == "bot":
-                text = event.get("text", "")
-                if text:
-                    history.append(f"Bot: {text}")
 
-        historial = "\n".join(history[-8:])
+                text = event.get(
+                    "text",
+                    ""
+                )
+
+                if text:
+
+                    history.append(
+                        f"Bot: {text}"
+                    )
+
+        historial = "\n".join(
+            history[-8:]
+        )
 
         return (
-            PROMPT_SYSTEM
-            + contexto_memoria
+            contexto_memoria
             + "\n\n"
             + f"Intent detectado: {intent_name}\n"
             + f"Confianza: {intent_conf}\n\n"
@@ -141,47 +192,23 @@ class ActionHandleWithLLM(Action):
             + "Responde de forma útil, clara y breve."
         )
 
-    def _build_academic_prompt(
-        self,
-        pregunta: str,
-        materia: str,
-        rol: str,
-    ) -> str:
-
-        return f"""
-{PROMPT_SYSTEM}
-
-ROL ACADÉMICO:
-{rol}
-
-MATERIA DETECTADA:
-{materia}
-
-TEMA:
-{pregunta}
-
-INSTRUCCIONES OBLIGATORIAS:
-
-1. Explica qué es.
-2. Explica conceptos clave.
-3. Explica paso a paso.
-4. Da ejemplos prácticos.
-5. Relaciónalo con formación SENA.
-6. Menciona errores comunes.
-7. Formula una pregunta de repaso.
-
-Usa lenguaje claro y educativo.
-"""
-
     def run(
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Unificación a DomainDict para consistencia tipada
+        domain: DomainDict,
     ) -> List[EventType]:
 
         try:
-            prompt = self._build_prompt(tracker)
+
+            prompt = self._build_prompt(
+                tracker
+            )
+
+            logger.info(
+                "[DEBUG] prompt len=%s",
+                len(prompt)
+            )
 
             respuesta = run_llm(
                 prompt=prompt,
@@ -195,16 +222,31 @@ Usa lenguaje claro y educativo.
                 ),
             )
 
-            dispatcher.utter_message(text=respuesta)
+            dispatcher.utter_message(
+                text=respuesta
+            )
+
             return []
 
         except Exception:
-            logger.exception("[ACTION_HANDLE_WITH_LLM]")
-            dispatcher.utter_message(
-                text="Ocurrió un problema al procesar tu solicitud."
-            )
-            return [SlotSet("requires_auth", None)]
 
+            logger.exception(
+                "[ACTION_HANDLE_WITH_LLM]"
+            )
+
+            dispatcher.utter_message(
+                text=(
+                    "Ocurrió un problema al "
+                    "procesar tu solicitud."
+                )
+            )
+
+            return [
+                SlotSet(
+                    "requires_auth",
+                    None
+                )
+            ]
 
 class ActionMemoryWrapper(Action):
 
@@ -215,7 +257,7 @@ class ActionMemoryWrapper(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Firma estandarizada del SDK
+        domain: DomainDict,
     ) -> List[EventType]:
 
         try:
@@ -245,7 +287,10 @@ class ActionMemoryWrapper(Action):
                 store_message(
                     text=user_msg,
                     user_id=tracker.sender_id,
-                    session_id=tracker.get_slot("session_id"),
+                    session_id=(
+                        tracker.get_slot("session_id")
+                        or tracker.sender_id
+                    ),
                     metadata={
                         "intent": tracker.latest_message
                             .get("intent", {})

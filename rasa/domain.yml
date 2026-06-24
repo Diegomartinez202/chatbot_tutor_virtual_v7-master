@@ -109,8 +109,18 @@ slots:
     mappings:
       - type: custom
 
+  user_id:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
 
-
+  session_id:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
   turnos_conversacion:
     type: float
     initial_value: 0.0
