@@ -4,6 +4,7 @@ location = /ping {
   return 200 "ok\n";
 }
 
+# ========= Avatares =========
 location = /user-avatar.png {
   try_files
       /embed/user-avatar.png
@@ -12,6 +13,11 @@ location = /user-avatar.png {
       /bot-avatar.png
       =404;
 }
+
+location = /mi-avatar.png   { try_files /mi-avatar.png =404; }
+location = /bot-avatar.png  { try_files /embed/bot-avatar.png /bot-avatar.png =404; }
+location = /bot-loading.png { try_files /embed/bot-loading.png /bot-loading.png =404; }
+
 
 # ========= RASA vía /api/chat/rasa/*  =========
 location ^~ /api/chat/rasa/ {
@@ -74,15 +80,49 @@ location /api/ {
   proxy_buffering off;
 }
 
-# ========= FRONTEND SPA / =========
-location / {
-    proxy_pass http://admin:80;
-    proxy_http_version 1.1;
+# ===============================
+# API Backend (FastAPI)
+# ===============================
+location /api/ {
+  proxy_pass         http://backend_upstream/;  # <- slash final
+  proxy_http_version 1.1;
+  proxy_set_header   Upgrade $http_upgrade;
+  proxy_set_header   Connection "upgrade";
+  proxy_set_header   Host $host;
+  proxy_set_header   X-Real-IP $remote_addr;
+  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+}
 
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+# ========= FRONTEND SPA =========
+location / {
+
+  add_header Content-Security-Policy
+    "default-src 'self';
+     img-src 'self' data: blob:;
+     style-src 'self' 'unsafe-inline';
+     script-src 'self' 'unsafe-eval';
+     connect-src 'self' http: https: ws: wss:;
+     frame-src 'self' *;
+     frame-ancestors 'self'
+     https://zajuna.sena.edu.co
+     http://localhost:8080
+     http://localhost:5173;"
+    always;
+
+  add_header Permissions-Policy
+    "geolocation=(), microphone=(), camera=(), payment=(), autoplay=(), clipboard-write=()"
+    always;
+
+  add_header X-Frame-Options "SAMEORIGIN" always;
+
+  proxy_pass http://admin_up;
+  proxy_http_version 1.1;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
 }
 
 # ========= CHAT =========
@@ -94,10 +134,8 @@ location /chat/ {
   proxy_set_header X-Real-IP         $remote_addr;
   proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
-
   proxy_set_header Upgrade           $http_upgrade;
   proxy_set_header Connection        $connection_upgrade;
-
   proxy_read_timeout 120s;
   proxy_send_timeout 120s;
 }
@@ -123,29 +161,65 @@ location /static/ {
   proxy_hide_header Permissions-Policy;
 }
 
-# ========= RASA =========
+# ===============================
+# Rasa HTTP API
+# ===============================
 location /rasa/ {
+
   proxy_pass http://rasa_upstream/;
+
   proxy_http_version 1.1;
-  proxy_set_header Host              $host;
-  proxy_set_header X-Real-IP         $remote_addr;
-  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $connection_upgrade;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
-  proxy_set_header Upgrade           $http_upgrade;
-  proxy_set_header Connection        $connection_upgrade;
+
   proxy_read_timeout 120s;
   proxy_send_timeout 120s;
+
+  proxy_buffering off;
+
+  add_header Access-Control-Allow-Origin * always;
+  add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+  add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+
+  if ($request_method = OPTIONS) {
+      return 204;
+  }
+}
+
+location = /rasa/status {
+
+  proxy_pass http://rasa_upstream/status;
+
+  proxy_http_version 1.1;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+
+  add_header Access-Control-Allow-Origin "*" always;
 }
 
 location /ws/ {
+
   proxy_pass http://rasa_upstream/ws/;
+
   proxy_http_version 1.1;
-  proxy_set_header Upgrade           $http_upgrade;
-  proxy_set_header Connection        $connection_upgrade;
-  proxy_set_header Host              $host;
-  proxy_set_header X-Real-IP         $remote_addr;
-  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $connection_upgrade;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
+
   proxy_read_timeout 120s;
   proxy_send_timeout 120s;
 }
@@ -180,17 +254,16 @@ location /guardian/ {
 # ========= Assets =========
 location ~* \.(?:css|js|mjs|map|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)$ {
 
-    proxy_pass http://admin:80;
+  proxy_pass http://admin_up;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-
-    expires 30d;
-    add_header Cache-Control "public, max-age=2592000, immutable";
+  expires 30d;
+  add_header Cache-Control "public, max-age=2592000, immutable";
+  access_log off;
 }
 
 location = /docs {
@@ -242,7 +315,6 @@ location = /index.html {
   add_header Service-Worker-Allowed "/" always;
   try_files $uri =404;
 }
-
 location = /hybrid-host.html {
   add_header Cache-Control "no-cache, no-store, must-revalidate";
   add_header Service-Worker-Allowed "/" always;

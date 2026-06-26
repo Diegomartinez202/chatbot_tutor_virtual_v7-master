@@ -31,6 +31,8 @@ types {
   application/vnd.ms-fontobject         eot;
 
   application/json                      json map;
+  application/manifest+json      webmanifest;
+  application/wasm               wasm;
   application/xml                       rdf;
   application/pdf                       pdf;
   application/msword                    doc;

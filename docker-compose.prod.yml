@@ -302,9 +302,9 @@ services:
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
       - ./ops/nginx/conf.d/prod/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./ops/nginx/conf.d/prod/prod-https.conf:/etc/nginx/conf.d/prod/prod-https.conf:ro
-      - ./ops/nginx/conf.d/prod/includes/tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro
+      - ./ops/nginx/conf.d/prod/tls_params.conf:/etc/nginx/conf.d/prod/tls_params.conf:ro
+      - ./ops/nginx/conf.d/prod/upstreams.conf:/etc/nginx/conf.d/prod/upstreams.conf:ro
       - ./ops/nginx/conf.d/common/includes/locations.inc:/etc/nginx/conf.d/common/includes/locations.inc:ro
-      - ./ops/nginx/conf.d/common/default.conf:/etc/nginx/conf.d/common/default.conf:ro
       - ./ops/nginx/certs:/etc/nginx/certs:ro
     tmpfs:
       - /tmp:size=10M,mode=0777

@@ -1,0 +1,436 @@
+﻿[
+    {
+        "Id": "55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450",
+        "Created": "2026-06-17T23:55:06.635429139Z",
+        "Path": "nginx",
+        "Args": [
+            "-c",
+            "/etc/nginx/nginx.conf",
+            "-g",
+            "daemon off;"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 897,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-06-26T14:02:06.351657594Z",
+            "FinishedAt": "2026-06-26T14:02:00.966237745Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-06-26T14:47:15.13712399Z",
+                        "End": "2026-06-26T14:47:15.259326772Z",
+                        "ExitCode": 0,
+                        "Output": "2026/06/26 14:47:15 [warn] 1705#1705: the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: [warn] the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+                    },
+                    {
+                        "Start": "2026-06-26T14:47:25.260454242Z",
+                        "End": "2026-06-26T14:47:25.404369174Z",
+                        "ExitCode": 0,
+                        "Output": "2026/06/26 14:47:25 [warn] 1711#1711: the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: [warn] the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+                    },
+                    {
+                        "Start": "2026-06-26T14:47:35.40597976Z",
+                        "End": "2026-06-26T14:47:35.525826256Z",
+                        "ExitCode": 0,
+                        "Output": "2026/06/26 14:47:35 [warn] 1717#1717: the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: [warn] the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+                    },
+                    {
+                        "Start": "2026-06-26T14:47:45.525041282Z",
+                        "End": "2026-06-26T14:47:45.665648775Z",
+                        "ExitCode": 0,
+                        "Output": "2026/06/26 14:47:45 [warn] 1723#1723: the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: [warn] the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+                    },
+                    {
+                        "Start": "2026-06-26T14:47:55.667388282Z",
+                        "End": "2026-06-26T14:47:55.83610455Z",
+                        "ExitCode": 0,
+                        "Output": "2026/06/26 14:47:55 [warn] 1735#1735: the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: [warn] the \"user\" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a",
+        "ResolvConfPath": "/var/lib/docker/containers/55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450/hostname",
+        "HostsPath": "/var/lib/docker/containers/55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450/hosts",
+        "LogPath": "/var/lib/docker/containers/55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450/55da752e6d85c2aff81415f084c4bdb504d7f9ee0cd1e81cd6566da885685450-json.log",
+        "Name": "/nginx-prod",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\admin_panel_react\\dist:/usr/share/nginx/html:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\prod-https.conf:/etc/nginx/conf.d/prod/prod-https.conf:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\common\\includes\\locations.inc:/etc/nginx/conf.d/common/includes/locations.inc:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\common\\default.conf:/etc/nginx/conf.d/common/default.conf:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\certs:/etc/nginx/certs:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\nginx.prod.conf:/etc/nginx/nginx.conf:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\mime.types:/etc/nginx/mime.types:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\default.conf:/etc/nginx/conf.d/default.conf:ro",
+                "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\includes\\tls_params.conf:/etc/nginx/conf.d/prod/includes/tls_params.conf:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "tutorbot-prod_app-net",
+            "PortBindings": {
+                "443/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "443"
+                    }
+                ],
+                "80/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "8080"
+                    },
+                    {
+                        "HostIp": "",
+                        "HostPort": "80"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges:true"
+            ],
+            "Tmpfs": {
+                "/tmp": "size=10M,mode=0777",
+                "/var/cache/nginx": "size=100M,mode=0777",
+                "/var/run": "size=1M,mode=0777"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/asound",
+                "/proc/acpi",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/sys/firmware",
+                "/sys/devices/virtual/powercap"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": null,
+            "Name": "overlayfs"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\certs",
+                "Destination": "/etc/nginx/certs",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\common\\default.conf",
+                "Destination": "/etc/nginx/conf.d/common/default.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\common\\includes\\locations.inc",
+                "Destination": "/etc/nginx/conf.d/common/includes/locations.inc",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\default.conf",
+                "Destination": "/etc/nginx/conf.d/default.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\prod-https.conf",
+                "Destination": "/etc/nginx/conf.d/prod/prod-https.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\mime.types",
+                "Destination": "/etc/nginx/mime.types",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\nginx.prod.conf",
+                "Destination": "/etc/nginx/nginx.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\ops\\nginx\\conf.d\\prod\\includes\\tls_params.conf",
+                "Destination": "/etc/nginx/conf.d/prod/includes/tls_params.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\admin_panel_react\\dist",
+                "Destination": "/usr/share/nginx/html",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "55da752e6d85",
+            "Domainname": "",
+            "User": "101:101",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "443/tcp": {},
+                "80/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.31.1",
+                "PKG_RELEASE=1",
+                "DYNPKG_RELEASE=1",
+                "NJS_VERSION=0.9.9",
+                "NJS_RELEASE=1",
+                "ACME_VERSION=0.4.1"
+            ],
+            "Cmd": [
+                "nginx",
+                "-c",
+                "/etc/nginx/nginx.conf",
+                "-g",
+                "daemon off;"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "nginx",
+                    "-t"
+                ],
+                "Interval": 10000000000,
+                "Timeout": 3000000000,
+                "StartPeriod": 5000000000,
+                "Retries": 3
+            },
+            "Image": "nginx:alpine",
+            "Volumes": null,
+            "WorkingDir": "/",
+            "Entrypoint": [],
+            "OnBuild": null,
+            "Labels": {
+                "com.docker.compose.config-hash": "3963b1fb949fd417c77bc618d343a25e991c3c636a8e017a94f72c33776c39c9",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "autosave-guardian:service_started:false,backend:service_started:false,admin:service_started:false,rasa:service_started:false",
+                "com.docker.compose.image": "sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "tutorbot-prod",
+                "com.docker.compose.project.config_files": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master\\docker-compose.prod.yml",
+                "com.docker.compose.project.working_dir": "C:\\Users\\USUARIO\\Desktop\\Documentos_Diego\\Proyectos\\chatbot_tutor_virtual_v7-master",
+                "com.docker.compose.service": "nginx-prod",
+                "com.docker.compose.version": "2.40.0",
+                "maintainer": "NGINX Docker Maintainers \u003cdocker-maint@nginx.com\u003e"
+            },
+            "StopSignal": "SIGQUIT",
+            "StopTimeout": 1
+        },
+        "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "e91914008cc19797bd23ea1dd53599e99f22237744edd9b05d2a33e2ae69e778",
+            "SandboxKey": "/var/run/docker/netns/e91914008cc1",
+            "Ports": {
+                "443/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "443"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "443"
+                    }
+                ],
+                "80/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "80"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "80"
+                    },
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "8080"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "8080"
+                    }
+                ]
+            },
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "",
+            "Gateway": "",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "",
+            "IPPrefixLen": 0,
+            "IPv6Gateway": "",
+            "MacAddress": "",
+            "Networks": {
+                "tutorbot-prod_app-net": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "nginx-prod",
+                        "nginx-prod"
+                    ],
+                    "MacAddress": "96:6a:18:3e:3d:e4",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "a6c1b3af3cd6e729534e2b2b1691e261e12f6ffed25ff27048c9cc012a5bdd62",
+                    "EndpointID": "2bb0660dd9ed62fd1e37333bbbd8988e3ea644a5574adce2fd69dfac16316c2c",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.11",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "nginx-prod",
+                        "55da752e6d85"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:31db9045b34376493fd4fb695d8a8d03bbfffaf6297fcde82d0f925ce2dd329a",
+            "size": 2495,
+            "annotations": {
+                "com.docker.official-images.bashbrew.arch": "amd64",
+                "org.opencontainers.image.base.digest": "sha256:74c5ea6b0fcd600958fe6ad3b97a58b6a04b28329121ac31ad8434bab87795c4",
+                "org.opencontainers.image.base.name": "nginx:1.31.1-alpine-slim",
+                "org.opencontainers.image.created": "2026-05-22T18:30:39Z",
+                "org.opencontainers.image.revision": "3375edc7170bc7b7da708c1c658706eb5355e099",
+                "org.opencontainers.image.source": "https://github.com/nginx/docker-nginx.git#3375edc7170bc7b7da708c1c658706eb5355e099:mainline/alpine",
+                "org.opencontainers.image.url": "https://hub.docker.com/_/nginx",
+                "org.opencontainers.image.version": "1.31.1-alpine"
+            },
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

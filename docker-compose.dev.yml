@@ -156,14 +156,12 @@ services:
     ports:
       - "8080:80"
     volumes:
-      # nginx.conf principal
       - ./ops/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-
-      # conf.d donde vive default.conf
-      - ./ops/nginx/conf.d/dev:/etc/nginx/conf.d:ro
-
-      # mime.types
       - ./ops/nginx/mime.types:/etc/nginx/mime.types:ro
+      - ./ops/nginx/conf.d/dev/upstreams.conf:/etc/nginx/conf.d/dev/upstreams.conf:ro
+      - ./ops/nginx/conf.d/dev/default.conf:/etc/nginx/conf.d/dev/default.conf:ro
+      - ./ops/nginx/conf.d/dev/20-rasa-proxy.conf:/etc/nginx/conf.d/dev/20-rasa-proxy.conf:ro
+      - ./ops/nginx/conf.d/common/includes/locations.inc:/etc/nginx/conf.d/common/includes/locations.inc:ro
     networks:
       - app-net
 
