@@ -38,10 +38,11 @@ MAX_TOKENS = int(
 )
 
 logger.info(
-    "[LLM CONFIG] URL=%s MODEL=%s TIMEOUT=%s",
+    "[LLM CONFIG] URL=%s MODEL=%s TIMEOUT=%s MAXTOKENS=%s",
     LLM_BASE_URL,
     PRIMARY_MODEL,
     LLM_TIMEOUT,
+    MAX_TOKENS,
 )
 
 # ================================================================
@@ -61,7 +62,31 @@ def _sanitize(text: str) -> str:
 # 🚀 INTERNAL CALL (Ollama API Layer)
 # ================================================================
 def _call_model(model: str, prompt: str) -> str:
+
     try:
+
+        logger.info(
+            "[OLLAMA] Enviando request al modelo=%s",
+            model
+        )
+        logger.info(
+            "[LLM] Enviando prompt a Ollama"
+        )
+
+        logger.info(
+            "[LLM] Modelo=%s",
+            model,
+        )
+
+        logger.info(
+            "[LLM] Prompt characters=%s",
+            len(prompt),
+        )
+
+        logger.info(
+            "[LLM] Prompt preview:\n%s",
+            prompt[:1000],
+        )
         response = requests.post(
             LLM_BASE_URL,
             json={
@@ -76,16 +101,47 @@ def _call_model(model: str, prompt: str) -> str:
             timeout=LLM_TIMEOUT,
         )
 
+        logger.info(
+            "[OLLAMA] Status=%s",
+            response.status_code
+        )
+
         response.raise_for_status()
+        logger.info(
+            "[LLM] Respuesta HTTP=%s",
+            response.status_code,
+        )
         data = response.json()
-        return data.get("response", "") or ""
+
+        logger.info(
+            "[OLLAMA] Respuesta recibida"
+        )
+
+        respuesta = (
+            data.get("response", "")
+            or ""
+        )
+
+        logger.info(
+            "[LLM] Respuesta recibida (%d caracteres)",
+            len(respuesta),
+        )
+
+        logger.info(
+            "[LLM] Preview respuesta:\n%s",
+            respuesta[:500],
+        )
+
+        return respuesta
 
     except Exception as e:
+
         logger.exception(
             "[LLM] model call failed para %s -> %s",
             model,
             str(e)
         )
+
         return ""
 
 
@@ -95,58 +151,119 @@ def _call_model(model: str, prompt: str) -> str:
 def run_llm(
     prompt: str,
     tracker: Optional[Tracker] = None,
-    context: Optional[dict[str, Any]] = None,  # MEJORA: Tipo nativo dict
+    context: Optional[dict[str, Any]] = None,
     fallback: str = "",
+    use_system_prompt: bool = True,
 ) -> str:
     """
-    Orquesta la inferencia generativa del Tutor Virtual. 
-    Construye el prompt del sistema integrado con el contexto de Rasa y aplica failover.
+    Orquesta la inferencia generativa del Tutor Virtual.
+    Construye el prompt del sistema integrado con el contexto de Rasa
+    y aplica failover.
     """
+
     sane_prompt = _sanitize(prompt)
+
     if not sane_prompt:
         return fallback
 
     try:
-        user_id = getattr(tracker, "sender_id", "anónimo")
-        
-        # CORRECCIÓN: Inyección real de contexto de Rasa y prompts del sistema del SENA.
-        # Originalmente se ignoraban 'tracker' y 'context', rompiendo la memoria del bot.
-        context_data = context or {}
-        
-        # Llama a tu generador de prompts unificado para estructurar el input final hacia Ollama
-        final_prompt = build_prompt(
-            base_prompt=sane_prompt,
-            tracker=tracker,
-            context=context_data
+
+        user_id = getattr(
+            tracker,
+            "sender_id",
+            "anónimo"
         )
+
+        context_data = context or {}
+
+        # =====================================================
+        # NUEVO:
+        # Permitir ejecutar sin PROMPT_SYSTEM
+        # =====================================================
+
+        if use_system_prompt:
+
+            final_prompt = build_prompt(
+                base_prompt=sane_prompt,
+                tracker=tracker,
+                context=context_data,
+            )
+
+            logger.info(
+                "[LLM] Ejecutando con PROMPT_SYSTEM"
+            )
+            logger.info(
+                "[LLM] Prompt final (%d caracteres)",
+                len(final_prompt),
+            )
+
+            logger.info(
+                "[LLM] Prompt final preview:\n%s",
+                final_prompt[:1500],
+            )
+        else:
+
+            final_prompt = sane_prompt
+
+            logger.info(
+                "[LLM] Ejecutando SIN PROMPT_SYSTEM"
+            )
+
         logger.info(
             "[DEBUG] PROMPT PREVIEW:\n%s",
             final_prompt[:2000]
         )
+
         logger.info(
             "[LLM] Ejecutando inferencia. Prompt final len=%s para usuario=%s",
             len(final_prompt),
             user_id,
         )
 
-        # Intento de Inferencia con Modelo Principal (Estrategia A)
-        result = _call_model(PRIMARY_MODEL, final_prompt)
+        # =====================================================
+        # MODELO PRINCIPAL
+        # =====================================================
 
-        # Failover Activo con Modelo Secundario si el principal cae o devuelve vacío (Estrategia B)
+        result = _call_model(
+            PRIMARY_MODEL,
+            final_prompt
+        )
+
+        # =====================================================
+        # FAILOVER
+        # =====================================================
+
         if not result:
-            logger.warning("[LLM] Modelo primario (%s) falló o agotó tiempo límite → Conmutando a fallback", PRIMARY_MODEL)
-            result = _call_model(FALLBACK_MODEL, final_prompt)
 
-        return result.strip() if result else fallback
+            logger.warning(
+                "[LLM] Modelo primario (%s) falló o agotó tiempo límite → Conmutando a fallback",
+                PRIMARY_MODEL,
+            )
+
+            result = _call_model(
+                FALLBACK_MODEL,
+                final_prompt
+            )
+
+        return (
+            result.strip()
+            if result
+            else fallback
+        )
 
     except Exception as e:
+
         logger.exception(
             "[LLM CRITICAL ERROR] %s",
-            str(e)
+            str(e),
         )
+
         return fallback
 
 
 def run_llm_safe(*args, **kwargs) -> str:
-    """Envoltura heredada para mantener la compatibilidad con llamadas legacy."""
+    """
+    Envoltura heredada para mantener compatibilidad
+    con llamadas legacy.
+    """
     return run_llm(*args, **kwargs)

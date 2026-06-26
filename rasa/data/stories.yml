@@ -2,19 +2,18 @@ version: "3.1"
 
 stories:
 
-- story: explicacion academica
-  steps:
-    - intent: explicacion_academica
-    - action: action_handle_with_llm
-    - action: action_ofrecer_continuar_tema
-
-- story: flujo aprender tema academico completo
+- story: iniciar aprender tema
   steps:
     - intent: aprender_tema
+    - action: utter_solicitar_tema
+
+- story: responder tema academico
+  steps:
+    - intent: explicacion_academica
+    - action: action_aprender_tema
     - action: action_memory_wrapper
     - action: action_handle_with_llm
-    - action: action_aprender_tema
-    - action: utter_control_conversacion
+    - action: action_ofrecer_continuar_tema
 
 - story: consultar certificados
   steps:

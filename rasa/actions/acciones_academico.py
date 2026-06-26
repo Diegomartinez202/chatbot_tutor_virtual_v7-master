@@ -190,9 +190,5 @@ class ActionAprenderTema(Action):
             SlotSet(
                 "rol_academico",
                 rol
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm"
             )
         ]

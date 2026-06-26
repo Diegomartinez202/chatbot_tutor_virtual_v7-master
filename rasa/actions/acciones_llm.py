@@ -7,7 +7,11 @@ from typing import Any, Dict, List, Text
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
-from rasa_sdk.events import SlotSet, EventType
+from rasa_sdk.events import (
+    SlotSet,
+    EventType,
+    FollowupAction,
+) 
 
 from .actions_semantic_memory import (
     retrieve_similar,
@@ -24,6 +28,10 @@ MAX_INTENTOS_FORM = 3
 
 class ActionHandleWithLLM(Action):
 
+    logger.info(
+    "[ACTION_HANDLE_WITH_LLM] INICIO"
+    )
+    
     def name(self) -> Text:
         return "action_handle_with_llm"
 
@@ -32,26 +40,49 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
 
-        requires_auth = tracker.get_slot("requires_auth")
+        requires_auth = tracker.get_slot(
+            "requires_auth"
+        )
 
         if requires_auth:
-            return f"""
-            El usuario intenta acceder a información privada pero no está autenticado.
+
+            return """
+            El usuario intenta acceder a información privada
+            pero no está autenticado.
+
             Tu respuesta debe ser:
+
             1. Explicar brevemente que por seguridad no puedes mostrar datos personales sin login.
-            2. Dar los pasos exactos para autenticarse en: https://tu-plataforma.com/login
+            2. Dar los pasos exactos para autenticarse en:
+               https://tu-plataforma.com/login
             3. No inventes datos del estudiante.
             """
 
         latest = tracker.latest_message or {}
-        last_user = latest.get("text", "") or ""
-        intent_name = latest.get("intent", {}).get("name", "")
+
+        last_user = latest.get(
+            "text",
+            ""
+        ) or ""
+
+        intent_name = (
+            latest.get("intent", {})
+            .get("name", "")
+        )
+
+        # =====================================================
+        # FLUJO ACADÉMICO
+        # =====================================================
 
         if intent_name == "aprender_tema":
 
             materia = (
-                tracker.get_slot("materia_detectada")
-                or detectar_materia(last_user)
+                tracker.get_slot(
+                    "materia_detectada"
+                )
+                or detectar_materia(
+                    last_user
+                )
             )
 
             materia_key = (
@@ -61,20 +92,52 @@ class ActionHandleWithLLM(Action):
             )
 
             rol = (
-                tracker.get_slot("rol_academico")
+                tracker.get_slot(
+                    "rol_academico"
+                )
                 or MATERIAS.get(
                     materia_key,
-                    "Tutor Académico General"
+                    "Tutor Académico General",
                 )
             )
 
             return self._build_academic_prompt(
                 pregunta=last_user,
-                materia=str(materia or "General"),
+                materia=str(
+                    materia or "General"
+                ),
                 rol=rol,
             )
 
-        return self._build_generic_prompt(tracker)
+        return self._build_generic_prompt(
+            tracker
+        )
+
+    def _build_academic_prompt(
+        self,
+        pregunta: str,
+        materia: str,
+        rol: str,
+    ) -> str:
+
+        return f"""
+ROL PEDAGÓGICO:
+{rol}
+
+ASIGNATURA:
+{materia}
+
+CONSULTA DEL ESTUDIANTE:
+{pregunta}
+
+INSTRUCCIONES:
+
+- Explica paso a paso.
+- Usa ejemplos prácticos.
+- Adapta el lenguaje a estudiantes.
+- Si el tema es complejo, divídelo en partes.
+- Finaliza preguntando si desea profundizar.
+"""
 
     def _build_generic_prompt(
         self,
@@ -82,16 +145,25 @@ class ActionHandleWithLLM(Action):
     ) -> str:
 
         latest = tracker.latest_message or {}
-        last_user = latest.get("text", "") or ""
 
-        intent_data = latest.get("intent") or {}
+        last_user = latest.get(
+            "text",
+            ""
+        ) or ""
+
+        intent_data = (
+            latest.get("intent")
+            or {}
+        )
+
         intent_name = intent_data.get(
             "name",
-            "desconocido"
+            "desconocido",
         )
+
         intent_conf = intent_data.get(
             "confidence",
-            0.0
+            0.0,
         )
 
         # =====================================================
@@ -100,8 +172,10 @@ class ActionHandleWithLLM(Action):
 
         if intent_name == "ayuda":
 
-            historial = self._get_formatted_history(
-                tracker
+            historial = (
+                self._get_formatted_history(
+                    tracker
+                )
             )
 
             return f"""
@@ -123,6 +197,7 @@ Historial reciente:
         # =====================================================
 
         contexto_memoria = ""
+
         prev = None
 
         if last_user:
@@ -130,7 +205,9 @@ Historial reciente:
             prev = retrieve_similar(
                 text=last_user,
                 user_id=tracker.sender_id,
-                session_id=tracker.get_slot("session_id")
+                session_id=tracker.get_slot(
+                    "session_id"
+                ),
             )
 
         if prev:
@@ -141,18 +218,27 @@ Historial reciente:
             )
 
         # =====================================================
-        # HISTORIAL
+        # HISTORIAL REDUCIDO
         # =====================================================
 
         history = []
-        raw_events = tracker.events or []
 
-        for event in raw_events[-12:]:
+        raw_events = (
+            tracker.events
+            or []
+        )
 
-            if not isinstance(event, dict):
+        for event in raw_events[-6:]:
+
+            if not isinstance(
+                event,
+                dict,
+            ):
                 continue
 
-            event_type = event.get("event")
+            event_type = event.get(
+                "event"
+            )
 
             if event_type == "user":
 
@@ -179,7 +265,7 @@ Historial reciente:
                     )
 
         historial = "\n".join(
-            history[-8:]
+            history[-4:]
         )
 
         return (
@@ -207,15 +293,55 @@ Historial reciente:
 
             logger.info(
                 "[DEBUG] prompt len=%s",
-                len(prompt)
+                len(prompt),
+            )
+
+            latest = (
+                tracker.latest_message
+                or {}
+            )
+            logger.info(
+                "[DEBUG] tema_consulta=%s",
+                tracker.get_slot("tema_consulta"),
+            )
+
+            logger.info(
+                "[DEBUG] last_message=%s",
+                (
+                    tracker.latest_message
+                    or {}
+                ).get(
+                    "text"
+                )
+            )
+
+            is_academic = (
+                latest.get(
+                    "intent",
+                    {},
+                ).get("name")
+                == "aprender_tema"
             )
 
             respuesta = run_llm(
                 prompt=prompt,
                 tracker=tracker,
                 context={
-                    "flujo": "action_handle_with_llm",
+                    "flujo": (
+                        "academico"
+                        if is_academic
+                        else "action_handle_with_llm"
+                    ),
+                    "materia": tracker.get_slot(
+                        "materia_detectada"
+                    ),
+                    "rol": tracker.get_slot(
+                        "rol_academico"
+                    ),
                 },
+                use_system_prompt=(
+                    not is_academic
+                ),
                 fallback=(
                     "Lo siento, en este momento "
                     "no puedo generar una respuesta."
@@ -244,7 +370,7 @@ Historial reciente:
             return [
                 SlotSet(
                     "requires_auth",
-                    None
+                    None,
                 )
             ]
 
@@ -259,7 +385,9 @@ class ActionMemoryWrapper(Action):
         tracker: Tracker,
         domain: DomainDict,
     ) -> List[EventType]:
-
+        logger.info(
+        "[MEMORY_WRAPPER] INICIO"
+        )
         try:
             latest_msg = tracker.latest_message or {}
             user_msg = latest_msg.get("text", "")

@@ -425,8 +425,7 @@ slots:
     type: text
     influence_conversation: false
     mappings:
-      - type: from_text
-        intent: aprender_tema
+      - type: custom
 
   materia_detectada:
     type: text
@@ -511,6 +510,18 @@ responses:
       - title: "🚪 Terminar conversación"
         payload: "/salir"
           
+  utter_solicitar_tema:
+  - text: >
+      📚 Indícame el tema que deseas aprender.
+
+      Ejemplos:
+
+      • ¿Qué es el modelo OSI?
+      • Explícame TCP/IP
+      • ¿Qué son las VLAN?
+      • Fundamentos de programación
+      • Bases de datos relacionales
+
   utter_reinicio_confirmado:
     - text: "🔄 La sesión ha sido reiniciada con éxito. Todos los parámetros de seguridad y contexto se han limpiado."
 

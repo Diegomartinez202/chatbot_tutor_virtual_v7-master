@@ -234,12 +234,35 @@ def build_prompt(base_prompt: str, tracker: Optional[Tracker] = None, context: O
         f"- Enfoque Pedagógico: {enfoque_materia}\n"
         f"- ID de Sesión: {ctx.get('user', 'anónimo')}\n"
     )
-
-    # 3. Concatenación final robusta sin riesgo de romper el formateo interno de PROMPT_SYSTEM
-    return (
-        f"{PROMPT_SYSTEM}\n\n"
-        f"{directrices_contexto}\n\n"
-        f"CONSULTA DEL ESTUDIANTE A PROCESAR:\n"
-        f"{base_prompt}"
+    prompt_final = (
+    f"{PROMPT_SYSTEM}\n\n"
+    f"{directrices_contexto}\n\n"
+    f"CONSULTA DEL ESTUDIANTE A PROCESAR:\n"
+    f"{base_prompt}"
     )
+
+    logger.info(
+        "[PROMPT BUILDER] Sistema=%d caracteres",
+        len(PROMPT_SYSTEM),
+    )
+
+    logger.info(
+        "[PROMPT BUILDER] Contexto=%d caracteres",
+        len(directrices_contexto),
+    )
+
+    logger.info(
+        "[PROMPT BUILDER] Consulta=%d caracteres",
+        len(base_prompt),
+    )
+
+    logger.info(
+        "[PROMPT BUILDER] Prompt final=%d caracteres",
+        len(prompt_final),
+    )
+    logger.info(
+    "[PROMPT BUILDER] Preview:\n%s",
+    prompt_final[:1000],
+    )
+    return prompt_final
 
