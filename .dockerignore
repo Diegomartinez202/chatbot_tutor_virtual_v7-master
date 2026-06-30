@@ -104,3 +104,4 @@ node_modules/
 
 # Opcional: si no quieres meter lo interactivo en la imagen
 # rasa/interactive/
+!ops/ollama/build/entrypoint.sh

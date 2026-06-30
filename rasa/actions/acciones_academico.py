@@ -96,32 +96,33 @@ class ActionVerEstadoEstudiante(Action):
     def name(self) -> str: return "action_ver_estado_estudiante"
 
     def run(self, dispatcher, tracker, domain):
-        if not tracker.get_slot("is_authenticated"):
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+      
+        if not validar_autenticacion(dispatcher, tracker):
+            return [SlotSet("requires_auth", True)]
         return _exec("estado_estudiante", dispatcher, tracker)
 
 class ActionTutorAsignado(Action):
     def name(self) -> str: return "action_tutor_asignado"
 
     def run(self, dispatcher, tracker, domain):
-        if not tracker.get_slot("is_authenticated"):
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if not validar_autenticacion(dispatcher, tracker):
+            return [SlotSet("requires_auth", True)]
         return _exec("tutor_asignado", dispatcher, tracker)
 
 class ActionConsultarHorariosClases(Action):
     def name(self) -> str: return "action_consultar_horarios_clases"
 
     def run(self, dispatcher, tracker, domain):
-        if not tracker.get_slot("is_authenticated"):
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if not validar_autenticacion(dispatcher, tracker):
+            return [SlotSet("requires_auth", True)]
         return _exec("horarios", dispatcher, tracker)
 
 class ActionConsultarProgresoCurso(Action):
     def name(self) -> str: return "action_consultar_progreso_curso"
 
     def run(self, dispatcher, tracker, domain):
-        if not tracker.get_slot("is_authenticated"):
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if not validar_autenticacion(dispatcher, tracker):
+            return [SlotSet("requires_auth", True)]
         return _exec("progreso", dispatcher, tracker)
         
 class ActionHistorialAcademico(Action):
@@ -129,19 +130,15 @@ class ActionHistorialAcademico(Action):
     def name(self) -> str:
         return "action_historial_academico"
 
-
     def run(
         self,
         dispatcher,
         tracker,
         domain
     ):
-
-        if not tracker.get_slot("is_authenticated"):
-            return [
-                SlotSet("requires_auth", True),
-                FollowupAction("action_handle_with_llm")
-            ]
+        if not validar_autenticacion(dispatcher, tracker):
+            # Retornamos el slot sin llamar al LLM
+            return [SlotSet("requires_auth", True)]
 
         return _exec(
             "historial_academico",

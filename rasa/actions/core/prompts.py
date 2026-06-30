@@ -57,6 +57,12 @@ Identifica el nivel por el lenguaje del usuario.
 ====================================================
 - No inventes normas del SENA ni enlaces internos.
 - Evita recomendaciones clínicas, médicas o legales.
+- SEGURIDAD Y PRIVACIDAD:
+  a) Si el usuario solicita datos personales, historial académico, certificados o estados de cuenta, 
+     RESPONDE OBLIGATORIAMENTE con el formato: INTENT:solicitar_autenticacion
+  b) SI EL USUARIO SOLICITA APRENDER UN TEMA (explicaciones técnicas, conceptos, 
+     teoría, procedimientos), RESPONDE DIRECTAMENTE SIN PEDIR AUTENTICACIÓN.
+     El aprendizaje es público y abierto.
 - Si no sabes algo, responde con:
   "No tengo la información exacta; puedo orientarte sobre el procedimiento general."
 - Anonimiza cualquier dato personal presente en los mensajes del usuario.
@@ -211,58 +217,44 @@ Explica el estado académico del estudiante:
 
 
 # ================================================================
-# 🚀 PROMPT BUILDER CORE (REPARADO Y CONECTADO)
+# 🚀 PROMPT BUILDER CORE (OPTIMIZADO PARA VELOCIDAD)
 # ================================================================
 def build_prompt(base_prompt: str, tracker: Optional[Tracker] = None, context: Optional[dict[str, Any]] = None) -> str:
     """
     Ensambla de forma dinámica las directrices del sistema de Ollama.
-    Inyecta el enfoque pedagógico de la asignatura detectada y el estado actual del diálogo.
+    Optimizado: Reduce la carga textual y condiciona el contexto para acelerar la inferencia.
     """
     ctx = context or {}
     
-    # 1. Resolver e inyectar el enfoque pedagógico de la materia si fue detectada
-    materia_detectada = (
-    ctx.get("materia")
-    or "tema academico"
-    )
+    # 1. Resolver materia y enfoque
+    materia_detectada = ctx.get("materia") or "tema academico"
     enfoque_materia = MATERIAS.get(materia_detectada, MATERIAS["tema academico"])
     
-    # 2. Reconstruir las directrices contextuales complementarias para el modelo
+    # 2. Lógica de sesión para evitar ruido innecesario
+    # Si es un tema académico, usamos un ID genérico para que el modelo no se "distraiga"
+    # buscando registros de seguridad.
+    session_id = ctx.get('user', 'anónimo')
+    if materia_detectada == "tema academico" or materia_detectada == "tema del sena":
+        session_id = "publico"
+
+    # 3. Construcción eficiente del contexto
     directrices_contexto = (
-        f"CONTEXTO OPERATIVO DEL APRENDIZ:\n"
-        f"- Asignatura Objetivo: {materia_detectada.upper()}\n"
-        f"- Enfoque Pedagógico: {enfoque_materia}\n"
-        f"- ID de Sesión: {ctx.get('user', 'anónimo')}\n"
+        f"CONTEXTO: {materia_detectada.upper()}. "
+        f"ENFOQUE: {enfoque_materia}. "
+        f"SESIÓN: {session_id}."
     )
+    
+    # 4. Ensamblaje (Compacto para menor tokenización)
     prompt_final = (
-    f"{PROMPT_SYSTEM}\n\n"
-    f"{directrices_contexto}\n\n"
-    f"CONSULTA DEL ESTUDIANTE A PROCESAR:\n"
-    f"{base_prompt}"
+        f"{PROMPT_SYSTEM}\n\n"
+        f"{directrices_contexto}\n\n"
+        f"CONSULTA: {base_prompt}"
     )
 
-    logger.info(
-        "[PROMPT BUILDER] Sistema=%d caracteres",
-        len(PROMPT_SYSTEM),
-    )
-
-    logger.info(
-        "[PROMPT BUILDER] Contexto=%d caracteres",
-        len(directrices_contexto),
-    )
-
-    logger.info(
-        "[PROMPT BUILDER] Consulta=%d caracteres",
-        len(base_prompt),
-    )
-
-    logger.info(
-        "[PROMPT BUILDER] Prompt final=%d caracteres",
-        len(prompt_final),
-    )
-    logger.info(
-    "[PROMPT BUILDER] Preview:\n%s",
-    prompt_final[:1000],
-    )
+    # Logging preservado para control total
+    logger.info("[PROMPT BUILDER] Sistema=%d, Contexto=%d, Consulta=%d, Total=%d", 
+                  len(PROMPT_SYSTEM), len(directrices_contexto), len(base_prompt), len(prompt_final))
+    
+    logger.info("[PROMPT BUILDER] Preview:\n%s", prompt_final[:500])
+    
     return prompt_final
-

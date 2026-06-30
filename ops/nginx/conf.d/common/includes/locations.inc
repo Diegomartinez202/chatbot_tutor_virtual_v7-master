@@ -80,20 +80,6 @@ location /api/ {
   proxy_buffering off;
 }
 
-# ===============================
-# API Backend (FastAPI)
-# ===============================
-location /api/ {
-  proxy_pass         http://backend_upstream/;  # <- slash final
-  proxy_http_version 1.1;
-  proxy_set_header   Upgrade $http_upgrade;
-  proxy_set_header   Connection "upgrade";
-  proxy_set_header   Host $host;
-  proxy_set_header   X-Real-IP $remote_addr;
-  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header   X-Forwarded-Proto $scheme;
-}
-
 # ========= FRONTEND SPA =========
 location / {
 

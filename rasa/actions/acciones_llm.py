@@ -17,7 +17,7 @@ from .actions_semantic_memory import (
     retrieve_similar,
     store_message,
 )
-from .core.llm_engine import run_llm
+from .core.llm_engine import run_llm, get_last_turns
 from .core.nlp_utils import anonymize_text, detectar_materia
 from .core.prompts import PROMPT_SYSTEM, MATERIAS
 
@@ -323,8 +323,12 @@ Historial reciente:
                 == "aprender_tema"
             )
 
+            historial_limpio = get_last_turns(tracker, n=2)
+            pregunta_usuario = tracker.latest_message.get("text", "")
+            prompt_filtrado = f"{historial_limpio}\nUsuario: {pregunta_usuario}\n\nContexto: {prompt}"
+            
             respuesta = run_llm(
-                prompt=prompt,
+                prompt=prompt_filtrado,
                 tracker=tracker,
                 context={
                     "flujo": (

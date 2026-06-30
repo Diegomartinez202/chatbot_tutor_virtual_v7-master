@@ -106,13 +106,15 @@ services:
   # Ollama LLM Server
   # ------------------------------------------------------------
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: .
+      dockerfile: ops/ollama/build/Dockerfile
     container_name: ollama
     volumes:
-      - ./ops/ollama/data:/var/lib/ollama
+      - ./ops/ollama/data:/root/.ollama
     ports: []
     environment:
-      - OLLAMA_ALLOW_EXPERIMENTAL=yes
+      - OLLAMA_KEEP_ALIVE=24h
     restart: unless-stopped
     networks:
       - app-net

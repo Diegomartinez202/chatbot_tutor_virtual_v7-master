@@ -17,7 +17,7 @@ from rasa_sdk.events import (
 )
 from rasa_sdk.forms import FormValidationAction
 from rasa_sdk.types import DomainDict
-from .core.llm_engine import run_llm
+from .core.llm_engine import run_llm, get_last_turns
 from .utils_logging import get_logger
 
 logger = get_logger(__name__)
@@ -219,10 +219,13 @@ class ActionEnviarSoporte(Action):
                 "flujo": "soporte_rapido",
                 "tiene_correo_valido": bool(email),
             }
+            historial_reducido = get_last_turns(tracker, n=2)
+            prompt_soporte = f"{historial_reducido}\n\nInstrucción: {texto_base}"
+
             try:
                 # MEJORA: Corrección del texto del parámetro fallback para alinearlo al dominio de soporte
                 mensaje_llm = run_llm(
-                    prompt=texto_base,
+                    prompt=prompt_soporte,
                     tracker=tracker,
                     context=contexto_llm,
                     fallback="✅ He enviado tu solicitud de soporte de forma exitosa. Un agente de soporte la revisará."

@@ -57,13 +57,26 @@ def _sanitize(text: str) -> str:
         return ""
     return text.strip()[:4000]
 
+def get_last_turns(tracker: Tracker, n=2) -> str:
+    """Extrae solo los últimos 'n' mensajes del usuario para reducir el prompt."""
+    events = tracker.events
+    # Filtramos solo los mensajes de usuario
+    user_messages = [e.get("text") for e in events if e.get("event") == "user" and e.get("text")]
+    
+    # Retornamos los últimos 'n' mensajes unidos
+    return "\n".join(user_messages[-n:])
 
 # ================================================================
 # 🚀 INTERNAL CALL (Ollama API Layer)
 # ================================================================
 def _call_model(model: str, prompt: str) -> str:
-
     try:
+        
+        if len(prompt) > 2000:
+            logger.warning("[LLM] Prompt demasiado largo (%d), recortando a 2000 chars", len(prompt))
+            prompt = prompt[-2000:]
+        # Limpieza radical del prompt para evitar errores de formato JSON
+        clean_prompt = prompt.replace('\n', ' ').replace('\r', '').strip()
 
         logger.info(
             "[OLLAMA] Enviando request al modelo=%s",
@@ -72,26 +85,24 @@ def _call_model(model: str, prompt: str) -> str:
         logger.info(
             "[LLM] Enviando prompt a Ollama"
         )
-
         logger.info(
             "[LLM] Modelo=%s",
             model,
         )
-
         logger.info(
             "[LLM] Prompt characters=%s",
-            len(prompt),
+            len(clean_prompt),
         )
-
         logger.info(
             "[LLM] Prompt preview:\n%s",
-            prompt[:1000],
+            clean_prompt[:1000],
         )
+
         response = requests.post(
             LLM_BASE_URL,
             json={
                 "model": model,
-                "prompt": prompt,
+                "prompt": clean_prompt,
                 "stream": False,
                 "options": {
                     "num_predict": MAX_TOKENS,
@@ -106,11 +117,16 @@ def _call_model(model: str, prompt: str) -> str:
             response.status_code
         )
 
-        response.raise_for_status()
+        # Mejor manejo de errores: loguear el cuerpo del error si la API falla
+        if response.status_code != 200:
+            logger.error("[LLM] Error de Ollama (Detalle): %s", response.text)
+            response.raise_for_status()
+
         logger.info(
             "[LLM] Respuesta HTTP=%s",
             response.status_code,
         )
+        
         data = response.json()
 
         logger.info(
@@ -126,7 +142,6 @@ def _call_model(model: str, prompt: str) -> str:
             "[LLM] Respuesta recibida (%d caracteres)",
             len(respuesta),
         )
-
         logger.info(
             "[LLM] Preview respuesta:\n%s",
             respuesta[:500],
@@ -135,15 +150,12 @@ def _call_model(model: str, prompt: str) -> str:
         return respuesta
 
     except Exception as e:
-
         logger.exception(
             "[LLM] model call failed para %s -> %s",
             model,
             str(e)
         )
-
         return ""
-
 
 # ================================================================
 # 🚀 MAIN ENGINE (PRODUCTION GRADE)
