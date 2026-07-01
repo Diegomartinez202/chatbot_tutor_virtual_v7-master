@@ -74,9 +74,11 @@ def _call_model(model: str, prompt: str) -> str:
         
         if len(prompt) > 2000:
             logger.warning("[LLM] Prompt demasiado largo (%d), recortando a 2000 chars", len(prompt))
-            prompt = prompt[-2000:]
-        # Limpieza radical del prompt para evitar errores de formato JSON
-        clean_prompt = prompt.replace('\n', ' ').replace('\r', '').strip()
+            prompt = prompt[:2000]
+        
+            
+            # Limpieza radical del prompt para evitar errores de formato JSON
+        clean_prompt = prompt.strip()
 
         logger.info(
             "[OLLAMA] Enviando request al modelo=%s",
@@ -104,9 +106,10 @@ def _call_model(model: str, prompt: str) -> str:
                 "model": model,
                 "prompt": clean_prompt,
                 "stream": False,
+                "keep_alive": "30m",
                 "options": {
-                    "num_predict": MAX_TOKENS,
-                    "temperature": 0.3,
+                    "num_predict": 64,
+                    "temperature": 0.1,
                 },
             },
             timeout=LLM_TIMEOUT,

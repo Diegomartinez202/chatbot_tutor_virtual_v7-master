@@ -24,7 +24,10 @@ class ActionHandler:
     # -------------------------
     def register(self, name: str, handler: Any) -> None:
         self.registry[name] = handler
-        logger.info(f"[ActionHandler] registered → {name}")
+        logger.info(
+            "[ActionHandler] registered → %s",
+            name,
+        )
 
     # -------------------------
     # RESOLVE
@@ -47,9 +50,9 @@ class ActionHandler:
 
         self._bootstrapped = True
 
-    logger.info(
-        "[ActionHandler] 🚀 Bootstrap completed"
-    )
+        logger.info(
+            "[ActionHandler] 🚀 Bootstrap completed"
+        )
 
     # -------------------------
     # EXECUTE
@@ -76,7 +79,11 @@ class ActionHandler:
             return handler(dispatcher, tracker, payload)
 
         except Exception as e:
-            logger.exception(f"[ActionHandler] error {action_name}: {e}")
+            logger.exception(
+                "[ActionHandler] error %s -> %s",
+                action_name,
+                e,
+            )
 
             dispatcher.utter_message(
                 text="⚠️ Error interno ejecutando acción."

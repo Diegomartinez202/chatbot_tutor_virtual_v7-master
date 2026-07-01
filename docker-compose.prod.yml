@@ -97,6 +97,9 @@ services:
       GUARDIAN_USER: admin
       GUARDIAN_PASSWORD: admin123
       SEMANTIC_MEMORY_FILE: /app/data/semantic_memory.json
+      API_BASE_URL: http://backend:8000
+      API_GET_TIMEOUT: 10
+      API_WRITE_TIMEOUT: 15
     depends_on:
       - mongo
       - redis
@@ -113,8 +116,13 @@ services:
     volumes:
       - ./ops/ollama/data:/root/.ollama
     ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 8G
     environment:
       - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=1
     restart: unless-stopped
     networks:
       - app-net

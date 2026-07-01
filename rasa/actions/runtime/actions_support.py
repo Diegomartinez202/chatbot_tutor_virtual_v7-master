@@ -16,15 +16,14 @@ class ActionSoporteLLM(Action):
         problema = tracker.latest_message.get("text", "")
 
         prompt = f"""
-{PROMPT_SYSTEM}
+        Eres soporte técnico del SENA.
 
-Eres soporte técnico del SENA.
+        PROBLEMA:
 
-PROBLEMA:
-{problema}
+        {problema}
 
-Da solución paso a paso (máx 5 pasos).
-"""
+        Da solución paso a paso (máximo cinco pasos).
+        """
 
         respuesta = run_llm(
            prompt,

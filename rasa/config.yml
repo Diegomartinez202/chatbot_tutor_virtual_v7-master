@@ -5,7 +5,7 @@ language: "es"
 
 pipeline:
   - name: custom_components.text_normalizer.TextNormalizer
-    url: "http://embedding-service:9000/normalize"
+    url: "http://embedding-service:9000/api/normalize"
     timeout: 1.5
 
   - name: SpacyNLP

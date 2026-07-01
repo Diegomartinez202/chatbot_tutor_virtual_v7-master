@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List
 import numpy as np
@@ -52,7 +52,13 @@ def normalize_chat_text(text: str) -> str:
 async def normalize(req: TextRequest):
     return {"normalized": normalize_chat_text(req.text)}
 
-
+@app.post("/{path:path}")
+async def debug(path: str, request: Request):
+    body = await request.body()
+    print("PATH:", path)
+    print("BODY:", body)
+    print("HEADERS:", request.headers)
+    return {"error": "debug"}
 # ---------- EMBEDDINGS ----------
 
 def dummy_embed(text: str) -> np.ndarray:

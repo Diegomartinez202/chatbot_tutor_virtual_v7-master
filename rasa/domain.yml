@@ -61,6 +61,7 @@ intents:
   - iniciar_encuesta
   - solicitar_cierre
   - guardian_guardar_progreso
+  - continuar_tema_si
 entities:
   - email
   - emocion

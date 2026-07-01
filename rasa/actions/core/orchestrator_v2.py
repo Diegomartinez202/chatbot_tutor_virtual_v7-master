@@ -1,4 +1,5 @@
 # ruta: rasa/actions/core/orchestrator_v2.py
+
 from __future__ import annotations
 
 import logging
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # ================================================================
 # 🧠 INTENT CATEGORIES
 # ================================================================
+
 LOW_RISK_INTENTS = {
     "saludo",
     "despedida",
@@ -35,8 +37,9 @@ DATA_INTENTS = {
 
 
 # ================================================================
-# 🧠 ORCHESTRATOR V2 (DECISION MATRIX CORE)
+# 🧠 ORCHESTRATOR V2
 # ================================================================
+
 class OrchestratorV2:
 
     def __init__(self):
@@ -45,8 +48,12 @@ class OrchestratorV2:
     # ------------------------------------------------------------
     # 🔍 INTENT DETECTION
     # ------------------------------------------------------------
+
     def detect_intent(self, tracker: Tracker) -> str:
-        """Extrae el nombre de la intención NLU detectada por Rasa Core."""
+        """
+        Obtiene el intent detectado por Rasa.
+        """
+
         return (
             (tracker.latest_message or {})
             .get("intent", {})
@@ -56,54 +63,110 @@ class OrchestratorV2:
     # ------------------------------------------------------------
     # 🧠 CONTEXT BUILDER
     # ------------------------------------------------------------
-    def build_context(self, tracker: Tracker) -> dict[str, Any]:  # MEJORA: Tipado nativo dict
+
+    def build_context(self, tracker: Tracker) -> dict[str, Any]:
+        """
+        Construye únicamente el contexto realmente útil para el
+        backend y el LLM.
+        """
 
         text = (tracker.latest_message or {}).get("text", "")
 
+        clean_text = normalize_text(text)
+
+        intent = self.detect_intent(tracker)
+
+        # --------------------------------------------------------
+        # Detectar materia únicamente cuando aporta valor
+        # --------------------------------------------------------
+
+        if intent in LOW_RISK_INTENTS:
+            materia = "tema academico"
+        else:
+            materia = detectar_materia(text)
+
+        # --------------------------------------------------------
+        # Slots relevantes
+        # --------------------------------------------------------
+
+        important_slots = {
+            "materia": tracker.get_slot("materia"),
+            "rol": tracker.get_slot("rol"),
+            "autenticado": tracker.get_slot("autenticado"),
+            "curso": tracker.get_slot("curso"),
+            "programa": tracker.get_slot("programa"),
+            "ficha": tracker.get_slot("ficha"),
+        }
+
+        # eliminar slots vacíos
+
+        important_slots = {
+            key: value
+            for key, value in important_slots.items()
+            if value not in (None, "", [], {})
+        }
+
         return {
             "text": text,
-            "clean_text": normalize_text(text),
-            "materia": detectar_materia(text),
+            "clean_text": clean_text,
+            "materia": materia,
             "user": tracker.sender_id,
-            "slots": dict(tracker.slots),
+            "slots": important_slots,
         }
 
     # ------------------------------------------------------------
     # ⚖️ DECISION ENGINE
     # ------------------------------------------------------------
-    def route(self, tracker: Tracker) -> dict[str, Any]:  # MEJORA: Tipado nativo dict
+
+    def route(self, tracker: Tracker) -> dict[str, Any]:
         """
-        Determina la estrategia óptima de respuesta evaluando la criticidad 
-        del intent y emitiendo un payload estructurado para la acción custom.
+        Decide cuál será el flujo de procesamiento.
         """
+
         intent = self.detect_intent(tracker)
-        context = self.build_context(tracker)
 
-        # MEJORA: Uso de lazy formatting para optimizar la serialización de strings bajo carga masiva
-        self.logger.info(
-            "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",
-            intent,
-            context["user"],
-            context["materia"]
-        )
+        # --------------------------------------------------------
+        # ACTIONS
+        # --------------------------------------------------------
 
-        # 1️⃣ HIGH RISK → AUTH FLOW / SECURITY / ACTIONS
         if intent in ACTION_INTENTS:
+
+            context = self.build_context(tracker)
+
             return {
                 "type": "action",
                 "action": ACTION_INTENTS[intent],
                 "context": context,
             }
 
-        # 2️⃣ DATA INTENTS → BACKEND FIRST
+        # --------------------------------------------------------
+        # A partir de aquí sí necesitamos contexto
+        # --------------------------------------------------------
+
+        context = self.build_context(tracker)
+
+        self.logger.info(
+            "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",
+            intent,
+            context["user"],
+            context["materia"],
+        )
+
+        # --------------------------------------------------------
+        # BACKEND
+        # --------------------------------------------------------
+
         if intent in DATA_INTENTS:
             return {
                 "type": "backend",
                 "intent": intent,
-               "context": context,
+                "context": context,
             }
 
-        # 3️⃣ LOW RISK → LLM RESPONSE
+        # --------------------------------------------------------
+        # LLM
+        # --------------------------------------------------------
+
         if intent in LOW_RISK_INTENTS:
             return {
                 "type": "llm",
@@ -111,7 +174,10 @@ class OrchestratorV2:
                 "context": context,
             }
 
-        # 4️⃣ DEFAULT → LLM fallback inteligente
+        # --------------------------------------------------------
+        # DEFAULT
+        # --------------------------------------------------------
+
         return {
             "type": "llm",
             "prompt": context["text"],

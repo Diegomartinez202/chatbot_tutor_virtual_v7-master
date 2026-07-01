@@ -50,7 +50,7 @@ class ActionRegistry:
     def get(self, name: str) -> Handler | None:
         return self._registry.get(name)
     def get_all(self) -> Dict[str, Handler]:
-        return self._registry
+        return dict(self._registry)
 
     # ------------------------------------------------------------
     # LOAD ALL BACKEND HANDLERS (PRODUCTION BOOTSTRAP)

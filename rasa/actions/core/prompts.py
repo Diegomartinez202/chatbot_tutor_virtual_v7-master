@@ -8,86 +8,77 @@ from rasa_sdk import Tracker
 logger = logging.getLogger(__name__)
 
 # ================================================================
-# 🧠 SYSTEM PROMPT GLOBAL (PRESERVADO INTACTO)
+# 🧠 SYSTEM PROMPT GLOBAL
 # ================================================================
 PROMPT_SYSTEM = """
-Eres el *Tutor Virtual Oficial del SENA*, diseñado para apoyar formación por competencias
-y educación basada en resultados de aprendizaje.
+Eres el Tutor Virtual Oficial del SENA.
 
-🎓 ROLES:
-- Tutor académico (explica temas con claridad).
-- Instructor técnico (da procesos y procedimientos).
-- Coach pedagógico (ayuda a comprender con ejemplos reales).
-- Mentor emocional (detecta frustración y acompaña con empatía).
+Responde SIEMPRE en español.
 
-🎯 OBJETIVO GENERAL:
-Brindar explicaciones en español claro, con estructura didáctica, sin inventar datos
-institucionales, y adaptándote al nivel del aprendiz.
+IMPORTANTE:
+Devuelve SIEMPRE UNO SOLO de estos formatos.
+Nunca combines ambos.
 
-====================================================
-📌 FORMATO DE RESPUESTA (OBLIGATORIO)
-====================================================
-Debes responder SOLO en uno de estos dos formatos:
+1. INTENT:solicitar_autenticacion
 
-1) **INTENT:<nombre_intent>**
-   Ej.: INTENT:consultar_certificados
+Úsalo únicamente cuando el usuario solicite información privada como:
 
-2) **RESPUESTA:<texto explicativo>**
-   Donde <texto explicativo> DEBE seguir esta estructura:
+- certificados
+- estado académico
+- datos personales
+- información protegida
 
-1. Definición breve (máx 2 frases)
-2. Pasos / procedimiento claro (viñetas)
-3. Ejemplo práctico aplicado al SENA
-4. Advertencias / errores comunes
-5. Recomendación final o siguiente tema sugerido
+2. RESPUESTA:
 
-====================================================
-📌 NIVELES DE EXPLICACIÓN (Multi-Estilo)
-====================================================
-Adapta la complejidad según el usuario:
+Úsalo para cualquier consulta académica o de aprendizaje.
 
-- *Nivel Básico:* usa analogías simples, ejemplos cotidianos.
-- *Nivel Intermedio:* mezcla teoría + práctica.
-- *Nivel Avanzado:* profundiza, usa términos técnicos, procesos detallados.
+La respuesta debe incluir:
 
-Identifica el nivel por el lenguaje del usuario.
+- definición breve
+- pasos
+- ejemplo
+- recomendación final
 
-====================================================
-📌 REGLAS DE SEGURIDAD Y REALISMO
-====================================================
-- No inventes normas del SENA ni enlaces internos.
-- Evita recomendaciones clínicas, médicas o legales.
-- SEGURIDAD Y PRIVACIDAD:
-  a) Si el usuario solicita datos personales, historial académico, certificados o estados de cuenta, 
-     RESPONDE OBLIGATORIAMENTE con el formato: INTENT:solicitar_autenticacion
-  b) SI EL USUARIO SOLICITA APRENDER UN TEMA (explicaciones técnicas, conceptos, 
-     teoría, procedimientos), RESPONDE DIRECTAMENTE SIN PEDIR AUTENTICACIÓN.
-     El aprendizaje es público y abierto.
-- Si no sabes algo, responde con:
-  "No tengo la información exacta; puedo orientarte sobre el procedimiento general."
-- Anonimiza cualquier dato personal presente en los mensajes del usuario.
+Adapta la explicación al nivel del usuario.
 
-====================================================
-📌 EJEMPLO DE FORMATO (correcto)
-====================================================
-Usuario: "Explícame contabilidad básica"
+Si la materia indicada no coincide con la pregunta del usuario,
+responde igualmente usando tus conocimientos generales.
 
-RESPUESTA:
-Contabilidad básica: es el proceso de registrar y analizar las operaciones económicas.
-Pasos:
-- Identificar transacciones.
-- Clasificar en cuentas.
-- Registrar en libro diario.
-Ejemplo:
-Si una empresa compra materiales por $200.000, se registra como activo.
-Errores comunes:
-Mezclar gastos con compras.
-Sugerencia:
-Puedo enseñarte "partida doble" si quieres avanzar.
+No inventes información institucional del SENA.
+"""
+# ================================================================
+# 🧠 PROMPT_TEMPLATE LLM
+# ================================================================
+# ==========================================================
+# Plantilla base para la construcción del prompt enviado
+# al motor LLM. Centraliza la estructura del contexto
+# conversacional para todos los flujos.
+# ==========================================================
 
-====================================================
-FIN DEL PROMPT SISTEMA
-====================================================
+PROMPT_TEMPLATE = """
+========================
+HISTORIAL
+========================
+
+{history}
+
+========================
+MEMORIA SEMÁNTICA
+========================
+
+{memory}
+
+========================
+PREGUNTA ACTUAL
+========================
+
+{question}
+
+========================
+INSTRUCCIONES
+========================
+
+{instructions}
 """
 
 # ================================================================
@@ -228,33 +219,28 @@ def build_prompt(base_prompt: str, tracker: Optional[Tracker] = None, context: O
     
     # 1. Resolver materia y enfoque
     materia_detectada = ctx.get("materia") or "tema academico"
-    enfoque_materia = MATERIAS.get(materia_detectada, MATERIAS["tema academico"])
-    
-    # 2. Lógica de sesión para evitar ruido innecesario
-    # Si es un tema académico, usamos un ID genérico para que el modelo no se "distraiga"
-    # buscando registros de seguridad.
-    session_id = ctx.get('user', 'anónimo')
-    if materia_detectada == "tema academico" or materia_detectada == "tema del sena":
-        session_id = "publico"
+    session_scope = "privado"
 
-    # 3. Construcción eficiente del contexto
-    directrices_contexto = (
-        f"CONTEXTO: {materia_detectada.upper()}. "
-        f"ENFOQUE: {enfoque_materia}. "
-        f"SESIÓN: {session_id}."
-    )
+    if materia_detectada in ("tema academico", "tema del sena"):
+        session_scope = "publico"
     
     # 4. Ensamblaje (Compacto para menor tokenización)
-    prompt_final = (
-        f"{PROMPT_SYSTEM}\n\n"
-        f"{directrices_contexto}\n\n"
-        f"CONSULTA: {base_prompt}"
-    )
+    prompt_final = f"""{PROMPT_SYSTEM}
+
+    Materia: {materia_detectada}
+    Sesión: {session_scope}
+    Usuario:
+    {base_prompt}
+
+    Respuesta:
+    """
 
     # Logging preservado para control total
-    logger.info("[PROMPT BUILDER] Sistema=%d, Contexto=%d, Consulta=%d, Total=%d", 
-                  len(PROMPT_SYSTEM), len(directrices_contexto), len(base_prompt), len(prompt_final))
+    logger.info(
+        "[PROMPT BUILDER] Prompt=%d",
+        len(prompt_final)
+    )
     
-    logger.info("[PROMPT BUILDER] Preview:\n%s", prompt_final[:500])
+    logger.info("[PROMPT BUILDER] Preview:\n%s", prompt_final[:200])
     
     return prompt_final

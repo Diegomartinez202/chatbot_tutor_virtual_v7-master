@@ -31,6 +31,11 @@ COPY docker/entrypoint.sh /entrypoint.sh
 COPY endpoints.tpl.yml /app/endpoints.tpl.yml
 COPY endpoints.mongo.tpl.yml /app/endpoints.mongo.tpl.yml
 
+RUN if [ -f /app/rasa/config.yml ]; then \
+      echo "[Docker] Sincronizando config.yml"; \
+      cp /app/rasa/config.yml /app/config.yml; \
+    fi
+
 # 🔧 Normaliza saltos de línea y permisos básicos
 RUN sed -i 's/\r$//' /entrypoint.sh \
  && sed -i '1s/^\xEF\xBB\xBF//' /entrypoint.sh \

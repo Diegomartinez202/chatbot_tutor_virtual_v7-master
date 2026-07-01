@@ -12,6 +12,13 @@ from urllib3.util.retry import Retry
 from rasa_sdk import Tracker
 logger = logging.getLogger(__name__)
 
+API_GET_TIMEOUT = int(
+    os.getenv("API_GET_TIMEOUT", "10")
+)
+
+API_WRITE_TIMEOUT = int(
+    os.getenv("API_WRITE_TIMEOUT", "15")
+)
 
 # ================================================================
 # 🌐 CONFIG CENTRAL
@@ -22,8 +29,10 @@ API_BASE_URL = os.getenv(
 ) 
 
 logger.info(
-    "[API CONFIG] BASE_URL=%s",
-    API_BASE_URL
+    "[API CONFIG] BASE_URL=%s GET_TIMEOUT=%s WRITE_TIMEOUT=%s",
+    API_BASE_URL,
+    API_GET_TIMEOUT,
+    API_WRITE_TIMEOUT,
 )
 # ================================================================
 # 🔁 SESSION CON RETRY (PRODUCCIÓN)
@@ -31,8 +40,8 @@ logger.info(
 _session = requests.Session()
 
 retry_strategy = Retry(
-    total=3,
-    backoff_factor=0.5,
+    total=2,
+    backoff_factor=0.2,
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["GET", "POST", "PUT", "DELETE"]
 )
@@ -71,19 +80,23 @@ def get(
     url = f"{API_BASE_URL}{endpoint}"
 
     try:
-        logger.info(f"[API GET] {url}")
+        logger.info("[API GET] %s", url)
 
         response = _session.get(
             url,
             headers=_headers(tracker),
-            timeout=10
+            timeout=API_GET_TIMEOUT
         )
 
         response.raise_for_status()
         return safe_json(response)
 
     except requests.RequestException as e:
-        logger.exception(f"[API GET ERROR] {url} → {e}")
+        logger.exception(
+            "[API GET ERROR] %s -> %s",
+            url,
+            e,
+        )
         return default
 
 
@@ -100,20 +113,27 @@ def post(
     url = f"{API_BASE_URL}{endpoint}"
 
     try:
-        logger.info(f"[API POST] {url}")
+        logger.info(
+            "[API POST] %s",
+            url,
+        )
 
         response = _session.post(
             url,
             json=payload,
             headers=_headers(tracker),
-            timeout=15
+            timeout=API_WRITE_TIMEOUT
         )
 
         response.raise_for_status()
         return safe_json(response)
 
     except requests.RequestException as e:
-        logger.exception(f"[API POST ERROR] {url} → {e}")
+        logger.exception(
+            "[API POST ERROR] %s -> %s",
+            url,
+            e,
+        )
         return default
 
 def safe_json(response):
@@ -123,9 +143,12 @@ def safe_json(response):
 
     except Exception:
 
+        if response.text:
+            return response.text
+
         logger.warning(
             "[API INVALID JSON] status=%s",
-            response.status_code
+            response.status_code,
         )
 
         return {}
@@ -152,7 +175,7 @@ def call(
             response = _session.get(
                 url,
                 headers=_headers(tracker),
-                timeout=10,
+                timeout=API_GET_TIMEOUT,
             )
 
         elif method == "POST":
@@ -160,7 +183,7 @@ def call(
                 url,
                 json=payload or {},
                 headers=_headers(tracker),
-                timeout=15,
+                timeout=API_WRITE_TIMEOUT,
             )
 
         elif method == "PUT":
@@ -168,26 +191,22 @@ def call(
                 url,
                 json=payload or {},
                 headers=_headers(tracker),
-                timeout=15,
+                timeout=API_WRITE_TIMEOUT,
             )
 
         elif method == "DELETE":
             response = _session.delete(
                 url,
                 headers=_headers(tracker),
-                timeout=10,
+                timeout=API_GET_TIMEOUT,
             )
 
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
         response.raise_for_status()
-
-        # JSON safe parse
-        try:
-            return response.json()
-        except Exception:
-            return response.text
+        return safe_json(response)
+       
 
     except Exception as e:
         logger.exception("[API ERROR] %s → %s", url, str(e))

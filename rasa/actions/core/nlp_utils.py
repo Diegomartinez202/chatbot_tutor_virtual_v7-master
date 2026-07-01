@@ -19,7 +19,7 @@ EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
 ANONYMIZE_EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 # Detecta cadenas numéricas largas aisladas (ej: Cédulas de ciudadanía, teléfonos o códigos de ruta)
 ANONYMIZE_NUM_REGEX = re.compile(r"\b\d{8,}\b")
-
+WHITESPACE_REGEX = re.compile(r"\s+")
 
 # ================================================================
 # 📧 EMAIL VALIDATION
@@ -42,7 +42,7 @@ def clean_text(text: str) -> str:
     """
     if not text:
         return ""
-    return re.sub(r"\s+", " ", text).strip()
+    return WHITESPACE_REGEX.sub(" ", text).strip()
 
 
 # ================================================================
@@ -65,7 +65,7 @@ def normalize_text(text: str) -> str:
     """Normaliza texto para igualar condiciones de comparación léxica."""
     if not text:
         return ""
-    return text.lower().strip()
+    return clean_text(text).lower()
 
 
 def detectar_materia(text: str) -> str:
