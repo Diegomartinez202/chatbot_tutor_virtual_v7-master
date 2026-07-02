@@ -47,11 +47,10 @@ from .acciones_encuesta import (
     ActionGuardarFeedback,
     ActionPreguntarResolucion,
     ActionSetEncuestaTipo,
-    ActionVerificarEstadoEncuesta,
+    ActionFinalizarConversacion,
     ValidateEncuestaSatisfaccionForm,
     ActionLanzarEncuestaGeneral,
     ActionProcesarRespuestaResolucion,
-    ActionDeterminarEncuestaFinal,
 )
 
 from .acciones_llm import (
@@ -207,10 +206,9 @@ __all__ = [
     "ActionPreguntarResolucion",
     "ActionSetEncuestaTipo",
     "ValidateEncuestaSatisfaccionForm",
-    "ActionVerificarEstadoEncuesta",
     "ActionLanzarEncuestaGeneral",
     "ActionProcesarRespuestaResolucion",
-    "ActionDeterminarEncuestaFinal",
+    "ActionFinalizarConversacion",
 
     "ActionIrMenuPrincipal",
     "ActionIrMenuSoporte",

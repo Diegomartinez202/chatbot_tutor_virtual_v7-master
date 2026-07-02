@@ -10,42 +10,9 @@ logger = logging.getLogger(__name__)
 # ================================================================
 # 🧠 SYSTEM PROMPT GLOBAL
 # ================================================================
-PROMPT_SYSTEM = """
-Eres el Tutor Virtual Oficial del SENA.
-
-Responde SIEMPRE en español.
-
-IMPORTANTE:
-Devuelve SIEMPRE UNO SOLO de estos formatos.
-Nunca combines ambos.
-
-1. INTENT:solicitar_autenticacion
-
-Úsalo únicamente cuando el usuario solicite información privada como:
-
-- certificados
-- estado académico
-- datos personales
-- información protegida
-
-2. RESPUESTA:
-
-Úsalo para cualquier consulta académica o de aprendizaje.
-
-La respuesta debe incluir:
-
-- definición breve
-- pasos
-- ejemplo
-- recomendación final
-
-Adapta la explicación al nivel del usuario.
-
-Si la materia indicada no coincide con la pregunta del usuario,
-responde igualmente usando tus conocimientos generales.
-
-No inventes información institucional del SENA.
-"""
+PROMPT_SYSTEM = """Eres Tutor SENA.
+REGLA: Si la consulta es académica (programación, redes, sistemas), explica el tema. 
+SOLO pide login (https://localhost/login) si el usuario pide explícitamente: 'mis certificados', 'mi historial', 'datos personales'."""
 # ================================================================
 # 🧠 PROMPT_TEMPLATE LLM
 # ================================================================
@@ -208,39 +175,33 @@ Explica el estado académico del estudiante:
 
 
 # ================================================================
-# 🚀 PROMPT BUILDER CORE (OPTIMIZADO PARA VELOCIDAD)
+# 🚀 PROMPT BUILDER CORE (OPTIMIZADO PARA VELOCIDAD Y ESTABILIDAD)
 # ================================================================
-def build_prompt(base_prompt: str, tracker: Optional[Tracker] = None, context: Optional[dict[str, Any]] = None) -> str:
+def build_prompt(
+    base_prompt: str,
+    tracker: Optional[Tracker] = None,
+    context: Optional[dict[str, Any]] = None,
+) -> str:
     """
-    Ensambla de forma dinámica las directrices del sistema de Ollama.
-    Optimizado: Reduce la carga textual y condiciona el contexto para acelerar la inferencia.
+    Construye el prompt inyectando etiquetas de alta prioridad para 
+    evitar alucinaciones sobre autenticación en consultas académicas.
     """
+
     ctx = context or {}
+    materia = ctx.get("materia", "general")
     
-    # 1. Resolver materia y enfoque
-    materia_detectada = ctx.get("materia") or "tema academico"
-    session_scope = "privado"
+    instruccion_forzada = "[INSTRUCCIÓN: Esta es una consulta académica pública. No requiere autenticación.]"
+    tipo_respuesta = "TIPO: RESPUESTA PÚBLICA ACADÉMICA"
 
-    if materia_detectada in ("tema academico", "tema del sena"):
-        session_scope = "publico"
-    
-    # 4. Ensamblaje (Compacto para menor tokenización)
-    prompt_final = f"""{PROMPT_SYSTEM}
-
-    Materia: {materia_detectada}
-    Sesión: {session_scope}
-    Usuario:
-    {base_prompt}
-
-    Respuesta:
-    """
-
-    # Logging preservado para control total
-    logger.info(
-        "[PROMPT BUILDER] Prompt=%d",
-        len(prompt_final)
+    prompt_final = (
+        f"{PROMPT_SYSTEM}\n"
+        f"{instruccion_forzada}\n"
+        f"{tipo_respuesta}\n"
+        f"Contexto: {materia}\n"
+        f"Usuario: {base_prompt}\n"
+        f"Respuesta:"
     )
-    
-    logger.info("[PROMPT BUILDER] Preview:\n%s", prompt_final[:200])
+
+    logger.info("[PROMPT BUILDER] Prompt final len=%d", len(prompt_final))
     
     return prompt_final

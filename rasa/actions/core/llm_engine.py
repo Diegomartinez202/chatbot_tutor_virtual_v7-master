@@ -8,7 +8,7 @@ from typing import Any, Optional
 import requests
 from rasa_sdk import Tracker
 
-from .prompts import build_prompt
+from .prompts import build_prompt,PROMPT_SYSTEM 
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ LLM_TIMEOUT = int(
     )
 )
 
-PRIMARY_MODEL = os.getenv("LLM_MODEL", "llama3")
+PRIMARY_MODEL = os.getenv("LLM_MODEL", "phi3:mini")
 FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "phi3:mini")
 MAX_TOKENS = int(
     os.getenv(
@@ -108,8 +108,10 @@ def _call_model(model: str, prompt: str) -> str:
                 "stream": False,
                 "keep_alive": "30m",
                 "options": {
-                    "num_predict": 64,
-                    "temperature": 0.1,
+                    "num_predict": 128,
+                    "temperature": 0.2,
+                    "num_ctx": 2048,
+                    "top_k": 20,
                 },
             },
             timeout=LLM_TIMEOUT,
@@ -171,110 +173,57 @@ def run_llm(
     use_system_prompt: bool = True,
 ) -> str:
     """
-    Orquesta la inferencia generativa del Tutor Virtual.
-    Construye el prompt del sistema integrado con el contexto de Rasa
-    y aplica failover.
+    Orquesta la inferencia generativa del Tutor Virtual con optimización de prompts.
     """
 
     sane_prompt = _sanitize(prompt)
-
     if not sane_prompt:
         return fallback
 
     try:
-
-        user_id = getattr(
-            tracker,
-            "sender_id",
-            "anónimo"
-        )
-
+        user_id = getattr(tracker, "sender_id", "anónimo")
         context_data = context or {}
-
+        if context_data:
+      
+            context_data.pop("requires_auth", None)
+            context_data.pop("auth_state", None)
         # =====================================================
-        # NUEVO:
-        # Permitir ejecutar sin PROMPT_SYSTEM
+        # MEJORA: Prompt dinámico y minimalista
+        # Si la pregunta es corta, evitamos inyectar contexto pesado
         # =====================================================
-
         if use_system_prompt:
-
-            final_prompt = build_prompt(
-                base_prompt=sane_prompt,
-                tracker=tracker,
-                context=context_data,
-            )
-
-            logger.info(
-                "[LLM] Ejecutando con PROMPT_SYSTEM"
-            )
-            logger.info(
-                "[LLM] Prompt final (%d caracteres)",
-                len(final_prompt),
-            )
-
-            logger.info(
-                "[LLM] Prompt final preview:\n%s",
-                final_prompt[:1500],
-            )
+            if len(sane_prompt) < 80: 
+                # PROMPT LIGERO: Para respuestas rápidas tipo MVP
+                final_prompt = f"{PROMPT_SYSTEM}\nUsuario: {sane_prompt}\nRespuesta:"
+                logger.info("[LLM] Ejecutando con PROMPT_SYSTEM LIGERO")
+            else:
+                # PROMPT COMPLETO: Solo si la pregunta requiere más contexto
+                final_prompt = build_prompt(
+                    base_prompt=sane_prompt,
+                    tracker=tracker,
+                    context=context_data,
+                )
+                logger.info("[LLM] Ejecutando con PROMPT_SYSTEM COMPLETO")
         else:
-
             final_prompt = sane_prompt
+            logger.info("[LLM] Ejecutando SIN PROMPT_SYSTEM")
 
-            logger.info(
-                "[LLM] Ejecutando SIN PROMPT_SYSTEM"
-            )
-
-        logger.info(
-            "[DEBUG] PROMPT PREVIEW:\n%s",
-            final_prompt[:2000]
-        )
-
-        logger.info(
-            "[LLM] Ejecutando inferencia. Prompt final len=%s para usuario=%s",
-            len(final_prompt),
-            user_id,
-        )
+        logger.info("[LLM] Inferencia. Prompt len=%d", len(final_prompt))
 
         # =====================================================
-        # MODELO PRINCIPAL
+        # MODELO PRINCIPAL Y FAILOVER
         # =====================================================
-
-        result = _call_model(
-            PRIMARY_MODEL,
-            final_prompt
-        )
-
-        # =====================================================
-        # FAILOVER
-        # =====================================================
+        result = _call_model(PRIMARY_MODEL, final_prompt)
 
         if not result:
+            logger.warning("[LLM] Fallo en primario, intentando fallback")
+            result = _call_model(FALLBACK_MODEL, final_prompt)
 
-            logger.warning(
-                "[LLM] Modelo primario (%s) falló o agotó tiempo límite → Conmutando a fallback",
-                PRIMARY_MODEL,
-            )
-
-            result = _call_model(
-                FALLBACK_MODEL,
-                final_prompt
-            )
-
-        return (
-            result.strip()
-            if result
-            else fallback
-        )
+        return result.strip() if result else fallback
 
     except Exception as e:
-
-        logger.exception(
-            "[LLM CRITICAL ERROR] %s",
-            str(e),
-        )
-
+        logger.exception("[LLM CRITICAL ERROR] %s", str(e))
         return fallback
-
 
 def run_llm_safe(*args, **kwargs) -> str:
     """

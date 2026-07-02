@@ -20,10 +20,10 @@ La lógica específica de cada responsabilidad se implementa mediante
 métodos privados de la clase ActionHandleWithLLM para mantener el
 principio de responsabilidad única (SRP).
 """
-
+import time
 import logging
 from typing import Any, Dict, List, Text
-
+from rasa_sdk.events import ActiveLoop
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import (
@@ -137,37 +137,27 @@ class ActionHandleWithLLM(Action):
     # DETECCIÓN DEL FLUJO
     # ==========================================================
 
-    def _detect_flow(
-        self,
-        tracker: Tracker,
-    ) -> str:
-        """
-        Determina qué flujo debe ejecutar el LLM.
+    def _detect_flow(self, tracker: Tracker) -> str:
+        # 1. Definimos si es un flujo académico ANTES de mirar la autenticación
+        es_academico = (
+            tracker.get_slot("tema_consulta") 
+            or tracker.get_slot("materia_detectada")
+        )
 
-        El orden de evaluación es importante:
+        # 2. Si es académico, retornamos FLOW_ACADEMIC ignorando la autenticación
+        if es_academico:
+            return self.FLOW_ACADEMIC
 
-        1. Autenticación
-        2. Académico
-        3. Ayuda
-        4. Conversación general
-        """
-
+        # 3. Solo si NO es académico, verificamos la autenticación
         if tracker.get_slot("requires_auth"):
             return self.FLOW_AUTH
 
+        # ... resto del método (ayuda, general)
         latest = tracker.latest_message or {}
-
-        intent = (
-            latest.get("intent", {})
-            .get("name", "")
-        )
-
-        if intent == "aprender_tema":
-            return self.FLOW_ACADEMIC
-
+        intent = latest.get("intent", {}).get("name", "")
         if intent == "ayuda":
             return self.FLOW_HELP
-
+        
         return self.FLOW_GENERAL
 
     # ==========================================================
@@ -179,20 +169,50 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
         """
-        Prompt especializado para solicitudes que requieren autenticación.
+        Prompt especializado para consultas protegidas.
         """
 
-        return """
-El usuario intenta acceder a información privada
-pero aún no está autenticado.
+        accion = (
+            tracker.get_slot("pending_action")
+            or "consultar información personal"
+        )
 
-Debes:
+        return f"""
+        El usuario intentó realizar la siguiente acción protegida:
 
-1. Explicar brevemente el motivo.
-2. Indicar que por seguridad no puedes mostrar datos personales.
-3. Explicar cómo iniciar sesión.
-4. No inventar información del estudiante.
-"""
+    {accion}
+
+    Debes responder como Tutor Virtual del SENA.
+
+    Explica de manera cordial que esa información contiene datos
+    personales del estudiante y requiere autenticación.
+
+    Indica claramente:
+
+    1. Que la información está protegida por motivos de privacidad.
+
+    2. Que el chatbot podrá consultar la información una vez el usuario
+    inicie sesión.
+
+    3. Que debe ingresar al portal institucional:
+
+    https://localhost/login
+
+    4. Explica los pasos:
+
+    • Abrir el portal.
+    • Iniciar sesión con sus credenciales.
+    • Regresar al chat.
+    • Repetir la consulta.
+
+    No inventes información académica.
+
+    No respondas como si el usuario ya estuviera autenticado.
+
+    No expliques programación ni conceptos académicos.
+
+    Tu único objetivo es ayudar al usuario a autenticarse.
+    """
 
     def _build_academic_prompt(
         self,
@@ -205,11 +225,9 @@ Debes:
         desacoplada del resto de flujos.
         """
 
-        latest = tracker.latest_message or {}
-
-        pregunta = latest.get(
-            "text",
-            "",
+        pregunta = (
+           tracker.get_slot("tema_consulta")
+           or tracker.latest_message.get("text","")
         )
 
         materia = (
@@ -417,73 +435,33 @@ Instrucciones:
             )
 
         return ""
-
-    # ==========================================================
-    # HISTORIAL
-    # ==========================================================
-
     def _build_history(
         self,
         tracker: Tracker,
-        max_events: int = 6,
-        max_lines: int = 4,
+        max_events: int = 2,
+        max_lines: int = 2,
     ) -> str:
-        """
-        Construye un historial resumido y anonimizado.
-
-        El historial se utiliza únicamente como apoyo para el LLM,
-        nunca como memoria permanente.
-        """
-
         history: List[str] = []
-
         raw_events = tracker.events or []
 
         for event in raw_events[-max_events:]:
-
             if not isinstance(event, dict):
                 continue
 
             event_type = event.get("event")
 
             if event_type == "user":
-
-                text = anonymize_text(
-                    event.get(
-                        "text",
-                        "",
-                    )
-                )
-
-                if text.strip():
-
-                    history.append(
-                        f"Usuario: {text}"
-                    )
+                text = anonymize_text(event.get("text", ""))
+                # --- MEJORA: Filtro de comandos ---
+                if text and not text.startswith("/"): 
+                    history.append(f"Usuario: {text}")
 
             elif event_type == "bot":
-
-                text = (
-                    event.get(
-                        "text",
-                        "",
-                    )
-                    or ""
-                ).strip()
-
+                text = (event.get("text", "") or "").strip()
                 if text:
-
-                    history.append(
-                        f"Bot: {text}"
-                    )
+                    history.append(f"Bot: {text}")
 
         history = history[-max_lines:]
-
-        logger.debug(
-            "[LLM] Historial construido (%d líneas).",
-            len(history),
-        )
-
         return "\n".join(history)
 
     # ==========================================================
@@ -511,135 +489,71 @@ Instrucciones:
     # INVOCACIÓN DEL LLM
     # ==========================================================
 
-    def _invoke_llm(
-        self,
-        tracker: Tracker,
-        prompt: str,
-        flow: str,
-    ) -> str:
-        """
-        Punto único de comunicación con el motor LLM.
+    def _invoke_llm(self, tracker: Tracker, prompt: str, flow: str) -> str:
+        logger.info("[LLM] Preparando prompt para flujo '%s'", flow)
 
-        Centraliza la construcción del prompt final y la invocación
-        del motor LLM, manteniendo desacoplada la lógica de negocio
-        de la estructura del prompt.
-        """
+        # Historial (con el filtro aplicado arriba)
+        history = "" if flow == self.FLOW_ACADEMIC else self._build_history(tracker)
 
-        logger.info(
-            "[LLM] Preparando prompt para flujo '%s'",
-            flow,
-        )
-
-        # ------------------------------------------------------
-        # Historial reciente
-        # ------------------------------------------------------
-
-        history = get_last_turns(
-            tracker,
-            n=3,
-        )
-
-        # ------------------------------------------------------
         # Pregunta actual
-        # ------------------------------------------------------
-
         latest = tracker.latest_message or {}
+        user_message = (tracker.get_slot("tema_consulta") or latest.get("text", "")) if flow == self.FLOW_ACADEMIC else latest.get("text", "")
 
-        user_message = latest.get(
-            "text",
-            "",
-        )
-
-        # ------------------------------------------------------
         # Memoria semántica
-        # ------------------------------------------------------
-
         memory = ""
+        if flow != self.FLOW_ACADEMIC and user_message.strip():
+            memory = self._recover_semantic_memory(tracker=tracker, text=user_message)
 
-        if user_message.strip():
-
-            memory = self._recover_semantic_memory(
-                tracker=tracker,
-                text=user_message,
+        # Prompt final
+        if flow == self.FLOW_ACADEMIC:
+            prompt_final = prompt
+        else:
+            prompt_final = PROMPT_TEMPLATE.format(
+                history=history or "Sin historial reciente.",
+                memory=memory or "Sin contexto previo relevante.",
+                question=user_message,
+                instructions=prompt,
             )
 
-        # ------------------------------------------------------
-        # Instrucciones específicas del flujo
-        # ------------------------------------------------------
-
-        instructions = prompt
-
-        # ------------------------------------------------------
-        # Prompt final
-        # ------------------------------------------------------
-
-        prompt_final = PROMPT_TEMPLATE.format(
-            history=history or "Sin historial reciente.",
-            memory=memory or "Sin contexto previo relevante.",
-            question=user_message,
-            instructions=instructions,
-        )
-
-        logger.debug(
-            "[LLM] Prompt final construido (%d caracteres)",
-            len(prompt_final),
-        )
-
-        # ------------------------------------------------------
-        # Invocación del modelo
-        # ------------------------------------------------------
-
+        # --- INVOCACIÓN ---
         return run_llm(
             prompt=prompt_final,
             tracker=tracker,
-            context=self._build_llm_context(
-                tracker,
-                flow,
-            ),
-            use_system_prompt=(
-                flow != self.FLOW_ACADEMIC
-            ),
-            fallback=(
-                "Lo siento, en este momento "
-                "no puedo generar una respuesta."
-            ),
+            context=self._build_llm_context(tracker, flow),
+            use_system_prompt=(flow != self.FLOW_ACADEMIC), # <--- AQUÍ SE DESACTIVA PARA ACADÉMICO
+            fallback="Lo siento, en este momento no puedo generar una respuesta.",
         )
 
-    # ==========================================================
-    # RUN
-    # ==========================================================
+    def run(self, dispatcher, tracker, domain) -> List[EventType]:
+        limpieza = [ActiveLoop(None), SlotSet("requested_slot", None)]
+        flow = self._detect_flow(tracker)
+        
+        # 1. Detectar intención
+        intent = tracker.get_intent_of_latest_message()
+        
+        # 2. Si el usuario inicia un tema nuevo, guardamos el tema en el slot
+        if intent == "explicacion_academica":
+            # Extraemos el tema de la entidad o del mensaje
+            nuevo_tema = tracker.latest_message.get("text")
+            return limpieza + [SlotSet("tema_actual", nuevo_tema)] + self._ejecutar_procesamiento_llm(dispatcher, tracker, self.FLOW_ACADEMIC)
 
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
+        # 3. Si el usuario presiona "Continuar tema"
+        if intent == "continuar_tema":
+            tema_persistido = tracker.get_slot("tema_actual") or "el tema anterior"
+            prompt_enriquecido = f"Contexto: {tema_persistido}. Continúa con el siguiente paso lógico. NO saludes, no repitas la introducción, ve directo al grano."
+            return self._ejecutar_procesamiento_llm(dispatcher, tracker, flow, prompt=prompt_enriquecido)
+
+        return limpieza + self._ejecutar_procesamiento_llm(dispatcher, tracker, flow)
+    def _ejecutar_procesamiento_llm(
+        self, dispatcher: CollectingDispatcher, tracker: Tracker, flow: str
     ) -> List[EventType]:
         """
-        Punto de entrada de Rasa.
-
-        Este método actúa únicamente como orquestador.
-        No implementa reglas de negocio.
+        Método auxiliar que contiene toda tu lógica original de procesamiento.
         """
-
-        logger.debug(
-            "[ACTION_HANDLE_WITH_LLM] Inicio"
-        )
-
         try:
-
-            flow = self._detect_flow(
-                tracker,
-            )
-
-            prompt = self._build_prompt(
-                tracker,
-            )
-
-            logger.debug(
-                "[LLM] Prompt generado (%d caracteres)",
-                len(prompt),
-            )
+            prompt = self._build_prompt(tracker)
+            
+            logger.debug("[LLM] Prompt generado (%d caracteres)", len(prompt))
 
             respuesta = self._invoke_llm(
                 tracker=tracker,
@@ -647,13 +561,68 @@ Instrucciones:
                 flow=flow,
             )
 
-            dispatcher.utter_message(
-                text=respuesta,
-            )
+            # ==========================================================
+            # INTERPRETAR RESPUESTA DEL LLM
+            # ==========================================================
 
-            logger.info(
-                "[LLM] Respuesta enviada correctamente."
-            )
+            respuesta = respuesta.strip()
+
+            respuesta_enviada = False
+
+            if respuesta.startswith("INTENT:"):
+
+                lineas = respuesta.splitlines()
+
+                intent_llm = (
+                    lineas[0]
+                    .replace("INTENT:", "")
+                    .strip()
+                )
+
+                if (
+                    intent_llm == "solicitar_autenticacion"
+                    and flow != self.FLOW_ACADEMIC
+                ):
+
+                    logger.info(
+                        "[LLM] Intent autenticación detectado."
+                    )
+
+                texto = "\n".join(
+                    lineas[1:]
+                ).strip()
+
+                if texto:
+                    dispatcher.utter_message(text=texto)
+                    respuesta_enviada = True
+
+                logger.info(
+                    "[LLM] Intent detectado: %s",
+                    intent_llm,
+                )
+
+            else:
+
+                dispatcher.utter_message(
+                    text=respuesta
+                )
+                respuesta_enviada = True
+
+            if respuesta_enviada:
+                logger.info(
+                    "[LLM] Respuesta enviada correctamente."
+                )
+            # ==========================================================
+            # CONTINUIDAD DEL FLUJO ACADÉMICO
+            # ==========================================================
+
+            if flow == self.FLOW_ACADEMIC:
+
+                return [
+                    FollowupAction(
+                        "action_ofrecer_continuar_tema"
+                    )
+                ]
 
             return []
 
@@ -694,7 +663,6 @@ class ActionMemoryWrapper(Action):
         )
 
         try:
-
             latest = tracker.latest_message or {}
 
             text = latest.get(
@@ -704,6 +672,11 @@ class ActionMemoryWrapper(Action):
 
             if not text.strip():
                 return []
+
+            # ==========================================================
+            # TELEMETRÍA: MEDIDOR DE TIEMPO DE EJECUCIÓN
+            # ==========================================================
+            inicio_guardado = time.perf_counter()
 
             store_message(
                 text=text,
@@ -724,10 +697,21 @@ class ActionMemoryWrapper(Action):
                 },
             )
 
+            fin_guardado = time.perf_counter()
+            tiempo_total = fin_guardado - inicio_guardado
+
+            logger.info(
+                "[MEMORY_WRAPPER] Mapeo de persistencia completado con éxito. "
+                "Tiempo de ejecución de store_message: %.4f segundos.",
+                tiempo_total
+            )
+            # ==========================================================
+
         except Exception:
 
             logger.exception(
-                "[MEMORY_WRAPPER]"
+                "[MEMORY_WRAPPER] Error durante la persistencia"
             )
 
+        # Retorna lista vacía para preservar intactos los slots del flujo académico
         return []

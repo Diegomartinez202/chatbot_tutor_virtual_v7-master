@@ -8,7 +8,9 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 from rasa_sdk.events import (
     SlotSet,
+    ActiveLoop,
     FollowupAction,
+    UserUtteranceReverted,
 )
 from .runtime.action_handler import action_handler
 from typing import Any, Dict, List, Optional, Text
@@ -29,20 +31,34 @@ except Exception:
     logger.exception("[ACADEMICO] error bootstrap ActionHandler")
 
 
-def validar_autenticacion(dispatcher: CollectingDispatcher, tracker: Tracker) -> bool:
+def validar_autenticacion(
+    tracker: Tracker,
+    pending_action: str,
+) -> Optional[List[EventType]]:
+    """
+    Verifica si el usuario está autenticado.
 
-    if tracker.get_slot("is_authenticated") is not True:
-        msg = (
-            "🔒 **Acceso restringido**\n\n"
-            "Para consultar esta información personal, debes estar autenticado.\n\n"
-            "**Sigue estos pasos:**\n"
-            "1. Ingresa a: https://localhost/login\n"
-            "2. Inicia sesión con tus credenciales SENA/Zajuna.\n"
-            "3. Regresa aquí y vuelve a realizar tu consulta."
-        )
-        dispatcher.utter_message(text=msg)
-        return False
-    return True
+    Si no lo está, prepara el flujo de autenticación para que
+    ActionHandleWithLLM explique el proceso y recuerde la acción
+    que el usuario intentaba ejecutar.
+    """
+
+    if tracker.get_slot("is_authenticated") is True:
+        return None
+
+    return [
+        SlotSet(
+            "requires_auth",
+            True,
+        ),
+        SlotSet(
+            "pending_action",
+            pending_action,
+        ),
+        FollowupAction(
+            "action_handle_with_llm",
+        ),
+    ]
 
 # ================================================================
 # 🧠 EXECUTOR CENTRAL
@@ -97,13 +113,19 @@ class ActionVerEstadoEstudiante(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        if not tracker.get_slot("is_authenticated"):
+        auth = validar_autenticacion(
+            tracker,
+            "estado_estudiante",
+        )
 
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if auth:
+            return auth
 
-        return _exec("estado_estudiante", dispatcher, tracker)
-
-
+        return _exec(
+            "estado_estudiante",
+            dispatcher,
+            tracker,
+        )
 
 class ActionTutorAsignado(Action):
 
@@ -111,12 +133,20 @@ class ActionTutorAsignado(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        if not tracker.get_slot("is_authenticated"):
+        auth = validar_autenticacion(
+            tracker,
+            "tutor_asignado",
+        )
 
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if auth:
+            return auth
 
-        return _exec("tutor_asignado", dispatcher, tracker)
-
+        return _exec(
+            "tutor_asignado",
+            dispatcher,
+            tracker,
+    
+        )
 
 
 class ActionConsultarHorariosClases(Action):
@@ -125,13 +155,19 @@ class ActionConsultarHorariosClases(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        if not tracker.get_slot("is_authenticated"):
+        auth = validar_autenticacion(
+            tracker,
+            "horarios",
+        )
 
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if auth:
+            return auth
 
-        return _exec("horarios", dispatcher, tracker)
-
-
+        return _exec(
+            "horarios",
+            dispatcher,
+            tracker,
+        )
 
 class ActionConsultarProgresoCurso(Action):
 
@@ -139,13 +175,19 @@ class ActionConsultarProgresoCurso(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        if not tracker.get_slot("is_authenticated"):
+        auth = validar_autenticacion(
+           tracker,
+           "progreso",
+        )
 
-            return [SlotSet("requires_auth", True), FollowupAction("action_handle_with_llm")]
+        if auth:
+            return auth
 
-        return _exec("progreso", dispatcher, tracker)
-
-        
+        return _exec(
+            "progreso",
+            dispatcher,
+            tracker,
+        )
 
 class ActionHistorialAcademico(Action):
 
@@ -154,35 +196,24 @@ class ActionHistorialAcademico(Action):
         return "action_historial_academico"
 
     def run(
-
         self,
-
         dispatcher,
-
         tracker,
-
-        domain
-
+        domain,
     ):
 
-        if not tracker.get_slot("is_authenticated"):
+        auth = validar_autenticacion(
+            tracker,
+            "historial_academico",
+        )
 
-            return [
-
-                SlotSet("requires_auth", True),
-
-                FollowupAction("action_handle_with_llm")
-
-            ]
+        if auth:
+            return auth
 
         return _exec(
-
             "historial_academico",
-
             dispatcher,
-
-            tracker
-
+            tracker,
         )
 
 class ActionAprenderTema(Action):
@@ -190,41 +221,18 @@ class ActionAprenderTema(Action):
     def name(self):
         return "action_aprender_tema"
 
-    def run(
-        self,
-        dispatcher,
-        tracker,
-        domain,
-    ):
-
-        pregunta = (
-            tracker.latest_message.get("text")
-            or ""
-        )
-
-        materia = detectar_materia(
-            pregunta
-        )
-
-        rol = MATERIAS.get(
-            materia.lower(),
-            "Tutor Académico General"
-        )
+    def run(self, dispatcher, tracker, domain):
+        pregunta = tracker.latest_message.get("text") or ""
+        materia = detectar_materia(pregunta)
+        rol = MATERIAS.get(materia.lower(), "Tutor Académico General")
 
         return [
-
-            SlotSet(
-                "tema_consulta",
-                pregunta
-            ),
-
-            SlotSet(
-                "materia_detectada",
-                materia
-            ),
-
-            SlotSet(
-                "rol_academico",
-                rol
-            )
+            ActiveLoop(None),                
+            SlotSet("requested_slot", None),
+            SlotSet("requires_auth", False),      
+            SlotSet("pending_action", None),      
+            SlotSet("tema_consulta", pregunta),
+            SlotSet("materia_detectada", materia),
+            SlotSet("rol_academico", rol),
+            SlotSet("auth_form", None)
         ]

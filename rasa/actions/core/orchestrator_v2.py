@@ -65,12 +65,8 @@ class OrchestratorV2:
     # ------------------------------------------------------------
 
     def build_context(self, tracker: Tracker) -> dict[str, Any]:
-        """
-        Construye únicamente el contexto realmente útil para el
-        backend y el LLM.
-        """
-
-        text = (tracker.latest_message or {}).get("text", "")
+       
+        text = (tracker.latest_message or {}).get("text", "").strip()
 
         clean_text = normalize_text(text)
 
@@ -107,7 +103,7 @@ class OrchestratorV2:
         }
 
         return {
-            "text": text,
+            "text": clean_text,
             "clean_text": clean_text,
             "materia": materia,
             "user": tracker.sender_id,
@@ -122,16 +118,35 @@ class OrchestratorV2:
         """
         Decide cuál será el flujo de procesamiento.
         """
-
         intent = self.detect_intent(tracker)
+        context = self.build_context(tracker)
+        if context.get("materia") not in (None, "general", "desconocido"):
+       
+            context["slots"]["requires_auth"] = False
+        
+        es_tema_academico = (intent == "aprender_tema" or context.get("materia") != "desconocido")
+        
+     
+        if tracker.get_slot("requires_auth") == True and intent not in ["login", "saludo"] and not es_tema_academico:
+            return {
+                "type": "action",
+                "action": "action_ingreso_zajuna",
+                "context": context,
+            }
+
+        # --- A partir de aquí, el flujo sigue normal ---
+        if intent in ACTION_INTENTS:
+            return {
+                "type": "action",
+                "action": ACTION_INTENTS[intent],
+                "context": context,
+            }
 
         # --------------------------------------------------------
         # ACTIONS
         # --------------------------------------------------------
-
+      
         if intent in ACTION_INTENTS:
-
-            context = self.build_context(tracker)
 
             return {
                 "type": "action",
@@ -143,7 +158,6 @@ class OrchestratorV2:
         # A partir de aquí sí necesitamos contexto
         # --------------------------------------------------------
 
-        context = self.build_context(tracker)
 
         self.logger.info(
             "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",

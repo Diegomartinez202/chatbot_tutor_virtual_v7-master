@@ -227,7 +227,7 @@ rules:
     - action: encuesta_satisfaccion_form
     - active_loop: null
     - action: action_registrar_encuesta 
-  
+
   - rule: Cancelar encuesta_satisfaccion_form
     condition:
     - active_loop: encuesta_satisfaccion_form
@@ -279,3 +279,7 @@ rules:
     steps:
       - intent: reset_guardian
       - action: action_guardian_reset
+  - rule: Cierre inteligente de conversación
+    steps:
+      - intent: despedida
+      - action: action_finalizar_conversacion

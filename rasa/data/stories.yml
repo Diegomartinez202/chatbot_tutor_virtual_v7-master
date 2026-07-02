@@ -26,6 +26,27 @@ stories:
     - intent: soporte_tecnico
     - action: action_soporte_tecnico_llm
  
+- story: flujo de cierre con decision de encuesta
+  steps:
+    - intent: salir
+    - action: action_finalizar_conversacion
+
+- story: flujo de inicio de encuesta unificado
+  steps:
+    - intent: iniciar_encuesta
+    - action: action_preguntar_resolucion
+    - action: action_set_encuesta_tipo
+    - action: encuesta_satisfaccion_form
+    - active_loop: encuesta_satisfaccion_form
+    - active_loop: null
+    - action: action_registrar_encuesta
+
+- story: usuario rechaza encuesta
+  steps:
+    - intent: negar_encuesta
+    - action: utter_respeto_decision
+    - action: utter_despedida
+
 - story: crear ticket soporte
   steps:
     - intent: solicitar_soporte
@@ -76,27 +97,7 @@ stories:
     - intent: mostrar_token
     - action: action_mostrar_token
 
-- story: flujo de inicio de encuesta unificado
-  steps:
-    - intent: iniciar_encuesta
-    - action: action_preguntar_resolucion
-    - action: action_set_encuesta_tipo
-    - action: encuesta_satisfaccion_form
-    - active_loop: encuesta_satisfaccion_form
-    - active_loop: null
-    - action: action_registrar_encuesta
-  
-- story: flujo de cierre con decision de encuesta
-  steps:
-    - intent: salir
-    - action: action_verificar_estado_encuesta
-    - action: action_determinar_encuesta_final
-  
-- story: usuario rechaza encuesta
-  steps:
-    - intent: negar_encuesta
-    - action: utter_respeto_decision
-    - action: utter_despedida
+
  
 - story: usuario pide ayuda inteligente
   steps:

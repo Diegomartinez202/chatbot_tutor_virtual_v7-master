@@ -1282,7 +1282,14 @@ nlu:
     - tengo un inconveniente
     - necesito una orientación
     
-
+- intent: despedida
+  examples: |
+    - salir de la conversación
+    - finalicemos la conversación
+    - terminar conversación ahora
+    - hasta luego. ok
+    - cerrar por favor
+    - adiós, nos vemos pronto
 - intent: salir
   examples: |
     - cerrar
@@ -1294,7 +1301,7 @@ nlu:
     - no necesito más ayuda
     - gracias adiós
     - adiós
-    - hasta luego
+    - hasta luego, bay
     - terminar chat
     - salir del sistema
     - quiero finalizar

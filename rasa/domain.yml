@@ -62,6 +62,7 @@ intents:
   - solicitar_cierre
   - guardian_guardar_progreso
   - continuar_tema_si
+  - despedida
 entities:
   - email
   - emocion
@@ -89,7 +90,12 @@ slots:
       - type: from_text
         intent: informar_historial_academico
       - type: custom
-
+ 
+  tema_actual:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
 
   session_activa:
     type: bool
@@ -165,6 +171,12 @@ slots:
     mappings:
     - type: custom
 
+  ultimo_requerimiento:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  
   email:
     type: text
     influence_conversation: false
@@ -434,7 +446,6 @@ slots:
     mappings:
       - type: custom
 
-
   rol_academico:
     type: text
     influence_conversation: false
@@ -454,6 +465,12 @@ slots:
 
   requires_auth:
     type: bool
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  pending_action:
+    type: any
     influence_conversation: false
     mappings:
       - type: custom
@@ -797,7 +814,6 @@ actions:
 - action_procesar_respuesta_resolucion
 - action_set_encuesta_tipo
 - validate_encuesta_satisfaccion_form
-- action_verificar_estado_encuesta
 - action_enviar_correo
 - action_conectar_humano
 - action_health_check
@@ -855,8 +871,9 @@ actions:
 - validate_feedback_form
 - action_pqrs_llm
 - action_memory_wrapper
-- action_determinar_encuesta_final
 - action_guardar_encuesta_general
+- action_finalizar_conversacion
+
 
 
 

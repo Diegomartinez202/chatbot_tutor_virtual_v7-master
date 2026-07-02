@@ -69,7 +69,9 @@ services:
     ports:
       - "5055:5055" 
     volumes:
-      - ./rasa/data:/app/data 
+      - ./rasa/data:/app/data
+      - ./rasa/actions:/app/actions
+      - semantic_memory:/app/data/memory
     working_dir: /app
     networks:
       - app-net
@@ -81,25 +83,26 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+# --- CONFIGURACIÓN DE RED ---
       PYTHONPATH: /app
-      OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: phi3:mini
-      LLM_MODEL: phi3:mini
-      LLM_URL: http://ollama:11434/api/generate
-      OLLAMA_TIMEOUT: 120
-      LLM_TIMEOUT: 120
-      OLLAMA_WARMUP_TIMEOUT: 120
-      OLLAMA_MAX_TOKENS: 160
-      EMBEDDING_URL: http://embedding-service:9000/embed
-      HELPDESK_TOKEN: ${HELPDESK_TOKEN}
+      API_BASE_URL: http://backend:8000
       MONGO_URI: mongodb://mongo:27017
+      
+      # --- OPTIMIZACIÓN LLM (MVP) ---
+      LLM_URL: http://ollama:11434/api/generate
+      LLM_MODEL: phi3:mini
+      LLM_FALLBACK_MODEL: phi3:mini
+      # Reducimos a 60s: Si en 60s no responde, es mejor fallar rápido
+      # que dejar al usuario esperando 5 minutos.
+      LLM_TIMEOUT: 60
+      OLLAMA_MAX_TOKENS: 512
+      
+      # --- SERVICIOS ADICIONALES ---
+      EMBEDDING_URL: http://embedding-service:9000/embed
       GUARDIAN_URL: http://autosave-guardian:8080
       GUARDIAN_USER: admin
       GUARDIAN_PASSWORD: admin123
-      SEMANTIC_MEMORY_FILE: /app/data/semantic_memory.json
-      API_BASE_URL: http://backend:8000
-      API_GET_TIMEOUT: 10
-      API_WRITE_TIMEOUT: 15
+      HELPDESK_TOKEN: ${HELPDESK_TOKEN}
     depends_on:
       - mongo
       - redis
@@ -119,7 +122,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8G
+          memory: 4G
     environment:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_NUM_PARALLEL=1

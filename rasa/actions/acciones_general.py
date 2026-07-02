@@ -162,7 +162,7 @@ class ActionOfrecerContinuarTema(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # CORREGIDO: Unificado a DomainDict para consistencia
+        domain: DomainDict,
     ) -> List[EventType]:
 
         dispatcher.utter_message(response="utter_ofrecer_continuar")
