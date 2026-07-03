@@ -6,7 +6,13 @@ from typing import Text, List, Dict, Any
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
-from rasa_sdk.events import SlotSet, ConversationPaused, ConversationResumed, EventType
+from rasa_sdk.events import (
+    SlotSet,
+    ConversationPaused,
+    ConversationResumed,
+    FollowupAction,
+    EventType,
+)
 from .core.llm_engine import run_llm
 from .acciones_encuesta import ActionRegistrarEncuesta
 from pymongo import MongoClient
@@ -25,49 +31,179 @@ def get_mongo_collection():
         logger.error(f"No se pudo conectar a MongoDB: {e}")
         return None
 
-def ejecutar_cierre_limpio(dispatcher, tracker, finalizar_encuesta=False, usar_llm=True):
-    
-    slot_emocion = tracker.get_slot("emocion_detectada")
-    if slot_emocion and str(slot_emocion).strip().lower() in ("frustrado", "confundido"):
-        dispatcher.utter_message(response="utter_ofrecer_contacto_tutor")
+def limpiar_mongo(tracker: Tracker) -> None:
 
-    coll = get_mongo_collection() 
+    coll = get_mongo_collection()
 
-    if coll is not None and tracker.sender_id:
-        try:
-            coll.delete_one({"user_id": tracker.sender_id})
-        except Exception:
-           
-           logger.error("Error limpiando sesión en Mongo durante el cierre")
-    events = [
-        SlotSet("session_activa", False), SlotSet("confirmacion_cierre", None),
-        SlotSet("encuesta_activa", False), SlotSet("encuesta_incompleta", False),
-        SlotSet("proceso_activo", None), SlotSet("escalar_humano", False),
-        SlotSet("autosave_estado", None), SlotSet("encuesta_tipo", None)
+    if coll is None:
+        return
+
+    try:
+        coll.delete_one({"user_id": tracker.sender_id})
+        logger.info("Sesión eliminada de Mongo.")
+    except Exception:
+        logger.exception("Error limpiando Mongo.")
+
+def limpiar_slots() -> List[EventType]:
+
+    return [
+
+        SlotSet("session_activa", False),
+
+        SlotSet("confirmacion_cierre", None),
+
+        SlotSet("encuesta_activa", False),
+
+        SlotSet("encuesta_incompleta", False),
+
+        SlotSet("proceso_activo", None),
+
+        SlotSet("escalar_humano", False),
+
+        SlotSet("autosave_estado", None),
+
+        SlotSet("encuesta_tipo", None),
     ]
+def registrar_encuesta_si_corresponde(tracker: Tracker):
 
-    if finalizar_encuesta and tracker.get_slot("encuesta_activa"):
-        try:
-            encuesta_data = {"usuario": tracker.sender_id, "estado": "pendiente", 
-                             "tipo": tracker.get_slot("encuesta_tipo"), "comentario": "Cierre forzado"}
-            ActionRegistrarEncuesta().registrar_en_base(encuesta_data)
-        except Exception:
-            logger.exception("Error guardando encuesta en cierre")
+    if not tracker.get_slot("encuesta_activa"):
+        return
 
-    if usar_llm:
-        ultimo_intent = (tracker.latest_message or {}).get("intent", {}).get("name", "desconocido")
-        safe_slots = {k: v for k, v in tracker.current_slot_values().items() 
-                      if k not in {"user_token", "auth_token", "password", "cedula", "email", "correo", "nombre"} and v}
-        
-        try:
-            mensaje = run_llm(prompt="Despide al estudiante de forma profesional.", tracker=tracker,
-                              context={"ultimo_intent": ultimo_intent, "slots": json.dumps(safe_slots)[:500]},
-                              fallback="Gracias por tu tiempo. Estaré aquí cuando necesites ayuda.")
-            dispatcher.utter_message(text=mensaje if isinstance(mensaje, str) else "¡Hasta pronto!")
-        except Exception:
-            dispatcher.utter_message(response="utter_despedida")
+    try:
 
-    events.append(ConversationPaused())
+        encuesta = {
+
+            "usuario": tracker.sender_id,
+
+            "estado": "pendiente",
+
+            "tipo": tracker.get_slot("encuesta_tipo"),
+
+            "comentario": "Cierre forzado",
+
+        }
+
+        ActionRegistrarEncuesta().registrar_en_base(encuesta)
+
+    except Exception:
+
+        logger.exception("No fue posible registrar encuesta.")
+
+def despedir_usuario(dispatcher, tracker, usar_llm=True):
+
+    if not usar_llm:
+
+        dispatcher.utter_message(response="utter_despedida")
+
+        return
+
+    ultimo_intent = (
+        tracker.latest_message or {}
+    ).get("intent", {}).get("name", "desconocido")
+
+    safe_slots = {
+
+        k: v
+
+        for k, v in tracker.current_slot_values().items()
+
+        if k not in {
+
+            "user_token",
+
+            "auth_token",
+
+            "password",
+
+            "cedula",
+
+            "email",
+
+            "correo",
+
+            "nombre",
+
+        }
+
+        and v
+
+    }
+
+    try:
+
+        mensaje = run_llm(
+
+            prompt="Despide al estudiante de forma profesional.",
+
+            tracker=tracker,
+
+            context={
+
+                "ultimo_intent": ultimo_intent,
+
+                "slots": json.dumps(safe_slots)[:500],
+
+            },
+
+            fallback="Gracias por tu tiempo. Estaré aquí cuando necesites ayuda.",
+
+        )
+
+        dispatcher.utter_message(
+
+            text=mensaje if isinstance(mensaje, str) else "Hasta pronto."
+
+        )
+
+    except Exception:
+
+        dispatcher.utter_message(response="utter_despedida")
+
+def ejecutar_cierre_limpio(
+    dispatcher,
+    tracker,
+    finalizar_encuesta=False,
+    usar_llm=True,
+):
+
+    if tracker.get_slot("emocion_detectada") in {
+
+        "frustrado",
+
+        "confundido",
+
+    }:
+
+        dispatcher.utter_message(
+
+            response="utter_ofrecer_contacto_tutor"
+
+        )
+
+    limpiar_mongo(tracker)
+
+    if finalizar_encuesta:
+
+        registrar_encuesta_si_corresponde(tracker)
+
+    despedir_usuario(
+
+        dispatcher,
+
+        tracker,
+
+        usar_llm=usar_llm,
+
+    )
+
+    events = limpiar_slots()
+
+    events.append(
+
+        FollowupAction("action_reiniciar_conversacion")
+
+    )
+
     return events
 
 # --- ACCIONES ÚNICAS ---
@@ -77,11 +213,6 @@ class ActionConfirmarCierre(Action):
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
         dispatcher.utter_message(response="utter_confirmar_cierre")
         return [SlotSet("confirmacion_cierre", "pendiente")]
-
-class ActionFinalizarConversacion(Action):
-    def name(self) -> Text: return "action_finalizar_conversacion"
-    def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        return ejecutar_cierre_limpio(dispatcher, tracker, finalizar_encuesta=True)
 
 class ActionTerminarConversacionSegura(Action):
     def name(self) -> Text: return "action_terminar_conversacion_segura"
@@ -94,3 +225,53 @@ class ActionCancelarCierre(Action):
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
         dispatcher.utter_message(response="utter_cierre_cancelado")
         return [SlotSet("confirmacion_cierre", None), ConversationResumed()]
+
+class ActionDecidirCierre(Action):
+
+    def name(self):
+
+        return "action_decidir_cierre"
+
+    def run(self, dispatcher, tracker, domain):
+
+        if tracker.get_slot("encuesta_activa"):
+
+            return [
+
+                FollowupAction(
+
+                    "action_guardar_progreso_encuesta"
+
+                )
+
+            ]
+
+        return [
+
+            FollowupAction(
+
+                "action_cierre_limpio"
+
+            )
+
+        ]
+
+class ActionCierreLimpio(Action):
+
+    def name(self):
+
+        return "action_cierre_limpio"
+
+    def run(self, dispatcher, tracker, domain):
+
+        return ejecutar_cierre_limpio(
+
+            dispatcher,
+
+            tracker,
+
+            finalizar_encuesta=True,
+
+            usar_llm=True,
+
+        )

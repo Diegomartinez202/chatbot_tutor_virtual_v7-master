@@ -9,15 +9,29 @@ from rasa_sdk.executor import CollectingDispatcher
 # ================================================================
 # 🌐 IMPORT HANDLERS (BACKEND REAL LAYER)
 # ================================================================
+
 from .handlers.certificados_handler import handler as certificados_handler
 from .handlers.estado_estudiante_handler import handler as estado_estudiante_handler
 from .handlers.tutor_handler import handler as tutor_handler
 from .handlers.horarios_handler import handler as horarios_handler
 from .handlers.progreso_handler import handler as progreso_handler
 from .handlers.historial_academico_handler import handler as historial_academico_handler
+
+# ================================================================
+# 🆕 NUEVOS HANDLERS ACADÉMICOS
+# ================================================================
+
+from .handlers.pagos_handler import handler as pagos_handler
+from .handlers.notas_handler import handler as notas_handler
+from .handlers.ficha_handler import handler as ficha_handler
+from .handlers.inscripciones_handler import handler as inscripciones_handler
+
 logger = logging.getLogger(__name__)
 
-Handler = Callable[[CollectingDispatcher, Tracker, Dict[str, Any]], Any]
+Handler = Callable[
+    [CollectingDispatcher, Tracker, Dict[str, Any]],
+    Any,
+]
 
 
 class ActionRegistry:
@@ -28,54 +42,131 @@ class ActionRegistry:
     # ------------------------------------------------------------
     # REGISTER SINGLE
     # ------------------------------------------------------------
-    def register(self, name: str, handler: Handler) -> None:
+
+    def register(
+        self,
+        name: str,
+        handler: Handler,
+    ) -> None:
 
         if name in self._registry:
 
             logger.warning(
                 "[Registry] duplicated registration %s",
-                name
+                name,
             )
 
         self._registry[name] = handler
 
         logger.info(
             "[Registry] registered → %s",
-            name
+            name,
         )
 
     # ------------------------------------------------------------
     # GET HANDLER
     # ------------------------------------------------------------
-    def get(self, name: str) -> Handler | None:
+
+    def get(
+        self,
+        name: str,
+    ) -> Handler | None:
         return self._registry.get(name)
+
     def get_all(self) -> Dict[str, Handler]:
         return dict(self._registry)
 
     # ------------------------------------------------------------
     # LOAD ALL BACKEND HANDLERS (PRODUCTION BOOTSTRAP)
     # ------------------------------------------------------------
+
     def load(self) -> None:
+
+        logger.info(
+            "[Registry] Loading backend handlers..."
+        )
 
         # ========================================================
         # 📊 ACADEMIC CORE
         # ========================================================
-        self.register("estado_estudiante", estado_estudiante_handler)
-        self.register("tutor_asignado", tutor_handler)
-        self.register("progreso", progreso_handler)
-        self.register("horarios", horarios_handler)
-        self.register("historial_academico", historial_academico_handler
-)
+
+        self.register(
+            "estado_estudiante",
+            estado_estudiante_handler,
+        )
+
+        self.register(
+            "tutor_asignado",
+            tutor_handler,
+        )
+
+        self.register(
+            "progreso",
+            progreso_handler,
+        )
+
+        self.register(
+            "horarios",
+            horarios_handler,
+        )
+
+        self.register(
+            "historial_academico",
+            historial_academico_handler,
+        )
+
         # ========================================================
         # 📜 CERTIFICADOS
         # ========================================================
-        self.register("certificados", certificados_handler)
 
+        self.register(
+            "certificados",
+            certificados_handler,
+        )
 
-        logger.info("[Registry] ✅ ALL BACKEND HANDLERS LOADED")
+        # ========================================================
+        # 💰 PAGOS
+        # ========================================================
+
+        self.register(
+            "pagos",
+            pagos_handler,
+        )
+
+        # ========================================================
+        # 📝 NOTAS
+        # ========================================================
+
+        self.register(
+            "notas",
+            notas_handler,
+        )
+
+        # ========================================================
+        # 👤 FICHA
+        # ========================================================
+
+        self.register(
+            "ficha",
+            ficha_handler,
+        )
+
+        # ========================================================
+        # 📚 INSCRIPCIONES
+        # ========================================================
+
+        self.register(
+            "inscripciones",
+            inscripciones_handler,
+        )
+
+        logger.info(
+            "[Registry] ✅ ALL BACKEND HANDLERS LOADED"
+        )
 
 
 # ================================================================
 # 🌍 SINGLETON GLOBAL
 # ================================================================
+
 action_registry = ActionRegistry()

@@ -7,7 +7,7 @@ from typing import List, Any, Dict
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
-
+from rasa_sdk.events import FollowupAction
 logger = logging.getLogger(__name__)
 
 
@@ -33,8 +33,8 @@ class ActionReiniciarConversacion(Action):
 
         return [
             SlotSet("session_activa", True),
-            SlotSet("encuesta_activa", False),       # Sincronizado con módulo encuestas
-            SlotSet("encuesta_incompleta", False),   # Sincronizado con módulo encuestas
+            SlotSet("encuesta_activa", False),       
+            SlotSet("encuesta_incompleta", False),  
             SlotSet("proceso_activo", None),
             SlotSet("confirmacion_cierre", None),
             SlotSet("turnos_conversacion", 0),
@@ -44,6 +44,7 @@ class ActionReiniciarConversacion(Action):
             SlotSet("is_authenticated", False),
             SlotSet("user_token", ""),
             SlotSet("auth_state", "inactive"),
+            FollowupAction("action_listen"),
         ]
 
 

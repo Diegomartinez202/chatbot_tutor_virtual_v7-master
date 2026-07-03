@@ -246,15 +246,16 @@ rules:
     steps:
       - intent: reset_guardian
       - action: action_guardian_reset
+  
   - rule: Cierre inteligente de conversación
     steps:
       - intent: despedida
-      - action: action_finalizar_conversacion
+      - action: action_confirmar_cierre
   
   - rule: Cierre inteligente de conversación (Finalización limpia)
     steps:
       - intent: salir
-      - action: action_finalizar_conversacion
+      - action: action_confirmar_cierre
 
   - rule: Iniciar flujo de cierre seguro
     steps:
@@ -275,4 +276,4 @@ rules:
            - confirmacion_cierre: "pendiente"
     steps:
       - intent: affirm
-      - action: action_terminar_conversacion_segura
+      - action: action_decidir_cierre

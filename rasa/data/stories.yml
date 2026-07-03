@@ -40,7 +40,7 @@ stories:
   steps:
     - intent: negar_encuesta
     - action: utter_respeto_decision
-    - action: utter_despedida
+    - action: action_cierre_limpio
 
 - story: crear ticket soporte
   steps:
@@ -106,7 +106,7 @@ stories:
     - intent: terminar_conversacion_segura
     - action: action_confirmar_cierre
     - intent: affirm
-    - action: action_terminar_conversacion_segura
+    - action: action_decidir_cierre
 
 - story: Navegación académica
   steps:

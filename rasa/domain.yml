@@ -862,13 +862,14 @@ actions:
 - action_preguntas_frecuentes_llm
 - action_soporte_tecnico_llm
 - action_confirmar_cierre
-- action_finalizar_conversacion
 - action_cancelar_cierre
 - action_incrementar_turnos_conversacion
 - validate_feedback_form
 - action_pqrs_llm
 - action_memory_wrapper
 - action_guardar_encuesta_general
+- action_decidir_cierre
+- action_cierre_limpio
 
 
 

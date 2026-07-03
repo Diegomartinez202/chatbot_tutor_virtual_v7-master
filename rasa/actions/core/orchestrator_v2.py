@@ -35,7 +35,122 @@ DATA_INTENTS = {
     "consultar_horarios",
 }
 
+ACTION_CATALOG = {
 
+    # ============================================================
+    # ACCIONES PÚBLICAS
+    # ============================================================
+
+    "aprender_tema": {
+        "action": "action_aprender_tema",
+        "backend": None,
+        "requires_auth": False,
+        "module": "academico",
+    },
+
+    "saludo": {
+        "llm": True,
+    },
+
+    "despedida": {
+        "llm": True,
+    },
+
+    "agradecimiento": {
+        "llm": True,
+    },
+
+    # ============================================================
+    # ACCIONES DEL SISTEMA
+    # ============================================================
+
+    "login": {
+        "action": "action_ingreso_zajuna",
+        "requires_auth": False,
+    },
+
+    "reset_password": {
+        "action": "action_reset_password",
+        "requires_auth": False,
+    },
+
+    "recuperar_contrasena": {
+        "action": "action_recuperar_contrasena",
+        "requires_auth": False,
+    },
+
+    # ============================================================
+    # ACCIONES ACADÉMICAS PROTEGIDAS
+    # ============================================================
+
+    "consultar_estado": {
+        "action": "action_ver_estado_estudiante",
+        "backend": "estado_estudiante",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_horarios": {
+        "action": "action_consultar_horarios_clases",
+        "backend": "horarios",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_progreso": {
+        "action": "action_consultar_progreso_curso",
+        "backend": "progreso",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_tutor": {
+        "action": "action_tutor_asignado",
+        "backend": "tutor_asignado",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_certificados": {
+        "action": "action_render_certificados",
+        "backend": "certificados",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    # ============================================================
+    # NUEVAS ACCIONES ACADÉMICAS
+    # ============================================================
+
+    "consultar_pagos": {
+        "action": "action_consultar_pagos",
+        "backend": "pagos",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_notas": {
+        "action": "action_consultar_notas",
+        "backend": "notas",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_ficha": {
+        "action": "action_consultar_ficha",
+        "backend": "ficha",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+    "consultar_inscripciones": {
+        "action": "action_consultar_inscripciones",
+        "backend": "inscripciones",
+        "requires_auth": True,
+        "module": "academico",
+    },
+
+}
 # ================================================================
 # 🧠 ORCHESTRATOR V2
 # ================================================================
@@ -76,7 +191,9 @@ class OrchestratorV2:
         # Detectar materia únicamente cuando aporta valor
         # --------------------------------------------------------
 
-        if intent in LOW_RISK_INTENTS:
+        config = ACTION_CATALOG.get(intent, {})
+
+        if config.get("llm", False):
             materia = "tema academico"
         else:
             materia = detectar_materia(text)
@@ -114,86 +231,93 @@ class OrchestratorV2:
     # ⚖️ DECISION ENGINE
     # ------------------------------------------------------------
 
-    def route(self, tracker: Tracker) -> dict[str, Any]:
-        """
-        Decide cuál será el flujo de procesamiento.
-        """
-        intent = self.detect_intent(tracker)
-        context = self.build_context(tracker)
-        if context.get("materia") not in (None, "general", "desconocido"):
-       
-            context["slots"]["requires_auth"] = False
-        
-        es_tema_academico = (intent == "aprender_tema" or context.get("materia") != "desconocido")
-        
-     
-        if tracker.get_slot("requires_auth") == True and intent not in ["login", "saludo"] and not es_tema_academico:
-            return {
-                "type": "action",
-                "action": "action_ingreso_zajuna",
-                "context": context,
-            }
+def route(self, tracker: Tracker) -> dict[str, Any]:
+    """
+    Decide cuál será el flujo de procesamiento utilizando el
+    catálogo central de acciones.
+    """
 
-        # --- A partir de aquí, el flujo sigue normal ---
-        if intent in ACTION_INTENTS:
-            return {
-                "type": "action",
-                "action": ACTION_INTENTS[intent],
-                "context": context,
-            }
+    intent = self.detect_intent(tracker)
 
-        # --------------------------------------------------------
-        # ACTIONS
-        # --------------------------------------------------------
-      
-        if intent in ACTION_INTENTS:
+    context = self.build_context(tracker)
 
-            return {
-                "type": "action",
-                "action": ACTION_INTENTS[intent],
-                "context": context,
-            }
+    config = ACTION_CATALOG.get(intent)
 
-        # --------------------------------------------------------
-        # A partir de aquí sí necesitamos contexto
-        # --------------------------------------------------------
+    # --------------------------------------------------------
+    # Intent registrado en el catálogo
+    # --------------------------------------------------------
 
+    if config:
 
         self.logger.info(
-            "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",
+            "[ACTION_CATALOG] intent=%s config=%s",
             intent,
-            context["user"],
-            context["materia"],
+            config,
         )
 
-        # --------------------------------------------------------
-        # BACKEND
-        # --------------------------------------------------------
+        # ----------------------------------------------------
+        # Acción protegida
+        # ----------------------------------------------------
 
-        if intent in DATA_INTENTS:
+        if config.get("requires_auth"):
+
+            if tracker.get_slot("is_authenticated") is not True:
+
+                return {
+                    "type": "action",
+                    "action": "action_ingreso_zajuna",
+                    "context": context,
+                }
+
+        # ----------------------------------------------------
+        # Acción Rasa
+        # ----------------------------------------------------
+
+        if config.get("action"):
+
             return {
-                "type": "backend",
-                "intent": intent,
+                "type": "action",
+                "action": config["action"],
                 "context": context,
             }
 
-        # --------------------------------------------------------
-        # LLM
-        # --------------------------------------------------------
+        # ----------------------------------------------------
+        # Backend
+        # ----------------------------------------------------
 
-        if intent in LOW_RISK_INTENTS:
+        if config.get("backend"):
+
+            return {
+                "type": "backend",
+                "intent": config["backend"],
+                "context": context,
+            }
+
+        # ----------------------------------------------------
+        # LLM
+        # ----------------------------------------------------
+
+        if config.get("llm"):
+
             return {
                 "type": "llm",
                 "prompt": context["text"],
                 "context": context,
             }
 
-        # --------------------------------------------------------
-        # DEFAULT
-        # --------------------------------------------------------
+    # --------------------------------------------------------
+    # Compatibilidad temporal mientras migran todos los intents
+    # --------------------------------------------------------
 
-        return {
-            "type": "llm",
-            "prompt": context["text"],
-            "context": context,
-        }
+    self.logger.info(
+        "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",
+        intent,
+        context["user"],
+        context["materia"],
+    )
+
+    return {
+        "type": "llm",
+        "prompt": context["text"],
+        "context": context,
+    }

@@ -61,6 +61,76 @@ def validar_autenticacion(
     ]
 
 # ================================================================
+# CATÁLOGO CENTRAL DE ACCIONES ACADÉMICAS
+# ================================================================
+
+ACCIONES_ACADEMICAS = {
+
+    "estado_estudiante": {
+        "backend": "estado_estudiante",
+        "requires_auth": True,
+    },
+
+    "tutor_asignado": {
+        "backend": "tutor_asignado",
+        "requires_auth": True,
+    },
+
+    "horarios": {
+        "backend": "horarios",
+        "requires_auth": True,
+    },
+
+    "progreso": {
+        "backend": "progreso",
+        "requires_auth": True,
+    },
+
+    "historial": {
+        "backend": "historial",
+        "requires_auth": True,
+    },
+
+    "certificados": {
+        "backend": "certificados",
+        "requires_auth": True,
+    },
+
+    # --------------------------------------------------------
+    # NUEVAS ACCIONES
+    # --------------------------------------------------------
+
+    "pagos": {
+        "backend": "pagos",
+        "requires_auth": True,
+    },
+
+    "notas": {
+        "backend": "notas",
+        "requires_auth": True,
+    },
+
+    "ficha": {
+        "backend": "ficha",
+        "requires_auth": True,
+    },
+
+    "inscripciones": {
+        "backend": "inscripciones",
+        "requires_auth": True,
+    },
+
+    # --------------------------------------------------------
+    # Pública
+    # --------------------------------------------------------
+
+    "aprender_tema": {
+        "backend": None,
+        "requires_auth": False,
+    },
+
+}
+# ================================================================
 # 🧠 EXECUTOR CENTRAL
 # ================================================================
 
@@ -101,7 +171,42 @@ def _exec(
 
         return []
 
+def ejecutar_accion_academica(
+    accion: str,
+    dispatcher,
+    tracker,
+):
 
+    config = ACCIONES_ACADEMICAS.get(accion)
+
+    if not config:
+
+        dispatcher.utter_message(
+            text="La acción académica no está registrada."
+        )
+
+        return []
+
+    if config["requires_auth"]:
+
+        auth = validar_autenticacion(
+            tracker,
+            accion,
+        )
+
+        if auth:
+            return auth
+
+    backend = config["backend"]
+
+    if backend is None:
+        return []
+
+    return _exec(
+        backend,
+        dispatcher,
+        tracker,
+    )
 #================================================================
 
 # 🧠 ACCIONES ACADÉMICAS
@@ -109,19 +214,12 @@ def _exec(
 # ================================================================
 class ActionVerEstadoEstudiante(Action):
 
-    def name(self) -> str: return "action_ver_estado_estudiante"
+    def name(self):
+        return "action_ver_estado_estudiante"
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "estado_estudiante",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "estado_estudiante",
             dispatcher,
             tracker,
@@ -129,89 +227,169 @@ class ActionVerEstadoEstudiante(Action):
 
 class ActionTutorAsignado(Action):
 
-    def name(self) -> str: return "action_tutor_asignado"
+    def name(self):
+        return "action_tutor_asignado"
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "tutor_asignado",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "tutor_asignado",
             dispatcher,
             tracker,
-    
         )
-
 
 class ActionConsultarHorariosClases(Action):
 
-    def name(self) -> str: return "action_consultar_horarios_clases"
+    def name(self):
+        return "action_consultar_horarios_clases"
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
+        return ejecutar_accion_academica(
+            "horarios",
+            dispatcher,
             tracker,
-            "horarios",
         )
+class ActionHistorialAcademico(Action):
 
-        if auth:
-            return auth
+    def name(self) -> str:
+        return "action_historial_academico"
 
-        return _exec(
-            "horarios",
+    def run(self, dispatcher, tracker, domain):
+
+        return ejecutar_accion_academica(
+            "historial",
             dispatcher,
             tracker,
         )
 
 class ActionConsultarProgresoCurso(Action):
 
-    def name(self) -> str: return "action_consultar_progreso_curso"
+    def name(self):
+        return "action_consultar_progreso_curso"
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-           tracker,
-           "progreso",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "progreso",
             dispatcher,
             tracker,
         )
 
-class ActionHistorialAcademico(Action):
+class ActionRenderCertificados(Action):
 
     def name(self) -> str:
+        return "action_render_certificados"
 
-        return "action_historial_academico"
+    def run(self, dispatcher, tracker, domain):
 
-    def run(
-        self,
-        dispatcher,
-        tracker,
-        domain,
-    ):
+        return ejecutar_accion_academica(
+            "certificados",
+            dispatcher,
+            tracker,
+        )
+
+class ActionRenderCertificados(Action):
+
+    def name(self) -> str:
+        return "action_render_certificados"
+
+    def run(self, dispatcher, tracker, domain):
 
         auth = validar_autenticacion(
             tracker,
-            "historial_academico",
+            "certificados",
         )
 
         if auth:
             return auth
 
         return _exec(
-            "historial_academico",
+            "certificados",
+            dispatcher,
+            tracker,
+        )
+
+class ActionConsultarPagos(Action):
+
+    def name(self) -> str:
+        return "action_consultar_pagos"
+
+    def run(self, dispatcher, tracker, domain):
+
+        auth = validar_autenticacion(
+            tracker,
+            "pagos",
+        )
+
+        if auth:
+            return auth
+
+        return _exec(
+            "pagos",
+            dispatcher,
+            tracker,
+        )
+
+class ActionConsultarNotas(Action):
+
+    def name(self) -> str:
+        return "action_consultar_notas"
+
+    def run(self, dispatcher, tracker, domain):
+
+        auth = validar_autenticacion(
+            tracker,
+            "notas",
+        )
+
+        if auth:
+            return auth
+
+        return _exec(
+            "notas",
+            dispatcher,
+            tracker,
+        )
+
+class ActionConsultarFicha(Action):
+
+    def name(self) -> str:
+        return "action_consultar_ficha"
+
+    def run(self, dispatcher, tracker, domain):
+
+        auth = validar_autenticacion(
+            tracker,
+            "ficha",
+        )
+
+        if auth:
+            return auth
+
+        return _exec(
+            "ficha",
+            dispatcher,
+            tracker,
+        )
+
+class ActionConsultarInscripciones(Action):
+
+    def name(self) -> str:
+        return "action_consultar_inscripciones"
+
+    def run(self, dispatcher, tracker, domain):
+
+        auth = validar_autenticacion(
+            tracker,
+            "inscripciones",
+        )
+
+        if auth:
+            return auth
+
+        return _exec(
+            "inscripciones",
             dispatcher,
             tracker,
         )
@@ -222,17 +400,35 @@ class ActionAprenderTema(Action):
         return "action_aprender_tema"
 
     def run(self, dispatcher, tracker, domain):
+
         pregunta = tracker.latest_message.get("text") or ""
+
         materia = detectar_materia(pregunta)
-        rol = MATERIAS.get(materia.lower(), "Tutor Académico General")
+
+        rol = MATERIAS.get(
+            materia.lower(),
+            "Tutor Académico General"
+        )
 
         return [
-            ActiveLoop(None),                
+
+            ActiveLoop(None),
+
             SlotSet("requested_slot", None),
-            SlotSet("requires_auth", False),      
-            SlotSet("pending_action", None),      
+
+            SlotSet("requires_auth", False),
+
+            SlotSet("pending_action", None),
+
+            # NUEVO
+            SlotSet("proceso_activo", "aprender_tema"),
+
             SlotSet("tema_consulta", pregunta),
+
             SlotSet("materia_detectada", materia),
+
             SlotSet("rol_academico", rol),
-            SlotSet("auth_login_form", None)
+
+            SlotSet("auth_login_form", None),
+
         ]

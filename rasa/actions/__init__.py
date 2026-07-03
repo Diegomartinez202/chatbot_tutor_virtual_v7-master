@@ -39,6 +39,7 @@ from .acciones_academico import (
      ActionHistorialAcademico,
      ActionConsultarHorariosClases,
      ActionConsultarProgresoCurso,
+     ActionRenderCertificados,
 )
 
 from .acciones_encuesta import (
@@ -46,7 +47,6 @@ from .acciones_encuesta import (
     ActionGuardarFeedback,
     ActionPreguntarResolucion,
     ActionSetEncuestaTipo,
-    ActionFinalizarConversacion,
     ValidateEncuestaSatisfaccionForm,
     ActionLanzarEncuestaGeneral,
     ActionProcesarRespuestaResolucion,
@@ -69,9 +69,11 @@ from .acciones_menu import (
 
 from .acciones_terminar_conversacion import (
     ActionConfirmarCierre,
-    ActionFinalizarConversacion,
     ActionCancelarCierre,
     ActionTerminarConversacionSegura,
+    ActionDecidirCierre,
+    ActionCierreLimpio,
+
 )
 
 from .acciones_seguridad import (
@@ -103,12 +105,6 @@ from .runtime.actions_support import (
 
 from .runtime.actions_core import (
     ActionExplicarTemaLLM,
-)
-
-
-from .acciones_certificados import (
-    ActionRenderCertificados,
-
 )
 
 from .acciones_guardian import (
@@ -192,10 +188,12 @@ __all__ = [
 
     
     "ActionConfirmarCierre",
-    "ActionFinalizarConversacion",
     "ActionCancelarCierre",
     "ActionTerminarConversacionSegura",
-    
+     
+    "ActionDecidirCierre",
+    "ActionCierreLimpio",
+   
     
     "ValidateFeedbackForm",
 

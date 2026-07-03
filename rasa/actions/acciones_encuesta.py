@@ -27,6 +27,64 @@ _FILE_LOCK = threading.Lock()
 MAX_COMMENT_LENGTH = 1000
 MAX_STORAGE_COMMENT_LENGTH = 2000
 
+# ==========================================================
+# CATÁLOGO CENTRAL DE ENCUESTAS POR MÓDULO
+# ==========================================================
+
+ENCUESTAS_POR_MODULO = {
+
+    # -------------------------
+    # Académico
+    # -------------------------
+    "aprender_tema": "satisfaccion",
+
+    "consultar_horarios": "satisfaccion",
+
+    "consultar_progreso": "satisfaccion",
+
+    "historial_academico": "satisfaccion",
+
+    "estado_estudiante": "satisfaccion",
+
+    # -------------------------
+    # Soporte
+    # -------------------------
+
+    "soporte_tecnico": "satisfaccion",
+
+    "pqrs": "satisfaccion",
+
+    "correo": "satisfaccion",
+
+    "tutor": "satisfaccion",
+
+    "humano": "satisfaccion",
+
+    # -------------------------
+    # Consulta general
+    # -------------------------
+
+    None: "general",
+
+    "general": "general",
+}
+
+def obtener_tipo_encuesta(tracker: Tracker) -> str:
+    """
+    Determina qué encuesta corresponde según el módulo activo.
+
+    Retorna:
+        satisfaccion
+        general
+    """
+
+    proceso = tracker.get_slot("proceso_activo")
+
+    return ENCUESTAS_POR_MODULO.get(
+        proceso,
+        "general",
+    )
+
 def _ensure_store() -> None:
     os.makedirs(_DATA_DIR, exist_ok=True)
     if not os.path.exists(_ENC_FILE):
@@ -62,6 +120,7 @@ def _safe_user_id(tracker: Tracker) -> str:
     ).hexdigest()[:16]
 
 class ActionRegistrarEncuesta(Action):
+
     def name(self) -> str:
         return "action_registrar_encuesta"
 
@@ -72,6 +131,9 @@ class ActionRegistrarEncuesta(Action):
         domain: Dict[str, Any],
     ) -> List[EventType]:
 
+        # ==========================================================
+        # 1. RECUPERAR RESPUESTAS DE LA ENCUESTA
+        # ==========================================================
         satisfaccion = (
             tracker.get_slot("nivel_satisfaccion")
             or tracker.get_slot("satisfaccion")
@@ -98,6 +160,9 @@ class ActionRegistrarEncuesta(Action):
             "fecha": fecha,
         }
 
+        # ==========================================================
+        # 2. GUARDAR ENCUESTA
+        # ==========================================================
         try:
             _append_jsonl(registro)
         except Exception:
@@ -105,10 +170,15 @@ class ActionRegistrarEncuesta(Action):
                 "[ENCUESTA] error guardando encuesta"
             )
 
+        # ==========================================================
+        # 3. RESPUESTA AMIGABLE DEL LLM
+        # ==========================================================
         texto_base = (
-            f"Se registró una encuesta de satisfacción con nivel '{satisfaccion}'. "
+            f"Se registró una encuesta de satisfacción con nivel "
+            f"'{satisfaccion}'. "
             f"Comentario del usuario: \"{comentario}\". "
-            "Agradece de forma amable el tiempo del usuario y recuérdale que su opinión ayuda a mejorar."
+            "Agradece de forma amable el tiempo del usuario "
+            "y recuérdale que su opinión ayuda a mejorar."
         )
 
         contexto_llm = {
@@ -120,26 +190,68 @@ class ActionRegistrarEncuesta(Action):
         }
 
         mensaje_final = run_llm(
-        prompt=texto_base,
-        tracker=tracker,
-        context=contexto_llm,
-        fallback=texto_base,
+            prompt=texto_base,
+            tracker=tracker,
+            context=contexto_llm,
+            fallback=texto_base,
         )
 
         dispatcher.utter_message(text=mensaje_final)
 
-        if tracker.get_slot("proceso_activo") is not None:
-       
-            return [
-                SlotSet("encuesta_incompleta", False),
-                SlotSet("proceso_activo", None),
-                SlotSet("nivel_satisfaccion", None), 
-                SlotSet("comentario", None),        
-                SlotSet("encuesta_tipo", None)       
-]
-        else:
-            # Si era una consulta general, ahí sí lanzamos la general
-            return [FollowupAction("action_lanzar_encuesta_general")]
+        logger.info(
+            "[ENCUESTA] Encuesta registrada correctamente. "
+            "Se delega el cierre a action_cierre_limpio."
+        )
+
+        # ==========================================================
+        # 4. LIMPIEZA DE SLOTS
+        # ==========================================================
+        events = [
+
+            SlotSet("encuesta_incompleta", False),
+
+            SlotSet("nivel_satisfaccion", None),
+
+            SlotSet("comentario", None),
+
+            SlotSet("encuesta_tipo", None),
+
+            SlotSet("calificacion_numerica", None),
+
+            SlotSet("problema_resuelto", None),
+
+            # Mantener compatibilidad
+            SlotSet("proceso_activo", None),
+
+        ]
+
+        # ==========================================================
+        # 5. NUEVA ARQUITECTURA
+        # ==========================================================
+        #
+        # Ya NO decidimos aquí:
+        #
+        #   • si lanzar encuesta general
+        #   • si terminar conversación
+        #   • si continuar otro flujo
+        #
+        # Toda esa lógica pasa a:
+        #
+        #       action_decidir_cierre
+        #               │
+        #               ▼
+        #      action_cierre_limpio
+        #
+        # Esta acción únicamente registra la encuesta
+        # y entrega el control al flujo de cierre.
+        #
+        # ==========================================================
+
+        events.append(
+            FollowupAction("action_cierre_limpio")
+        )
+
+        return events
 
 
 class ActionGuardarFeedback(Action):
@@ -205,8 +317,16 @@ class ActionPreguntarResolucion(Action):
     ) -> List[Dict[str, Any]]:
         dispatcher.utter_message(response="utter_esta_resuelto")
         return [
+
             SlotSet("encuesta_incompleta", True),
-            SlotSet("proceso_activo", "encuesta_satisfaccion"),
+
+            SlotSet(
+
+                "encuesta_tipo",
+
+                obtener_tipo_encuesta(tracker),
+
+            ),
         ]
 
 class ActionSetEncuestaTipo(Action):
@@ -419,27 +539,3 @@ class ActionLanzarEncuestaGeneral(Action):
             buttons=botones_calificacion
         )
         return []
-
-class ActionFinalizarConversacion(Action):
-    def name(self) -> str:
-        return "action_finalizar_conversacion"
-
-    def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        proceso = tracker.get_slot("proceso_activo")
-        
-        # 1. Si hay algo incompleto, priorizamos eso
-        if tracker.get_slot("encuesta_incompleta"):
-            dispatcher.utter_message(text="⚠️ Tienes un proceso pendiente. ¿Deseas terminarlo?")
-            return [FollowupAction("action_preguntar_resolucion")]
-
-        # 2. Segmentación inteligente según el flujo
-        if proceso in ["aprender_tema"]:
-            dispatcher.utter_message(text="Gracias por estudiar. ¿Cómo calificarías la claridad de la explicación?")
-            return [FollowupAction("encuesta_satisfaccion_form")]
-        
-        if proceso in ["soporte_tecnico"]:
-            dispatcher.utter_message(text="Gracias por contactarnos. ¿Se resolvió tu duda técnica?")
-            return [FollowupAction("encuesta_satisfaccion_form")]
-
-        # 3. Si no había nada, lanzamos la encuesta general del bot
-        return [FollowupAction("action_lanzar_encuesta_general")]
