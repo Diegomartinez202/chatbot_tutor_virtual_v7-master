@@ -28,12 +28,12 @@ LLM_TIMEOUT = int(
     )
 )
 
-PRIMARY_MODEL = os.getenv("LLM_MODEL", "phi3:mini")
-FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "phi3:mini")
+PRIMARY_MODEL = os.getenv("LLM_MODEL", "tinyllama:latest")
+FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "tinyllama:latest")
 MAX_TOKENS = int(
     os.getenv(
         "OLLAMA_MAX_TOKENS",
-        "160"
+        "100"
     )
 )
 
@@ -44,6 +44,16 @@ logger.info(
     LLM_TIMEOUT,
     MAX_TOKENS,
 )
+
+def warm_up_model():
+    try:
+        logger.info("[LLM] Realizando warm-up de Ollama...")
+        requests.post(LLM_BASE_URL, json={"model": "phi3:mini", "prompt": "hola", "stream": False}, timeout=10)
+    except:
+        pass
+
+# Ejecuta el warm-up una vez al importar el módulo
+warm_up_model()
 
 # ================================================================
 # 🧼 SAFE INPUT
@@ -69,90 +79,50 @@ def get_last_turns(tracker: Tracker, n=2) -> str:
 # ================================================================
 # 🚀 INTERNAL CALL (Ollama API Layer)
 # ================================================================
-def _call_model(model: str, prompt: str) -> str:
+def _call_model(model: str, prompt: str, dispatcher: Any = None) -> str:
     try:
-        
         if len(prompt) > 2000:
             logger.warning("[LLM] Prompt demasiado largo (%d), recortando a 2000 chars", len(prompt))
             prompt = prompt[:2000]
         
-            
-            # Limpieza radical del prompt para evitar errores de formato JSON
         clean_prompt = prompt.strip()
 
-        logger.info(
-            "[OLLAMA] Enviando request al modelo=%s",
-            model
-        )
-        logger.info(
-            "[LLM] Enviando prompt a Ollama"
-        )
-        logger.info(
-            "[LLM] Modelo=%s",
-            model,
-        )
-        logger.info(
-            "[LLM] Prompt characters=%s",
-            len(clean_prompt),
-        )
-        logger.info(
-            "[LLM] Prompt preview:\n%s",
-            clean_prompt[:1000],
-        )
-
+        logger.info("[OLLAMA] Enviando request al modelo=%s (timeout=%s)", model, LLM_TIMEOUT)
+        
         response = requests.post(
             LLM_BASE_URL,
             json={
                 "model": model,
                 "prompt": clean_prompt,
                 "stream": False,
-                "keep_alive": "30m",
+                "keep_alive": "24h",
                 "options": {
-                    "num_predict": 128,
-                    "temperature": 0.2,
+                    "num_predict": MAX_TOKENS,
+                    "temperature": 0.3,
                     "num_ctx": 2048,
-                    "top_k": 20,
+                    "top_k": 10,
                 },
             },
             timeout=LLM_TIMEOUT,
         )
 
-        logger.info(
-            "[OLLAMA] Status=%s",
-            response.status_code
-        )
-
-        # Mejor manejo de errores: loguear el cuerpo del error si la API falla
         if response.status_code != 200:
             logger.error("[LLM] Error de Ollama (Detalle): %s", response.text)
             response.raise_for_status()
-
-        logger.info(
-            "[LLM] Respuesta HTTP=%s",
-            response.status_code,
-        )
         
         data = response.json()
-
-        logger.info(
-            "[OLLAMA] Respuesta recibida"
-        )
-
-        respuesta = (
-            data.get("response", "")
-            or ""
-        )
-
-        logger.info(
-            "[LLM] Respuesta recibida (%d caracteres)",
-            len(respuesta),
-        )
-        logger.info(
-            "[LLM] Preview respuesta:\n%s",
-            respuesta[:500],
-        )
-
+        respuesta = data.get("response", "") or ""
+        
+        logger.info("[LLM] Respuesta recibida (%d caracteres)", len(respuesta))
         return respuesta
+
+    except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
+        logger.error("[LLM] Timeout de Ollama: %s", str(e))
+        if dispatcher:
+            dispatcher.utter_message(
+                text="Estoy procesando tu consulta, dame un segundo... el sistema está un poco lento hoy. ¿Podrías intentar enviarme la pregunta de nuevo?"
+            )
+        return "ERROR_TIMEOUT"
 
     except Exception as e:
         logger.exception(
@@ -171,6 +141,7 @@ def run_llm(
     context: Optional[dict[str, Any]] = None,
     fallback: str = "",
     use_system_prompt: bool = True,
+    dispatcher: Optional[Any] = None,
 ) -> str:
     """
     Orquesta la inferencia generativa del Tutor Virtual con optimización de prompts.
@@ -213,13 +184,13 @@ def run_llm(
         # =====================================================
         # MODELO PRINCIPAL Y FAILOVER
         # =====================================================
-        result = _call_model(PRIMARY_MODEL, final_prompt)
+        result = _call_model(PRIMARY_MODEL, final_prompt, dispatcher=dispatcher)
 
         if not result:
             logger.warning("[LLM] Fallo en primario, intentando fallback")
-            result = _call_model(FALLBACK_MODEL, final_prompt)
+            result = _call_model(FALLBACK_MODEL, final_prompt, dispatcher=dispatcher)
 
-        return result.strip() if result else fallback
+        return result.strip() if result and result != "ERROR_TIMEOUT" else fallback
 
     except Exception as e:
         logger.exception("[LLM CRITICAL ERROR] %s", str(e))

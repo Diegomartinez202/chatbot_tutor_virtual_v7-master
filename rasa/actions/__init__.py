@@ -25,7 +25,6 @@ from .acciones_soporte import (
 
 )
 
-
 from .acciones_autenticacion import (
     ActionCheckAuth,
     ActionIngresoZajuna,
@@ -72,33 +71,12 @@ from .acciones_terminar_conversacion import (
     ActionConfirmarCierre,
     ActionFinalizarConversacion,
     ActionCancelarCierre,
-)
-
-from .acciones_terminar_conversacion_segura import (
-    ActionVerificarProcesoActivo,
-    ActionConfirmarCierreSeguroFinal,
-    ActionCancelarCierreSeguro,
-)
-
-from .acciones_conversacion_segura import (
-    ActionConfirmarCierreSeguro,
-    ActionCargarAutosaveMongo,
-    ActionAutoresumeConversacion,
-    ActionResetConversacionSegura,
-)
-
-
-from .acciones_terminar_conversacion_segura_autosave import (
-    ActionVerificarProcesoActivoAutosave,
-    ActionGuardarEncuestaIncompleta,
-    ActionConfirmarCierreAutosave,
-    ActionCancelarCierreAutosave,
+    ActionTerminarConversacionSegura,
 )
 
 from .acciones_seguridad import (
-    ActionVerificarEstadoEncuestaSegura,
     ActionGuardarProgresoEncuesta,
-    ActionTerminarConversacionSegura,
+  
 )
 
 from .acciones_sesion_segura import (
@@ -107,20 +85,8 @@ from .acciones_sesion_segura import (
     ActionNotificarReconexion,
     ActionGuardarEstadoSeguridad,
     ActionRecuperarEstadoSeguridad,
-)
-
-from .acciones_seguridad_guardian import (
-    ActionGuardianGuardarProgreso,
-    ActionGuardianCargarProgreso,
-    ActionGuardianPausar,
-    ActionGuardianReanudar,
-    ActionGuardianReset,
-    ActionRegistrarEncuestaGuardian, 
-    ActionGuardarAutosave,
-)
-
-from .acciones_cierre_conversacion import (
-    ActionAnalizarEstadoUsuario,
+    ActionCargarAutosaveMongo,
+    ActionAutoresumeConversacion,
 )
 
 from .acciones_handoff import (
@@ -147,6 +113,14 @@ from .acciones_certificados import (
 
 from .acciones_guardian import (
     ActionAutosaveSnapshot,
+    ActionGuardianGuardarProgreso,
+    ActionGuardianCargarProgreso,
+    ActionGuardianPausar,
+    ActionGuardianReanudar,
+    ActionGuardianReset,
+    ActionRegistrarEncuestaGuardian,
+    ActionGuardarAutosave,
+    ActionGuardarEncuestaIncompleta,
 )
 
 
@@ -160,6 +134,7 @@ from .acciones_admin import (
 
 from .acciones_tracking import (
     ActionIncrementarTurnosConversacion,
+
 
 )
 from .acciones_session_start import (
@@ -219,12 +194,8 @@ __all__ = [
     "ActionConfirmarCierre",
     "ActionFinalizarConversacion",
     "ActionCancelarCierre",
-
-    "ActionVerificarProcesoActivo",
-    "ActionConfirmarCierreSeguroFinal",
-    "ActionCancelarCierreSeguro",
+    "ActionTerminarConversacionSegura",
     
-    "ActionConfirmarCierreSeguro",
     
     "ValidateFeedbackForm",
 
@@ -234,10 +205,6 @@ __all__ = [
     "ActionAutoresumeConversacion",
     "ActionResetConversacionSegura",
 
-    "ActionVerificarProcesoActivoAutosave",
-    "ActionGuardarEncuestaIncompleta",
-    "ActionConfirmarCierreAutosave",
-    "ActionCancelarCierreAutosave",
     "ActionVerificarEstadoEncuestaSegura",
     "ActionGuardarProgresoEncuesta",
     "ActionTerminarConversacionSegura",
@@ -279,7 +246,14 @@ __all__ = [
     "ActionRenderCertificados",
     "ActionMostrarCertificadosCarousel",
 
-    "ActionAutosaveSnapshot",
+    "ActionGuardianGuardarProgreso",
+    "ActionGuardianCargarProgreso",
+    "ActionGuardianPausar",
+    "ActionGuardianReanudar",
+    "ActionGuardianReset",
+    "ActionRegistrarEncuestaGuardian",
+    "ActionGuardarAutosave",
+    "ActionGuardarEncuestaIncompleta",
 
 
     "ActionReiniciarConversacion",

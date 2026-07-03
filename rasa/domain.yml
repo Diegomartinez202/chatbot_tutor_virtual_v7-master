@@ -5,8 +5,8 @@ session_config:
   carry_over_slots_to_new_session: true
 
 intents:
-  - afirmar
-  - negar
+  - deny
+  - affirm
   - cancelar
   - volver
   - ayuda
@@ -222,7 +222,7 @@ slots:
 
   encuesta_activa:
     type: bool
-    influence_conversation: true
+    influence_conversation: false
     initial_value: false
     mappings:
     - type: custom
@@ -470,6 +470,12 @@ slots:
       - type: custom
   
   pending_action:
+    type: any
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  auth_login_form:
     type: any
     influence_conversation: false
     mappings:
@@ -803,10 +809,8 @@ actions:
 - action_enviar_correo_recuperacion
 - action_render_certificados
 - action_analizar_estado_usuario
-- action_confirmar_cierre_seguro
 - action_cargar_autosave_mongo
 - action_autoresume_conversacion
-- action_reset_conversacion_segura
 - action_registrar_encuesta
 - action_guardar_feedback
 - action_lanzar_encuesta_general
@@ -860,19 +864,11 @@ actions:
 - action_confirmar_cierre
 - action_finalizar_conversacion
 - action_cancelar_cierre
-- action_verificar_proceso_activo
-- action_confirmar_cierre_seguro_final
-- action_cancelar_cierre_seguro
-- action_verificar_proceso_activo_autosave
-- action_guardar_encuesta_incompleta
-- action_confirmar_cierre_autosave
-- action_cancelar_cierre_autosave
 - action_incrementar_turnos_conversacion
 - validate_feedback_form
 - action_pqrs_llm
 - action_memory_wrapper
 - action_guardar_encuesta_general
-- action_finalizar_conversacion
 
 
 

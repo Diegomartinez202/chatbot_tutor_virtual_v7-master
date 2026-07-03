@@ -25,11 +25,6 @@ stories:
   steps:
     - intent: soporte_tecnico
     - action: action_soporte_tecnico_llm
- 
-- story: flujo de cierre con decision de encuesta
-  steps:
-    - intent: salir
-    - action: action_finalizar_conversacion
 
 - story: flujo de inicio de encuesta unificado
   steps:
@@ -109,9 +104,9 @@ stories:
     - intent: ir_menu_soporte
     - action: action_ir_menu_soporte
     - intent: terminar_conversacion_segura
-    - action: utter_confirmar_cierre_seguro
-    - intent: confirmar_cierre_segura
-    - action: action_confirmar_cierre_seguro_final
+    - action: action_confirmar_cierre
+    - intent: affirm
+    - action: action_terminar_conversacion_segura
 
 - story: Navegación académica
   steps:

@@ -10,8 +10,12 @@ from pymongo import MongoClient
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
-from rasa_sdk.events import SlotSet, EventType
-
+from rasa_sdk.events import (
+    SlotSet,
+    ConversationPaused,
+    ConversationResumed,
+    EventType,
+)
 from .core.llm_engine import run_llm
 
 logger = logging.getLogger(__name__)
@@ -331,3 +335,44 @@ class ActionRecuperarEstadoSeguridad(Action):
         )
 
         return []
+
+# --- CLASES DE PERSISTENCIA DE AUTOSAVE ---
+
+class ActionCargarAutosaveMongo(Action):
+    def name(self) -> Text:
+        return "action_cargar_autosave_mongo"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        user_id = tracker.sender_id
+        registro = None
+        
+        if collection is not None:
+            try:
+                registro = collection.find_one({"user_id": user_id})
+            except Exception:
+                logger.exception("[AUTOSAVE_LOAD] Error consultando Mongo")
+
+        if registro and "slots" in registro:
+            dispatcher.utter_message(text="📂 He cargado tu progreso guardado.")
+            dispatcher.utter_message(response="utter_reanudar_conversacion")
+            return [SlotSet(k, v) for k, v in registro["slots"].items()]
+        
+        dispatcher.utter_message(text="ℹ️ No encontré progreso previo para reanudar.")
+        return []
+
+class ActionAutoresumeConversacion(Action):
+    def name(self) -> Text:
+        return "action_autoresume_conversacion"
+
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
+        nombre = tracker.get_slot("nombre") or "usuario"
+        
+        # Si la encuesta está activa, intentamos reanudar
+        if tracker.get_slot("encuesta_activa"):
+            dispatcher.utter_message(text=f"👋 Hola {nombre}, encontramos una sesión pendiente.")
+            dispatcher.utter_message(response="utter_reanudar_conversacion")
+            return [SlotSet("reanudar_pendiente", False), ConversationResumed()]
+        
+        dispatcher.utter_message(text="No hay procesos pendientes.")
+        return []
+

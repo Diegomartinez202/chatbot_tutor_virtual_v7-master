@@ -234,5 +234,5 @@ class ActionAprenderTema(Action):
             SlotSet("tema_consulta", pregunta),
             SlotSet("materia_detectada", materia),
             SlotSet("rol_academico", rol),
-            SlotSet("auth_form", None)
+            SlotSet("auth_login_form", None)
         ]

@@ -295,7 +295,8 @@ nlu:
     - cerrar el chat
     - cerrar la conversación
     - finalizar conversación
-    - terminar conversación
+    - terminar conversación activa
+    - salir del sistema
     - terminar la sesión
     - cerrar la sesión
     - cerrar sesión segura
@@ -319,7 +320,6 @@ nlu:
     - desconectarme ya del chat
     - finalizar sesión
     - cerrar la aplicación
-    - /action_confirmar_cierre_seguro
 
 - intent: consultar_horarios_clases
   examples: |
@@ -1400,7 +1400,7 @@ nlu:
 
 - intent: solicitar_cierre
   examples: |
-    - cerrar conversación
+    - cerrar conversación justo ahora
     - Ya no necesito nada más
     - Adiós, cerrar
     - Finalizar este proceso
@@ -1716,7 +1716,7 @@ nlu:
     - tengo una mejora para sugerir
     - quisiera compartir una experiencia
 
-- intent: afirmar
+- intent: affirm
   examples: |
     - sí
     - si
@@ -1749,7 +1749,7 @@ nlu:
     - sin problema
     - correcto, continúa
 
-- intent: negar
+- intent: deny
   examples: |
     - no
     - nop

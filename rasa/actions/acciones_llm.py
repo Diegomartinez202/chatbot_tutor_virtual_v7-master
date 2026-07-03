@@ -435,12 +435,7 @@ Instrucciones:
             )
 
         return ""
-    def _build_history(
-        self,
-        tracker: Tracker,
-        max_events: int = 2,
-        max_lines: int = 2,
-    ) -> str:
+    def _build_history(self, tracker: Tracker, max_events: int = 2, max_lines: int = 2) -> str:
         history: List[str] = []
         raw_events = tracker.events or []
 
@@ -489,7 +484,7 @@ Instrucciones:
     # INVOCACIÓN DEL LLM
     # ==========================================================
 
-    def _invoke_llm(self, tracker: Tracker, prompt: str, flow: str) -> str:
+    def _invoke_llm(self, dispatcher: CollectingDispatcher, tracker: Tracker, prompt: str, flow: str) -> str:
         logger.info("[LLM] Preparando prompt para flujo '%s'", flow)
 
         # Historial (con el filtro aplicado arriba)
@@ -522,6 +517,7 @@ Instrucciones:
             context=self._build_llm_context(tracker, flow),
             use_system_prompt=(flow != self.FLOW_ACADEMIC), # <--- AQUÍ SE DESACTIVA PARA ACADÉMICO
             fallback="Lo siento, en este momento no puedo generar una respuesta.",
+            dispatcher=dispatcher,
         )
 
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
@@ -556,6 +552,7 @@ Instrucciones:
             logger.debug("[LLM] Prompt generado (%d caracteres)", len(prompt))
 
             respuesta = self._invoke_llm(
+                dispatcher=dispatcher,
                 tracker=tracker,
                 prompt=prompt,
                 flow=flow,

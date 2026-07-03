@@ -73,7 +73,7 @@ RUN echo '#!/usr/bin/env bash' > /entrypoint_with_log.sh && \
     echo 'fi' >> /entrypoint_with_log.sh && \
     echo '' >> /entrypoint_with_log.sh && \
     echo 'echo "[🚀] Iniciando Rasa..."' >> /entrypoint_with_log.sh && \
-    echo 'exec rasa run --enable-api --cors "*" --endpoints /app/endpoints.yml --credentials /app/credentials.yml --model "$LATEST_MODEL" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
+    echo 'exec rasa run --enable-api --debug --cors "*" --endpoints /app/endpoints.yml --credentials /app/credentials.yml --model "$LATEST_MODEL" --port ${RASA_PORT:-5005}' >> /entrypoint_with_log.sh && \
     chmod +x /entrypoint_with_log.sh
 
 RUN mkdir -p /app/.rasa \

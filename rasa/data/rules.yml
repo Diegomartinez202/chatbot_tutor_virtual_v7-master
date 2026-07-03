@@ -71,21 +71,6 @@ rules:
       - action: action_autosave_snapshot
       - action: action_conectar_humano
   
-  - rule: Confirmar cierre seguro
-    steps:
-      - intent: confirmar_cierre_segura
-      - action: action_confirmar_cierre_seguro_final
-
-  - rule: Cierre seguro inmediato a solicitud del usuario
-    steps:
-      - intent: forzar_salida
-      - action: action_confirmar_cierre_seguro
-
-  - rule: Cancelar cierre seguro
-    steps:
-      - intent: cancelar_cierre_segura
-      - action: action_cancelar_cierre_seguro
-  
   - rule: Guardar progreso guardian
     steps:
       - intent: guardian_guardar_progreso
@@ -135,16 +120,6 @@ rules:
     steps:
       - intent: reanudar_auto_si
       - action: action_autoresume_conversacion
-
-  - rule: No reanudar conversación
-    steps:
-      - intent: reanudar_auto_no
-      - action: action_reset_conversacion_segura
-  
-  - rule: Limpieza total de persistencia segura
-    steps:
-      - intent: solicitar_reinicio
-      - action: action_reset_conversacion_segura
 
   - rule: Guardar estado seguridad
     steps:
@@ -215,11 +190,6 @@ rules:
       - intent: ver_estado_estudiante
       - action: action_ver_estado_estudiante
 
-  - rule: Intentar cerrar conversación con procesos pendientes
-    steps:
-      - intent: solicitar_cierre
-      - action: action_verificar_proceso_activo
-
   - rule: Finalizar encuesta (Submit)
     condition:
     - active_loop: encuesta_satisfaccion_form
@@ -227,6 +197,8 @@ rules:
     - action: encuesta_satisfaccion_form
     - active_loop: null
     - action: action_registrar_encuesta 
+    - slot_was_set:
+      - encuesta_activa: false
 
   - rule: Cancelar encuesta_satisfaccion_form
     condition:
@@ -269,11 +241,6 @@ rules:
     steps:
       - intent: volver
       - action: utter_volver_menu
-
-  - rule: Terminar conversación segura
-    steps:
-      - intent: terminar_conversacion_segura
-      - action: utter_confirmar_cierre_seguro
   
   - rule: Reinicio total del sistema
     steps:
@@ -283,3 +250,29 @@ rules:
     steps:
       - intent: despedida
       - action: action_finalizar_conversacion
+  
+  - rule: Cierre inteligente de conversación (Finalización limpia)
+    steps:
+      - intent: salir
+      - action: action_finalizar_conversacion
+
+  - rule: Iniciar flujo de cierre seguro
+    steps:
+      - intent: terminar_conversacion_segura
+      - action: action_confirmar_cierre
+      
+  - rule: Cancelar cierre si el usuario se arrepiente
+    condition:
+      - slot_was_set:
+          - confirmacion_cierre: "pendiente"
+    steps:
+      - intent: deny
+      - action: action_cancelar_cierre
+
+  - rule: Confirmar cierre seguro (cuando la confirmación está pendiente)
+    condition:
+       - slot_was_set:
+           - confirmacion_cierre: "pendiente"
+    steps:
+      - intent: affirm
+      - action: action_terminar_conversacion_segura
