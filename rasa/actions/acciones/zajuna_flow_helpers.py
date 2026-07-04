@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 from rasa_sdk import Tracker
 from rasa_sdk.executor import CollectingDispatcher
@@ -49,13 +49,22 @@ def require_auth(
     tracker: Tracker,
     accion: str,
     seccion: str,
-) -> bool:
+) -> tuple[bool, Dict[str, Any] | None]:
     """
     Evalúa si la sesión está autenticada.
-    Retorna True si bloquea el flujo (solicita login) o False si permite continuar.
+
+    Retorna:
+
+        (False, None)
+            → El usuario ya está autenticado y el flujo puede continuar.
+
+        (True, llm_request)
+            → El flujo debe detenerse y la Action llamadora deberá
+              enviar la solicitud al ActionHandleWithLLM.
     """
+
     if is_authenticated(tracker):
-        return False
+        return False, None
 
     url = base_url(tracker)
 
@@ -74,31 +83,22 @@ def require_auth(
         f"3. Ve a {seccion}"
     )
 
-    try:
-        text = run_llm(
-            prompt=prompt,
-            tracker=tracker,
-            context={
-                "flujo": "auth_required",
-                "accion": accion,
-                "seccion": seccion,
-            },
-            fallback=fallback,
-        )
+    llm_request = {
+        "instruction": prompt,
+        "context": {
+            "flujo": "auth_required",
+            "accion": accion,
+            "seccion": seccion,
+        },
+        "fallback": fallback,
+    }
 
-        dispatcher.utter_message(
-            text=text.strip() if text else fallback
-        )
+    # Mantener la pista visual de autenticación.
+    dispatcher.utter_message(
+        response="utter_login_hint"
+    )
 
-    except Exception:
-        logger.exception("[AUTH] error generando mensaje dinámico con LLM")
-        dispatcher.utter_message(text=fallback)
-
-    # Dispara la pista visual/interactiva de logueo definida en el dominio
-    dispatcher.utter_message(response="utter_login_hint")
-
-    return True
-
+    return True, llm_request
 
 # ================================================================
 # BACKEND WRAPPER

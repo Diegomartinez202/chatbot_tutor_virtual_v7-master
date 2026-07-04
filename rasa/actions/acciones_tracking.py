@@ -27,7 +27,7 @@ class ActionIncrementarTurnosConversacion(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Firma estandarizada con DomainDict
+        domain: DomainDict,
     ) -> List[EventType]:
         """
         Incrementa el contador de turnos y

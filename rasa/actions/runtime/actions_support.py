@@ -3,7 +3,6 @@ from rasa_sdk.executor import CollectingDispatcher
 from typing import Text
 
 from ..core.llm_engine import run_llm
-from ..core.prompts import PROMPT_SYSTEM
 
 
 class ActionSoporteLLM(Action):

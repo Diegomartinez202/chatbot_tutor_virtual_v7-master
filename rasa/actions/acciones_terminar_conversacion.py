@@ -89,17 +89,29 @@ def registrar_encuesta_si_corresponde(tracker: Tracker):
 
         logger.exception("No fue posible registrar encuesta.")
 
-def despedir_usuario(dispatcher, tracker, usar_llm=True):
+def despedir_usuario(
+    dispatcher,
+    tracker,
+    usar_llm=True,
+) -> List[EventType]:
 
     if not usar_llm:
 
-        dispatcher.utter_message(response="utter_despedida")
+        dispatcher.utter_message(
+            response="utter_despedida"
+        )
 
-        return
+        return []
 
     ultimo_intent = (
         tracker.latest_message or {}
-    ).get("intent", {}).get("name", "desconocido")
+    ).get(
+        "intent",
+        {},
+    ).get(
+        "name",
+        "desconocido",
+    )
 
     safe_slots = {
 
@@ -107,101 +119,113 @@ def despedir_usuario(dispatcher, tracker, usar_llm=True):
 
         for k, v in tracker.current_slot_values().items()
 
-        if k not in {
+        if (
+            k not in {
 
-            "user_token",
+                "user_token",
 
-            "auth_token",
+                "auth_token",
 
-            "password",
+                "password",
 
-            "cedula",
+                "cedula",
 
-            "email",
+                "email",
 
-            "correo",
+                "correo",
 
-            "nombre",
+                "nombre",
 
-        }
+            }
 
-        and v
+            and v
+        )
 
     }
 
-    try:
+    return [
 
-        mensaje = run_llm(
+        SlotSet(
+            "llm_request",
+            {
+                "instruction": (
+                    "Despide al estudiante de forma profesional."
+                ),
 
-            prompt="Despide al estudiante de forma profesional.",
+                "context": {
+                    "flujo": "cierre_conversacion",
+                    "ultimo_intent": ultimo_intent,
+                    "slots": json.dumps(
+                        safe_slots
+                    )[:500],
+                },
 
-            tracker=tracker,
-
-            context={
-
-                "ultimo_intent": ultimo_intent,
-
-                "slots": json.dumps(safe_slots)[:500],
-
+                "fallback": (
+                    "Gracias por tu tiempo. "
+                    "Estaré aquí cuando necesites ayuda."
+                ),
+                "next_action": (
+                    "action_finalizar_cierre"
+                ),  
             },
+        ),
 
-            fallback="Gracias por tu tiempo. Estaré aquí cuando necesites ayuda.",
+        FollowupAction(
+            "action_handle_with_llm"
+        ),
 
-        )
-
-        dispatcher.utter_message(
-
-            text=mensaje if isinstance(mensaje, str) else "Hasta pronto."
-
-        )
-
-    except Exception:
-
-        dispatcher.utter_message(response="utter_despedida")
+    ]
 
 def ejecutar_cierre_limpio(
     dispatcher,
     tracker,
     finalizar_encuesta=False,
     usar_llm=True,
-):
+) -> List[EventType]:
 
+    # --------------------------------------------------------
+    # Si el usuario mostró frustración o confusión,
+    # ofrecer contacto con un tutor antes del cierre.
+    # --------------------------------------------------------
     if tracker.get_slot("emocion_detectada") in {
-
         "frustrado",
-
         "confundido",
-
     }:
 
         dispatcher.utter_message(
-
             response="utter_ofrecer_contacto_tutor"
-
         )
 
+    # --------------------------------------------------------
+    # Limpiar información persistida en Mongo.
+    # --------------------------------------------------------
     limpiar_mongo(tracker)
 
+    # --------------------------------------------------------
+    # Registrar encuesta pendiente si corresponde.
+    # --------------------------------------------------------
     if finalizar_encuesta:
-
         registrar_encuesta_si_corresponde(tracker)
 
-    despedir_usuario(
+    # --------------------------------------------------------
+    # Preparar eventos del cierre.
+    # despedir_usuario() devolverá:
+    #
+    #   • [] cuando usar_llm=False
+    #
+    #   • o bien:
+    #       SlotSet("llm_request", ...)
+    #       FollowupAction("action_handle_with_llm")
+    #
+    # --------------------------------------------------------
+    events: List[EventType] = []
 
-        dispatcher,
-
-        tracker,
-
-        usar_llm=usar_llm,
-
-    )
-
-    events = limpiar_slots()
-
-    events.append(
-
-        FollowupAction("action_reiniciar_conversacion")
-
+    events.extend(
+        despedir_usuario(
+            dispatcher,
+            tracker,
+            usar_llm=usar_llm,
+        )
     )
 
     return events
@@ -275,3 +299,37 @@ class ActionCierreLimpio(Action):
             usar_llm=True,
 
         )
+
+class ActionFinalizarCierre(Action):
+    """
+    Ejecuta el cierre definitivo una vez el LLM ya envió
+    la despedida al usuario.
+
+    Esta acción limpia el estado conversacional y reinicia
+    la conversación para que un nuevo saludo comience desde
+    un contexto limpio.
+    """
+
+    def name(self) -> Text:
+        return "action_finalizar_cierre"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[CIERRE] Finalizando conversación."
+        )
+
+        events = limpiar_slots()
+
+        events.append(
+            FollowupAction(
+                "action_reiniciar_conversacion"
+            )
+        )
+
+        return events

@@ -94,6 +94,7 @@ class ActionHandleWithLLM(Action):
     FLOW_AUTH = "auth"
     FLOW_ACADEMIC = "academic"
     FLOW_HELP = "help"
+    FLOW_SUPPORT = "support"
     FLOW_GENERAL = "general"
 
     def name(self) -> Text:
@@ -133,32 +134,83 @@ class ActionHandleWithLLM(Action):
 
         return self._build_general_prompt(tracker)
 
-    # ==========================================================
-    # DETECCIÓN DEL FLUJO
-    # ==========================================================
+# ==========================================================
+# DETECCIÓN DEL FLUJO
+# ==========================================================
 
-    def _detect_flow(self, tracker: Tracker) -> str:
-        # 1. Definimos si es un flujo académico ANTES de mirar la autenticación
-        es_academico = (
-            tracker.get_slot("tema_consulta") 
-            or tracker.get_slot("materia_detectada")
-        )
+def _detect_flow(
+    self,
+    tracker: Tracker,
+) -> str:
+    """
+    Determina el macroflujo conversacional.
 
-        # 2. Si es académico, retornamos FLOW_ACADEMIC ignorando la autenticación
-        if es_academico:
-            return self.FLOW_ACADEMIC
+    Prioridad:
 
-        # 3. Solo si NO es académico, verificamos la autenticación
-        if tracker.get_slot("requires_auth"):
-            return self.FLOW_AUTH
+        1. Académico
+        2. Autenticación
+        3. Soporte
+        4. Ayuda
+        5. General
 
-        # ... resto del método (ayuda, general)
-        latest = tracker.latest_message or {}
-        intent = latest.get("intent", {}).get("name", "")
-        if intent == "ayuda":
-            return self.FLOW_HELP
-        
-        return self.FLOW_GENERAL
+    Los subflujos (PQRS, certificados, correo,
+    soporte técnico, etc.) permanecen dentro del
+    contexto del LLM y no modifican el flujo principal.
+    """
+
+    # ======================================================
+    # 1. FLUJO ACADÉMICO
+    # ======================================================
+
+    es_academico = bool(
+
+        tracker.get_slot("tema_consulta")
+        or tracker.get_slot("materia_detectada")
+
+    )
+
+    if es_academico:
+        return self.FLOW_ACADEMIC
+
+    # ======================================================
+    # 2. AUTENTICACIÓN
+    # ======================================================
+
+    if tracker.get_slot("requires_auth"):
+        return self.FLOW_AUTH
+
+    # ======================================================
+    # 3. SOPORTE
+    # ======================================================
+
+    llm_request = tracker.get_slot("llm_request") or {}
+
+    context = llm_request.get("context", {})
+
+    if context.get("flujo") == "support":
+        return self.FLOW_SUPPORT
+
+    # ======================================================
+    # 4. AYUDA
+    # ======================================================
+
+    latest = tracker.latest_message or {}
+
+    intent = (
+
+        latest.get("intent", {})
+        .get("name", "")
+
+    )
+
+    if intent == "ayuda":
+        return self.FLOW_HELP
+
+    # ======================================================
+    # 5. GENERAL
+    # ======================================================
+
+    return self.FLOW_GENERAL
 
     # ==========================================================
     # BUILDERS ESPECIALIZADOS
@@ -480,87 +532,314 @@ Instrucciones:
             "confidence": intent.get("confidence", 0.0),
             "session_id": tracker.get_slot("session_id"),
         }
+
+        # ==========================================================
+    # EVENTOS DE CONTINUIDAD DEL FLUJO
     # ==========================================================
-    # INVOCACIÓN DEL LLM
-    # ==========================================================
 
-    def _invoke_llm(self, dispatcher: CollectingDispatcher, tracker: Tracker, prompt: str, flow: str) -> str:
-        logger.info("[LLM] Preparando prompt para flujo '%s'", flow)
+    def _build_followup_events(
+        self,
+        flow: str,
+    ) -> List[EventType]:
+        """
+        Construye los eventos de continuación del flujo una vez que
+        la respuesta del LLM ha sido enviada al usuario.
 
-        # Historial (con el filtro aplicado arriba)
-        history = "" if flow == self.FLOW_ACADEMIC else self._build_history(tracker)
+        Centralizar esta lógica evita que _ejecutar_procesamiento_llm()
+        siga creciendo cada vez que se agreguen nuevos macroflujos.
+        """
 
-        # Pregunta actual
-        latest = tracker.latest_message or {}
-        user_message = (tracker.get_slot("tema_consulta") or latest.get("text", "")) if flow == self.FLOW_ACADEMIC else latest.get("text", "")
+        events: List[EventType] = [
 
-        # Memoria semántica
-        memory = ""
-        if flow != self.FLOW_ACADEMIC and user_message.strip():
-            memory = self._recover_semantic_memory(tracker=tracker, text=user_message)
+            SlotSet(
+                "llm_request",
+                None,
+            ),
 
-        # Prompt final
+        ]
+
+        # ------------------------------------------------------
+        # Flujo académico
+        # ------------------------------------------------------
+
         if flow == self.FLOW_ACADEMIC:
-            prompt_final = prompt
-        else:
-            prompt_final = PROMPT_TEMPLATE.format(
-                history=history or "Sin historial reciente.",
-                memory=memory or "Sin contexto previo relevante.",
-                question=user_message,
-                instructions=prompt,
+
+            events.append(
+
+                FollowupAction(
+                    "action_ofrecer_continuar_tema"
+                )
+
             )
 
-        # --- INVOCACIÓN ---
-        return run_llm(
-            prompt=prompt_final,
-            tracker=tracker,
-            context=self._build_llm_context(tracker, flow),
-            use_system_prompt=(flow != self.FLOW_ACADEMIC), # <--- AQUÍ SE DESACTIVA PARA ACADÉMICO
-            fallback="Lo siento, en este momento no puedo generar una respuesta.",
-            dispatcher=dispatcher,
+        # ------------------------------------------------------
+        # Flujo de soporte
+        # ------------------------------------------------------
+
+        elif flow == self.FLOW_SUPPORT:
+
+            events.append(
+
+                FollowupAction(
+                    "action_preguntar_resolucion"
+                )
+
+            )
+
+        # ------------------------------------------------------
+        # Futuros flujos
+        # ------------------------------------------------------
+        #
+        # elif flow == self.FLOW_CERTIFICADOS:
+        #     ...
+        #
+        # elif flow == self.FLOW_MATRICULA:
+        #     ...
+        #
+        # elif flow == self.FLOW_BIENESTAR:
+        #     ...
+        #
+        # ------------------------------------------------------
+
+        return events
+# ==========================================================
+# INVOCACIÓN DEL LLM
+# ==========================================================
+
+def _invoke_llm(
+    self,
+    dispatcher: CollectingDispatcher,
+    tracker: Tracker,
+    prompt: str,
+    flow: str,
+    context: Dict[str, Any],
+    fallback: str,
+) -> str:
+    """
+    Centraliza la invocación al motor LLM.
+
+    Responsabilidades:
+
+    • Construir el prompt final.
+    • Incorporar historial cuando corresponda.
+    • Recuperar memoria semántica.
+    • Registrar el flujo lógico utilizado.
+    • Invocar run_llm().
+
+    Los subflujos (guardian_autosave, guardian_encuesta,
+    handoff, pqrs, soporte, etc.) llegan mediante el
+    parámetro 'context' y NO requieren crear nuevos FLOW_*.
+    """
+
+    # ------------------------------------------------------
+    # Flujo principal
+    # ------------------------------------------------------
+
+    logger.info(
+        "[LLM] Preparando prompt para flujo '%s'",
+        flow,
+    )
+
+    # ------------------------------------------------------
+    # Subflujo (si existe)
+    # ------------------------------------------------------
+
+    subflow = ""
+
+    if isinstance(context, dict):
+        subflow = context.get("flujo", "")
+
+    if subflow:
+
+        logger.debug(
+            "[LLM] Subflujo detectado: %s",
+            subflow,
         )
 
+    # ------------------------------------------------------
+    # Historial
+    # ------------------------------------------------------
+
+    history = (
+        ""
+        if flow == self.FLOW_ACADEMIC
+        else self._build_history(tracker)
+    )
+
+    # ------------------------------------------------------
+    # Mensaje del usuario
+    # ------------------------------------------------------
+
+    latest = tracker.latest_message or {}
+
+    if flow == self.FLOW_ACADEMIC:
+
+        user_message = (
+            tracker.get_slot("tema_consulta")
+            or latest.get("text", "")
+        )
+
+    else:
+
+        user_message = latest.get(
+            "text",
+            "",
+        )
+
+    # ------------------------------------------------------
+    # Memoria semántica
+    # ------------------------------------------------------
+
+    memory = ""
+
+    if (
+        flow != self.FLOW_ACADEMIC
+        and user_message.strip()
+    ):
+
+        memory = self._recover_semantic_memory(
+            tracker=tracker,
+            text=user_message,
+        )
+
+    # ------------------------------------------------------
+    # Construcción del prompt
+    # ------------------------------------------------------
+
+    if flow == self.FLOW_ACADEMIC:
+
+        prompt_final = prompt
+
+    else:
+
+        prompt_final = PROMPT_TEMPLATE.format(
+
+            history=(
+                history
+                or "Sin historial reciente."
+            ),
+
+            memory=(
+                memory
+                or "Sin contexto previo relevante."
+            ),
+
+            question=user_message,
+
+            instructions=prompt,
+
+        )
+
+    # ------------------------------------------------------
+    # Invocación centralizada
+    # ------------------------------------------------------
+
+    return run_llm(
+
+        prompt=prompt_final,
+
+        tracker=tracker,
+
+        context=context,
+
+        fallback=fallback,
+
+        dispatcher=dispatcher,
+
+    )
+       
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
         limpieza = [ActiveLoop(None), SlotSet("requested_slot", None)]
         flow = self._detect_flow(tracker)
         
-        # 1. Detectar intención
         intent = tracker.get_intent_of_latest_message()
         
-        # 2. Si el usuario inicia un tema nuevo, guardamos el tema en el slot
+       
         if intent == "explicacion_academica":
-            # Extraemos el tema de la entidad o del mensaje
+         
             nuevo_tema = tracker.latest_message.get("text")
             return limpieza + [SlotSet("tema_actual", nuevo_tema)] + self._ejecutar_procesamiento_llm(dispatcher, tracker, self.FLOW_ACADEMIC)
 
-        # 3. Si el usuario presiona "Continuar tema"
+      
         if intent == "continuar_tema":
             tema_persistido = tracker.get_slot("tema_actual") or "el tema anterior"
             prompt_enriquecido = f"Contexto: {tema_persistido}. Continúa con el siguiente paso lógico. NO saludes, no repitas la introducción, ve directo al grano."
             return self._ejecutar_procesamiento_llm(dispatcher, tracker, flow, prompt=prompt_enriquecido)
 
         return limpieza + self._ejecutar_procesamiento_llm(dispatcher, tracker, flow)
+    
+    
     def _ejecutar_procesamiento_llm(
-        self, dispatcher: CollectingDispatcher, tracker: Tracker, flow: str
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        flow: str,
     ) -> List[EventType]:
         """
-        Método auxiliar que contiene toda tu lógica original de procesamiento.
+        Procesa la interacción con el LLM.
+
+        Responsabilidades:
+
+        - Construir el prompt.
+        - Invocar el LLM.
+        - Interpretar la respuesta.
+        - Enviar la respuesta al usuario.
+        - Delegar la continuación del flujo.
         """
+
         try:
-            prompt = self._build_prompt(tracker)
-            
-            logger.debug("[LLM] Prompt generado (%d caracteres)", len(prompt))
+
+            llm_request = tracker.get_slot("llm_request")
+
+            if llm_request:
+
+                prompt = llm_request.get(
+                    "instruction",
+                    "",
+                )
+
+                context = llm_request.get(
+                    "context",
+                    {},
+                )
+
+                fallback = llm_request.get(
+                    "fallback",
+                    "Lo siento, no puedo responder en este momento.",
+                )
+
+            else:
+
+                prompt = self._build_prompt(
+                    tracker,
+                )
+
+                context = self._build_llm_context(
+                    tracker,
+                    flow,
+                )
+
+                fallback = (
+                    "Lo siento, no puedo responder en este momento."
+                )
+
+            logger.debug(
+                "[LLM] Prompt generado (%d caracteres)",
+                len(prompt),
+            )
 
             respuesta = self._invoke_llm(
                 dispatcher=dispatcher,
                 tracker=tracker,
                 prompt=prompt,
                 flow=flow,
+                context=context,
+                fallback=fallback,
             )
 
-            # ==========================================================
+            # ======================================================
             # INTERPRETAR RESPUESTA DEL LLM
-            # ==========================================================
+            # ======================================================
 
             respuesta = respuesta.strip()
 
@@ -576,21 +855,16 @@ Instrucciones:
                     .strip()
                 )
 
-                if (
-                    intent_llm == "solicitar_autenticacion"
-                    and flow != self.FLOW_ACADEMIC
-                ):
-
-                    logger.info(
-                        "[LLM] Intent autenticación detectado."
-                    )
-
                 texto = "\n".join(
                     lineas[1:]
                 ).strip()
 
                 if texto:
-                    dispatcher.utter_message(text=texto)
+
+                    dispatcher.utter_message(
+                        text=texto,
+                    )
+
                     respuesta_enviada = True
 
                 logger.info(
@@ -601,27 +875,42 @@ Instrucciones:
             else:
 
                 dispatcher.utter_message(
-                    text=respuesta
+                    text=respuesta,
                 )
+
                 respuesta_enviada = True
 
             if respuesta_enviada:
+
                 logger.info(
                     "[LLM] Respuesta enviada correctamente."
                 )
-            # ==========================================================
-            # CONTINUIDAD DEL FLUJO ACADÉMICO
-            # ==========================================================
 
-            if flow == self.FLOW_ACADEMIC:
+            llm_request = tracker.get_slot("llm_request") or {}
+            next_action = llm_request.get("next_action")
+
+            if next_action:
 
                 return [
-                    FollowupAction(
-                        "action_ofrecer_continuar_tema"
-                    )
-                ]
 
-            return []
+                    SlotSet(
+                        "llm_request",
+                        None,
+                    ),
+
+                    FollowupAction(
+                        next_action,
+                    ),
+
+                ]
+          
+            # ======================================================
+            # CONTINUACIÓN DEL FLUJO
+            # ======================================================
+
+            return self._build_followup_events(
+                flow,
+            )
 
         except Exception:
 
@@ -637,10 +926,17 @@ Instrucciones:
             )
 
             return [
+
+                SlotSet(
+                    "llm_request",
+                    None,
+                ),
+
                 SlotSet(
                     "requires_auth",
                     None,
-                )
+                ),
+
             ]
 
 class ActionMemoryWrapper(Action):

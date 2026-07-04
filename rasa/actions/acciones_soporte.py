@@ -208,38 +208,41 @@ class ActionEnviarSoporte(Action):
         )
 
         if ok:
-            texto_base = (
-                "Se ha registrado una solicitud de soporte rápido para el usuario. "
-                "El sistema enviará el ticket al equipo de ayuda y un agente lo revisará. "
-                "Genera un mensaje breve y empático agradeciendo al usuario por la información, "
-                "indicando que un agente lo contactará por el medio registrado y que, si el problema es urgente, "
-                "puede revisar también los canales oficiales de soporte."
-            )
-            contexto_llm = {
-                "flujo": "soporte_rapido",
-                "tiene_correo_valido": bool(email),
-            }
-            historial_reducido = get_last_turns(tracker, n=2)
-            prompt_soporte = f"{historial_reducido}\n\nInstrucción: {texto_base}"
 
-            try:
-                # MEJORA: Corrección del texto del parámetro fallback para alinearlo al dominio de soporte
-                mensaje_llm = run_llm(
-                    prompt=prompt_soporte,
-                    tracker=tracker,
-                    context=contexto_llm,
-                    fallback="✅ He enviado tu solicitud de soporte de forma exitosa. Un agente de soporte la revisará."
-                )
-                if mensaje_llm and mensaje_llm.strip():
-                    dispatcher.utter_message(text=mensaje_llm.strip())
-                else:
-                    dispatcher.utter_message(
-                        text="✅ He enviado tu solicitud de soporte. Un agente te contactará."
-                    )
-            except Exception:
-                dispatcher.utter_message(
-                    text="✅ He enviado tu solicitud de soporte. Un agente te contactará."
-                )
+            return [
+
+                SlotSet(
+                    "llm_request",
+                    {
+                        "flow": "support",
+
+                        "instruction":
+                            (
+                                "Agradece al estudiante por reportar el problema. "
+                                "Indica que el ticket fue registrado correctamente y "
+                                "que un agente revisará el caso y lo contactará por el "
+                                "medio registrado. Si el caso es urgente, menciona "
+                                "que puede utilizar los canales oficiales de soporte."
+                            ),
+
+                        "context":
+                        {
+                            "flujo": "support",
+                            "correo_valido": bool(email),
+                        },
+
+                        "fallback":
+                            (
+                                 "✅ Tu solicitud fue registrada correctamente. "
+                                 "Un agente revisará el caso."
+                            ),
+                    },
+                ),
+
+               FollowupAction(
+                   "action_handle_with_llm"
+               ),
+            ]
         else:
             dispatcher.utter_message(
                 text=(
@@ -362,33 +365,37 @@ class ActionSoporteSubmit(Action):
                     f"Descripción del problema: {resumen_mensaje}"
                 )
 
-            contexto_llm = {
-                "flujo": "soporte_tecnico",
-                "tipo_soporte": tipo_soporte,
-                "motivo_soporte": resumen_motivo,
-                "prefer_contacto": (prefer_contacto or "no_especificado"),
-            }
+            events.append(
 
-            mensaje_final = run_llm(
-                prompt=texto_base,
-                tracker=tracker,
-                context=contexto_llm,
-                fallback=(
-                    "✅ Tu solicitud fue registrada correctamente. "
-                    "Un asesor revisará el caso y se comunicará contigo."
-                ),
+                SlotSet(
+                    "llm_request",
+                    {
+                        "instruction": texto_base,
+
+                        "context":
+                        {
+                            "flujo": "support",
+                            "tipo_soporte": tipo_soporte,
+                            "motivo": resumen_motivo,
+                            "prefer_contacto": (
+                                prefer_contacto or "no_especificado"
+                            ),
+                        },
+
+                        "fallback":
+                            (
+                                "✅ Tu solicitud fue registrada correctamente. "
+                                "Un asesor revisará el caso."
+                            )
+                    }
+                )
             )
 
-            dispatcher.utter_message(text=mensaje_final)
-
-            if tracker.get_slot("escalar_humano"):
-                events.append(
-                    FollowupAction("action_derivar_y_registrar_humano")
+            events.append(
+                FollowupAction(
+                    "action_handle_with_llm"
                 )
-            else:
-                dispatcher.utter_message(
-                    response="utter_preguntar_satisfaccion"
-                )
+            )
 
             events.append(SlotSet("escalar_humano", False))
             return events
@@ -568,34 +575,40 @@ class ActionPreguntasFrecuentesLLM(Action):
 
 
 class ActionSoporteTecnicoLLM(Action):
+
     def name(self) -> Text:
         return "action_soporte_tecnico_llm"
 
     def run(
         self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
+        dispatcher,
+        tracker,
+        domain,
     ) -> List[EventType]:
 
         logger.info("ActionSoporteTecnicoLLM ejecutada.")
 
-        prompt = (
-            "Genera un mensaje corto, empático y profesional para un estudiante "
-            "que acaba de pedir soporte técnico en la plataforma Zajuna."
-        )
+        return [
 
-        intro = run_llm(prompt, tracker=tracker)
-        dispatcher.utter_message(text=intro)
+            SlotSet(
+                "llm_request",
+                {
+                    "instruction": (
+                        "Genera un mensaje corto, empático y profesional "
+                        "para un estudiante que acaba de pedir soporte "
+                        "técnico en la plataforma Zajuna."
+                    ),
 
-        dispatcher.utter_message(
-            text=(
-                "🛠️ Revisemos tu problema técnico.\n\n"
-                "Te ayudaré paso a paso y, si es necesario, podremos "
-                "escalar el caso a soporte humano."
-            )
-        )
+                    "context": {
+                        "flujo": "support"
+                    },
 
-        dispatcher.utter_message(response="utter_menu_soporte")
+                    "fallback":
+                        "Hola. Revisemos tu problema técnico."
+                }
+            ),
 
-        return [FollowupAction("action_handle_with_llm")]
+            FollowupAction(
+                "action_handle_with_llm"
+            ),
+        ]

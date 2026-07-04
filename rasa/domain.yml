@@ -870,6 +870,7 @@ actions:
 - action_guardar_encuesta_general
 - action_decidir_cierre
 - action_cierre_limpio
+- action_finalizar_cierre
 
 
 

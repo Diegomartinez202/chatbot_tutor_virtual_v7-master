@@ -11,6 +11,7 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import (
     SlotSet,
+    FollowupAction,
     ConversationPaused,
     ConversationResumed,
     EventType,
@@ -80,6 +81,50 @@ class ActionAutosaveSnapshot(Action):
     def name(self) -> Text:
         return "action_autosave_snapshot"
 
+    # ==========================================================
+    # HELPER
+    # ==========================================================
+    def _build_guardian_snapshot_llm_request(
+        self,
+        events_count: int,
+    ) -> Dict[str, Any]:
+        """
+        Construye la solicitud que será procesada por
+        ActionHandleWithLLM.
+
+        Esta acción NO genera lenguaje natural directamente.
+        Solo prepara el contexto para el orquestador central.
+        """
+
+        return {
+            "instruction": (
+                "Se guardó un snapshot automático de la sesión para "
+                "poder retomarla más adelante o para que un asesor "
+                "humano tenga contexto del caso. "
+                "Aclara que no se almacenan contraseñas ni información "
+                "financiera sensible."
+            ),
+            "context": {
+                "flujo": "guardian_autosave",
+                "events_count": events_count,
+            },
+
+            "fallback": (
+                "✅ Se guardó una copia de seguridad de la sesión."
+            ),
+            "context": {
+
+                "flujo": "guardian_encuesta",
+            },
+            "fallback": (
+                "✅ Registro de satisfacción guardado correctamente."
+            ),
+
+        }
+
+    # ==========================================================
+    # RUN
+    # ==========================================================
     def run(
         self,
         dispatcher: CollectingDispatcher,
@@ -88,21 +133,26 @@ class ActionAutosaveSnapshot(Action):
     ) -> List[EventType]:
 
         sender_id = _safe_sender(tracker)
-        gc = None  # MEJORA: Inicialización segura para evitar UnboundLocalError en cascada
+
+        gc = None
         ok = False
+
         data = {
             "latest_intent": _safe_latest_intent(tracker),
             "slots": tracker.current_slot_values() or {},
             "events_count": len(tracker.events or []),
         }
 
+        # --------------------------------------------------------
+        # Crear cliente Guardian
+        # --------------------------------------------------------
         try:
+
             logger.info(
                 "[GUARDIAN CONFIG] url=%s user=%s",
                 GUARDIAN_URL,
                 GUARDIAN_USER,
             )
-
 
             gc = GuardianClient(
                 base_url=GUARDIAN_URL,
@@ -113,12 +163,12 @@ class ActionAutosaveSnapshot(Action):
             )
 
             logger.info(
-                f"[GUARDIAN_AUTOSAVE] "
-                f"user={sender_id} "
-                f"intent={data['latest_intent']} "
-                f"events={data['events_count']}"
+                "[GUARDIAN_AUTOSAVE] user=%s intent=%s events=%s",
+                sender_id,
+                data["latest_intent"],
+                data["events_count"],
             )
-            
+
             ok = gc.autosave_create(
                 sender_id=sender_id,
                 data=data,
@@ -127,67 +177,9 @@ class ActionAutosaveSnapshot(Action):
         except Exception as e:
 
             logger.exception(
-                f"[GUARDIAN_CONNECTION_ERROR] user={sender_id} error={e}"
-            )
-
-            dispatcher.utter_message(
-                text="⚠️ No fue posible guardar el snapshot en este momento."
-            )
-
-            return []
-
-        # --------------------------------------------------------
-        # ✅ SNAPSHOT OK
-        # --------------------------------------------------------
-        if ok:
-
-            texto_base = (
-                "Se guardó un snapshot automático de la sesión para "
-                "poder retomarla más adelante o para que un asesor "
-                "humano tenga contexto del caso. "
-                "Aclara que no se almacenan contraseñas ni información "
-                "financiera sensible."
-            )
-
-            contexto_llm = {
-                "flujo": "guardian_autosave",
-                "events_count": data["events_count"],
-            }
-
-            try:
-
-                mensaje = run_llm(
-                    prompt=texto_base,
-                    tracker=tracker,
-                    context=contexto_llm,
-                    fallback="✅ Se guardó una copia de seguridad de la sesión.",
-                )
-
-                if mensaje and isinstance(mensaje, str):
-                    dispatcher.utter_message(text=mensaje.strip())
-                else:
-                    raise ValueError("Respuesta vacía del LLM")
-
-            except Exception as e:
-
-                logger.exception(
-                    f"[GUARDIAN_LLM_FALLBACK] user={sender_id} error={e}"
-                )
-
-                dispatcher.utter_message(
-                    text=(
-                        "✅ Se guardó una copia de seguridad de la sesión "
-                        "para poder continuar posteriormente."
-                    )
-                )
-
-        # --------------------------------------------------------
-        # ❌ SNAPSHOT ERROR
-        # --------------------------------------------------------
-        else:
-
-            logger.warning(
-                f"[GUARDIAN_AUTOSAVE_FAILED] user={sender_id}"
+                "[GUARDIAN_CONNECTION_ERROR] user=%s error=%s",
+                sender_id,
+                e,
             )
 
             dispatcher.utter_message(
@@ -197,12 +189,15 @@ class ActionAutosaveSnapshot(Action):
                 )
             )
 
+            return []
+
         # --------------------------------------------------------
-        # 📊 AUDITORÍA (NO BLOQUEANTE)
+        # Auditoría (NO bloqueante)
         # --------------------------------------------------------
         try:
-            # MEJORA: Ejecución condicional estricta verificando que el cliente exista
+
             if gc is not None:
+
                 gc.log_event(
                     "action_autosave_snapshot_called",
                     {
@@ -214,8 +209,44 @@ class ActionAutosaveSnapshot(Action):
         except Exception as e:
 
             logger.warning(
-                f"[GUARDIAN_LOG_EVENT_ERROR] user={sender_id} error={e}"
+                "[GUARDIAN_LOG_EVENT_ERROR] user=%s error=%s",
+                sender_id,
+                e,
             )
+
+        # --------------------------------------------------------
+        # Snapshot guardado correctamente
+        # --------------------------------------------------------
+        if ok:
+
+            return [
+
+                SlotSet(
+                    "llm_request",
+                    self._build_guardian_snapshot_llm_request(
+                        data["events_count"]
+                    ),
+                ),
+
+                FollowupAction(
+                    "action_handle_with_llm"
+                ),
+            ]
+
+        # --------------------------------------------------------
+        # Error guardando snapshot
+        # --------------------------------------------------------
+        logger.warning(
+            "[GUARDIAN_AUTOSAVE_FAILED] user=%s",
+            sender_id,
+        )
+
+        dispatcher.utter_message(
+            text=(
+                "⚠️ No fue posible guardar el snapshot "
+                "en este momento."
+            )
+        )
 
         return []
 
@@ -400,6 +431,38 @@ class ActionRegistrarEncuestaGuardian(Action):
     def name(self) -> str:
         return "action_registrar_encuesta_guardian"
 
+    # ==========================================================
+    # HELPER
+    # ==========================================================
+
+    def _build_llm_request(
+        self,
+        intent: str | None,
+    ) -> Dict[str, Any]:
+
+        return {
+
+            "instruction": (
+                "Informa al usuario que el registro de satisfacción "
+                "fue almacenado correctamente y que el autosave quedó "
+                "actualizado para conservar el contexto de la conversación. "
+                "Agradece brevemente su colaboración."
+            ),
+
+            "context": {
+                "flujo": "guardian_encuesta",
+                "ultimo_intent": intent,
+            },
+
+            "fallback": (
+                "✅ Registro de satisfacción guardado correctamente."
+            ),
+        }
+
+    # ==========================================================
+    # RUN
+    # ==========================================================
+
     def run(
         self,
         dispatcher: CollectingDispatcher,
@@ -410,32 +473,52 @@ class ActionRegistrarEncuestaGuardian(Action):
         latest = tracker.latest_message or {}
 
         data = {
+
             "usuario": tracker.sender_id,
+
             "ultimo_intent": (
                 latest.get("intent", {}) or {}
             ).get("name"),
+
             "texto": latest.get("text"),
+
             "slots": tracker.current_slot_values(),
+
         }
 
         try:
+
             guardar_autosave(
                 tracker.sender_id,
                 data,
-            )
-
-            dispatcher.utter_message(
-                text="✅ Registro de satisfacción guardado y autosave completado."
             )
 
             _log(
                 tracker.sender_id,
                 "registrar_encuesta",
                 "ok",
-                {"intent": data["ultimo_intent"]},
+                {
+                    "intent": data["ultimo_intent"],
+                },
             )
 
+            return [
+
+                SlotSet(
+                    "llm_request",
+                    self._build_llm_request(
+                        data["ultimo_intent"],
+                    ),
+                ),
+
+                FollowupAction(
+                    "action_handle_with_llm"
+                ),
+
+            ]
+
         except Exception:
+
             logger.exception(
                 "[GUARDIAN_SURVEY] error guardando encuesta"
             )
@@ -444,96 +527,4 @@ class ActionRegistrarEncuestaGuardian(Action):
                 text="⚠️ No fue posible registrar la encuesta."
             )
 
-        return []
-
-
-class ActionGuardarAutosave(Action):
-
-    def name(self) -> Text:
-        return "action_guardar_autosave"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Ajustado de Dict a DomainDict para homogeneizar la arquitectura
-    ) -> List[EventType]:
-
-        try:
-            client = GuardianClient(
-                base_url=os.getenv(
-                    "GUARDIAN_URL",
-                    "http://autosave-guardian:8080"
-                ),
-                username=os.getenv(
-                "GUARDIAN_USER",
-                "admin"
-                ),
-                password=os.getenv(
-                    "GUARDIAN_PASSWORD",
-                    ""
-                ),
-            )
-
-        except Exception:
-            logger.exception(
-                "[GUARDIAN_AUTOSAVE] error creando cliente"
-            )
-            client = None
-
-        if not client:
-            dispatcher.utter_message(
-                text="Autosave temporalmente no disponible."
-            )
             return []
-
-        latest = tracker.latest_message or {}
-
-        payload = {
-            "latest_intent": (
-                latest.get("intent", {}) or {}
-            ).get("name"),
-            "latest_text": latest.get("text"),
-            "slots": tracker.current_slot_values(),
-        }
-
-        try:
-            ok = client.autosave_create(
-                tracker.sender_id,
-                payload,
-            )
-
-        except Exception:
-            logger.exception(
-                "[GUARDIAN_AUTOSAVE] error creando autosave"
-            )
-            ok = False
-
-        if ok:
-            dispatcher.utter_message(
-                response="utter_guardando_progreso"
-            )
-
-            return [
-                SlotSet("encuesta_activa", True)
-            ]
-
-        return []
-
-class ActionGuardarEncuestaIncompleta(Action):
-    def name(self) -> Text:
-        return "action_guardar_encuesta_incompleta"
-
-    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: DomainDict) -> List[EventType]:
-        usuario = tracker.sender_id
-        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        dispatcher.utter_message(text=f"Guardando tu progreso de encuesta ({fecha}) para el usuario {usuario}…")
-        dispatcher.utter_message(text="✅ Encuesta parcial registrada correctamente.")
-        return [
-            SlotSet("encuesta_incompleta", False),
-            SlotSet("proceso_activo", None),
-        ]
-
-    @staticmethod  
-    def _safe_latest(tracker: Tracker) -> Dict[str, Any]:
-        return tracker.latest_message or {}

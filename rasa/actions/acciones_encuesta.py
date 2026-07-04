@@ -134,6 +134,7 @@ class ActionRegistrarEncuesta(Action):
         # ==========================================================
         # 1. RECUPERAR RESPUESTAS DE LA ENCUESTA
         # ==========================================================
+
         satisfaccion = (
             tracker.get_slot("nivel_satisfaccion")
             or tracker.get_slot("satisfaccion")
@@ -163,93 +164,103 @@ class ActionRegistrarEncuesta(Action):
         # ==========================================================
         # 2. GUARDAR ENCUESTA
         # ==========================================================
+
         try:
+
             _append_jsonl(registro)
+
+            logger.info(
+                "[ENCUESTA] Encuesta registrada correctamente."
+            )
+
         except Exception:
+
             logger.exception(
                 "[ENCUESTA] error guardando encuesta"
             )
 
         # ==========================================================
-        # 3. RESPUESTA AMIGABLE DEL LLM
+        # 3. LIMPIEZA DE SLOTS
         # ==========================================================
-        texto_base = (
-            f"Se registró una encuesta de satisfacción con nivel "
-            f"'{satisfaccion}'. "
-            f"Comentario del usuario: \"{comentario}\". "
-            "Agradece de forma amable el tiempo del usuario "
-            "y recuérdale que su opinión ayuda a mejorar."
-        )
 
-        contexto_llm = {
-            "flujo": "encuesta_satisfaccion",
-            "nivel_satisfaccion": satisfaccion,
-            "tiene_comentario": bool(
-                comentario and comentario.strip()
+        events: List[EventType] = [
+
+            SlotSet(
+                "encuesta_incompleta",
+                False,
             ),
-        }
 
-        mensaje_final = run_llm(
-            prompt=texto_base,
-            tracker=tracker,
-            context=contexto_llm,
-            fallback=texto_base,
-        )
+            SlotSet(
+                "nivel_satisfaccion",
+                None,
+            ),
 
-        dispatcher.utter_message(text=mensaje_final)
+            SlotSet(
+                "comentario",
+                None,
+            ),
 
-        logger.info(
-            "[ENCUESTA] Encuesta registrada correctamente. "
-            "Se delega el cierre a action_cierre_limpio."
-        )
+            SlotSet(
+                "encuesta_tipo",
+                None,
+            ),
 
-        # ==========================================================
-        # 4. LIMPIEZA DE SLOTS
-        # ==========================================================
-        events = [
+            SlotSet(
+                "calificacion_numerica",
+                None,
+            ),
 
-            SlotSet("encuesta_incompleta", False),
+            SlotSet(
+                "problema_resuelto",
+                None,
+            ),
 
-            SlotSet("nivel_satisfaccion", None),
+            # Compatibilidad con la arquitectura existente
+            SlotSet(
+                "proceso_activo",
+                None,
+            ),
 
-            SlotSet("comentario", None),
+            # ======================================================
+            # Solicitud para ActionHandleWithLLM
+            # ======================================================
 
-            SlotSet("encuesta_tipo", None),
+            SlotSet(
+                "llm_request",
+                {
+                    "instruction": (
+                        f"Se registró una encuesta de satisfacción "
+                        f"con nivel '{satisfaccion}'. "
+                        f"Comentario del usuario: \"{comentario}\". "
+                        "Agradece de forma amable el tiempo del usuario "
+                        "y recuérdale que su opinión ayuda a mejorar."
+                    ),
 
-            SlotSet("calificacion_numerica", None),
+                    "context": {
+                        "flujo": "guardian_encuesta",
+                        "nivel_satisfaccion": satisfaccion,
+                        "tiene_comentario": bool(
+                            comentario and comentario.strip()
+                        ),
+                    },
 
-            SlotSet("problema_resuelto", None),
+                    "fallback": (
+                        "✅ Gracias por responder la encuesta. "
+                        "Tu opinión nos ayuda a mejorar continuamente."
+                    ),
+                },
+            ),
 
-            # Mantener compatibilidad
-            SlotSet("proceso_activo", None),
+            # Primero responde el LLM
+            FollowupAction(
+                "action_handle_with_llm"
+            ),
 
+            # Luego continúa el flujo de cierre
+            FollowupAction(
+                "action_cierre_limpio"
+            ),
         ]
-
-        # ==========================================================
-        # 5. NUEVA ARQUITECTURA
-        # ==========================================================
-        #
-        # Ya NO decidimos aquí:
-        #
-        #   • si lanzar encuesta general
-        #   • si terminar conversación
-        #   • si continuar otro flujo
-        #
-        # Toda esa lógica pasa a:
-        #
-        #       action_decidir_cierre
-        #               │
-        #               ▼
-        #      action_cierre_limpio
-        #
-        # Esta acción únicamente registra la encuesta
-        # y entrega el control al flujo de cierre.
-        #
-        # ==========================================================
-
-        events.append(
-            FollowupAction("action_cierre_limpio")
-        )
 
         return events
 

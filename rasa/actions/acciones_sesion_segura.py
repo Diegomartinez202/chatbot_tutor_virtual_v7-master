@@ -12,6 +12,7 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 from rasa_sdk.events import (
     SlotSet,
+    FollowupAction,
     ConversationPaused,
     ConversationResumed,
     EventType,
@@ -138,7 +139,7 @@ class ActionNotificarReconexion(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Ajuste estricto del linter de Rasa
+        domain: DomainDict,
     ) -> List[EventType]:
 
         dispatcher.utter_message(
@@ -150,7 +151,9 @@ class ActionNotificarReconexion(Action):
         if collection is not None:
             try:
                 registro = collection.find_one(
-                    {"user_id": tracker.sender_id}
+                    {
+                        "user_id": tracker.sender_id
+                    }
                 )
             except Exception:
                 logger.exception(
@@ -159,6 +162,9 @@ class ActionNotificarReconexion(Action):
 
         events: List[EventType] = []
 
+        # --------------------------------------------------------
+        # Restaurar estado previamente guardado
+        # --------------------------------------------------------
         if registro and "slots" in registro:
 
             for k, v in registro["slots"].items():
@@ -167,41 +173,63 @@ class ActionNotificarReconexion(Action):
                 )
 
             try:
+
                 evento_prev = registro.get(
                     "evento",
-                    "desconocido"
+                    "desconocido",
                 )
 
-                texto_base = (
-                    "El usuario se ha reconectado a la conversación. "
-                    f"Había un evento previo registrado: {evento_prev}. "
-                    "Genera un mensaje breve, amable y claro para el usuario explicando que "
-                    "se restauró su sesión anterior y que puede continuar donde la dejó. "
-                    "No menciones detalles específicos de los slots, solo habla en términos generales "
-                    "de que se recuperó el progreso guardado."
-                )
+                # ------------------------------------------------
+                # Delegar únicamente la generación del mensaje
+                # al ActionHandleWithLLM
+                # ------------------------------------------------
 
-                contexto_llm = {
-                    "flujo": "seguridad_reconexion",
-                    "evento_prev": evento_prev,
-                    "tiene_sesion_guardada": True,
-                }
+                events.append(
 
-                mensaje_llm = run_llm(
-                    prompt=texto_base,
-                    tracker=tracker,
-                    context=contexto_llm,
-                    fallback="🔄 Tu sesión anterior fue restaurada correctamente."
-                )
+                    SlotSet(
+                        "llm_request",
+                        {
+                            "instruction": (
+                                "El usuario se ha reconectado a la conversación. "
+                                f"Había un evento previo registrado: {evento_prev}. "
+                                "Genera un mensaje breve, amable y claro indicando "
+                                "que su sesión fue restaurada correctamente y que "
+                                "puede continuar donde la dejó. "
+                                "No menciones detalles de los slots ni datos sensibles."
+                            ),
 
-                if mensaje_llm and mensaje_llm.strip():
-                    dispatcher.utter_message(
-                        text=mensaje_llm.strip()
+                            "context": {
+                                "flujo": "seguridad_reconexion",
+                                "evento_prev": evento_prev,
+                                "tiene_sesion_guardada": True,
+                            },
+
+                            "fallback": (
+                                "🔄 Tu sesión anterior fue restaurada correctamente."
+                            ),
+                        },
                     )
 
+                )
+
+                events.append(
+
+                    FollowupAction(
+                        "action_handle_with_llm"
+                    )
+
+                )
+
             except Exception:
+
                 logger.exception(
-                    "[SECURITY_SESSION] reconnect llm failed"
+                    "[SECURITY_SESSION] reconnect llm preparation failed"
+                )
+
+                dispatcher.utter_message(
+                    text=(
+                        "🔄 Tu sesión anterior fue restaurada correctamente."
+                    )
                 )
 
             return events
@@ -258,21 +286,29 @@ class ActionRecuperarEstadoSeguridad(Action):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: DomainDict,  # MEJORA: Tipado homogéneo
+        domain: DomainDict,
     ) -> List[EventType]:
 
         registro = None
 
+        # --------------------------------------------------------
+        # Recuperar sesión almacenada
+        # --------------------------------------------------------
         if collection is not None:
             try:
                 registro = collection.find_one(
-                    {"user_id": tracker.sender_id}
+                    {
+                        "user_id": tracker.sender_id
+                    }
                 )
             except Exception:
                 logger.exception(
                     "[SECURITY_SESSION] restore failed"
                 )
 
+        # --------------------------------------------------------
+        # Restaurar estado encontrado
+        # --------------------------------------------------------
         if registro and "slots" in registro:
 
             dispatcher.utter_message(
@@ -280,56 +316,83 @@ class ActionRecuperarEstadoSeguridad(Action):
             )
 
             events: List[EventType] = [
+
                 SlotSet(k, v)
+
                 for k, v in registro["slots"].items()
+
             ]
 
             try:
+
                 evento_prev = registro.get(
                     "evento",
-                    "desconocido"
+                    "desconocido",
                 )
 
-                texto_base = (
-                    "Se ha recuperado un estado de seguridad previo para el usuario. "
-                    f"El último evento registrado fue: {evento_prev}. "
-                    "Genera un mensaje corto y claro indicando que la sesión fue restaurada "
-                    "correctamente y que el usuario puede continuar donde quedó. "
-                    "No menciones datos sensibles."
-                )
+                # ------------------------------------------------
+                # Delegar únicamente la generación del mensaje
+                # al orquestador LLM
+                # ------------------------------------------------
 
-                contexto_llm = {
-                    "flujo": "seguridad_recuperar_estado",
-                    "evento_prev": evento_prev,
-                    "tiene_sesion_guardada": True,
-                }
+                events.append(
 
-                mensaje_llm = run_llm(
-                    prompt=texto_base,
-                    tracker=tracker,
-                    context=contexto_llm,
-                    fallback=(
-                        "🔄 Tu sesión fue restaurada correctamente. "
-                        "Puedes continuar donde quedaste."
-                    ),
-                )
+                    SlotSet(
+                        "llm_request",
+                        {
+                            "instruction": (
+                                "Se ha recuperado un estado de seguridad "
+                                "previo para el usuario. "
+                                f"El último evento registrado fue: "
+                                f"{evento_prev}. "
+                                "Genera un mensaje corto, claro y amable "
+                                "indicando que la sesión fue restaurada "
+                                "correctamente y que el usuario puede "
+                                "continuar donde quedó. "
+                                "No menciones datos sensibles."
+                            ),
 
-                if (
-                    mensaje_llm
-                    and isinstance(mensaje_llm, str)
-                    and mensaje_llm.strip()
-                ):
-                    dispatcher.utter_message(
-                        text=mensaje_llm.strip()
+                            "context": {
+                                "flujo": "seguridad_recuperar_estado",
+                                "evento_prev": evento_prev,
+                                "tiene_sesion_guardada": True,
+                            },
+
+                            "fallback": (
+                                "🔄 Tu sesión fue restaurada correctamente. "
+                                "Puedes continuar donde quedaste."
+                            ),
+                        },
                     )
 
+                )
+
+                events.append(
+
+                    FollowupAction(
+                        "action_handle_with_llm"
+                    )
+
+                )
+
             except Exception:
+
                 logger.exception(
-                    "[SECURITY_SESSION] llm restore error"
+                    "[SECURITY_SESSION] llm restore preparation failed"
+                )
+
+                dispatcher.utter_message(
+                    text=(
+                        "🔄 Tu sesión fue restaurada correctamente. "
+                        "Puedes continuar donde quedaste."
+                    )
                 )
 
             return events
 
+        # --------------------------------------------------------
+        # No existe sesión previa
+        # --------------------------------------------------------
         dispatcher.utter_message(
             text="No se encontró una sesión guardada previa."
         )

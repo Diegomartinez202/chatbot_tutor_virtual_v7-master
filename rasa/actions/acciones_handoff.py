@@ -93,19 +93,38 @@ def _build_handoff_base_text(tracker: Tracker) -> str:
 
 
 def _generate_handoff_summary(tracker: Tracker) -> str:
+    """
+    Genera un resumen interno del caso para el agente humano.
+
+    Este resumen NO se envía al usuario.
+    Forma parte de la lógica de negocio del handoff, por lo que
+    permanece utilizando run_llm() directamente.
+
+    Se incorpora un contexto explícito para mantener consistencia
+    con la nueva arquitectura basada en flujos.
+    """
 
     texto_base = _build_handoff_base_text(tracker)
+
+    contexto_llm = {
+        "flujo": "handoff",
+        "tipo": "resumen_agente",
+    }
 
     try:
 
         resumen = run_llm(
             prompt=texto_base,
             tracker=tracker,
+            context=contexto_llm,
             fallback="",
         )
 
-        if resumen and isinstance(resumen, str):
-            return resumen.strip()
+        if isinstance(resumen, str):
+            resumen = resumen.strip()
+
+            if resumen:
+                return resumen
 
     except Exception:
 
@@ -115,7 +134,6 @@ def _generate_handoff_summary(tracker: Tracker) -> str:
         )
 
     return ""
-
 
 # ================================================================
 # 👤 OFRECER HUMANO

@@ -73,6 +73,7 @@ from .acciones_terminar_conversacion import (
     ActionTerminarConversacionSegura,
     ActionDecidirCierre,
     ActionCierreLimpio,
+    ActionFinalizarCierre,
 
 )
 
@@ -101,10 +102,6 @@ from .acciones_handoff import (
 )
 from .runtime.actions_support import (
     ActionSoporteLLM,
-)
-
-from .runtime.actions_core import (
-    ActionExplicarTemaLLM,
 )
 
 from .acciones_guardian import (
@@ -180,6 +177,7 @@ __all__ = [
     "ActionLanzarEncuestaGeneral",
     "ActionProcesarRespuestaResolucion",
     "ActionFinalizarConversacion",
+    "ActionFinalizarCierre",
 
     "ActionIrMenuPrincipal",
     "ActionIrMenuSoporte",
@@ -239,10 +237,9 @@ __all__ = [
     "ActionRouteLLMIntent",
     "ActionMemoryWrapper",
     "ActionResumenSesionLLM",
-    "ActionExplicarTemaLLM",
 
     "ActionRenderCertificados",
-    "ActionMostrarCertificadosCarousel",
+   
 
     "ActionGuardianGuardarProgreso",
     "ActionGuardianCargarProgreso",

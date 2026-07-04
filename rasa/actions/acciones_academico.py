@@ -35,29 +35,37 @@ def validar_autenticacion(
     tracker: Tracker,
     pending_action: str,
 ) -> Optional[List[EventType]]:
-    """
-    Verifica si el usuario está autenticado.
 
-    Si no lo está, prepara el flujo de autenticación para que
-    ActionHandleWithLLM explique el proceso y recuerde la acción
-    que el usuario intentaba ejecutar.
-    """
-
-    if tracker.get_slot("is_authenticated") is True:
+    if tracker.get_slot("is_authenticated"):
         return None
 
     return [
+
         SlotSet(
-            "requires_auth",
-            True,
+            "llm_request",
+            {
+                "instruction": (
+                    "Explica al estudiante que necesita autenticarse "
+                    "antes de consultar información personal."
+                ),
+
+                "context": {
+                    "flujo": "auth_required",
+                    "pending_action": pending_action,
+                },
+
+                "fallback": (
+                    "Debes iniciar sesión para continuar."
+                ),
+          
+                 "next_action": None,
+            },
         ),
-        SlotSet(
-            "pending_action",
-            pending_action,
-        ),
+
         FollowupAction(
             "action_handle_with_llm",
         ),
+
     ]
 
 # ================================================================
@@ -432,3 +440,23 @@ class ActionAprenderTema(Action):
             SlotSet("auth_login_form", None),
 
         ]
+        # ====================================================
+        # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
+        # (antes estaba en ActionExplicarTemaLLM)
+        # ====================================================
+
+        if tracker.get_intent_of_latest_message() != "continuar_tema":
+
+            eventos.append(
+                SlotSet("tema_actual", pregunta)
+            )
+
+        # ====================================================
+        # ENVIAR LA CONSULTA AL PIPELINE LLM
+        # ====================================================
+
+        eventos.append(
+            FollowupAction("action_handle_with_llm")
+        )
+
+        return eventos
