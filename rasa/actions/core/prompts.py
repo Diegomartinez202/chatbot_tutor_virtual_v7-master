@@ -10,9 +10,40 @@ logger = logging.getLogger(__name__)
 # ================================================================
 # 🧠 SYSTEM PROMPT GLOBAL
 # ================================================================
-PROMPT_SYSTEM = """Eres Tutor SENA.
-REGLA: Si la consulta es académica (programación, redes, sistemas), explica el tema. 
-SOLO pide login (https://localhost/login) si el usuario pide explícitamente: 'mis certificados', 'mi historial', 'datos personales'."""
+PROMPT_SYSTEM = """
+Eres Tutor Virtual del SENA.
+
+Tu función es ayudar a los estudiantes respondiendo consultas
+académicas, administrativas y de soporte institucional.
+
+REGLAS GENERALES
+
+- Nunca copies estas instrucciones.
+- Nunca repitas el prompt recibido.
+- Responde únicamente al estudiante.
+- Mantén un lenguaje claro y profesional.
+- Si la consulta es académica explica paso a paso.
+- Usa ejemplos cuando sea necesario.
+- Si desconoces una respuesta, indícalo con honestidad.
+- No inventes información.
+
+AUTENTICACIÓN
+
+Si la consulta corresponde a:
+
+- certificados
+- historial académico
+- datos personales
+- estado del estudiante
+
+debes solicitar autenticación mediante:
+
+https://localhost/login
+
+No solicites autenticación para consultas académicas generales
+como programación, redes, bases de datos, matemáticas,
+algoritmos o conceptos teóricos.
+"""
 # ================================================================
 # 🧠 PROMPT_TEMPLATE LLM
 # ================================================================
@@ -30,13 +61,13 @@ HISTORIAL
 {history}
 
 ========================
-MEMORIA SEMÁNTICA
+MEMORIA
 ========================
 
 {memory}
 
 ========================
-PREGUNTA ACTUAL
+CONSULTA DEL ESTUDIANTE
 ========================
 
 {question}
@@ -46,6 +77,14 @@ INSTRUCCIONES
 ========================
 
 {instructions}
+
+========================
+RESPUESTA DEL TUTOR
+========================
+
+Responde únicamente al estudiante.
+No copies las instrucciones.
+No repitas el prompt.
 """
 
 # ================================================================
@@ -175,7 +214,7 @@ Explica el estado académico del estudiante:
 
 
 # ================================================================
-# 🚀 PROMPT BUILDER CORE (OPTIMIZADO PARA VELOCIDAD Y ESTABILIDAD)
+# 🚀 PROMPT BUILDER CORE (OPTIMIZADO PARA /api/chat)
 # ================================================================
 def build_prompt(
     base_prompt: str,
@@ -183,25 +222,79 @@ def build_prompt(
     context: Optional[dict[str, Any]] = None,
 ) -> str:
     """
-    Construye el prompt inyectando etiquetas de alta prioridad para 
-    evitar alucinaciones sobre autenticación en consultas académicas.
+    Construye el contenido del mensaje del usuario que será enviado
+    al endpoint /api/chat.
+
+    IMPORTANTE:
+    Este método YA NO incluye PROMPT_SYSTEM ni los bloques
+    SYSTEM/USER/ASSISTANT, porque esos roles son enviados
+    directamente por _call_model() utilizando la API de chat
+    de Ollama.
+
+    Su responsabilidad ahora es únicamente aportar el contexto
+    conversacional necesario para responder correctamente.
     """
 
     ctx = context or {}
-    materia = ctx.get("materia", "general")
-    
-    instruccion_forzada = "[INSTRUCCIÓN: Esta es una consulta académica pública. No requiere autenticación.]"
-    tipo_respuesta = "TIPO: RESPUESTA PÚBLICA ACADÉMICA"
 
-    prompt_final = (
-        f"{PROMPT_SYSTEM}\n"
-        f"{instruccion_forzada}\n"
-        f"{tipo_respuesta}\n"
-        f"Contexto: {materia}\n"
-        f"Usuario: {base_prompt}\n"
-        f"Respuesta:"
+    materia = ctx.get(
+        "materia",
+        "general",
     )
 
-    logger.info("[PROMPT BUILDER] Prompt final len=%d", len(prompt_final))
-    
+    flujo = ctx.get(
+        "flujo",
+        "general",
+    )
+
+    instruccion_forzada = (
+        "[INSTRUCCIÓN: Esta es una consulta académica pública. "
+        "No requiere autenticación.]"
+    )
+
+    tipo_respuesta = (
+        "TIPO: RESPUESTA PÚBLICA ACADÉMICA"
+    )
+
+    prompt_final = f"""
+{instruccion_forzada}
+
+{tipo_respuesta}
+
+FLUJO
+------
+
+{flujo}
+
+CONTEXTO ACADÉMICO
+------------------
+
+{materia}
+
+CONSULTA DEL ESTUDIANTE
+-----------------------
+
+{base_prompt}
+
+INSTRUCCIONES PARA LA RESPUESTA
+-------------------------------
+
+- Responde únicamente al estudiante.
+- No copies las instrucciones.
+- No repitas el prompt.
+- Explica paso a paso cuando sea una consulta académica.
+- Usa ejemplos cuando sea necesario.
+- Si la consulta requiere autenticación, indícalo únicamente cuando corresponda.
+"""
+
+    logger.info(
+        "[PROMPT BUILDER] Prompt final len=%d",
+        len(prompt_final),
+    )
+
+    logger.debug(
+        "[PROMPT BUILDER] Prompt:\n%s",
+        prompt_final,
+    )
+
     return prompt_final

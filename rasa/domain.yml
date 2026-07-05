@@ -163,7 +163,13 @@ slots:
     initial_value: inactive
     mappings:
     - type: custom
-
+  
+  llm_request:
+    type: any
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
   is_authenticated:
     type: bool
     influence_conversation: true
@@ -844,7 +850,6 @@ actions:
 - action_guardian_reanudar
 - action_guardian_reset
 - action_registrar_encuesta_guardian
-- action_guardar_autosave
 - action_notificar_desconexion
 - action_notificar_inactividad
 - action_notificar_reconexion

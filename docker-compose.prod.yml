@@ -89,7 +89,7 @@ services:
       MONGO_URI: mongodb://mongo:27017
       
       # --- OPTIMIZACIÓN LLM (MVP) ---
-      LLM_URL: http://ollama:11434/api/generate
+      LLM_URL: http://ollama:11434/api/chat
       LLM_MODEL: tinyllama:latest
       LLM_FALLBACK_MODEL: tinyllama:latest
       # Reducimos a 60s: Si en 60s no responde, es mejor fallar rápido

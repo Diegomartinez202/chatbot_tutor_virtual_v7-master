@@ -109,7 +109,7 @@ rules:
   - rule: Guardar autosave
     steps:
       - intent: guardar_autosave
-      - action: action_guardar_autosave
+      - action: action_autosave_snapshot
   
   - rule: Ping servidor
     steps:

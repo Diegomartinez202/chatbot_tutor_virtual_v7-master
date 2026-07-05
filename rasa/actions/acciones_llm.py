@@ -69,7 +69,7 @@ from .core.prompts import (
     PROMPT_SYSTEM,
     PROMPT_TEMPLATE,
 )
-
+from .acciones_academico import ACCIONES_ACADEMICAS
 # ---------------------------------------------------------------------
 # Configuración del módulo
 # ---------------------------------------------------------------------
@@ -134,83 +134,84 @@ class ActionHandleWithLLM(Action):
 
         return self._build_general_prompt(tracker)
 
-# ==========================================================
-# DETECCIÓN DEL FLUJO
-# ==========================================================
+    # ==========================================================
+    # DETECCIÓN DEL FLUJO
+    # ==========================================================
 
-def _detect_flow(
-    self,
-    tracker: Tracker,
-) -> str:
-    """
-    Determina el macroflujo conversacional.
+    def _detect_flow(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Determina el macroflujo conversacional.
 
-    Prioridad:
+        Prioridad:
 
-        1. Académico
-        2. Autenticación
-        3. Soporte
-        4. Ayuda
-        5. General
+            1. Académico
+            2. Autenticación
+            3. Soporte
+            4. Ayuda
+            5. General
 
-    Los subflujos (PQRS, certificados, correo,
-    soporte técnico, etc.) permanecen dentro del
-    contexto del LLM y no modifican el flujo principal.
-    """
+        Los subflujos (PQRS, certificados, correo,
+        soporte técnico, etc.) permanecen dentro del
+        contexto del LLM y no modifican el flujo principal.
+        """
 
-    # ======================================================
-    # 1. FLUJO ACADÉMICO
-    # ======================================================
+        latest = tracker.latest_message or {}
 
-    es_academico = bool(
+        intent = (
+            latest.get("intent", {})
+            .get("name", "")
+        )
 
-        tracker.get_slot("tema_consulta")
-        or tracker.get_slot("materia_detectada")
+        # ======================================================
+        # 1. FLUJO ACADÉMICO
+        # ======================================================
+        # Si ya existe una consulta académica en curso,
+        # siempre debe tener prioridad sobre un estado
+        # antiguo de autenticación.
 
-    )
+        if (
+            tracker.get_slot("proceso_activo") == "aprender_tema"
+            or tracker.get_slot("tema_consulta")
+            or tracker.get_slot("materia_detectada")
+        ):
+            return self.FLOW_ACADEMIC
 
-    if es_academico:
-        return self.FLOW_ACADEMIC
+        # ======================================================
+        # 2. AUTENTICACIÓN
+        # ======================================================
 
-    # ======================================================
-    # 2. AUTENTICACIÓN
-    # ======================================================
+        if (
+            tracker.get_slot("requires_auth")
+            and tracker.get_slot("pending_action")
+        ):
+            return self.FLOW_AUTH
 
-    if tracker.get_slot("requires_auth"):
-        return self.FLOW_AUTH
+        # ======================================================
+        # 3. SOPORTE
+        # ======================================================
 
-    # ======================================================
-    # 3. SOPORTE
-    # ======================================================
+        llm_request = tracker.get_slot("llm_request") or {}
 
-    llm_request = tracker.get_slot("llm_request") or {}
+        context = llm_request.get("context", {})
 
-    context = llm_request.get("context", {})
+        if context.get("flujo") == "support":
+            return self.FLOW_SUPPORT
 
-    if context.get("flujo") == "support":
-        return self.FLOW_SUPPORT
+        # ======================================================
+        # 4. AYUDA
+        # ======================================================
 
-    # ======================================================
-    # 4. AYUDA
-    # ======================================================
+        if intent == "ayuda":
+            return self.FLOW_HELP
 
-    latest = tracker.latest_message or {}
+        # ======================================================
+        # 5. GENERAL
+        # ======================================================
 
-    intent = (
-
-        latest.get("intent", {})
-        .get("name", "")
-
-    )
-
-    if intent == "ayuda":
-        return self.FLOW_HELP
-
-    # ======================================================
-    # 5. GENERAL
-    # ======================================================
-
-    return self.FLOW_GENERAL
+        return self.FLOW_GENERAL
 
     # ==========================================================
     # BUILDERS ESPECIALIZADOS
@@ -301,23 +302,29 @@ def _detect_flow(
         )
 
         return f"""
-ROL PEDAGÓGICO:
-{rol}
+        Eres un Tutor Académico del SENA.
 
-ASIGNATURA:
-{materia}
+        Rol:
+        {rol}
 
-CONSULTA DEL ESTUDIANTE:
-{pregunta}
+        Asignatura:
+        {materia}
 
-INSTRUCCIONES
+        Consulta del estudiante:
 
-- Explica paso a paso.
-- Utiliza ejemplos.
-- Adapta el lenguaje a estudiantes.
-- Divide los temas complejos.
-- Finaliza preguntando si desea profundizar.
-"""
+        {pregunta}
+
+        Debes responder siguiendo estas reglas:
+
+        - Explica paso a paso.
+        - Usa ejemplos sencillos.
+        - No repitas estas instrucciones.
+        - No copies el prompt.
+        - Responde directamente al estudiante.
+        - Finaliza preguntando si desea continuar.
+
+        Respuesta:
+        """
 
     # ==========================================================
     # HELP PROMPT
@@ -487,6 +494,8 @@ Instrucciones:
             )
 
         return ""
+    
+    
     def _build_history(self, tracker: Tracker, max_events: int = 2, max_lines: int = 2) -> str:
         history: List[str] = []
         raw_events = tracker.events or []
@@ -602,171 +611,225 @@ Instrucciones:
         # ------------------------------------------------------
 
         return events
-# ==========================================================
-# INVOCACIÓN DEL LLM
-# ==========================================================
+    # ==========================================================
+    # INVOCACIÓN DEL LLM
+    # ==========================================================
 
-def _invoke_llm(
-    self,
-    dispatcher: CollectingDispatcher,
-    tracker: Tracker,
-    prompt: str,
-    flow: str,
-    context: Dict[str, Any],
-    fallback: str,
-) -> str:
-    """
-    Centraliza la invocación al motor LLM.
+    def _invoke_llm(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        prompt: str,
+        flow: str,
+        context: Dict[str, Any],
+        fallback: str,
+    ) -> str:
+        """
+        Centraliza la invocación al motor LLM.
 
-    Responsabilidades:
+        Responsabilidades:
 
-    • Construir el prompt final.
-    • Incorporar historial cuando corresponda.
-    • Recuperar memoria semántica.
-    • Registrar el flujo lógico utilizado.
-    • Invocar run_llm().
+        • Construir el prompt final.
+        • Incorporar historial cuando corresponda.
+        • Recuperar memoria semántica.
+        • Registrar el flujo lógico utilizado.
+        • Invocar run_llm().
 
-    Los subflujos (guardian_autosave, guardian_encuesta,
-    handoff, pqrs, soporte, etc.) llegan mediante el
-    parámetro 'context' y NO requieren crear nuevos FLOW_*.
-    """
+        Los subflujos (guardian_autosave, guardian_encuesta,
+        handoff, pqrs, soporte, etc.) llegan mediante el
+        parámetro 'context' y NO requieren crear nuevos FLOW_*.
+        """
 
-    # ------------------------------------------------------
-    # Flujo principal
-    # ------------------------------------------------------
+        # ------------------------------------------------------
+        # Flujo principal
+        # ------------------------------------------------------
 
-    logger.info(
-        "[LLM] Preparando prompt para flujo '%s'",
-        flow,
-    )
-
-    # ------------------------------------------------------
-    # Subflujo (si existe)
-    # ------------------------------------------------------
-
-    subflow = ""
-
-    if isinstance(context, dict):
-        subflow = context.get("flujo", "")
-
-    if subflow:
-
-        logger.debug(
-            "[LLM] Subflujo detectado: %s",
-            subflow,
+        logger.info(
+            "[LLM] Preparando prompt para flujo '%s'",
+            flow,
         )
 
-    # ------------------------------------------------------
-    # Historial
-    # ------------------------------------------------------
+        # ------------------------------------------------------
+        # Subflujo (si existe)
+        # ------------------------------------------------------
 
-    history = (
-        ""
-        if flow == self.FLOW_ACADEMIC
-        else self._build_history(tracker)
-    )
+        subflow = ""
 
-    # ------------------------------------------------------
-    # Mensaje del usuario
-    # ------------------------------------------------------
+        if isinstance(context, dict):
+            subflow = context.get("flujo", "")
 
-    latest = tracker.latest_message or {}
+        if subflow:
+            logger.debug(
+                "[LLM] Subflujo detectado: %s",
+                subflow,
+            )
 
-    if flow == self.FLOW_ACADEMIC:
+        # ------------------------------------------------------
+        # Historial
+        # ------------------------------------------------------
 
-        user_message = (
-            tracker.get_slot("tema_consulta")
-            or latest.get("text", "")
+        history = (
+            ""
+            if flow == self.FLOW_ACADEMIC
+            else self._build_history(tracker)
         )
 
-    else:
+        # ------------------------------------------------------
+        # Mensaje del usuario
+        # ------------------------------------------------------
 
-        user_message = latest.get(
-            "text",
-            "",
-        )
+        latest = tracker.latest_message or {}
 
-    # ------------------------------------------------------
-    # Memoria semántica
-    # ------------------------------------------------------
+        if flow == self.FLOW_ACADEMIC:
+            user_message = (
+                tracker.get_slot("tema_consulta")
+                or latest.get("text", "")
+            )
+        else:
+            user_message = latest.get(
+                "text",
+                "",
+            )
 
-    memory = ""
+        # ------------------------------------------------------
+        # Memoria semántica
+        # ------------------------------------------------------
 
-    if (
-        flow != self.FLOW_ACADEMIC
-        and user_message.strip()
-    ):
+        memory = ""
 
-        memory = self._recover_semantic_memory(
+        if (
+            flow != self.FLOW_ACADEMIC
+            and user_message.strip()
+        ):
+            memory = self._recover_semantic_memory(
+                tracker=tracker,
+                text=user_message,
+            )
+
+        # ------------------------------------------------------
+        # Construcción del prompt
+        # ------------------------------------------------------
+
+        if flow == self.FLOW_ACADEMIC:
+            prompt_final = prompt
+        else:
+             prompt_final = PROMPT_TEMPLATE.format(
+
+                history=(
+                    history
+                    or "Sin historial reciente."
+                ),
+
+                memory=(
+                    memory
+                    or "Sin contexto previo relevante."
+                ),
+
+                question=(
+                    user_message
+                    or "Sin consulta."
+                ),
+
+                instructions=prompt,
+
+             )
+
+        # ------------------------------------------------------
+        # Invocación centralizada
+        # ------------------------------------------------------
+
+        return run_llm(
+            prompt=prompt_final,
             tracker=tracker,
-            text=user_message,
+            context=context,
+            fallback=fallback,
+            dispatcher=dispatcher,
         )
-
-    # ------------------------------------------------------
-    # Construcción del prompt
-    # ------------------------------------------------------
-
-    if flow == self.FLOW_ACADEMIC:
-
-        prompt_final = prompt
-
-    else:
-
-        prompt_final = PROMPT_TEMPLATE.format(
-
-            history=(
-                history
-                or "Sin historial reciente."
-            ),
-
-            memory=(
-                memory
-                or "Sin contexto previo relevante."
-            ),
-
-            question=user_message,
-
-            instructions=prompt,
-
-        )
-
-    # ------------------------------------------------------
-    # Invocación centralizada
-    # ------------------------------------------------------
-
-    return run_llm(
-
-        prompt=prompt_final,
-
-        tracker=tracker,
-
-        context=context,
-
-        fallback=fallback,
-
-        dispatcher=dispatcher,
-
-    )
        
-    def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        limpieza = [ActiveLoop(None), SlotSet("requested_slot", None)]
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ) -> List[EventType]:
+
+        logger.info("=" * 80)
+        logger.info("[DEBUG ACTION_HANDLE_WITH_LLM]")
+        logger.info("intent=%s", tracker.get_intent_of_latest_message())
+        logger.info("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.info("requires_auth=%s", tracker.get_slot("requires_auth"))
+        logger.info("pending_action=%s", tracker.get_slot("pending_action"))
+        logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.info("materia_detectada=%s", tracker.get_slot("materia_detectada"))
+        logger.info("=" * 80)
+
+        limpieza = [
+            ActiveLoop(None),
+            SlotSet("requested_slot", None),
+        ]
+
         flow = self._detect_flow(tracker)
-        
+        logger.info("[DEBUG] Flow detectado = %s", flow)
         intent = tracker.get_intent_of_latest_message()
-        
-       
+
+        # ======================================================
+        # CONSULTA ACADÉMICA NUEVA
+        # ======================================================
+
         if intent == "explicacion_academica":
-         
+
             nuevo_tema = tracker.latest_message.get("text")
-            return limpieza + [SlotSet("tema_actual", nuevo_tema)] + self._ejecutar_procesamiento_llm(dispatcher, tracker, self.FLOW_ACADEMIC)
 
-      
+            return (
+                limpieza
+                + [
+                    SlotSet("tema_actual", nuevo_tema),
+                ]
+                + self._ejecutar_procesamiento_llm(
+                    dispatcher,
+                    tracker,
+                    self.FLOW_ACADEMIC,
+                )
+            )
+
+        # ======================================================
+        # CONTINUAR TEMA
+        # ======================================================
+
         if intent == "continuar_tema":
-            tema_persistido = tracker.get_slot("tema_actual") or "el tema anterior"
-            prompt_enriquecido = f"Contexto: {tema_persistido}. Continúa con el siguiente paso lógico. NO saludes, no repitas la introducción, ve directo al grano."
-            return self._ejecutar_procesamiento_llm(dispatcher, tracker, flow, prompt=prompt_enriquecido)
 
-        return limpieza + self._ejecutar_procesamiento_llm(dispatcher, tracker, flow)
+            tema_persistido = (
+                tracker.get_slot("tema_actual")
+                or "el tema anterior"
+            )
+
+            prompt_enriquecido = (
+                f"Contexto: {tema_persistido}. "
+                "Continúa con el siguiente paso lógico. "
+                "NO saludes, no repitas la introducción, "
+                "ve directo al grano."
+            )
+
+            return self._ejecutar_procesamiento_llm(
+                dispatcher,
+                tracker,
+                flow,
+                prompt=prompt_enriquecido,
+            )
+
+        # ======================================================
+        # FLUJO NORMAL
+        # ======================================================
+
+        return (
+            limpieza
+            + self._ejecutar_procesamiento_llm(
+                dispatcher,
+                tracker,
+               flow,
+            )
+        )
     
     
     def _ejecutar_procesamiento_llm(
@@ -786,11 +849,17 @@ def _invoke_llm(
         - Enviar la respuesta al usuario.
         - Delegar la continuación del flujo.
         """
-
+        logger.info(
+            "[DEBUG LLM] llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
         try:
 
             llm_request = tracker.get_slot("llm_request")
-
+            logger.info(
+                "[DEBUG] llm_request dentro de _ejecutar_procesamiento_llm = %s",
+                llm_request,
+            )
             if llm_request:
 
                 prompt = llm_request.get(

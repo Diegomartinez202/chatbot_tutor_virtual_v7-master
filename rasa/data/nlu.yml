@@ -189,7 +189,6 @@ nlu:
 
 - intent: solicitar_reinicio
   examples: |
-    - /action_reiniciar_conversacion
     - resetear bot
     - comenzar de nuevo
     - borrar historial y reiniciar
@@ -254,7 +253,6 @@ nlu:
     - visualizar token
     - enséñame mi token
     - necesito consultar mi token
-    - /action_mostrar_token
 
 - intent: ingresar_zajuna
   examples: |
@@ -286,8 +284,6 @@ nlu:
     - abrir el portal académico
     - ingresar al sistema Zajuna
     - acceder al sistema Zajuna
-    - /action_ingreso_zajuna
-
 
 - intent: forzar_salida
   examples: |
@@ -296,7 +292,7 @@ nlu:
     - cerrar la conversación
     - finalizar conversación
     - terminar conversación activa
-    - salir del sistema
+    - salida del sistema
     - terminar la sesión
     - cerrar la sesión
     - cerrar sesión segura
@@ -331,7 +327,6 @@ nlu:
     - mostrar horario
     - revisar horario
     - horario académico
-    - programación de clases
     - agenda de clases
     - fechas de clases
     - horario del curso
@@ -341,8 +336,6 @@ nlu:
     - consultar calendario
     - cuándo es la próxima clase
     - qué horario tengo
-    - ver programación
-    - revisar programación
     - días de clase
     - horarios disponibles
     - cronograma de clases
@@ -352,7 +345,21 @@ nlu:
     - cuándo debo conectarme
     - ver fechas académicas
     - horarios del estudiante
-    - información de horarios
+    - horario
+    - horarios
+    - calendario
+    - agenda
+    - fecha
+    - fechas
+    - clase
+    - clases
+    - cronograma
+    - cuándo tengo clases
+    - próximo horario
+    - próximo encuentro
+    - día de clase
+    - hora de clase
+    - horario semanal
 
 - intent: consultar_progreso_curso
   examples: |
@@ -571,6 +578,46 @@ nlu:
     - quiero dominar un tema nuevo
     - quiero adquirir nuevas habilidades
     - quiero comenzar un nuevo aprendizaje
+    - enséñame programación
+    - enséñame bases de datos
+    - enséñame sistemas operativos
+    - enséñame redes de computadores
+    - enséñame ciberseguridad
+    - enséñame inteligencia artificial
+    - enséñame desarrollo web
+    - enséñame desarrollo móvil
+    - enséñame algoritmos
+    - enséñame estructuras de datos
+    - enséñame direccionamiento IP
+    - enséñame virtualización
+    - enséñame computación en la nube
+    - enséñame telecomunicaciones
+    - enséñame arquitectura de computadores
+    - quiero aprender programación
+    - quiero aprender bases de datos
+    - quiero aprender sistemas operativos
+    - quiero aprender redes de computadores
+    - quiero aprender ciberseguridad
+    - quiero aprender inteligencia artificial
+    - quiero aprender desarrollo web
+    - quiero aprender desarrollo móvil
+    - quiero aprender algoritmos
+    - quiero aprender estructuras de datos
+    - quiero aprender direccionamiento IP
+    - quiero aprender virtualización
+    - quiero aprender computación en la nube
+    - quiero aprender telecomunicaciones
+    - quiero aprender arquitectura de computadores
+    - quiero estudiar programación
+    - quiero estudiar bases de datos
+    - quiero estudiar sistemas operativos
+    - quiero estudiar redes de computadores
+    - quiero estudiar ciberseguridad
+    - quiero estudiar inteligencia artificial
+    - quiero estudiar desarrollo web
+    - quiero estudiar desarrollo móvil
+    - quiero estudiar algoritmos
+    - quiero estudiar estructuras de datos
 
 - intent: explicacion_academica
   examples: |
@@ -874,6 +921,51 @@ nlu:
     - quisiera una explicación más sencilla
     - explícamelo con un ejemplo
     - explícalo como si fuera principiante
+    - explícame programación
+    - explícame bases de datos
+    - explícame sistemas operativos
+    - explícame redes de computadores
+    - explícame ciberseguridad
+    - explícame inteligencia artificial
+    - explícame desarrollo web
+    - explícame desarrollo móvil
+    - explícame algoritmos
+    - explícame estructuras de datos
+    - explícame direccionamiento IP
+    - explícame virtualización
+    - explícame computación en la nube
+    - explícame telecomunicaciones
+    - explícame arquitectura de computadores
+    - ¿me explicas programación?
+    - ¿me explicas bases de datos?
+    - ¿me explicas sistemas operativos?
+    - ¿me explicas redes de computadores?
+    - ¿me explicas ciberseguridad?
+    - ¿me explicas inteligencia artificial?
+    - ¿me explicas desarrollo web?
+    - ¿me explicas desarrollo móvil?
+    - ¿me explicas algoritmos?
+    - ¿me explicas estructuras de datos?
+    - necesito una explicación de programación
+    - necesito una explicación de bases de datos
+    - necesito una explicación de sistemas operativos
+    - necesito una explicación de redes de computadores
+    - necesito una explicación de ciberseguridad
+    - necesito una explicación de inteligencia artificial
+    - necesito una explicación de desarrollo web
+    - necesito una explicación de desarrollo móvil
+    - necesito una explicación de algoritmos
+    - necesito una explicación de estructuras de datos
+    - quiero entender programación
+    - quiero entender bases de datos
+    - quiero entender sistemas operativos
+    - quiero entender redes de computadores
+    - quiero entender ciberseguridad
+    - quiero entender inteligencia artificial
+    - quiero entender desarrollo web
+    - quiero entender desarrollo móvil
+    - quiero entender algoritmos
+    - quiero entender estructuras de datos
      
 - intent: soporte_tecnico
   examples: |
@@ -1751,7 +1843,6 @@ nlu:
 
 - intent: deny
   examples: |
-    - no
     - nop
     - negativo
     - jamás
@@ -1892,7 +1983,6 @@ nlu:
     - loguearme
     - quiero autenticarme
     - acceder con mi usuario
-    - /auth_login_cmd
 
 - intent: cancelar_handoff
   examples: |
@@ -1989,7 +2079,6 @@ nlu:
     - guardar el estado de la conversación
     - registrar el estado actual
     - guardar estado antes de salir
-    - /guardar_estado_seguridad
 
 - intent: inactividad_usuario
   examples: |
@@ -2002,7 +2091,6 @@ nlu:
     - pasé mucho tiempo inactivo
     - el sistema me cerró por inactividad
     - venció mi sesión
-    - /inactividad_usuario
 
 - intent: ping_servidor
   examples: |
@@ -2020,7 +2108,6 @@ nlu:
     - revisar servidor
     - verificar estado del sistema
     - comprobar disponibilidad
-    - /ping_servidor
 
 - intent: reconexion_usuario
   examples: |
@@ -2046,7 +2133,6 @@ nlu:
     - recuperar el estado anterior
     - abrir el estado guardado
     - restaurar conversación segura
-    - /recuperar_estado_seguridad
 
 - intent: guardian_guardar_progreso
   examples: |

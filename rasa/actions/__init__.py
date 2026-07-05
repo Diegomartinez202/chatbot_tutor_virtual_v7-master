@@ -112,8 +112,6 @@ from .acciones_guardian import (
     ActionGuardianReanudar,
     ActionGuardianReset,
     ActionRegistrarEncuestaGuardian,
-    ActionGuardarAutosave,
-    ActionGuardarEncuestaIncompleta,
 )
 
 
@@ -217,7 +215,7 @@ __all__ = [
     "ActionGuardianReanudar",
     "ActionGuardianReset",
     "ActionRegistrarEncuestaGuardian",
-    "ActionGuardarAutosave",
+  
 
     "ActionAnalizarEstadoUsuario",
 
@@ -248,7 +246,6 @@ __all__ = [
     "ActionGuardianReset",
     "ActionRegistrarEncuestaGuardian",
     "ActionGuardarAutosave",
-    "ActionGuardarEncuestaIncompleta",
 
 
     "ActionReiniciarConversacion",

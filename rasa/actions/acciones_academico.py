@@ -408,7 +408,11 @@ class ActionAprenderTema(Action):
         return "action_aprender_tema"
 
     def run(self, dispatcher, tracker, domain):
-
+        logger.info("=" * 80)
+        logger.info("[ACADEMICO] ActionAprenderTema EJECUTADA")
+        logger.info("texto=%s", tracker.latest_message.get("text"))
+        logger.info("intent=%s", tracker.get_intent_of_latest_message())
+        logger.info("=" * 80)
         pregunta = tracker.latest_message.get("text") or ""
 
         materia = detectar_materia(pregunta)
@@ -418,7 +422,7 @@ class ActionAprenderTema(Action):
             "Tutor Académico General"
         )
 
-        return [
+        eventos = [
 
             ActiveLoop(None),
 
@@ -439,6 +443,8 @@ class ActionAprenderTema(Action):
 
             SlotSet("auth_login_form", None),
 
+            SlotSet("llm_request", None),
+
         ]
         # ====================================================
         # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
@@ -458,5 +464,13 @@ class ActionAprenderTema(Action):
         eventos.append(
             FollowupAction("action_handle_with_llm")
         )
-
+        logger.info(
+            "[ACADEMICO] requires_auth=%s pending_action=%s llm_request=%s",
+            False,
+            None,
+            None,
+        )
+        logger.info("Eventos que retorna ActionAprenderTema:")
+        for e in eventos:
+            logger.info("  %s", e)
         return eventos
