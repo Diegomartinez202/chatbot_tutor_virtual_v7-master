@@ -161,14 +161,6 @@ class ActionOrchestratorEntry(Action):
             )
 
             return [
-                SlotSet(
-                    "pending_action",
-                    None,
-                ),
-                SlotSet(
-                    "requires_auth",
-                    False,
-                ),
                 FollowupAction(
                     "action_ofrecer_continuar_tema"
                 ),

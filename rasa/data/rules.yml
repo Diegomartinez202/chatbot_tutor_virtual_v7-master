@@ -192,45 +192,45 @@ rules:
 
   - rule: Finalizar encuesta (Submit)
     condition:
-    - active_loop: encuesta_satisfaccion_form
+      - active_loop: encuesta_satisfaccion_form
     steps:
-    - action: encuesta_satisfaccion_form
-    - active_loop: null
-    - action: action_registrar_encuesta 
-    - slot_was_set:
-      - encuesta_activa: false
+      - action: encuesta_satisfaccion_form
+      - active_loop: null
+      - action: action_registrar_encuesta 
+      - slot_was_set:
+        - encuesta_activa: false
 
   - rule: Cancelar encuesta_satisfaccion_form
     condition:
-    - active_loop: encuesta_satisfaccion_form
+      - active_loop: encuesta_satisfaccion_form
     steps:
-    - intent: cancelar
-    - action: action_deactivate_loop
-    - active_loop: null
-    - action: action_ir_menu_principal
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
 
   - rule: Cancelar auth_login_form
     condition:
-    - active_loop: auth_login_form
+      - active_loop: auth_login_form
     steps:
-    - intent: cancelar
-    - action: action_deactivate_loop
-    - active_loop: null
-    - action: action_ir_menu_principal
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
 
   - rule: Cancelar feedback_form
     condition:
-    - active_loop: feedback_form
+      - active_loop: feedback_form
     steps:
-    - intent: cancelar
-    - action: action_deactivate_loop
-    - active_loop: null
-    - action: action_ir_menu_principal
+      - intent: cancelar
+      - action: action_deactivate_loop
+      - active_loop: null
+      - action: action_ir_menu_principal
 
   - rule: Despliegue del menú principal
     steps:
-    - intent: ir_menu_principal
-    - action: action_ir_menu_principal
+      - intent: ir_menu_principal
+      - action: action_ir_menu_principal
   
   - rule: Ir al menú académico siempre que se solicite
     steps:

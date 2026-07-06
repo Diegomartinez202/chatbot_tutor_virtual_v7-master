@@ -813,7 +813,7 @@ actions:
 - action_ingreso_zajuna
 - action_set_authenticated_true
 - action_enviar_correo_recuperacion
-- action_render_certificados
+- action_consultar_certificados
 - action_analizar_estado_usuario
 - action_cargar_autosave_mongo
 - action_autoresume_conversacion

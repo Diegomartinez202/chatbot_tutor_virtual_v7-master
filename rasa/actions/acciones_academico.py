@@ -284,35 +284,14 @@ class ActionConsultarProgresoCurso(Action):
             tracker,
         )
 
-class ActionRenderCertificados(Action):
+class ActionConsultarCertificados(Action):
 
-    def name(self) -> str:
-        return "action_render_certificados"
+    def name(self):
+        return "action_consultar_certificados"
 
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "certificados",
-            dispatcher,
-            tracker,
-        )
-
-class ActionRenderCertificados(Action):
-
-    def name(self) -> str:
-        return "action_render_certificados"
-
-    def run(self, dispatcher, tracker, domain):
-
-        auth = validar_autenticacion(
-            tracker,
-            "certificados",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
             "certificados",
             dispatcher,
             tracker,
@@ -325,15 +304,7 @@ class ActionConsultarPagos(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "pagos",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "pagos",
             dispatcher,
             tracker,
@@ -346,20 +317,11 @@ class ActionConsultarNotas(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "notas",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "notas",
             dispatcher,
             tracker,
         )
-
 class ActionConsultarFicha(Action):
 
     def name(self) -> str:
@@ -367,15 +329,7 @@ class ActionConsultarFicha(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "ficha",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "ficha",
             dispatcher,
             tracker,
@@ -388,20 +342,11 @@ class ActionConsultarInscripciones(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        auth = validar_autenticacion(
-            tracker,
-            "inscripciones",
-        )
-
-        if auth:
-            return auth
-
-        return _exec(
+        return ejecutar_accion_academica(
             "inscripciones",
             dispatcher,
             tracker,
         )
-
 class ActionAprenderTema(Action):
 
     def name(self):
@@ -428,11 +373,6 @@ class ActionAprenderTema(Action):
 
             SlotSet("requested_slot", None),
 
-            SlotSet("requires_auth", False),
-
-            SlotSet("pending_action", None),
-
-            # NUEVO
             SlotSet("proceso_activo", "aprender_tema"),
 
             SlotSet("tema_consulta", pregunta),
@@ -465,10 +405,8 @@ class ActionAprenderTema(Action):
             FollowupAction("action_handle_with_llm")
         )
         logger.info(
-            "[ACADEMICO] requires_auth=%s pending_action=%s llm_request=%s",
-            False,
-            None,
-            None,
+            "[ACADEMICO] llm_request=%s",
+            tracker.get_slot("llm_request"),
         )
         logger.info("Eventos que retorna ActionAprenderTema:")
         for e in eventos:

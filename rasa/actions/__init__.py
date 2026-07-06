@@ -39,7 +39,7 @@ from .acciones_academico import (
      ActionHistorialAcademico,
      ActionConsultarHorariosClases,
      ActionConsultarProgresoCurso,
-     ActionRenderCertificados,
+     ActionConsultarCertificados,
 )
 
 from .acciones_encuesta import (
@@ -236,7 +236,7 @@ __all__ = [
     "ActionMemoryWrapper",
     "ActionResumenSesionLLM",
 
-    "ActionRenderCertificados",
+    "ActionConsultarCertificados",
    
 
     "ActionGuardianGuardarProgreso",

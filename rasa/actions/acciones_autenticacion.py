@@ -64,8 +64,9 @@ class ActionCheckAuth(Action):
                 dispatcher.utter_message(text="✅ ¡Login exitoso! Ya puedes consultar tu información.")
                 return [
                     SlotSet("is_authenticated", True), 
-                    SlotSet("requires_auth", None),
-                    SlotSet("email", email)
+                    SlotSet("auth_state", "active"),
+                    SlotSet("llm_request", None),
+                    SlotSet("email", email),
                 ]
             else:
                 dispatcher.utter_message(text="❌ Credenciales incorrectas. Por favor, intenta de nuevo.")
@@ -91,11 +92,28 @@ class ActionCheckAuth(Action):
 
         if not is_authenticated:
             return [
-                SlotSet("requires_auth", True), 
-                FollowupAction("action_handle_with_llm")
-            ]
+                SlotSet(
+                    "llm_request",
+                    {
+                        "instruction":
+                            "Explica al estudiante que primero debe autenticarse.",
 
-        return [FollowupAction(action_to_execute)]
+                    "context": {
+                        "flujo": "auth_required",
+                        "pending_action": intent,
+                    },
+
+                    "fallback":
+                        "Debes iniciar sesión para continuar.",
+
+                    "next_action": None,
+                    }
+                ),
+
+                FollowupAction(
+                    "action_handle_with_llm"
+                )
+            ]
 
 # ================================================================
 # 🚀 AUTH FLOW (ENTRY POINT)

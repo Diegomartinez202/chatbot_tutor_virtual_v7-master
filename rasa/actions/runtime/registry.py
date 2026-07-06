@@ -111,7 +111,7 @@ class ActionRegistry:
         )
 
         self.register(
-            "historial_academico",
+            "historial",
             historial_academico_handler,
         )
 

@@ -183,19 +183,16 @@ class ActionHandleWithLLM(Action):
         # 2. AUTENTICACIÓN
         # ======================================================
 
-        if (
-            tracker.get_slot("requires_auth")
-            and tracker.get_slot("pending_action")
-        ):
+        llm_request = tracker.get_slot("llm_request") or {}
+
+        context = llm_request.get("context", {})
+
+        if context.get("flujo") == "auth_required":
             return self.FLOW_AUTH
 
         # ======================================================
         # 3. SOPORTE
         # ======================================================
-
-        llm_request = tracker.get_slot("llm_request") or {}
-
-        context = llm_request.get("context", {})
 
         if context.get("flujo") == "support":
             return self.FLOW_SUPPORT
@@ -225,9 +222,13 @@ class ActionHandleWithLLM(Action):
         Prompt especializado para consultas protegidas.
         """
 
-        accion = (
-            tracker.get_slot("pending_action")
-            or "consultar información personal"
+        llm_request = tracker.get_slot("llm_request") or {}
+
+        context = llm_request.get("context", {})
+
+        accion = context.get(
+            "pending_action",
+            "consultar información personal",
         )
 
         return f"""
@@ -757,8 +758,6 @@ Instrucciones:
         logger.info("[DEBUG ACTION_HANDLE_WITH_LLM]")
         logger.info("intent=%s", tracker.get_intent_of_latest_message())
         logger.info("llm_request=%s", tracker.get_slot("llm_request"))
-        logger.info("requires_auth=%s", tracker.get_slot("requires_auth"))
-        logger.info("pending_action=%s", tracker.get_slot("pending_action"))
         logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
         logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
         logger.info("materia_detectada=%s", tracker.get_slot("materia_detectada"))
@@ -1000,12 +999,6 @@ Instrucciones:
                     "llm_request",
                     None,
                 ),
-
-                SlotSet(
-                    "requires_auth",
-                    None,
-                ),
-
             ]
 
 class ActionMemoryWrapper(Action):

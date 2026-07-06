@@ -112,7 +112,7 @@ ACTION_CATALOG = {
     },
 
     "consultar_certificados": {
-        "action": "action_render_certificados",
+        "action": "action_consultar_certificados",
         "backend": "certificados",
         "requires_auth": True,
         "module": "academico",
@@ -205,7 +205,7 @@ class OrchestratorV2:
         important_slots = {
             "materia": tracker.get_slot("materia"),
             "rol": tracker.get_slot("rol"),
-            "autenticado": tracker.get_slot("autenticado"),
+            "is_authenticated": tracker.get_slot("is_authenticated"),
             "curso": tracker.get_slot("curso"),
             "programa": tracker.get_slot("programa"),
             "ficha": tracker.get_slot("ficha"),
@@ -254,21 +254,13 @@ def route(self, tracker: Tracker) -> dict[str, Any]:
             intent,
             config,
         )
+        if config.get("action"):
 
-        # ----------------------------------------------------
-        # Acción protegida
-        # ----------------------------------------------------
-
-        if config.get("requires_auth"):
-
-            if tracker.get_slot("is_authenticated") is not True:
-
-                return {
-                    "type": "action",
-                    "action": "action_ingreso_zajuna",
-                    "context": context,
-                }
-
+            return {
+                "type":"action",
+                "action":config["action"],
+                "context":context
+            }
         # ----------------------------------------------------
         # Acción Rasa
         # ----------------------------------------------------
