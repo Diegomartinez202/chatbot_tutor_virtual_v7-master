@@ -497,71 +497,27 @@ Historial reciente:
         fallback: str,
     ) -> str:
         """
-        Centraliza la invocación al motor LLM.
+        Invoca el motor LLM.
 
-        Responsabilidades:
-
-        • Construir el prompt final.
-        • Incorporar historial cuando corresponda.
-        • Recuperar memoria semántica.
-        • Registrar el flujo lógico utilizado.
-        • Invocar run_llm().
-
-        Los subflujos (guardian_autosave, guardian_encuesta,
-        handoff, pqrs, soporte, etc.) llegan mediante el
-        parámetro 'context' y NO requieren crear nuevos FLOW_*.
+        Esta función NO construye contexto.
+        Solamente delega esa responsabilidad a build_prompt().
         """
-
-        # ------------------------------------------------------
-        # Flujo principal
-        # ------------------------------------------------------
 
         logger.info(
             "[LLM] Preparando prompt para flujo '%s'",
             flow,
         )
 
-        # ------------------------------------------------------
-        # Subflujo (si existe)
-        # ------------------------------------------------------
+        prompt_final = build_prompt(
+            base_prompt=prompt,
+            tracker=tracker,
+            context=context,
+        )
 
-        subflow = ""
-
-        if isinstance(context, dict):
-            subflow = context.get("flujo", "")
-
-        if subflow:
-            logger.debug(
-                "[LLM] Subflujo detectado: %s",
-                subflow,
-            )
-
-        # ------------------------------------------------------
-        # Mensaje del usuario
-        # ------------------------------------------------------
-
-        latest = tracker.latest_message or {}
-
-        if flow == self.FLOW_ACADEMIC:
-            user_message = (
-                tracker.get_slot("tema_consulta")
-                or latest.get("text", "")
-            )
-        else:
-            user_message = latest.get(
-                "text",
-                "",
-            )
-
-        # ------------------------------------------------------
-        # Construcción del prompt
-        # ------------------------------------------------------
-
-        prompt_final = prompt
-
-        # ------------------------------------------------------
-        # Invocación centralizada
-        # ------------------------------------------------------
+        logger.debug(
+            "[LLM] Prompt final construido (%d caracteres)",
+            len(prompt_final),
+        )
 
         return run_llm(
             prompt=prompt_final,
