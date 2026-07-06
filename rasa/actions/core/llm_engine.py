@@ -20,7 +20,7 @@ LLM_BASE_URL = os.getenv(
     "http://ollama:11434/api/chat"
 )
 
-# MEJORA: Aumento defensivo del timeout por defecto a 30s para mitigar picos de latencia en frío
+
 LLM_TIMEOUT = int(
     os.getenv(
         "LLM_TIMEOUT",
@@ -84,15 +84,6 @@ def _sanitize(text: str) -> str:
     if not text:
         return ""
     return text.strip()[:4000]
-
-def get_last_turns(tracker: Tracker, n=2) -> str:
-    """Extrae solo los últimos 'n' mensajes del usuario para reducir el prompt."""
-    events = tracker.events
-    # Filtramos solo los mensajes de usuario
-    user_messages = [e.get("text") for e in events if e.get("event") == "user" and e.get("text")]
-    
-    # Retornamos los últimos 'n' mensajes unidos
-    return "\n".join(user_messages[-n:])
 
 # ================================================================
 # 🚀 INTERNAL CALL (Ollama API Layer)

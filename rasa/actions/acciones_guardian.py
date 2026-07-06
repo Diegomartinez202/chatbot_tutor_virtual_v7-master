@@ -110,14 +110,7 @@ class ActionAutosaveSnapshot(Action):
             },
 
             "fallback": (
-                "✅ Se guardó una copia de seguridad de la sesión."
-            ),
-            "context": {
-
-                "flujo": "guardian_encuesta",
-            },
-            "fallback": (
-                "✅ Registro de satisfacción guardado correctamente."
+                "✅ Se guardó correctamente."
             ),
 
         }

@@ -17,7 +17,7 @@ from rasa_sdk.events import (
 )
 from rasa_sdk.forms import FormValidationAction
 from rasa_sdk.types import DomainDict
-from .core.llm_engine import run_llm, get_last_turns
+from .core.llm_engine import run_llm
 from .utils_logging import get_logger
 
 logger = get_logger(__name__)

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Text
 from rasa_sdk.events import EventType
 from .core.llm_engine import run_llm
 from .core.nlp_utils import detectar_materia
-from .core.prompts import MATERIAS
+from .core.materias import MATERIAS
 logger = logging.getLogger(__name__)
 
 # ================================================================

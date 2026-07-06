@@ -38,7 +38,6 @@ from rasa_sdk.types import DomainDict
 # ---------------------------------------------------------------------
 
 from .actions_semantic_memory import (
-    retrieve_similar,
     store_message,
 )
 
@@ -46,10 +45,7 @@ from .actions_semantic_memory import (
 # Motor LLM
 # ---------------------------------------------------------------------
 
-from .core.llm_engine import (
-    get_last_turns,
-    run_llm,
-)
+from .core.llm_engine import run_llm
 
 # ---------------------------------------------------------------------
 # Utilidades NLP
@@ -65,11 +61,11 @@ from .core.nlp_utils import (
 # ---------------------------------------------------------------------
 
 from .core.prompts import (
-    MATERIAS,
+    build_prompt,
     PROMPT_SYSTEM,
-    PROMPT_TEMPLATE,
 )
-from .acciones_academico import ACCIONES_ACADEMICAS
+from .core.history import build_history
+from .core.materias import MATERIAS
 # ---------------------------------------------------------------------
 # Configuración del módulo
 # ---------------------------------------------------------------------
@@ -342,7 +338,7 @@ class ActionHandleWithLLM(Action):
         es orientar al usuario sobre las capacidades del tutor.
         """
 
-        historial = self._build_history(tracker)
+        historial = build_history(tracker)
 
         return f"""
 El usuario ha solicitado ayuda.
@@ -370,12 +366,12 @@ Historial reciente:
         tracker: Tracker,
     ) -> str:
         """
-        Construye el prompt para conversación general.
+        Construye únicamente las instrucciones para una conversación
+        general.
 
-        Este método únicamente coordina la obtención del contexto;
-        no implementa directamente la lógica de memoria ni historial.
+        La memoria, el historial y el contexto conversacional serán
+        agregados posteriormente por build_prompt().
         """
-
         latest = tracker.latest_message or {}
 
         last_user = latest.get(
@@ -383,144 +379,19 @@ Historial reciente:
             "",
         )
 
-        intent = (
-            latest.get("intent", {})
-        )
-
-        intent_name = intent.get(
-            "name",
-            "desconocido",
-        )
-
-        intent_confidence = intent.get(
-            "confidence",
-            0.0,
-        )
-
-        memory = ""
-
-        if last_user: 
-            memory =self._recover_semantic_memory(
-            tracker=tracker,
-            text=last_user,
-        )
-
-        historial = self._build_history(
-            tracker,
-        )
-
         return f"""
-Contexto recuperado:
+    Consulta del estudiante:
 
-{memory or "Sin contexto previo relevante."}
+    {anonymize_text(last_user)}
 
-Intent detectado:
-{intent_name}
+    Instrucciones:
 
-Confianza:
-{intent_confidence:.3f}
-
-Último mensaje del usuario:
-
-{anonymize_text(last_user)}
-
-Historial reciente:
-
-{historial}
-
-Instrucciones:
-
-- Responde únicamente a la consulta realizada.
-- No inventes información.
-- Usa el contexto únicamente cuando sea relevante.
-- Si el contexto no aporta valor, ignóralo.
-- Mantén respuestas claras, útiles y breves.
-"""
-    # ==========================================================
-    # MEMORIA SEMÁNTICA
-    # ==========================================================
-
-    def _recover_semantic_memory(
-        self,
-        tracker: Tracker,
-        text: str,
-    ) -> str:
-        """
-        Recupera contexto semántico previamente almacenado.
-
-        Nunca genera excepciones hacia arriba.
-        En caso de error simplemente devuelve una cadena vacía.
-        """
-        session = tracker.get_slot(
-            "session_id"
-        )
-        if not text.strip():
-            return ""
-
-        try:
-
-            logger.debug(
-                "[LLM] Recuperando memoria semántica..."
-            )
-
-            memory = retrieve_similar(
-                text=text,
-                user_id=tracker.sender_id,
-                session_id=tracker.get_slot("session_id"),
-            )
-
-            if not memory:
-                return ""
-
-            recovered = memory.get(
-                "text",
-                "",
-            ).strip()
-
-            if recovered:
-
-                logger.debug(
-                    "[LLM] Memoria recuperada correctamente."
-                )
-
-                return (
-                    "Contexto previo relevante:\n"
-                    f"{recovered}"
-                )
-
-        except Exception:
-
-            logger.exception(
-                "[LLM] Error recuperando memoria semántica"
-            )
-
-        return ""
+    - Responde únicamente a la consulta realizada.
+    - No inventes información.
+    - Mantén una respuesta clara, útil y breve.
+    - No copies las instrucciones.
+    """
     
-    
-    def _build_history(self, tracker: Tracker, max_events: int = 2, max_lines: int = 2) -> str:
-        history: List[str] = []
-        raw_events = tracker.events or []
-
-        for event in raw_events[-max_events:]:
-            if not isinstance(event, dict):
-                continue
-
-            event_type = event.get("event")
-
-            if event_type == "user":
-                text = anonymize_text(event.get("text", ""))
-                # --- MEJORA: Filtro de comandos ---
-                if text and not text.startswith("/"): 
-                    history.append(f"Usuario: {text}")
-
-            elif event_type == "bot":
-                text = (event.get("text", "") or "").strip()
-                if text:
-                    history.append(f"Bot: {text}")
-
-        history = history[-max_lines:]
-        return "\n".join(history)
-
     # ==========================================================
     # CONTEXTO PARA EL LLM
     # ==========================================================
@@ -666,16 +537,6 @@ Instrucciones:
             )
 
         # ------------------------------------------------------
-        # Historial
-        # ------------------------------------------------------
-
-        history = (
-            ""
-            if flow == self.FLOW_ACADEMIC
-            else self._build_history(tracker)
-        )
-
-        # ------------------------------------------------------
         # Mensaje del usuario
         # ------------------------------------------------------
 
@@ -693,47 +554,10 @@ Instrucciones:
             )
 
         # ------------------------------------------------------
-        # Memoria semántica
-        # ------------------------------------------------------
-
-        memory = ""
-
-        if (
-            flow != self.FLOW_ACADEMIC
-            and user_message.strip()
-        ):
-            memory = self._recover_semantic_memory(
-                tracker=tracker,
-                text=user_message,
-            )
-
-        # ------------------------------------------------------
         # Construcción del prompt
         # ------------------------------------------------------
 
-        if flow == self.FLOW_ACADEMIC:
-            prompt_final = prompt
-        else:
-             prompt_final = PROMPT_TEMPLATE.format(
-
-                history=(
-                    history
-                    or "Sin historial reciente."
-                ),
-
-                memory=(
-                    memory
-                    or "Sin contexto previo relevante."
-                ),
-
-                question=(
-                    user_message
-                    or "Sin consulta."
-                ),
-
-                instructions=prompt,
-
-             )
+        prompt_final = prompt
 
         # ------------------------------------------------------
         # Invocación centralizada
@@ -976,6 +800,17 @@ Instrucciones:
             # CONTINUACIÓN DEL FLUJO
             # ======================================================
 
+            events = self._build_followup_events(flow)
+            events.insert(
+                0,
+                SlotSet(
+                    "proceso_activo",
+                    flow,
+                ),
+            )
+
+            return events
+            
             return self._build_followup_events(
                 flow,
             )

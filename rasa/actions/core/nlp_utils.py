@@ -7,8 +7,7 @@ from typing import Optional
 
 from rapidfuzz import fuzz
 
-from .prompts import MATERIAS
-
+from .materias import MATERIAS
 logger = logging.getLogger(__name__)
 
 # ================================================================
@@ -82,11 +81,9 @@ def detectar_materia(text: str) -> str:
     mejor_materia: Optional[str] = None
     best_score = 0
 
-    # Iteración ágil sobre los diccionarios de asignaturas predefinidas
     for materia in MATERIAS.keys():
         materia_norm = normalize_text(materia)
-        
-        # Métrica de razón parcial: ideal para detectar sub-frases en oraciones de chat
+       
         actual_score = fuzz.partial_ratio(normalized_input, materia_norm)
 
         if actual_score > best_score:

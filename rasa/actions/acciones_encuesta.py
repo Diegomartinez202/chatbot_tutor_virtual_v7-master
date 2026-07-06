@@ -186,10 +186,15 @@ class ActionRegistrarEncuesta(Action):
         events: List[EventType] = [
 
             SlotSet(
-                "encuesta_incompleta",
+               
+               "encuesta_incompleta",
                 False,
             ),
 
+            SlotSet(
+               "encuesta_activa",
+               False,
+            ),
             SlotSet(
                 "nivel_satisfaccion",
                 None,
@@ -215,7 +220,6 @@ class ActionRegistrarEncuesta(Action):
                 None,
             ),
 
-            # Compatibilidad con la arquitectura existente
             SlotSet(
                 "proceso_activo",
                 None,
@@ -500,7 +504,11 @@ class ActionProcesarRespuestaResolucion(Action):
         Intercepta el intent del usuario. Si persiste la duda, frena la salida
         y despliega las opciones de redirección del flujo académico.
         """
-        ultimo_intent = tracker.latest_message.get("intent", {}).get("name", "")
+        latest = tracker.latest_message or {}
+
+        ultimo_intent = (
+            latest.get("intent", {}) or {}
+        ).get("name", "")
         
         logger.info("[ActionProcesarRespuestaResolucion] El usuario respondió con intent=%s", ultimo_intent)
 
@@ -514,12 +522,30 @@ class ActionProcesarRespuestaResolucion(Action):
                 text="Lamento que no hayamos resuelto tu inquietud por completo. ¿Qué te gustaría hacer ahora?",
                 buttons=botones
             )
-            return [SlotSet("encuesta_incompleta", True)]
-        
-        else:
-            # Si el usuario responde afirmativamente, se procesa la encuesta de satisfacción corta
-            return [FollowupAction("encuesta_satisfaccion_form")]
+            return [
 
+               SlotSet(
+                   "encuesta_incompleta",
+                   True,
+               ),
+
+             ]
+        else:
+            logger.info(
+                "[ENCUESTA] Iniciando encuesta de satisfacción."
+            )
+            return [
+
+               SlotSet(
+                   "encuesta_activa",
+                   True,
+               ),
+
+               FollowupAction(
+                   "encuesta_satisfaccion_form",
+               ),
+
+            ]
 
 # =====================================================================
 # 4. NUEVA ACCIÓN: LANZAR EVALUACIÓN DE USABILIDAD GENERAL DEL BOT
