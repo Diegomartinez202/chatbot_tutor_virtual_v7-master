@@ -127,6 +127,10 @@ class ActionHandleWithLLM(Action):
 
         if flow == self.FLOW_HELP:
             return self._build_help_prompt(tracker)
+        
+        elif flow == self.FLOW_SUPPORT:
+
+            return self._build_support_prompt(tracker)
 
         return self._build_general_prompt(tracker)
 
@@ -206,79 +210,50 @@ class ActionHandleWithLLM(Action):
 
         return self.FLOW_GENERAL
 
-    # ==========================================================
     # BUILDERS ESPECIALIZADOS
     # ==========================================================
 
     def _build_auth_prompt(
-        self,
-        tracker: Tracker,
+       self,
+       tracker: Tracker,
     ) -> str:
-        """
-        Prompt especializado para consultas protegidas.
-        """
+       """
+       Devuelve únicamente la acción protegida que intentó realizar
+       el usuario.
 
-        llm_request = tracker.get_slot("llm_request") or {}
+       build_prompt() será el encargado de construir el prompt final
+       utilizando el flujo "auth".
+       """
 
-        context = llm_request.get("context", {})
+       llm_request = tracker.get_slot("llm_request") or {}
 
-        accion = context.get(
-            "pending_action",
-            "consultar información personal",
-        )
+       context = llm_request.get(
+           "context",
+           {},
+       )
 
-        return f"""
-        El usuario intentó realizar la siguiente acción protegida:
-
-    {accion}
-
-    Debes responder como Tutor Virtual del SENA.
-
-    Explica de manera cordial que esa información contiene datos
-    personales del estudiante y requiere autenticación.
-
-    Indica claramente:
-
-    1. Que la información está protegida por motivos de privacidad.
-
-    2. Que el chatbot podrá consultar la información una vez el usuario
-    inicie sesión.
-
-    3. Que debe ingresar al portal institucional:
-
-    https://localhost/login
-
-    4. Explica los pasos:
-
-    • Abrir el portal.
-    • Iniciar sesión con sus credenciales.
-    • Regresar al chat.
-    • Repetir la consulta.
-
-    No inventes información académica.
-
-    No respondas como si el usuario ya estuviera autenticado.
-
-    No expliques programación ni conceptos académicos.
-
-    Tu único objetivo es ayudar al usuario a autenticarse.
-    """
+       return context.get(
+           "pending_action",
+           "consultar información personal",
+       )
 
     def _build_academic_prompt(
         self,
         tracker: Tracker,
     ) -> str:
         """
-        Construye el prompt académico.
+        Devuelve únicamente la consulta académica realizada por el
+        estudiante.
 
-        La construcción del contenido pedagógico permanece
-        desacoplada del resto de flujos.
+        build_prompt() será el único responsable de construir el
+        prompt final.
         """
-
+        latest = tracker.latest_message or {}
         pregunta = (
-           tracker.get_slot("tema_consulta")
-           or tracker.latest_message.get("text","")
-        )
+            tracker.get_slot("tema_consulta")
+            or latest.get("text", "")
+        ).strip()
+
 
         materia = (
             tracker.get_slot("materia_detectada")
@@ -286,42 +261,30 @@ class ActionHandleWithLLM(Action):
             or "General"
         )
 
-        materia_key = str(
-            materia
-        ).lower()
-
         rol = (
             tracker.get_slot("rol_academico")
             or MATERIAS.get(
-                materia_key,
+                str(materia).lower(),
                 "Tutor Académico General",
             )
         )
 
-        return f"""
-        Eres un Tutor Académico del SENA.
+        if not tracker.get_slot("materia_detectada"):
 
-        Rol:
-        {rol}
+            logger.debug(
+                "[LLM] Materia detectada automáticamente: %s",
+                materia,
+            )
 
-        Asignatura:
-        {materia}
+        if not tracker.get_slot("rol_academico"):
 
-        Consulta del estudiante:
+            logger.debug(
+                "[LLM] Rol académico seleccionado: %s",
+                rol,
+            )
 
-        {pregunta}
+        return pregunta
 
-        Debes responder siguiendo estas reglas:
-
-        - Explica paso a paso.
-        - Usa ejemplos sencillos.
-        - No repitas estas instrucciones.
-        - No copies el prompt.
-        - Responde directamente al estudiante.
-        - Finaliza preguntando si desea continuar.
-
-        Respuesta:
-        """
 
     # ==========================================================
     # HELP PROMPT
@@ -332,30 +295,17 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
         """
-        Construye el prompt para solicitudes de ayuda.
+        Devuelve únicamente la consulta del usuario.
 
-        Este flujo no consulta memoria semántica ya que su objetivo
-        es orientar al usuario sobre las capacidades del tutor.
+        build_prompt() añadirá las instrucciones del flujo help.
         """
+        latest = tracker.latest_message or {}
 
-        historial = build_history(tracker)
+        return latest.get(
+            "text",
+            "",
+        ).strip() or "El usuario solicita ayuda."
 
-        return f"""
-El usuario ha solicitado ayuda.
-
-Actúas como el Tutor Virtual del SENA.
-
-Debes:
-
-1. Explicar qué tipo de consultas puedes responder.
-2. Explicar qué información académica requiere autenticación.
-3. Invitar al estudiante a realizar una consulta concreta.
-4. Mantener un tono cordial y profesional.
-
-Historial reciente:
-
-{historial}
-"""
 
     # ==========================================================
     # GENERAL PROMPT
@@ -366,32 +316,22 @@ Historial reciente:
         tracker: Tracker,
     ) -> str:
         """
-        Construye únicamente las instrucciones para una conversación
-        general.
+        Devuelve únicamente el mensaje del usuario.
 
-        La memoria, el historial y el contexto conversacional serán
-        agregados posteriormente por build_prompt().
+        Todo el contexto será agregado posteriormente por
+        build_prompt().
         """
+
         latest = tracker.latest_message or {}
 
-        last_user = latest.get(
-            "text",
-            "",
+        return anonymize_text(
+            latest.get(
+                "text",
+                "",
+            ).strip()
         )
 
-        return f"""
-    Consulta del estudiante:
 
-    {anonymize_text(last_user)}
-
-    Instrucciones:
-
-    - Responde únicamente a la consulta realizada.
-    - No inventes información.
-    - Mantén una respuesta clara, útil y breve.
-    - No copies las instrucciones.
-    """
-    
     # ==========================================================
     # CONTEXTO PARA EL LLM
     # ==========================================================
@@ -401,20 +341,99 @@ Historial reciente:
         tracker: Tracker,
         flow: str,
     ) -> Dict[str, Any]:
+        """
+        Construye el contexto estructurado que utilizará build_prompt().
+
+        Este método NO genera prompts.
+        Únicamente recopila información del flujo.
+        """
 
         latest = tracker.latest_message or {}
         intent = latest.get("intent", {}) or {}
 
+        pregunta = (
+            tracker.get_slot("tema_consulta")
+            or latest.get("text", "")
+        )
+
+        materia = (
+            tracker.get_slot("materia_detectada")
+            or detectar_materia(pregunta)
+            or "General"
+        )
+
+        rol = (
+            tracker.get_slot("rol_academico")
+            or MATERIAS.get(
+                str(materia).lower(),
+                "Tutor Académico General",
+            )
+        )
+
+        llm_request = tracker.get_slot("llm_request") or {}
+
+        request_context = llm_request.get(
+            "context",
+            {},
+        )
+
         return {
+
             "flujo": flow,
-            "materia": tracker.get_slot("materia_detectada"),
-            "rol": tracker.get_slot("rol_academico"),
-            "intent": intent.get("name", "desconocido"),
-            "confidence": intent.get("confidence", 0.0),
-            "session_id": tracker.get_slot("session_id"),
+
+            "materia": materia,
+            "rol": rol,
+
+            "intent": intent.get(
+                "name",
+                "desconocido",
+            ),
+
+            "confidence": intent.get(
+                "confidence",
+                0.0,
+            ),
+
+            "session_id": tracker.get_slot(
+                "session_id",
+            ),
+
+            "pending_action": request_context.get(
+                "pending_action",
+                "",
+            ),
+
+            "auth_required": request_context.get(
+                "requires_auth",
+                False,
+            ),
+
         }
 
-        # ==========================================================
+    # ==========================================================
+    # SUPPORT PROMPT
+    # ==========================================================
+
+    def _build_support_prompt(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Devuelve únicamente el problema reportado por el usuario.
+
+        build_prompt() añadirá posteriormente el historial,
+        memoria, contexto e instrucciones específicas del flujo
+        support.
+        """
+ 
+        latest = tracker.latest_message or {}
+
+        return latest.get(
+            "text",
+            "",
+        ).strip() or "El usuario reporta un problema."
+
+    # ==========================================================
     # EVENTOS DE CONTINUIDAD DEL FLUJO
     # ==========================================================
 
@@ -499,8 +518,14 @@ Historial reciente:
         """
         Invoca el motor LLM.
 
-        Esta función NO construye contexto.
-        Solamente delega esa responsabilidad a build_prompt().
+        Responsabilidad:
+
+        - Construir el prompt final mediante build_prompt().
+        - Delegar la ejecución al motor LLM.
+
+        No contiene lógica de negocio.
+        No consulta memoria.
+        No construye historial.
         """
 
         logger.info(
@@ -610,45 +635,75 @@ Historial reciente:
             )
         )
     
-    
     def _ejecutar_procesamiento_llm(
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         flow: str,
+        prompt: str | None = None,
     ) -> List[EventType]:
         """
-        Procesa la interacción con el LLM.
+        Orquesta todo el procesamiento del LLM.
 
-        Responsabilidades:
+        Arquitectura:
 
-        - Construir el prompt.
-        - Invocar el LLM.
-        - Interpretar la respuesta.
-        - Enviar la respuesta al usuario.
-        - Delegar la continuación del flujo.
+            builder específico
+                ↓
+           build_prompt()
+                ↓
+           run_llm()
+                ↓
+           _call_model()
         """
+
         logger.info(
             "[DEBUG LLM] llm_request=%s",
             tracker.get_slot("llm_request"),
         )
+
         try:
 
-            llm_request = tracker.get_slot("llm_request")
+            llm_request = tracker.get_slot("llm_request") or {}
+
             logger.info(
-                "[DEBUG] llm_request dentro de _ejecutar_procesamiento_llm = %s",
+                "[DEBUG] llm_request=%s",
                 llm_request,
             )
+
+            # ==================================    ===================
+            # Obtener contenido del flujo
+            # =====================================================
+
             if llm_request:
 
-                prompt = llm_request.get(
-                    "instruction",
-                    "",
+                if prompt is None:
+
+                    prompt = llm_request.get(
+                        "instruction",
+                        "",
+                    )
+
+                # -------------------------------------------------
+                # Construir siempre el contexto base del flujo
+                # -------------------------------------------------
+
+                context = self._build_llm_context(
+                    tracker,
+                    flow,
                 )
 
-                context = llm_request.get(
-                    "context",
-                    {},
+                # -------------------------------------------------
+                # Sobrescribir únicamente los datos específicos
+                # enviados por llm_request
+                # -------------------------------------------------
+
+                context.update(
+
+                    llm_request.get(
+                        "context",
+                        {},
+                    )
+
                 )
 
                 fallback = llm_request.get(
@@ -658,9 +713,11 @@ Historial reciente:
 
             else:
 
-                prompt = self._build_prompt(
-                    tracker,
-                )
+                if prompt is None:
+
+                    prompt = self._build_prompt(
+                        tracker,
+                    )
 
                 context = self._build_llm_context(
                     tracker,
@@ -671,10 +728,24 @@ Historial reciente:
                     "Lo siento, no puedo responder en este momento."
                 )
 
+            # =====================================================
+            # Construir SIEMPRE el prompt final
+            # =====================================================
+
+            prompt = build_prompt(
+                base_prompt=prompt,
+                tracker=tracker,
+                context=context,
+            )
+
             logger.debug(
-                "[LLM] Prompt generado (%d caracteres)",
+                "[LLM] Prompt final (%d caracteres)",
                 len(prompt),
             )
+
+            # =====================================================
+            # Invocar LLM
+            # =====================================================
 
             respuesta = self._invoke_llm(
                 dispatcher=dispatcher,
@@ -685,13 +756,28 @@ Historial reciente:
                 fallback=fallback,
             )
 
-            # ======================================================
-            # INTERPRETAR RESPUESTA DEL LLM
-            # ======================================================
+            respuesta = (respuesta or "").strip()
 
-            respuesta = respuesta.strip()
+            # =====================================================
+            # Respuesta vacía
+            # =====================================================
 
-            respuesta_enviada = False
+            if not respuesta:
+
+                dispatcher.utter_message(
+                    text=fallback,
+                )
+
+                return [
+                    SlotSet(
+                        "llm_request",
+                        None,
+                    ),
+                ]
+
+            # =====================================================
+            # Intent devuelto por el LLM
+            # =====================================================
 
             if respuesta.startswith("INTENT:"):
 
@@ -713,10 +799,8 @@ Historial reciente:
                         text=texto,
                     )
 
-                    respuesta_enviada = True
-
                 logger.info(
-                    "[LLM] Intent detectado: %s",
+                    "[LLM] Intent detectado=%s",
                     intent_llm,
                 )
 
@@ -726,16 +810,17 @@ Historial reciente:
                     text=respuesta,
                 )
 
-                respuesta_enviada = True
+            logger.info(
+                "[LLM] Respuesta enviada.",
+            )
 
-            if respuesta_enviada:
+            # =====================================================
+            # Acción posterior definida por llm_request
+            # =====================================================
 
-                logger.info(
-                    "[LLM] Respuesta enviada correctamente."
-                )
-
-            llm_request = tracker.get_slot("llm_request") or {}
-            next_action = llm_request.get("next_action")
+            next_action = llm_request.get(
+                "next_action",
+            )
 
             if next_action:
 
@@ -751,12 +836,15 @@ Historial reciente:
                     ),
 
                 ]
-          
-            # ======================================================
-            # CONTINUACIÓN DEL FLUJO
-            # ======================================================
 
-            events = self._build_followup_events(flow)
+            # =====================================================
+            # Continuación normal del flujo
+            # =====================================================
+
+            events = self._build_followup_events(
+                flow,
+            )
+
             events.insert(
                 0,
                 SlotSet(
@@ -766,15 +854,11 @@ Historial reciente:
             )
 
             return events
-            
-            return self._build_followup_events(
-                flow,
-            )
 
         except Exception:
 
             logger.exception(
-                "[ACTION_HANDLE_WITH_LLM] Error inesperado"
+                "[ACTION_HANDLE_WITH_LLM] Error inesperado",
             )
 
             dispatcher.utter_message(
@@ -787,9 +871,10 @@ Historial reciente:
             return [
 
                 SlotSet(
-                    "llm_request",
-                    None,
+                   "llm_request",
+                   None,
                 ),
+
             ]
 
 class ActionMemoryWrapper(Action):

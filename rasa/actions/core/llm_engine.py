@@ -8,7 +8,7 @@ from typing import Any, Optional
 import requests
 from rasa_sdk import Tracker
 
-from .prompts import build_prompt,PROMPT_SYSTEM 
+from .prompts import PROMPT_SYSTEM 
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +113,8 @@ def _call_model(
         )
 
         logger.info(
-            "[OLLAMA] Enviando request al modelo=%s (timeout=%s)",
+            "[OLLAMA] Enviando request al modelo=%s",
             model,
-            LLM_TIMEOUT,
         )
 
         logger.debug(
@@ -123,63 +122,53 @@ def _call_model(
             clean_prompt,
         )
 
+        payload = {
+
+            "model": model,
+
+            "messages": [
+
+                {
+                    "role": "system",
+                    "content": PROMPT_SYSTEM,
+                },
+
+                {
+                    "role": "user",
+                    "content": clean_prompt,
+                },
+
+            ],
+
+            "stream": False,
+
+            "keep_alive": "24h",
+
+            "options": {
+
+                "temperature": 0.2,
+
+                "num_predict": MAX_TOKENS,
+
+                "num_ctx": 2048,
+
+                "top_k": 20,
+
+                "top_p": 0.9,
+
+                "repeat_penalty": 1.20,
+
+            },
+
+        }
+
         response = requests.post(
             LLM_BASE_URL,
-            json={
-                "model": model,
-
-                "messages": [
-
-                    {
-                        "role": "system",
-                        "content": PROMPT_SYSTEM,
-                    },
-
-                    {
-                        "role": "user",
-                        "content": clean_prompt,
-                    },
-
-                ],
-
-                "stream": False,
-
-                "keep_alive": "24h",
-
-                "options": {
-
-                    "num_predict": MAX_TOKENS,
-
-                    "temperature": 0.3,
-
-                    "num_ctx": 2048,
-
-                    "top_k": 10,
-
-                    "repeat_penalty": 1.15,
-
-                    # Puedes dejar los stop o quitarlos.
-                    # Yo los dejaría comentados durante las pruebas.
-
-                    # "stop": [
-                    #     "USER:",
-                    #     "SYSTEM:",
-                    #     "ASSISTANT:",
-                    # ],
-
-                },
-            },
+            json=payload,
             timeout=LLM_TIMEOUT,
         )
 
-        if response.status_code != 200:
-
-            logger.error(
-                "[LLM] Error de Ollama (Detalle): %s",
-                response.text,
-            )
-
-            response.raise_for_status()
+        response.raise_for_status()
 
         data = response.json()
 
@@ -189,17 +178,51 @@ def _call_model(
                 .strip()
         )
 
-        if respuesta.startswith("SYSTEM:"):
+        # ----------------------------------------------------
+        # Evitar respuestas vacías
+        # ----------------------------------------------------
+
+        if not respuesta:
 
             logger.warning(
-                "[LLM] El modelo devolvió el prompt."
+                "[LLM] Respuesta vacía."
             )
 
-        elif respuesta.startswith("Eres Tutor"):
+            return ""
+
+        # ----------------------------------------------------
+        # Detectar copia del prompt
+        # ----------------------------------------------------
+
+        inicio = respuesta[:250].lower()
+
+        patrones = [
+
+            "flujo",
+
+            "contexto",
+
+            "historial",
+
+            "memoria",
+
+            "consulta",
+
+            "eres un tutor",
+
+            "respuesta:",
+
+            "instrucciones",
+
+        ]
+
+        if any(p in inicio for p in patrones):
 
             logger.warning(
-                "[LLM] TinyLlama comenzó copiando las instrucciones."
+                "[LLM] El modelo devolvió el prompt en lugar de responder."
             )
+
+            return ""
 
         logger.info(
             "[LLM] Respuesta recibida (%d caracteres)",
@@ -207,7 +230,7 @@ def _call_model(
         )
 
         logger.debug(
-            "[OLLAMA] Respuesta completa:\n%s",
+            "[OLLAMA] Respuesta:\n%s",
             respuesta,
         )
 
@@ -219,27 +242,16 @@ def _call_model(
     ) as e:
 
         logger.error(
-            "[LLM] Timeout de Ollama: %s",
+            "[LLM] Timeout: %s",
             str(e),
         )
-
-        if dispatcher:
-
-            dispatcher.utter_message(
-                text=(
-                    "Estoy procesando tu consulta, dame un segundo..."
-                    " el sistema está un poco lento hoy."
-                    " ¿Podrías intentar enviarme la pregunta de nuevo?"
-                )
-            )
 
         return "ERROR_TIMEOUT"
 
     except Exception as e:
 
         logger.exception(
-            "[LLM] model call failed para %s -> %s",
-            model,
+            "[LLM] Error llamando al modelo: %s",
             str(e),
         )
 
@@ -257,114 +269,156 @@ def run_llm(
     dispatcher: Optional[Any] = None,
 ) -> str:
     """
-    Orquesta la inferencia generativa del Tutor Virtual con optimización de prompts.
+    Orquesta la inferencia del LLM.
+
+    IMPORTANTE
+
+    ActionHandleWithLLM ya entrega un prompt completamente construido
+    mediante build_prompt().
+
+    Por lo tanto esta función NO vuelve a construir prompts.
+    Su única responsabilidad es:
+
+    - Sanitizar.
+    - Limpiar contexto.
+    - Invocar Ollama.
+    - Gestionar failover.
+    - Devolver la respuesta.
     """
 
     sane_prompt = _sanitize(prompt)
+
     if not sane_prompt:
+        logger.warning("[LLM] Prompt vacío.")
         return fallback
 
     try:
-        user_id = getattr(tracker, "sender_id", "anónimo")
-        context_data = context or {}
-        if context_data:
-      
-            context_data.pop("requires_auth", None)
-            context_data.pop("auth_state", None)
-        # =====================================================
-        # MEJORA: Prompt dinámico y minimalista
-        # Utiliza el flujo conversacional para decidir cuándo
-        # enviar un prompt ligero o un prompt completo.
-        # =====================================================
+
+        context_data = dict(context or {})
+
+        # --------------------------------------------------------
+        # Limpiar información interna que nunca debe viajar al LLM
+        # --------------------------------------------------------
+
+        context_data.pop("requires_auth", None)
+        context_data.pop("auth_state", None)
 
         flow = context_data.get(
             "flujo",
             "general",
         )
 
-        es_prompt_simple = (
-
-            len(sane_prompt) < 80
-
-            and flow == "general"
-
-            and not context_data.get("materia")
-
+        logger.info(
+            "[LLM] Ejecutando flujo '%s'",
+            flow,
         )
-
-        if use_system_prompt:
-
-            if es_prompt_simple:
-
-                # ---------------------------------------------
-                # PROMPT LIGERO
-                # Para saludos, agradecimientos y consultas
-                # generales muy cortas.
-                # ---------------------------------------------
-
-                final_prompt = (
-                    f"{PROMPT_SYSTEM}\n\n"
-                    "SYSTEM:\n"
-                    "Responde de forma breve y natural.\n\n"
-                    "USER:\n"
-                    f"{sane_prompt}\n\n"
-                    "ASSISTANT:\n"
-                )
-
-                logger.info(
-                    "[LLM] Ejecutando con PROMPT_SYSTEM LIGERO"
-                )
-
-            else:
-
-                # ---------------------------------------------
-                # PROMPT COMPLETO
-                # Consultas académicas, soporte,
-                # autenticación, ayuda o cualquier flujo que
-                # requiera contexto adicional.
-                # ---------------------------------------------
-
-                final_prompt = build_prompt(
-                    base_prompt=sane_prompt,
-                    tracker=tracker,
-                    context=context_data,
-                )
-
-                logger.info(
-                    "[LLM] Ejecutando con PROMPT_SYSTEM COMPLETO"
-                )
-
-        else:
-
-            final_prompt = sane_prompt
-
-            logger.info(
-                "[LLM] Ejecutando SIN PROMPT_SYSTEM"
-            )
 
         logger.info(
-            "[LLM] Inferencia. Prompt len=%d",
-            len(final_prompt),
+            "[LLM] Prompt listo (%d caracteres)",
+            len(sane_prompt),
         )
 
-        # =====================================================
-        # MODELO PRINCIPAL Y FAILOVER
-        # =====================================================
-        result = _call_model(PRIMARY_MODEL, final_prompt, dispatcher=dispatcher)
+        logger.debug(
+            "[LLM] Prompt enviado:\n%s",
+            sane_prompt,
+        )
+
+        # ========================================================
+        # MODELO PRINCIPAL
+        # ========================================================
+
+        result = _call_model(
+            PRIMARY_MODEL,
+            sane_prompt,
+            dispatcher=dispatcher,
+        )
+
+        # ========================================================
+        # FAILOVER
+        # ========================================================
 
         if not result:
-            logger.warning("[LLM] Fallo en primario, intentando fallback")
-            result = _call_model(FALLBACK_MODEL, final_prompt, dispatcher=dispatcher)
 
-        return result.strip() if result and result != "ERROR_TIMEOUT" else fallback
+            logger.warning(
+                "[LLM] Modelo principal sin respuesta. Intentando fallback..."
+            )
+
+            result = _call_model(
+                FALLBACK_MODEL,
+                sane_prompt,
+                dispatcher=dispatcher,
+            )
+
+        # ========================================================
+        # TIMEOUT
+        # ========================================================
+
+        if result == "ERROR_TIMEOUT":
+
+            logger.warning(
+                "[LLM] Timeout del modelo."
+            )
+
+            return fallback
+
+        # ========================================================
+        # RESPUESTA VACÍA
+        # ========================================================
+
+        if not result:
+
+            logger.warning(
+                "[LLM] El modelo respondió vacío."
+            )
+
+            return fallback
+
+        result = result.strip()
+
+        # ========================================================
+        # EVITAR QUE EL MODELO DEVUELVA EL PROMPT
+        # ========================================================
+
+        if result == sane_prompt:
+
+            logger.warning(
+                "[LLM] El modelo devolvió exactamente el prompt recibido."
+            )
+
+            return fallback
+
+        if len(result) > 50 and sane_prompt[:50] in result:
+
+            logger.warning(
+                "[LLM] El modelo comenzó copiando el prompt."
+            )
+
+            return fallback
+
+        logger.info(
+            "[LLM] Respuesta generada (%d caracteres)",
+            len(result),
+        )
+
+        logger.debug(
+            "[LLM] Respuesta:\n%s",
+            result,
+        )
+
+        return result
 
     except Exception as e:
-        logger.exception("[LLM CRITICAL ERROR] %s", str(e))
+
+        logger.exception(
+            "[LLM CRITICAL ERROR] %s",
+            str(e),
+        )
+
         return fallback
+
 
 def run_llm_safe(*args, **kwargs) -> str:
     """
-    Envoltura heredada para mantener compatibilidad
-    con llamadas legacy.
+    Compatibilidad con llamadas legacy.
     """
     return run_llm(*args, **kwargs)
