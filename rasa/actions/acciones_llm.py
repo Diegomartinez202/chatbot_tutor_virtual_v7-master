@@ -518,14 +518,10 @@ class ActionHandleWithLLM(Action):
         """
         Invoca el motor LLM.
 
-        Responsabilidad:
-
-        - Construir el prompt final mediante build_prompt().
-        - Delegar la ejecución al motor LLM.
-
-        No contiene lógica de negocio.
-        No consulta memoria.
-        No construye historial.
+        El prompt YA viene completamente construido desde
+        _ejecutar_procesamiento_llm().
+ 
+        Esta función únicamente delega la ejecución al motor LLM.
         """
 
         logger.info(
@@ -533,19 +529,16 @@ class ActionHandleWithLLM(Action):
             flow,
         )
 
-        prompt_final = build_prompt(
-            base_prompt=prompt,
-            tracker=tracker,
-            context=context,
-        )
-
         logger.debug(
             "[LLM] Prompt final construido (%d caracteres)",
-            len(prompt_final),
+            len(prompt),
         )
-
+        logger.debug(
+        "[LLM] Prompt enviado:\n%s",
+        prompt,
+        )
         return run_llm(
-            prompt=prompt_final,
+            prompt=prompt,
             tracker=tracker,
             context=context,
             fallback=fallback,
