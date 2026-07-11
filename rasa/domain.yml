@@ -63,6 +63,8 @@ intents:
   - guardian_guardar_progreso
   - continuar_tema_si
   - despedida
+  - respuesta_resuelto_si
+  - respuesta_resuelto_no
 entities:
   - email
   - emocion

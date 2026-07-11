@@ -1,6 +1,31 @@
 version: "3.1"
 
 nlu:
+
+- intent: respuesta_resuelto_si
+  examples: |
+    - quedó resuelto
+    - ya quedó
+    - sí quedó resuelto
+    - sí quedó solucionado
+    - sí me ayudó
+    - sí quedó claro
+    - el problema está resuelto
+    - todo resuelto
+    - se solucionó correctamente
+
+- intent: respuesta_resuelto_no
+  examples: |
+    - no quedó resuelto
+    - no se solucionó
+    - sigo con el problema
+    - aún tengo la duda
+    - todavía tengo el problema
+    - no quedó claro
+    - sigo confundido
+    - el problema sigue igual
+    - no funcionó
+
 - intent: negar_encuesta
   examples: |
     - No quiero hacer ninguna encuesta
@@ -1840,9 +1865,17 @@ nlu:
     - así es
     - sin problema
     - correcto, continúa
+    - sí quedó resuelto
+    - sí quedó solucionado
+    - sí me ayudó
+    - sí gracias
+    - sí quedó claro
+    - quedó resuelto
+    - quedó solucionado
 
 - intent: deny
   examples: |
+    - no
     - nop
     - negativo
     - jamás
@@ -1867,6 +1900,13 @@ nlu:
     - cancelar eso
     - no lo hagas
     - no deseo hacerlo
+    - no quedó resuelto
+    - no se solucionó
+    - sigo con el problema
+    - aún tengo la duda
+    - todavía tengo el problema
+    - no quedó claro
+    - sigo confundido
 
 - intent: reanudar_auto_si
   examples: |

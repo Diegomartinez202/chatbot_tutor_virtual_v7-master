@@ -90,8 +90,8 @@ services:
       
       # --- OPTIMIZACIÓN LLM (MVP) ---
       LLM_URL: http://ollama:11434/api/chat
-      LLM_MODEL: tinyllama:latest
-      LLM_FALLBACK_MODEL: tinyllama:latest
+      LLM_MODEL: qwen2.5:3b
+      LLM_FALLBACK_MODEL: qwen2.5:3b
       # Reducimos a 60s: Si en 60s no responde, es mejor fallar rápido
       # que dejar al usuario esperando 5 minutos.
       LLM_TIMEOUT: 180

@@ -321,6 +321,7 @@ class ActionGuardarFeedback(Action):
         ]
 
 class ActionPreguntarResolucion(Action):
+
     def name(self) -> str:
         return "action_preguntar_resolucion"
 
@@ -329,19 +330,32 @@ class ActionPreguntarResolucion(Action):
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
         domain: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        dispatcher.utter_message(response="utter_esta_resuelto")
+    ) -> List[EventType]:
+
+        logger.info(
+            "[ENCUESTA] Preguntando si el problema fue resuelto."
+        )
+
+        dispatcher.utter_message(
+            response="utter_esta_resuelto"
+        )
+
         return [
 
-            SlotSet("encuesta_incompleta", True),
+            SlotSet(
+                "encuesta_incompleta",
+                True,
+            ),
 
             SlotSet(
-
                 "encuesta_tipo",
-
                 obtener_tipo_encuesta(tracker),
-
             ),
+
+            FollowupAction(
+                "action_listen",
+            ),
+
         ]
 
 class ActionSetEncuestaTipo(Action):
@@ -488,9 +502,11 @@ class ValidateEncuestaSatisfaccionForm(FormValidationAction):
         return {"comentario": v}
 
 # =====================================================================
-# 3. NUEVA ACCIÓN: MITIGACIÓN Y CONTROL EN CASO DE RESPUESTA 'NO'
+# 3. ACCIÓN: PROCESAR RESPUESTA A "¿QUEDÓ RESUELTO?"
 # =====================================================================
+
 class ActionProcesarRespuestaResolucion(Action):
+
     def name(self) -> Text:
         return "action_procesar_respuesta_resolucion"
 
@@ -500,52 +516,99 @@ class ActionProcesarRespuestaResolucion(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
-        """
-        Intercepta el intent del usuario. Si persiste la duda, frena la salida
-        y despliega las opciones de redirección del flujo académico.
-        """
+
         latest = tracker.latest_message or {}
 
         ultimo_intent = (
             latest.get("intent", {}) or {}
         ).get("name", "")
-        
-        logger.info("[ActionProcesarRespuestaResolucion] El usuario respondió con intent=%s", ultimo_intent)
 
-        if ultimo_intent in ["respuesta_insatisfecho", "negar"]:
+        logger.info(
+            "[ActionProcesarRespuestaResolucion] intent=%s",
+            ultimo_intent,
+        )
+
+        # ==========================================================
+        # El usuario indicó que NO quedó resuelto
+        # ==========================================================
+
+        if ultimo_intent in [
+            "respuesta_resuelto_no",
+            "respuesta_insatisfecho",  
+            "deny",                    
+        ]: 
             botones = [
-                {"title": "📚 Seguir con el tema", "payload": "/continuar_tema"},
-                {"title": "🏠 Menú Principal", "payload": "/menu_principal"},
-                {"title": "🚪 Salir y Calificar Bot", "payload": "/forzar_salida"}
+
+                {
+                    "title": "📚 Seguir con el tema",
+                    "payload": "/continuar_tema",
+                },
+
+                {
+                    "title": "🏠 Menú Principal",
+                    "payload": "/menu_principal",
+                },
+
+                {
+                    "title": "🚪 Salir y Calificar Bot",
+                    "payload": "/forzar_salida",
+                },
+
             ]
+
             dispatcher.utter_message(
-                text="Lamento que no hayamos resuelto tu inquietud por completo. ¿Qué te gustaría hacer ahora?",
-                buttons=botones
+                text=(
+                    "Lamento que no hayamos resuelto tu inquietud por completo. "
+                    "¿Qué te gustaría hacer ahora?"
+                ),
+                buttons=botones,
             )
+
             return [
 
-               SlotSet(
-                   "encuesta_incompleta",
-                   True,
-               ),
+                SlotSet(
+                    "encuesta_incompleta",
+                    True,
+                ),
 
-             ]
-        else:
+            ]
+
+        # ==========================================================
+        # Usuario indica que SÍ quedó resuelto
+        # ==========================================================
+
+        elif ultimo_intent in [
+            "respuesta_resuelto_si",
+            "affirm",          # compatibilidad temporal
+        ]:
+
             logger.info(
                 "[ENCUESTA] Iniciando encuesta de satisfacción."
             )
+
             return [
 
-               SlotSet(
-                   "encuesta_activa",
-                   True,
-               ),
+                SlotSet(
+                    "encuesta_activa",
+                    True,
+                ),
 
-               FollowupAction(
-                   "encuesta_satisfaccion_form",
-               ),
+                FollowupAction(
+                    "encuesta_satisfaccion_form",
+                ),
 
             ]
+
+        # ==========================================================
+        # Intent inesperado
+        # ==========================================================
+
+        logger.warning(
+            "[ENCUESTA] Intent inesperado: %s",
+            ultimo_intent,
+        )
+
+        return []
 
 # =====================================================================
 # 4. NUEVA ACCIÓN: LANZAR EVALUACIÓN DE USABILIDAD GENERAL DEL BOT

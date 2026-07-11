@@ -14,6 +14,13 @@
 **/.next
 **/dist
 **/build
+!ops/
+!ops/ollama/
+!ops/ollama/build/
+!ops/ollama/build/Dockerfile
+!ops/ollama/build/Modelfile
+!ops/ollama/build/entrypoint.sh
+
 **/.vite
 **/.cache
 admin_panel_react/node_modules
@@ -105,3 +112,8 @@ node_modules/
 # Opcional: si no quieres meter lo interactivo en la imagen
 # rasa/interactive/
 !ops/ollama/build/entrypoint.sh
+*.gguf
+!ops/ollama/data/
+!ops/ollama/data/models/
+!ops/ollama/data/models/*.gguf
+

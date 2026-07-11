@@ -28,4 +28,25 @@ class ActionGuardarProgresoEncuesta(Action):
         except Exception:
             logger.exception("[ENCUESTA_SAVE_ERROR]")
 
-        return [SlotSet("encuesta_activa", False)]
+        return [
+
+            SlotSet(
+                "encuesta_activa",
+                False,
+            ),
+
+            SlotSet(
+                "encuesta_incompleta",
+                False,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
+            SlotSet(
+                "proceso_activo",
+                None,
+            ),
+
+        ]

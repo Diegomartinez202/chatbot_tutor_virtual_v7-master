@@ -28,12 +28,12 @@ LLM_TIMEOUT = int(
     )
 )
 
-PRIMARY_MODEL = os.getenv("LLM_MODEL", "tinyllama:latest")
-FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "tinyllama:latest")
+PRIMARY_MODEL = os.getenv("LLM_MODEL", "qwen2.5:3b")
+FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "qwen2.5:3b")
 MAX_TOKENS = int(
     os.getenv(
         "OLLAMA_MAX_TOKENS",
-        "100"
+        "180"
     )
 )
 MAX_PROMPT_CHARS = int(

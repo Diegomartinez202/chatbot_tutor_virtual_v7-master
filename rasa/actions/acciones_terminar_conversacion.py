@@ -14,7 +14,10 @@ from rasa_sdk.events import (
     EventType,
 )
 from .core.llm_engine import run_llm
-from .acciones_encuesta import ActionRegistrarEncuesta
+from .acciones_encuesta import (
+    ActionRegistrarEncuesta,
+    obtener_tipo_encuesta,
+)
 from pymongo import MongoClient
 logger = logging.getLogger(__name__)
 
@@ -239,6 +242,13 @@ class ActionConfirmarCierre(Action):
         return [SlotSet("confirmacion_cierre", "pendiente")]
 
 class ActionTerminarConversacionSegura(Action):
+    """
+    Cierra inmediatamente la conversación cuando el usuario
+    decide omitir o rechazar la encuesta de satisfacción.
+
+    No debe utilizarse como flujo normal de finalización,
+    ya que éste pasa por ActionDecidirCierre y la encuesta.
+    """
     def name(self) -> Text: return "action_terminar_conversacion_segura"
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
         dispatcher.utter_message(response="utter_cierre_confirmado_seguro")
@@ -252,34 +262,83 @@ class ActionCancelarCierre(Action):
 
 class ActionDecidirCierre(Action):
 
-    def name(self):
-
+    def name(self) -> Text:
         return "action_decidir_cierre"
 
-    def run(self, dispatcher, tracker, domain):
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        # =====================================================
+        # Si la encuesta ya estaba iniciada,
+        # continuar donde quedó.
+        # =====================================================
 
         if tracker.get_slot("encuesta_activa"):
+
+            logger.info(
+                "[CIERRE] Reanudando encuesta activa."
+            )
 
             return [
 
                 FollowupAction(
-
                     "action_guardar_progreso_encuesta"
-
                 )
 
             ]
 
+        # =====================================================
+        # Si existe un proceso activo,
+        # lanzar primero la encuesta.
+        # =====================================================
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        if proceso:
+
+            logger.info(
+                "[CIERRE] Proceso '%s' requiere encuesta.",
+                proceso,
+            )
+
+            return [
+
+                SlotSet(
+                    "encuesta_activa",
+                    True,
+                ),
+
+                SlotSet(
+                    "encuesta_tipo",
+                    obtener_tipo_encuesta(tracker),
+                ),
+
+                FollowupAction(
+                    "action_preguntar_resolucion",
+                ),
+
+            ]
+
+        # =====================================================
+        # No había proceso activo.
+        # Cierre directo.
+        # =====================================================
+
+        logger.info(
+            "[CIERRE] No existe proceso activo. Cierre limpio."
+        )
+
         return [
 
             FollowupAction(
-
                 "action_cierre_limpio"
-
             )
 
         ]
-
 class ActionCierreLimpio(Action):
 
     def name(self):

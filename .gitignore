@@ -107,6 +107,7 @@ __pycache__/
 # OLLAMA
 # ================
 # Evita subir modelos grandes o pulls de ollama
+ops/ollama/models/*.gguf
 ollama/models/
 ollama/data/
 ops/ollama/data/

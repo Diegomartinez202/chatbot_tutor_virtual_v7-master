@@ -277,3 +277,20 @@ rules:
     steps:
       - intent: affirm
       - action: action_decidir_cierre
+
+  
+  - rule: Usuario indica que sí quedó resuelto
+    condition:
+      - slot_was_set:
+          - encuesta_incompleta: true
+    steps:
+      - intent: respuesta_resuelto_si
+      - action: action_procesar_respuesta_resolucion
+  
+  - rule: Usuario indica que no quedó resuelto
+    condition:
+      - slot_was_set:
+          - encuesta_incompleta: true
+    steps:
+      - intent: respuesta_resuelto_no
+      - action: action_procesar_respuesta_resolucion
