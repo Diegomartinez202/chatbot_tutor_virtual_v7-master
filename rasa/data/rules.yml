@@ -316,3 +316,18 @@ rules:
       - intent: calificar_bot
       - action: action_guardar_calificacion_general
   
+  - rule: Affirm durante evaluación general
+    condition:
+      - slot_was_set:
+          - esperando_encuesta_general: true
+    steps:
+      - intent: affirm
+      - action: action_lanzar_encuesta_general
+  
+  - rule: Deny durante evaluación general
+    condition:
+      - slot_was_set:
+          - esperando_encuesta_general: true
+    steps:
+      - intent: deny
+      - action: action_cierre_limpio

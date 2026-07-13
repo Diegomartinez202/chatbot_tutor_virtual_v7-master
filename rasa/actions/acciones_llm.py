@@ -1038,17 +1038,15 @@ class ActionHandleWithLLM(Action):
             )
 
             if next_action:
-
                 return [
 
-                    SlotSet(
-                        "llm_request",
-                        None,
-                    ),
+                    ActiveLoop(None),
 
-                    FollowupAction(
-                        next_action,
-                    ),
+                    SlotSet("requested_slot", None),
+
+                    SlotSet("llm_request", None),
+
+                    FollowupAction(next_action),
 
                 ]
 
@@ -1163,7 +1161,7 @@ class ActionMemoryWrapper(Action):
             # ==========================================================
             # TELEMETRÍA: MEDIDOR DE TIEMPO DE EJECUCIÓN
             # ==========================================================
-            inicio_guardado = time.perf_counter()
+            inicio_guardado = time.perf_counter() 
 
             store_message(
                 text=text,

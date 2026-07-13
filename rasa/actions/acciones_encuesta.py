@@ -220,11 +220,6 @@ class ActionRegistrarEncuesta(Action):
                 None,
             ),
 
-            SlotSet(
-                "proceso_activo",
-                None,
-            ),
-
             # ======================================================
             # Solicitud para ActionHandleWithLLM
             # ======================================================
@@ -253,7 +248,7 @@ class ActionRegistrarEncuesta(Action):
                         "Tu opinión nos ayuda a mejorar continuamente."
                     ),
 
-                    "next_action": "action_lanzar_encuesta_general",
+                    "next_action": "action_preguntar_encuesta_general",
               
                 },
             ),
@@ -623,6 +618,95 @@ class ActionProcesarRespuestaResolucion(Action):
 
         return []
 
+
+# =====================================================================
+# PREGUNTAR SI EL USUARIO DESEA EVALUAR EL CHATBOT
+# =====================================================================
+
+class ActionPreguntarEncuestaGeneral(Action):
+
+    def name(self) -> Text:
+        return "action_preguntar_encuesta_general"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[EventType]:
+
+        # ==========================================================
+        # Determinar desde qué módulo viene el usuario
+        # ==========================================================
+
+        proceso = tracker.get_slot("proceso_activo")
+        tipo_encuesta = tracker.get_slot("encuesta_tipo")
+
+        # ==========================================================
+        # Personalizar el mensaje
+        # ==========================================================
+
+        if proceso == "aprender_tema":
+
+            mensaje = (
+                "😊 Muchas gracias por responder la encuesta de satisfacción académica.\n\n"
+                "¿Nos ayudarías con una breve evaluación del Bot Tutor Virtual?\n\n"
+                "Tu opinión nos ayuda a seguir mejorando la experiencia de aprendizaje para todos los estudiantes."
+            )
+
+        elif proceso in [
+            "soporte_tecnico",
+            "pqrs",
+            "correo",
+            "humano",
+        ]:
+
+            mensaje = (
+                "😊 Gracias por responder la encuesta del servicio de soporte.\n\n"
+                "¿Te gustaría dedicar unos segundos para evaluar tu experiencia general con el Bot Tutor Virtual?"
+            )
+
+        else:
+
+            mensaje = (
+                "😊 Gracias por responder la encuesta.\n\n"
+                "¿Podrías dedicar unos segundos para evaluar el Bot Tutor Virtual?\n\n"
+                "Tu opinión nos ayuda a seguir mejorando nuestros servicios."
+            )
+
+        # ==========================================================
+        # Botones
+        # ==========================================================
+
+        botones = [
+
+            {
+                "title": "✅ Sí",
+                "payload": "/affirm",
+            },
+
+            {
+                "title": "❌ No, gracias",
+                "payload": "/deny",
+            },
+
+        ]
+
+        dispatcher.utter_message(
+            text=mensaje,
+            buttons=botones,
+        )
+
+        return [
+
+            SlotSet(
+                "esperando_encuesta_general",
+                True,
+            ),
+
+        ]
+
+
 # =====================================================================
 # 4. NUEVA ACCIÓN: LANZAR EVALUACIÓN DE USABILIDAD GENERAL DEL BOT
 # =====================================================================
@@ -651,10 +735,21 @@ class ActionLanzarEncuestaGeneral(Action):
         ]
         
         dispatcher.utter_message(
-            text="Por último, ayúdanos calificando tu experiencia general usando el Sistema Bot Tutor Virtual SENA:",
-            buttons=botones_calificacion
+            text=(
+                "⭐ Para finalizar, ¿cómo calificarías tu experiencia general "
+                "utilizando el Bot Tutor Virtual SENA?"
+            ),
+            buttons=botones_calificacion,
         )
-        return []
+
+        return [
+
+            SlotSet(
+                "esperando_encuesta_general",
+                False,
+            ),
+
+        ]
 
 class ActionGuardarCalificacionGeneral(Action):
 

@@ -65,10 +65,23 @@ def limpiar_slots() -> List[EventType]:
 
         SlotSet("autosave_estado", None),
 
+        SlotSet("tema_actual", None),
+
+        SlotSet("tema_consulta", None),
+
         SlotSet("encuesta_tipo", None),
 
         SlotSet("esperando_resolucion", False),
+
+        SlotSet("esperando_encuesta_general", False),
+
+        SlotSet("llm_request", None),
+
+        SlotSet("ultima_respuesta_llm", None),
+
+        SlotSet("requested_slot", None),
     ]
+
 def registrar_encuesta_si_corresponde(tracker: Tracker):
 
     if not tracker.get_slot("encuesta_activa"):
@@ -154,7 +167,13 @@ def despedir_usuario(
             "llm_request",
             {
                 "instruction": (
-                    "Despide al estudiante de forma profesional."
+                     "Genera únicamente un mensaje de despedida corto (máximo 4 líneas) "
+                     "para un estudiante que termina una conversación con el Tutor Virtual del SENA. "
+                     "Agradece su visita, deséale éxitos en sus estudios y despídete cordialmente. "
+                     "No hagas preguntas. "
+                     "No digas que eres una IA. "
+                     "No digas que no puedes despedirte. "
+                     "No ofrezcas continuar la conversación."
                 ),
 
                 "context": {
@@ -309,6 +328,11 @@ class ActionDecidirCierre(Action):
 
             return [
 
+                SlotSet(
+                    "confirmacion_cierre",
+                    None,
+                ),
+                
                 SlotSet(
                     "encuesta_activa",
                     True,

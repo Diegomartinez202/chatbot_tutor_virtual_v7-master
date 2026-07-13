@@ -65,12 +65,12 @@ def warm_up_model():
                 ],
                 "stream":False
             },
-            timeout=10,
+            timeout=90,
         )
     except:
         pass
 
-# Ejecuta el warm-up una vez al importar el módulo
+
 warm_up_model()
 
 # ================================================================

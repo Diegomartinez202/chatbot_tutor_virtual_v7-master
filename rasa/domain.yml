@@ -66,6 +66,7 @@ intents:
   - respuesta_resuelto_si
   - respuesta_resuelto_no
   - calificar_bot
+
 entities:
   - email
   - emocion
@@ -85,6 +86,12 @@ entities:
   - materia
 
 slots:
+
+  esperando_encuesta_general:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
 
   historial_academico:
     type: text
@@ -277,10 +284,7 @@ slots:
     type: text
     influence_conversation: true
     mappings:
-    - type: from_text
-      conditions:
-        - active_loop: encuesta_satisfaccion_form
-          requested_slot: problema_resuelto
+      - type: custom
 
 
   calificacion_numerica:
@@ -537,7 +541,6 @@ forms:
   encuesta_satisfaccion_form:
     required_slots:
       - nivel_satisfaccion
-      - problema_resuelto
       - calificacion_numerica
       - comentario
 
@@ -837,6 +840,23 @@ responses:
       ¡Hasta pronto! 👋
   utter_guardando_progreso:
   - text: "Guardando tu progreso..."
+  
+  utter_ask_nivel_satisfaccion:
+  - text: "¿Cómo calificarías la atención recibida? (satisfecho, neutral o insatisfecho)"
+  
+  utter_ask_problema_resuelto:
+  - text: "¿Tu consulta o problema quedó resuelto? (sí/no)"
+  
+  utter_ask_calificacion_numerica:
+  - text: |
+      Por favor responde con un número del 1 al 5.
+
+      1 = muy poco satisfecho
+      5 = muy satisfecho
+  
+  utter_ask_comentario:
+  - text: "¿Deseas dejar un comentario adicional?"
+  
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -918,6 +938,7 @@ actions:
 - action_finalizar_cierre
 - action_solicitar_tema
 - action_guardar_calificacion_general
+- action_preguntar_encuesta_general
 
 
 
