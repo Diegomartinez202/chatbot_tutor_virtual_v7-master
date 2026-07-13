@@ -252,17 +252,15 @@ class ActionRegistrarEncuesta(Action):
                         "✅ Gracias por responder la encuesta. "
                         "Tu opinión nos ayuda a mejorar continuamente."
                     ),
+
+                    "next_action": "action_lanzar_encuesta_general",
+              
                 },
             ),
 
-            # Primero responde el LLM
+           
             FollowupAction(
                 "action_handle_with_llm"
-            ),
-
-            # Luego continúa el flujo de cierre
-            FollowupAction(
-                "action_cierre_limpio"
             ),
         ]
 
@@ -344,6 +342,11 @@ class ActionPreguntarResolucion(Action):
 
             SlotSet(
                 "encuesta_incompleta",
+                True,
+            ),
+
+            SlotSet(
+                "esperando_resolucion",
                 True,
             ),
 
@@ -567,6 +570,11 @@ class ActionProcesarRespuestaResolucion(Action):
             return [
 
                 SlotSet(
+                    "esperando_resolucion",
+                    False,
+                ),
+                
+                SlotSet(
                     "encuesta_incompleta",
                     True,
                 ),
@@ -588,6 +596,11 @@ class ActionProcesarRespuestaResolucion(Action):
 
             return [
 
+                SlotSet(
+                    "esperando_resolucion",
+                    False,
+                ),
+                
                 SlotSet(
                     "encuesta_activa",
                     True,
@@ -623,6 +636,9 @@ class ActionLanzarEncuestaGeneral(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
+        logger.warning("=" * 80)
+        logger.warning("[ENCUESTA GENERAL] EJECUTANDO ACTION")
+        logger.warning("=" * 80)
         """
         Lanza los componentes interactivos finales para evaluar el rendimiento global del sistema.
         """
@@ -639,3 +655,55 @@ class ActionLanzarEncuestaGeneral(Action):
             buttons=botones_calificacion
         )
         return []
+
+class ActionGuardarCalificacionGeneral(Action):
+
+    def name(self):
+        return "action_guardar_calificacion_general"
+
+    def run(self, dispatcher, tracker, domain):
+
+        nota = next(
+
+            (
+                e.get("value")
+                for e in tracker.latest_message.get("entities", [])
+                if e.get("entity") == "nota"
+            ),
+
+            tracker.get_slot("nota"),
+        )
+
+        logger.info(
+            "[ENCUESTA GENERAL] Calificación=%s",
+            nota,
+        )
+
+        registro = {
+            "usuario": _safe_user_id(tracker),
+            "tipo": "evaluacion_general",
+            "calificacion": nota,
+            "fecha": datetime.datetime.now(
+                datetime.timezone.utc
+            ).isoformat(),
+        }
+
+        try:
+            _append_jsonl(registro)
+
+        except Exception:
+            logger.exception(
+                "[ENCUESTA GENERAL]"
+            )
+        dispatcher.utter_message(
+            text="⭐ ¡Gracias por calificar el sistema! Tu opinión nos ayuda a seguir mejorando."
+        )
+        return [
+
+            SlotSet("nota", None),
+
+            FollowupAction(
+                "action_cierre_limpio"
+            )
+
+        ]

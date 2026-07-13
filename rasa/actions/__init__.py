@@ -51,6 +51,7 @@ from .acciones_encuesta import (
     ValidateEncuestaSatisfaccionForm,
     ActionLanzarEncuestaGeneral,
     ActionProcesarRespuestaResolucion,
+    ActionGuardarCalificacionGeneral,
 )
 
 from .acciones_llm import (
@@ -179,6 +180,8 @@ __all__ = [
     "ActionProcesarRespuestaResolucion",
     "ActionFinalizarConversacion",
     "ActionFinalizarCierre",
+    "ActionGuardarCalificacionGeneral",
+    
 
     "ActionIrMenuPrincipal",
     "ActionIrMenuSoporte",

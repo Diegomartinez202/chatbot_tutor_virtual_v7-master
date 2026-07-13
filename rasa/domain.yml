@@ -65,6 +65,7 @@ intents:
   - despedida
   - respuesta_resuelto_si
   - respuesta_resuelto_no
+  - calificar_bot
 entities:
   - email
   - emocion
@@ -106,6 +107,19 @@ slots:
       - type: custom
 
   encuesta_incompleta:
+    type: bool
+    influence_conversation: true
+    initial_value: false
+    mappings:
+      - type: custom
+
+  nota:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: nota
+
+  esperando_resolucion:
     type: bool
     influence_conversation: true
     initial_value: false
@@ -903,6 +917,7 @@ actions:
 - action_cierre_limpio
 - action_finalizar_cierre
 - action_solicitar_tema
+- action_guardar_calificacion_general
 
 
 

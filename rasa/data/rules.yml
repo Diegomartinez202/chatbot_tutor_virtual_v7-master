@@ -290,8 +290,29 @@ rules:
   - rule: Usuario indica que no quedó resuelto
     condition:
       - slot_was_set:
-          - encuesta_incompleta: true
+          - esperando_resolucion: true
     steps:
       - intent: respuesta_resuelto_no
       - action: action_procesar_respuesta_resolucion
+  
+  - rule: Affirm durante pregunta de resolución
+    condition:
+      - slot_was_set:
+          - esperando_resolucion: true
+    steps:
+      - intent: affirm
+      - action: action_procesar_respuesta_resolucion
+
+  - rule: Deny durante pregunta de resolución
+    condition:
+      - slot_was_set:
+          - esperando_resolucion: true
+    steps:
+      - intent: deny
+      - action: action_procesar_respuesta_resolucion
+      
+  - rule: Guardar evaluación general
+    steps:
+      - intent: calificar_bot
+      - action: action_guardar_calificacion_general
   

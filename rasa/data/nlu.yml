@@ -2,6 +2,14 @@ version: "3.1"
 
 nlu:
 
+- intent: calificar_bot
+  examples: |
+    - /calificar_bot{"nota":"1"}
+    - /calificar_bot{"nota":"2"}
+    - /calificar_bot{"nota":"3"}
+    - /calificar_bot{"nota":"4"}
+    - /calificar_bot{"nota":"5"}
+
 - intent: respuesta_resuelto_si
   examples: |
     - quedó resuelto

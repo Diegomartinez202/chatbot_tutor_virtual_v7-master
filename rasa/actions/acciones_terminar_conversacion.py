@@ -66,6 +66,8 @@ def limpiar_slots() -> List[EventType]:
         SlotSet("autosave_estado", None),
 
         SlotSet("encuesta_tipo", None),
+
+        SlotSet("esperando_resolucion", False),
     ]
 def registrar_encuesta_si_corresponde(tracker: Tracker):
 
