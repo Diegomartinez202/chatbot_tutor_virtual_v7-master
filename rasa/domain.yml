@@ -489,6 +489,30 @@ slots:
     mappings:
       - type: custom
 
+  esperando_tema:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  nivel_explicacion:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  ultima_respuesta_llm:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  ultima_interaccion:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
 forms:
 
   auth_login_form:
@@ -530,9 +554,9 @@ responses:
       - title: "🎓 Académico"
         payload: "/ir_menu_academico"
       - title: "🛠 Soporte técnico"
-        payload: "/menu_soporte"
+        payload: "/ir_menu_soporte"
       - title: "🏫 Trámites académicos / administrativos"
-        payload: "/menu_tramites"
+        payload: "/- ir_menu_administrativo"
   
   utter_control_conversacion:
   - text: "¿Deseas realizar otra consulta o terminar nuestra interacción?"
@@ -878,6 +902,7 @@ actions:
 - action_decidir_cierre
 - action_cierre_limpio
 - action_finalizar_cierre
+- action_solicitar_tema
 
 
 

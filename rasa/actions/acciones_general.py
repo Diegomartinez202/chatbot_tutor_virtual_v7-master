@@ -10,7 +10,7 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.types import DomainDict
 from rasa_sdk.events import EventType
-
+from rasa_sdk.events import SlotSet
 from .common import (
     jlog,
     ACTIONS_PING_HELPDESK,
@@ -168,3 +168,28 @@ class ActionOfrecerContinuarTema(Action):
         dispatcher.utter_message(response="utter_ofrecer_continuar")
 
         return []
+
+class ActionSolicitarTema(Action):
+
+    def name(self):
+        return "action_solicitar_tema"
+
+    def run(self, dispatcher, tracker, domain):
+
+        dispatcher.utter_message(
+            response="utter_solicitar_tema"
+        )
+
+        return [
+
+            SlotSet(
+                "esperando_tema",
+                True
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema"
+            )
+
+        ]

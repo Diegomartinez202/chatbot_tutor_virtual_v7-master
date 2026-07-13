@@ -9,30 +9,76 @@ nlu:
     - sí quedó resuelto
     - sí quedó solucionado
     - sí me ayudó
+    - sí me ayudó gracias
+    - gracias ya quedó
     - sí quedó claro
-    - el problema está resuelto
-    - todo resuelto
-    - se solucionó correctamente
+    - ahora entendí
+    - ahora sí entendí
+    - el problema quedó solucionado
+    - el problema quedó resuelto
+    - el problema ya no existe
+    - ya pude hacerlo
+    - ya funcionó
+    - funcionó perfectamente
+    - quedó solucionado
+    - quedó claro
+    - quedó muy claro
+    - todo quedó claro
+    - todo quedó resuelto
+    - muchas gracias ya quedó
+    - excelente ya quedó
+    - ya está solucionado
+    - ya no tengo dudas
+
+- intent: continuar_tema_si
+  examples: |
+    - continuar
+    - continuar tema
+    - continuar sustemtacion
+    - continuar sustemtacion del tema
+    - seguir
+    - seguir con el tema
+    - sí continuar
+    - sí continuar tema
+    - sí continuar con el tema
+    - continuar por favor
+    - sigue
+    - sigue argumentando
+    - continúa argumentando
+    - quiero seguir
+    - deseo continuar
+    - continúa con el tema
+    - continúa el tema
+    - explícame más
+    - quiero saber más
+    - continúa
+    - seguir aprendiendo
 
 - intent: respuesta_resuelto_no
   examples: |
     - no quedó resuelto
-    - no se solucionó
-    - sigo con el problema
-    - aún tengo la duda
-    - todavía tengo el problema
-    - no quedó claro
-    - sigo confundido
-    - el problema sigue igual
+    - no quedó solucionado
     - no funcionó
+    - aún tengo el problema
+    - aun tengo el problema
+    - sigo con el problema
+    - sigo igual
+    - todavía tengo el problema
+    - todavía tengo dudas
+    - aún tengo dudas
+    - sigo confundido
+    - no entendí
+    - todavía no entiendo
+    - sigue igual
+    - no me ayudó
+    - eso no solucionó mi problema
+    - continúa el problema
+    - el error sigue
+    - no quedó claro
+    - sigo teniendo la duda
 
 - intent: negar_encuesta
   examples: |
-    - No quiero hacer ninguna encuesta
-    - No me interesa responder nada
-    - Salta la encuesta
-    - No quiero calificar nada
-    - Prefiero no responder
     - no quiero hacer la encuesta
     - no deseo responder la encuesta
     - prefiero no responder
@@ -46,7 +92,7 @@ nlu:
     - paso de la encuesta
     - omitir esta evaluación
     - cerrar sin responder la encuesta
-    - no gracias, no quiero responder
+    - no gracias no quiero responder
     - prefiero no hacerla
     - mejor no responder
     - no realizar encuesta
@@ -991,6 +1037,18 @@ nlu:
     - quiero entender desarrollo móvil
     - quiero entender algoritmos
     - quiero entender estructuras de datos
+    - Fundamentos de programación
+    - Programación
+    - Redes
+    - TCP/IP
+    - Modelo OSI
+    - VLAN
+    - Bases de datos
+    - SQL
+    - HTML
+    - CSS
+    - Java
+    - Python
      
 - intent: soporte_tecnico
   examples: |
@@ -1493,7 +1551,7 @@ nlu:
     - dejar así
     - suspender operación
     - detener conversación
-    - seguir donde voy
+    - no seguir donde voy
     - salir de este formulario
     - detener formulario
     - cancelar trámite
@@ -1853,8 +1911,6 @@ nlu:
     - vale
     - listo
     - adelante
-    - continúa
-    - continuar
     - acepto
     - confirmado
     - hagámoslo
@@ -1864,14 +1920,6 @@ nlu:
     - estoy de acuerdo
     - así es
     - sin problema
-    - correcto, continúa
-    - sí quedó resuelto
-    - sí quedó solucionado
-    - sí me ayudó
-    - sí gracias
-    - sí quedó claro
-    - quedó resuelto
-    - quedó solucionado
 
 - intent: deny
   examples: |
@@ -1895,18 +1943,9 @@ nlu:
     - todavía no
     - mejor déjalo así
     - no creo
-    - no gracias por ahora
     - eso no
     - cancelar eso
     - no lo hagas
-    - no deseo hacerlo
-    - no quedó resuelto
-    - no se solucionó
-    - sigo con el problema
-    - aún tengo la duda
-    - todavía tengo el problema
-    - no quedó claro
-    - sigo confundido
 
 - intent: reanudar_auto_si
   examples: |

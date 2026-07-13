@@ -55,7 +55,12 @@ services:
       - redis-data:/data
     networks:
       - app-net
-
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   # ------------------------------------------------------------
   # Action Server (Rasa)
   # ------------------------------------------------------------
@@ -103,6 +108,20 @@ services:
       GUARDIAN_USER: admin
       GUARDIAN_PASSWORD: admin123
       HELPDESK_TOKEN: ${HELPDESK_TOKEN}
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-lc",
+          "curl -fs http://127.0.0.1:5055/health || exit 1"
+         ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
     depends_on:
       - mongo
       - redis
@@ -128,6 +147,19 @@ services:
       - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
     restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-lc",
+          "curl -fs http://127.0.0.1:11434/api/tags || exit 1"
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
     networks:
       - app-net
   # ------------------------------------------------------------
@@ -138,7 +170,7 @@ services:
     build:
       context: ./rasa
       dockerfile: Dockerfile
-    image: zajuna-rasa:lates
+    image: zajuna-rasa:latest
     container_name: rasa
     restart: unless-stopped
     environment:
@@ -153,6 +185,19 @@ services:
       - ./rasa/models:/app/models
       - ./rasa/data:/app/data
       - ./rasa/endpoints.yml:/app/endpoints.yml
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-lc",
+          "curl -fs http://127.0.0.1:5005/status || exit 1"
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+      
     networks:
       - app-net
     read_only: true
@@ -237,6 +282,19 @@ services:
       RASA_MODELS_COLLECTION: "trained_models"
       APP_ENV: prod
       DEBUG: "false"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-lc",
+          "curl -fs http://127.0.0.1:8000/api/health || exit 1"
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+      
     depends_on:
       - mongo
       - rasa
@@ -344,5 +402,18 @@ services:
     ports:
       - "9000:9000"
     restart: unless-stopped
+    
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - app-net

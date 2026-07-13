@@ -9,6 +9,7 @@ from .acciones_general import (
     ActionConectarHumano,
     ActionHealthCheck,
     ActionOfrecerContinuarTema,
+    ActionSolicitarTema,
 )
 
 from .acciones_soporte import (
@@ -139,7 +140,9 @@ __all__ = [
     "ActionConectarHumano",
     "ActionHealthCheck",
     "ActionOfrecerContinuarTema",
-
+    "ActionSolicitarTema",
+    
+    
     "ValidateSoporteForm",
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",

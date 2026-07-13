@@ -75,3 +75,9 @@ def dummy_embed(text: str) -> np.ndarray:
 def embed(req: EmbedRequest):
     vector = dummy_embed(req.text)
     return EmbedResponse(vector=vector.tolist())
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok"
+    }

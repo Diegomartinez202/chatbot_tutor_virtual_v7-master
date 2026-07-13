@@ -1,4 +1,5 @@
 # \scripts\train-rasa.ps1
+$inicio = Get-Date
 
 Write-Host ""
 Write-Host "===================================" -ForegroundColor Cyan
@@ -58,6 +59,18 @@ docker exec -u 0 $rasaContainer sh -lc "rm -rf /app/.rasa /app/rasa/.rasa || tru
 
 Write-Host "Caché de Rasa eliminado (o no existía)." -ForegroundColor Yellow
 
+Write-Host ""
+Write-Host "Verificando modelo generado..."
+
+docker exec $rasaContainer sh -lc "ls -1 /app/rasa/models/*.tar.gz | tail -1"
+
+if ($LASTEXITCODE -ne 0) {
+
+    Write-Host "No se encontró ningún modelo entrenado." -ForegroundColor Red
+    exit 1
+
+}
+
 # ==========================================
 
 # 4. Limpiar log anterior
@@ -85,7 +98,8 @@ Write-Host " VALIDANDO PROYECTO RASA "
 Write-Host "===================================" -ForegroundColor Cyan
 Write-Host ""
 
-docker exec $rasaContainer sh -lc "cd /app/rasa && rasa data validate"
+& "$PSScriptRoot\validate.ps1" `
+    -Container $rasaContainer
 
 if ($LASTEXITCODE -ne 0) {
 Write-Host ""
@@ -119,13 +133,14 @@ docker exec -e RASA_MAX_CACHE_SIZE=0 $rasaContainer `
     sh -lc "cd /app/rasa && rasa train 2>&1" |
     Tee-Object -FilePath ".\train_log.txt"
 
+$trainExitCode = $LASTEXITCODE
 # ==========================================
 
 # 7. Resultado final
 
 # ==========================================
 
-if ($LASTEXITCODE -eq 0) {
+if ($trainExitCode -eq 0) {
 
     Write-Host ""
     Write-Host "===================================" -ForegroundColor Green
@@ -149,3 +164,28 @@ else {
     Write-Host "===================================" -ForegroundColor Red
 
 }
+$fin = Get-Date
+$duracion = $fin - $inicio
+
+Write-Host ""
+Write-Host "Tiempo total: $($duracion.ToString())" -ForegroundColor Yellow
+
+Write-Host ""
+
+& "$PSScriptRoot\restart-rasa.ps1" `
+    -Container $rasaContainer
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "El reinicio de Rasa falló." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+
+& "$PSScriptRoot\diagnostico.ps1"
+
+Write-Host ""
+Write-Host "===================================" -ForegroundColor Green
+Write-Host " PROCESO COMPLETADO CORRECTAMENTE " -ForegroundColor Green
+Write-Host "===================================" -ForegroundColor Green

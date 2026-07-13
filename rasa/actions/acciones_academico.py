@@ -383,15 +383,13 @@ class ActionAprenderTema(Action):
 
             SlotSet("auth_login_form", None),
 
-            SlotSet("llm_request", None),
-
         ]
         # ====================================================
         # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
         # (antes estaba en ActionExplicarTemaLLM)
         # ====================================================
 
-        if tracker.get_intent_of_latest_message() != "continuar_tema":
+        if tracker.get_intent_of_latest_message() != "continuar_tema_si":
 
             eventos.append(
                 SlotSet("tema_actual", pregunta)

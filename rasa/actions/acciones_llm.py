@@ -32,7 +32,7 @@ from rasa_sdk.events import (
     SlotSet,
 )
 from rasa_sdk.types import DomainDict
-
+from datetime import datetime
 # ---------------------------------------------------------------------
 # Memoria semántica
 # ---------------------------------------------------------------------
@@ -134,6 +134,7 @@ class ActionHandleWithLLM(Action):
 
         return self._build_general_prompt(tracker)
 
+
     # ==========================================================
     # DETECCIÓN DEL FLUJO
     # ==========================================================
@@ -172,11 +173,26 @@ class ActionHandleWithLLM(Action):
         # siempre debe tener prioridad sobre un estado
         # antiguo de autenticación.
 
+        proceso = tracker.get_slot("proceso_activo")
+        tema = tracker.get_slot("tema_consulta")
+        materia = tracker.get_slot("materia_detectada")
+        esperando = tracker.get_slot(
+            "esperando_tema"
+        )
+        logger.debug(
+            "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
+            proceso,
+            bool(tema),
+            bool(materia),
+        )
+
         if (
-            tracker.get_slot("proceso_activo") == "aprender_tema"
-            or tracker.get_slot("tema_consulta")
-            or tracker.get_slot("materia_detectada")
+            esperando
+            or proceso == "aprender_tema"
+            or tema
+            or materia
         ):
+            logger.info("[FLOW] Flujo académico detectado.")
             return self.FLOW_ACADEMIC
 
         # ======================================================
@@ -209,7 +225,7 @@ class ActionHandleWithLLM(Action):
         # ======================================================
 
         return self.FLOW_GENERAL
-
+    # ======================================================
     # BUILDERS ESPECIALIZADOS
     # ==========================================================
 
@@ -502,6 +518,121 @@ class ActionHandleWithLLM(Action):
         # ------------------------------------------------------
 
         return events
+    
+    def _is_waiting_for_topic(
+        self,
+        tracker: Tracker,
+    ) -> bool:
+        """
+        Indica si el bot se encuentra esperando que el usuario escriba
+        el tema que desea aprender.
+        """
+
+        return bool(
+            tracker.get_slot("esperando_tema")
+        )
+    
+    def _build_topic_events(
+        self,
+        tracker: Tracker,
+    ) -> List[EventType]:
+        """
+        Inicializa el flujo académico cuando el usuario escribe
+        el tema solicitado.
+        """
+
+        latest = tracker.latest_message or {}
+
+        tema = latest.get(
+            "text",
+            "",
+        ).strip()
+        materia = detectar_materia(tema) or "General"
+
+        rol = MATERIAS.get(
+            materia.lower(),
+            "Tutor Académico General"
+        )
+        return [
+
+            SlotSet(
+                "esperando_tema",
+                False,
+            ),
+
+            SlotSet(
+                "tema_actual",
+                tema,
+            ),
+
+            SlotSet(
+                "tema_consulta",
+                tema,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema",
+            ),
+            SlotSet(
+               "materia_detectada",
+               materia,
+            ),
+
+            SlotSet(
+                "rol_academico",
+                rol,
+            ),
+
+        ]
+
+    def _build_continue_prompt(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Construye un prompt enriquecido para continuar
+        una explicación ya iniciada.
+        """
+
+        tema = (
+            tracker.get_slot("tema_actual")
+            or tracker.get_slot("tema_consulta")
+            or "el tema anterior"
+        )
+        nivel = (
+            tracker.get_slot("nivel_explicacion")
+            or "basico"
+        )
+
+        return f"""
+    Tema actual:
+
+    {tema}
+
+    Nivel de explicación:
+
+    {nivel}
+
+    El estudiante ya recibió una explicación inicial.
+
+    Continúa exactamente desde donde terminó.
+
+    No repitas la introducción.
+
+    No saludes nuevamente.
+
+    Profundiza el tema.
+
+    Adapta la explicación al nivel {nivel}.
+
+    Incluye ejemplos prácticos.
+
+    Si aplica agrega un ejercicio corto.
+
+    Mantén continuidad pedagógica.
+    """.strip()
+    
     # ==========================================================
     # INVOCACIÓN DEL LLM
     # ==========================================================
@@ -570,6 +701,44 @@ class ActionHandleWithLLM(Action):
         logger.info("[DEBUG] Flow detectado = %s", flow)
         intent = tracker.get_intent_of_latest_message()
 
+
+        # ======================================================
+        # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
+        # ======================================================
+
+        if self._is_waiting_for_topic(tracker):
+
+            nuevo_tema = tracker.latest_message.get(
+                "text",
+                "",
+            ).strip()
+
+            logger.info(
+                "[ACADEMICO] Tema recibido: %s",
+                nuevo_tema,
+            )
+
+            return (
+
+                limpieza
+
+                + self._build_topic_events(
+                   tracker
+                )
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ACADEMIC,
+
+                    prompt=nuevo_tema,
+
+                )
+
+            )
         # ======================================================
         # CONSULTA ACADÉMICA NUEVA
         # ======================================================
@@ -594,25 +763,30 @@ class ActionHandleWithLLM(Action):
         # CONTINUAR TEMA
         # ======================================================
 
-        if intent == "continuar_tema":
+        if intent in (
 
-            tema_persistido = (
-                tracker.get_slot("tema_actual")
-                or "el tema anterior"
-            )
+            "continuar_tema",
 
-            prompt_enriquecido = (
-                f"Contexto: {tema_persistido}. "
-                "Continúa con el siguiente paso lógico. "
-                "NO saludes, no repitas la introducción, "
-                "ve directo al grano."
+            "continuar_tema_si",
+
+        ):
+
+            logger.info(
+                "[ACADEMICO] Continuando tema."
             )
 
             return self._ejecutar_procesamiento_llm(
+
                 dispatcher,
+
                 tracker,
+
                 flow,
-                prompt=prompt_enriquecido,
+
+                prompt=self._build_continue_prompt(
+                    tracker
+                ),
+
             )
 
         # ======================================================
@@ -628,6 +802,41 @@ class ActionHandleWithLLM(Action):
             )
         )
     
+    def _next_explanation_level(
+        self,
+        tracker: Tracker,
+    ) -> str:
+
+        actual = tracker.get_slot(
+            "nivel_explicacion"
+        )
+
+        niveles = [
+
+            "basico",
+
+            "intermedio",
+
+            "avanzado",
+
+            "ejercicios",
+
+            "evaluacion",
+
+        ]
+
+        if actual not in niveles:
+
+            return "basico"
+
+        indice = niveles.index(actual)
+
+        if indice < len(niveles) - 1:
+
+            return niveles[indice + 1]
+
+        return niveles[-1]
+
     def _ejecutar_procesamiento_llm(
         self,
         dispatcher: CollectingDispatcher,
@@ -721,16 +930,26 @@ class ActionHandleWithLLM(Action):
                     "Lo siento, no puedo responder en este momento."
                 )
 
+
+
             # =====================================================
             # Construir SIEMPRE el prompt final
             # =====================================================
+            logger.info(
+                "[PROMPT] base=%d caracteres",
+                len(prompt),
+            )
+
 
             prompt = build_prompt(
                 base_prompt=prompt,
                 tracker=tracker,
                 context=context,
             )
-
+            logger.info(
+                "[PROMPT] final=%d caracteres",
+                len(prompt),
+            )
             logger.debug(
                 "[LLM] Prompt final (%d caracteres)",
                 len(prompt),
@@ -750,7 +969,10 @@ class ActionHandleWithLLM(Action):
             )
 
             respuesta = (respuesta or "").strip()
-
+            logger.info(
+                "[LLM] Primeros 200 caracteres de la respuesta:\n%s",
+                respuesta[:200],
+            )
             # =====================================================
             # Respuesta vacía
             # =====================================================
@@ -838,13 +1060,54 @@ class ActionHandleWithLLM(Action):
                 flow,
             )
 
-            events.insert(
-                0,
-                SlotSet(
-                    "proceso_activo",
-                    flow,
-                ),
-            )
+            if flow in (
+                self.FLOW_ACADEMIC,
+                self.FLOW_SUPPORT,
+            ):
+
+                events.insert(
+                     0,
+                     SlotSet(
+                         "proceso_activo",
+                         flow,
+                     ),
+                )
+
+
+            if flow == self.FLOW_ACADEMIC:
+
+                events.extend(
+
+                   [
+
+                      SlotSet(
+                          "ultima_respuesta_llm",
+                          respuesta,
+                      ),
+
+                      SlotSet(
+                         "ultima_interaccion",
+                         datetime.utcnow().isoformat(),
+                      ),
+
+                   ]
+
+                )
+
+                events.append(
+
+                    SlotSet(
+
+                        "nivel_explicacion",
+
+                        self._next_explanation_level(
+                            tracker
+                        ),
+
+                    )
+
+                )
+
 
             return events
 

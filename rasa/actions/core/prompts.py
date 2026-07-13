@@ -156,6 +156,8 @@ def build_prompt(
     if tracker:
 
         history = build_history(tracker)
+        if len(history) > 1500:
+            history = history[-1500:]
 
         try:
 
@@ -177,6 +179,20 @@ def build_prompt(
                         "text",
                         "",
                     )
+                    
+                    if len(memory) > 1500:
+                        memory = memory[:1500]
+
+
+            logger.info(
+                "[PROMPT] Historial=%d caracteres",
+                len(history),
+            )
+
+            logger.info(
+                "[PROMPT] Memoria=%d caracteres",
+                len(memory),
+            )
 
         except Exception:
 
@@ -231,5 +247,14 @@ Consulta del estudiante:
         "[PROMPT BUILDER]\n%s",
         prompt_final,
     )
+    logger.info(
+        "[PROMPT BUILDER] Flujo=%s | Prompt=%d caracteres",
+        flujo,
+        len(prompt_final),
+    )
 
+    logger.info(
+        "[PROMPT] Total enviado al LLM=%d caracteres",
+        len(prompt_final),
+    )
     return prompt_final

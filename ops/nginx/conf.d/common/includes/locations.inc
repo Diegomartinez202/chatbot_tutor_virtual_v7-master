@@ -24,6 +24,14 @@ location ^~ /api/chat/rasa/ {
   proxy_pass         http://rasa_upstream/webhooks/;
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header   Host              $host;
   proxy_set_header   X-Real-IP         $remote_addr;
   proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -31,8 +39,6 @@ location ^~ /api/chat/rasa/ {
   proxy_set_header   Upgrade           $http_upgrade;
   proxy_set_header   Connection        $connection_upgrade;
 
-  proxy_read_timeout    300s;
-  proxy_send_timeout    300s;
   client_max_body_size  25m;
 
   add_header 'Access-Control-Allow-Origin'      $http_origin    always;
@@ -53,7 +59,15 @@ location ^~ /api/chat/rasa/ {
 location /api/ {
   proxy_pass         http://backend_upstream;
   proxy_http_version 1.1;
+  
+  proxy_connect_timeout 10s;
+  proxy_read_timeout 300s;
+  proxy_send_timeout 300s;
 
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+ 
   proxy_set_header   Host              $host;
   proxy_set_header   X-Real-IP         $remote_addr;
   proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -62,8 +76,6 @@ location /api/ {
   proxy_set_header   Upgrade           $http_upgrade;
   proxy_set_header   Connection        $connection_upgrade;
 
-  proxy_read_timeout    300s;
-  proxy_send_timeout    300s;
   client_max_body_size  25m;
 
   add_header 'Access-Control-Allow-Origin'      $http_origin    always;
@@ -105,6 +117,14 @@ location / {
   proxy_pass http://admin_up;
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_send_timeout 300s;
+  proxy_read_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+  
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -116,14 +136,21 @@ location /chat/ {
   proxy_pass http://backend_upstream/chat/;
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_read_timeout 300s;
+  proxy_send_timeout 300s;
+
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header Host              $host;
   proxy_set_header X-Real-IP         $remote_addr;
   proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
   proxy_set_header Upgrade           $http_upgrade;
   proxy_set_header Connection        $connection_upgrade;
-  proxy_read_timeout 120s;
-  proxy_send_timeout 120s;
 }
 
 location = /chat         { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
@@ -131,14 +158,77 @@ location = /chat-embed   { add_header Cache-Control "no-cache, no-store, must-re
 location = /iframe/chat  { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
 location = /widget       { add_header Cache-Control "no-cache, no-store, must-revalidate"; try_files /index.html =404; }
 
-location = /health      { proxy_pass http://backend_upstream/health;      }
-location = /auth/me     { proxy_pass http://backend_upstream/auth/me;     }
-location = /auth/logout { proxy_pass http://backend_upstream/auth/logout; }
+location = /health {
+
+  proxy_pass http://backend_upstream/health;
+
+  proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout 300s;
+  proxy_read_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
+location = /auth/me     {
+
+  proxy_pass http://backend_upstream/health;
+
+  proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout 300s;
+  proxy_read_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
+location = /auth/logout {
+
+  proxy_pass http://backend_upstream/health;
+
+  proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout 300s;
+  proxy_read_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
 
 # ========= STATIC =========
 location /static/ {
   proxy_pass         http://backend_upstream/static/;
   proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_read_timeout 300s;
+  proxy_send_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header   Host $host;
   proxy_set_header   X-Real-IP $remote_addr;
   proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -156,6 +246,14 @@ location /rasa/ {
 
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_read_timeout 300s;
+  proxy_send_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection $connection_upgrade;
 
@@ -164,10 +262,10 @@ location /rasa/ {
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
 
-  proxy_read_timeout 120s;
-  proxy_send_timeout 120s;
-
   proxy_buffering off;
+  proxy_buffer_size 16k;
+  proxy_buffers 8 16k;
+  proxy_busy_buffers_size 32k;
 
   add_header Access-Control-Allow-Origin * always;
   add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
@@ -184,6 +282,14 @@ location = /rasa/status {
 
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -198,6 +304,15 @@ location /ws/ {
 
   proxy_http_version 1.1;
 
+  
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection $connection_upgrade;
 
@@ -206,8 +321,7 @@ location /ws/ {
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
 
-  proxy_read_timeout 120s;
-  proxy_send_timeout 120s;
+  proxy_buffering off;
 }
 
 # ========= Guardian =========
@@ -215,6 +329,14 @@ location /guardian/ {
   proxy_pass http://autosave-guardian:8080/;
   proxy_http_version 1.1;
 
+  proxy_connect_timeout 10s;
+  proxy_read_timeout 300s;
+  proxy_send_timeout 300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+  
   proxy_set_header Host              $host;
   proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
   proxy_set_header X-Forwarded-Proto $scheme;
@@ -228,9 +350,6 @@ location /guardian/ {
 
   if ($request_method = OPTIONS) { return 204; }
 
-  proxy_read_timeout  60s;
-  proxy_send_timeout  60s;
-
   proxy_hide_header Content-Security-Policy;
   proxy_hide_header Permissions-Policy;
 
@@ -242,6 +361,16 @@ location ~* \.(?:css|js|mjs|map|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)$ {
 
   proxy_pass http://admin_up;
   proxy_http_version 1.1;
+  
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
+
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -255,6 +384,15 @@ location ~* \.(?:css|js|mjs|map|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|eot)$ {
 location = /docs {
   proxy_pass         http://backend_upstream/docs;
   proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header   Host $host;
   proxy_set_header   X-Real-IP $remote_addr;
   proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -266,6 +404,15 @@ location = /docs {
 location = /docs/oauth2-redirect {
   proxy_pass http://backend_upstream/docs/oauth2-redirect;
   proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -277,6 +424,15 @@ location = /docs/oauth2-redirect {
 location = /redoc {
   proxy_pass         http://backend_upstream/redoc;
   proxy_http_version 1.1;
+
+  proxy_connect_timeout 10s;
+  proxy_send_timeout    300s;
+  proxy_read_timeout    300s;
+
+  proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+  proxy_next_upstream_tries 5;
+  proxy_next_upstream_timeout 60s;
+
   proxy_set_header   Host              $host;
   proxy_set_header   X-Real-IP         $remote_addr;
   proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;

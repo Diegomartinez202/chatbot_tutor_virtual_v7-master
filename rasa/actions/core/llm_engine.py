@@ -56,7 +56,7 @@ def warm_up_model():
         requests.post(
             LLM_BASE_URL,
             json={
-                "model":"phi3:mini",
+                "model": PRIMARY_MODEL,
                 "messages":[
                     {
                         "role":"user",
@@ -93,7 +93,7 @@ def _call_model(
     prompt: str,
     dispatcher: Any = None,
 ) -> str:
-
+    logger.warning(">>> ENTRANDO A _call_model")
     try:
 
         if len(prompt) > MAX_PROMPT_CHARS:
@@ -122,6 +122,9 @@ def _call_model(
             clean_prompt,
         )
 
+        logger.info("[PROMPT SIZE] %s", len(clean_prompt))
+        logger.info("[SYSTEM SIZE] %s", len(PROMPT_SYSTEM))
+        
         payload = {
 
             "model": model,
@@ -162,6 +165,12 @@ def _call_model(
 
         }
 
+        logger.info("=" * 80)
+        logger.info("[OLLAMA PAYLOAD]")
+        
+        logger.info("=" * 80)
+        
+        
         response = requests.post(
             LLM_BASE_URL,
             json=payload,
@@ -171,7 +180,7 @@ def _call_model(
         response.raise_for_status()
 
         data = response.json()
-
+       
         respuesta = (
             data.get("message", {})
                 .get("content", "")
@@ -190,6 +199,17 @@ def _call_model(
 
             return ""
 
+        
+        # ----------------------------------------------------
+        # Mostrar respuesta completa para depuración
+        # ----------------------------------------------------
+
+        logger.warning("=" * 80)
+        logger.warning("RESPUESTA COMPLETA:")
+        logger.warning(respuesta)
+        logger.warning("=" * 80)
+        
+        
         # ----------------------------------------------------
         # Detectar copia del prompt
         # ----------------------------------------------------
@@ -215,7 +235,7 @@ def _call_model(
             "instrucciones",
 
         ]
-
+  
         if any(p in inicio for p in patrones):
 
             logger.warning(
@@ -233,7 +253,7 @@ def _call_model(
             "[OLLAMA] Respuesta:\n%s",
             respuesta,
         )
-
+        logger.warning("<<< SALIENDO DE _call_model")
         return respuesta
 
     except (
@@ -337,10 +357,13 @@ def run_llm(
         # FAILOVER
         # ========================================================
 
-        if not result:
+        if (
+            not result
+            and FALLBACK_MODEL != PRIMARY_MODEL
+        ):
 
             logger.warning(
-                "[LLM] Modelo principal sin respuesta. Intentando fallback..."
+                "[LLM] Intentando modelo fallback..."
             )
 
             result = _call_model(
