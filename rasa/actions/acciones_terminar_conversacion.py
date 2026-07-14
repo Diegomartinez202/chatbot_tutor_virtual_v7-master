@@ -332,7 +332,9 @@ class ActionDecidirCierre(Action):
                     "confirmacion_cierre",
                     None,
                 ),
-                
+
+                SlotSet("proceso_activo", None),
+
                 SlotSet(
                     "encuesta_activa",
                     True,

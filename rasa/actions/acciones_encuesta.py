@@ -704,6 +704,9 @@ class ActionPreguntarEncuestaGeneral(Action):
                 True,
             ),
 
+            SlotSet("proceso_activo", None),
+
+            SlotSet("confirmacion_cierre", None),
         ]
 
 
@@ -748,6 +751,14 @@ class ActionLanzarEncuestaGeneral(Action):
                 "esperando_encuesta_general",
                 False,
             ),
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
+
+            SlotSet("proceso_activo", None),
+
+            FollowupAction("action_listen"),
 
         ]
 
