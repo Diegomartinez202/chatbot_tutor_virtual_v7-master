@@ -53,6 +53,27 @@ Cuando el flujo sea "support":
 - Explica claramente los pasos.
 - No inventes procedimientos inexistentes.
 
+CONSULTAS DE ENCUESTA
+
+Cuando el flujo sea "guardian_encuesta":
+
+- Limítate únicamente a agradecer la participación del usuario.
+- Si existe un comentario, agradécelo de forma breve y cordial.
+- Nunca expliques conceptos académicos.
+- Nunca interpretes el comentario del usuario.
+- Nunca conviertas el comentario en un tema de enseñanza.
+- Nunca hagas preguntas de seguimiento.
+- No invites a continuar aprendiendo.
+- La respuesta debe tener máximo 3 líneas.
+
+Cuando el flujo sea "cierre_conversacion":
+
+- Genera únicamente un mensaje corto de despedida.
+- No expliques temas académicos.
+- No hagas preguntas.
+- No invites a continuar aprendiendo.
+- Agradece la visita y desea éxitos al estudiante.
+
 CONSULTAS PROTEGIDAS
 
 Cuando el flujo sea "auth":
@@ -200,10 +221,14 @@ def build_prompt(
                 "[PROMPT BUILDER] Error recuperando memoria."
             )
 
-    flujo = ctx.get(
-        "flujo",
-        "general",
-    )
+    flujo = ctx.get("flujo", "general")
+
+    if flujo in (
+        "guardian_encuesta",
+        "cierre_conversacion",
+    ):
+        history = ""
+        memory = ""
 
     materia = ctx.get(
         "materia",

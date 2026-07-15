@@ -303,7 +303,9 @@ class ActionGuardarFeedback(Action):
             logger.exception(
                 "[FEEDBACK] error guardando feedback"
             )
-
+            logger.warning("=" * 80)
+            logger.warning("ACTION_GUARDAR_FEEDBACK EJECUTADA")
+            logger.warning("=" * 80)
         dispatcher.utter_message(
             response="utter_gracias_retroalimentacion"
         )
@@ -311,6 +313,21 @@ class ActionGuardarFeedback(Action):
         return [
             SlotSet("feedback_tipo", None),
             SlotSet("feedback_texto", None),
+            SlotSet("proceso_activo", None),
+
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+            SlotSet("materia_detectada", None),
+
+            SlotSet("rol_academico", None),
+
+            SlotSet("esperando_tema", False),
+
+            SlotSet("llm_request", None),
+
+            SlotSet("ultima_respuesta_llm", None),
         ]
 
 class ActionPreguntarResolucion(Action):
@@ -582,7 +599,7 @@ class ActionProcesarRespuestaResolucion(Action):
 
         elif ultimo_intent in [
             "respuesta_resuelto_si",
-            "affirm",          # compatibilidad temporal
+            "affirm",      
         ]:
 
             logger.info(
@@ -704,9 +721,9 @@ class ActionPreguntarEncuestaGeneral(Action):
                 True,
             ),
 
-            SlotSet("proceso_activo", None),
-
             SlotSet("confirmacion_cierre", None),
+
+            FollowupAction("action_listen"),
         ]
 
 
@@ -749,7 +766,7 @@ class ActionLanzarEncuestaGeneral(Action):
 
             SlotSet(
                 "esperando_encuesta_general",
-                False,
+                True,
             ),
             SlotSet(
                 "confirmacion_cierre",
@@ -808,8 +825,22 @@ class ActionGuardarCalificacionGeneral(Action):
 
             SlotSet("nota", None),
 
-            FollowupAction(
-                "action_cierre_limpio"
-            )
+            SlotSet("proceso_activo", None),
+
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+            SlotSet("materia_detectada", None),
+
+            SlotSet("ultima_respuesta_llm", None),
+
+            SlotSet("nivel_explicacion", None),
+
+            SlotSet("esperando_encuesta_general", False),
+
+            SlotSet("llm_request", None),
+
+            FollowupAction("action_cierre_limpio"),
 
         ]

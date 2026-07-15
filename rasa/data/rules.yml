@@ -85,12 +85,12 @@ rules:
     steps:
       - intent: guardian_reanudar_conversacion
       - action: action_guardian_reanudar
-
-  - rule: Reset guardian
+  
+  - rule: Reinicio total del sistema
     steps:
       - intent: reset_guardian
       - action: action_guardian_reset
-  
+
   - rule: Desconexión detectada
     steps:
       - intent: desconexion_usuario
@@ -241,11 +241,6 @@ rules:
     steps:
       - intent: volver
       - action: utter_volver_menu
-  
-  - rule: Reinicio total del sistema
-    steps:
-      - intent: reset_guardian
-      - action: action_guardian_reset
   
   - rule: Cierre inteligente de conversación
     steps:

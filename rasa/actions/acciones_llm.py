@@ -132,99 +132,176 @@ class ActionHandleWithLLM(Action):
 
             return self._build_support_prompt(tracker)
 
+        if flow == self.FLOW_GENERAL:
+
+            llm_request = tracker.get_slot("llm_request") or {}
+
+            flujo = (
+                llm_request
+                .get("context", {})
+                .get("flujo")
+            )
+
+            if flujo == "guardian_encuesta":
+                return self._build_guardian_encuesta_prompt(tracker)
+
+            if flujo == "cierre_conversacion":
+                return self._build_cierre_prompt(tracker)
+
         return self._build_general_prompt(tracker)
 
-
-    # ==========================================================
-    # DETECCIÓN DEL FLUJO
-    # ==========================================================
-
-    def _detect_flow(
+    def _build_guardian_encuesta_prompt(
         self,
         tracker: Tracker,
     ) -> str:
-        """
-        Determina el macroflujo conversacional.
-
-        Prioridad:
-
-            1. Académico
-            2. Autenticación
-            3. Soporte
-            4. Ayuda
-            5. General
-
-        Los subflujos (PQRS, certificados, correo,
-        soporte técnico, etc.) permanecen dentro del
-        contexto del LLM y no modifican el flujo principal.
-        """
-
-        latest = tracker.latest_message or {}
-
-        intent = (
-            latest.get("intent", {})
-            .get("name", "")
-        )
-
-        # ======================================================
-        # 1. FLUJO ACADÉMICO
-        # ======================================================
-        # Si ya existe una consulta académica en curso,
-        # siempre debe tener prioridad sobre un estado
-        # antiguo de autenticación.
-
-        proceso = tracker.get_slot("proceso_activo")
-        tema = tracker.get_slot("tema_consulta")
-        materia = tracker.get_slot("materia_detectada")
-        esperando = tracker.get_slot(
-            "esperando_tema"
-        )
-        logger.debug(
-            "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
-            proceso,
-            bool(tema),
-            bool(materia),
-        )
-
-        if (
-            esperando
-            or proceso == "aprender_tema"
-            or tema
-            or materia
-        ):
-            logger.info("[FLOW] Flujo académico detectado.")
-            return self.FLOW_ACADEMIC
-
-        # ======================================================
-        # 2. AUTENTICACIÓN
-        # ======================================================
 
         llm_request = tracker.get_slot("llm_request") or {}
 
-        context = llm_request.get("context", {})
+        return llm_request.get(
+            "instruction",
+            "",
+        )
 
-        if context.get("flujo") == "auth_required":
-            return self.FLOW_AUTH
+    def _build_cierre_prompt(
+        self,
+        tracker: Tracker,
+    ) -> str:
 
-        # ======================================================
-        # 3. SOPORTE
-        # ======================================================
+        llm_request = tracker.get_slot("llm_request") or {}
 
-        if context.get("flujo") == "support":
-            return self.FLOW_SUPPORT
+        return llm_request.get(
+            "instruction",
+            "",
+        )
+# ==========================================================
+# DETECCIÓN DEL FLUJO
+# ==========================================================
 
-        # ======================================================
-        # 4. AYUDA
-        # ======================================================
+def _detect_flow(
+    self,
+    tracker: Tracker,
+) -> str:
+    """
+    Determina el macroflujo conversacional.
 
-        if intent == "ayuda":
-            return self.FLOW_HELP
+    Prioridad:
 
-        # ======================================================
-        # 5. GENERAL
-        # ======================================================
+        1. Flujos especiales del LLM
+        2. Académico
+        3. Autenticación
+        4. Soporte
+        5. Ayuda
+        6. General
 
+    Los subflujos (PQRS, certificados, correo,
+    soporte técnico, etc.) permanecen dentro del
+    contexto del LLM y no modifican el flujo principal.
+    """
+
+    latest = tracker.latest_message or {}
+
+    intent = (
+        latest.get("intent", {})
+        .get("name", "")
+    )
+
+    # ======================================================
+    # PRIORIDAD 1
+    # FLUJOS ESPECIALES DEFINIDOS POR EL ORQUESTADOR
+    # ======================================================
+
+    llm_request = tracker.get_slot("llm_request") or {}
+
+    context = llm_request.get(
+        "context",
+        {},
+    )
+
+    flujo_llm = context.get("flujo")
+
+    if flujo_llm == "guardian_encuesta":
+        logger.info(
+            "[FLOW] Flujo guardian_encuesta detectado."
+        )
         return self.FLOW_GENERAL
+
+    if flujo_llm == "cierre_conversacion":
+        logger.info(
+            "[FLOW] Flujo cierre_conversacion detectado."
+        )
+        return self.FLOW_GENERAL
+
+    # ======================================================
+    # FLUJOS DE CIERRE / ENCUESTA
+    # ======================================================
+
+    if tracker.get_slot("esperando_encuesta_general"):
+        return self.FLOW_GENERAL
+
+    if tracker.get_slot("encuesta_activa"):
+        return self.FLOW_GENERAL
+
+    if tracker.get_slot("confirmacion_cierre"):
+        return self.FLOW_GENERAL
+
+    # ======================================================
+    # FLUJO ACADÉMICO
+    # ======================================================
+
+    proceso = tracker.get_slot("proceso_activo")
+
+    tema = tracker.get_slot("tema_consulta")
+
+    materia = tracker.get_slot("materia_detectada")
+
+    esperando = tracker.get_slot(
+        "esperando_tema"
+    )
+
+    logger.debug(
+        "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
+        proceso,
+        bool(tema),
+        bool(materia),
+    )
+
+    if (
+        esperando
+        or proceso == "aprender_tema"
+        or tema
+        or materia
+    ):
+        logger.info(
+            "[FLOW] Flujo académico detectado."
+        )
+        return self.FLOW_ACADEMIC
+
+    # ======================================================
+    # AUTENTICACIÓN
+    # ======================================================
+
+    if context.get("flujo") == "auth_required":
+        return self.FLOW_AUTH
+
+    # ======================================================
+    # SOPORTE
+    # ======================================================
+
+    if context.get("flujo") == "support":
+        return self.FLOW_SUPPORT
+
+    # ======================================================
+    # AYUDA
+    # ======================================================
+
+    if intent == "ayuda":
+        return self.FLOW_HELP
+
+    # ======================================================
+    # GENERAL
+    # ======================================================
+
+    return self.FLOW_GENERAL
     # ======================================================
     # BUILDERS ESPECIALIZADOS
     # ==========================================================
@@ -654,7 +731,11 @@ class ActionHandleWithLLM(Action):
  
         Esta función únicamente delega la ejecución al motor LLM.
         """
-
+        logger.warning(
+            "[FLOW FINAL] parametro=%s | contexto=%s",
+            flow,
+            context.get("flujo"),
+        )
         logger.info(
             "[LLM] Preparando prompt para flujo '%s'",
             flow,
@@ -889,24 +970,23 @@ class ActionHandleWithLLM(Action):
                 # Construir siempre el contexto base del flujo
                 # -------------------------------------------------
 
-                context = self._build_llm_context(
-                    tracker,
-                    flow,
-                )
+                context_llm = llm_request.get("context", {})
+                flujo_llm = context_llm.get("flujo")
 
-                # -------------------------------------------------
-                # Sobrescribir únicamente los datos específicos
-                # enviados por llm_request
-                # -------------------------------------------------
+               # Para flujos especiales NO reutilizamos el contexto académico
+                if flujo_llm in (
+                    "guardian_encuesta",
+                ):
+                    context = dict(context_llm)
 
-                context.update(
+                else:
 
-                    llm_request.get(
-                        "context",
-                        {},
+                    context = self._build_llm_context(
+                        tracker,
+                        flow,
                     )
 
-                )
+                    context.update(context_llm)
 
                 fallback = llm_request.get(
                     "fallback",
@@ -1045,6 +1125,8 @@ class ActionHandleWithLLM(Action):
                     SlotSet("requested_slot", None),
 
                     SlotSet("llm_request", None),
+
+                    SlotSet("ultima_respuesta_llm", None),
 
                     FollowupAction(next_action),
 

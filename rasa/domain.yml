@@ -264,7 +264,7 @@ slots:
 
   nivel_satisfaccion:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
     - type: from_text
       conditions:
@@ -289,7 +289,7 @@ slots:
 
   calificacion_numerica:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
     - type: from_text
       conditions:
@@ -298,7 +298,7 @@ slots:
 
   comentario:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
     - type: from_text
       conditions:
@@ -359,7 +359,7 @@ slots:
       - certificados
       - tecnico
       - otro
-    influence_conversation: false
+    influence_conversation: true
     mappings:
       - type: from_entity
         entity: motivo_soporte
@@ -573,7 +573,7 @@ responses:
       - title: "🛠 Soporte técnico"
         payload: "/ir_menu_soporte"
       - title: "🏫 Trámites académicos / administrativos"
-        payload: "/- ir_menu_administrativo"
+        payload: "/ir_menu_administrativo"
   
   utter_control_conversacion:
   - text: "¿Deseas realizar otra consulta o terminar nuestra interacción?"
@@ -717,8 +717,10 @@ responses:
         payload: "/ir_menu_soporte"
 
   utter_confirmar_cierre:
-  - text: "Tienes un proceso activo. ¿Deseas salir y guardar tu progreso antes de cerrar la conversación?"
   - text: "¿Estás seguro de que deseas finalizar la conversación?"
+
+  utter_confirmar_cierre_con_proceso:
+  - text: "Tienes un proceso activo. ¿Deseas salir y guardar tu progreso antes de cerrar la conversación?"
 
   utter_cierre_confirmado:
   - text: "La conversación ha sido cerrada correctamente. Podrás retomarla más adelante."

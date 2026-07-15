@@ -257,10 +257,32 @@ def ejecutar_cierre_limpio(
 # --- ACCIONES ÚNICAS ---
 
 class ActionConfirmarCierre(Action):
-    def name(self) -> Text: return "action_confirmar_cierre"
-    def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        dispatcher.utter_message(response="utter_confirmar_cierre")
-        return [SlotSet("confirmacion_cierre", "pendiente")]
+
+    def name(self) -> Text:
+        return "action_confirmar_cierre"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        if tracker.get_slot("proceso_activo"):
+
+            dispatcher.utter_message(
+                response="utter_confirmar_cierre_con_proceso"
+            )
+
+        else:
+
+            dispatcher.utter_message(
+                response="utter_confirmar_cierre"
+            )
+
+        return [
+            SlotSet("confirmacion_cierre", "pendiente")
+        ]
 
 class ActionTerminarConversacionSegura(Action):
     """

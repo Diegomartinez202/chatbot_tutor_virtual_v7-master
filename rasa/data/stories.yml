@@ -123,3 +123,10 @@ stories:
     - action: utter_menu_academico
     - intent: volver
     - action: utter_volver_menu
+  
+- story: encuesta completa
+  steps:
+    - action: action_registrar_encuesta
+    - action: action_handle_with_llm
+    - action: action_preguntar_encuesta_general
+    - action: action_listen
