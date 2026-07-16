@@ -171,16 +171,23 @@ class ActionOfrecerContinuarTema(Action):
 
 class ActionSolicitarTema(Action):
 
+    
     def name(self):
         return "action_solicitar_tema"
+ 
 
     def run(self, dispatcher, tracker, domain):
-
+        logger.warning(
+            "[TRACE][ActionSolicitarTema] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
+        )
         dispatcher.utter_message(
             response="utter_solicitar_tema"
         )
 
         return [
+
+            SlotSet("llm_request", None),
 
             SlotSet(
                 "esperando_tema",

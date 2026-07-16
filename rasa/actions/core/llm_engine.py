@@ -214,34 +214,22 @@ def _call_model(
         # Detectar copia del prompt
         # ----------------------------------------------------
 
-        inicio = respuesta[:250].lower()
+        inicio = respuesta[:500]
 
-        patrones = [
+        patrones_prompt = (
+            "Contexto de la conversación",
+            "Consulta del estudiante:",
+            "Historial reciente:",
+            "Memoria relevante:",
+            "Flujo:",
+            "Materia:",
+            "Rol:"
+        )
 
-            "flujo",
-
-            "contexto",
-
-            "historial",
-
-            "memoria",
-
-            "consulta",
-
-            "eres un tutor",
-
-            "respuesta:",
-
-            "instrucciones",
-
-        ]
-  
-        if any(p in inicio for p in patrones):
-
+        if any(p in inicio for p in patrones_prompt):
             logger.warning(
-                "[LLM] El modelo devolvió el prompt en lugar de responder."
+                "[LLM] El modelo devolvió el prompt completo."
             )
-
             return ""
 
         logger.info(

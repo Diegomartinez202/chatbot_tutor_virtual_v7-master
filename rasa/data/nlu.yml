@@ -1057,6 +1057,36 @@ nlu:
     - CSS
     - Java
     - Python
+    - variables
+    - condicionales
+    - ciclos
+    - listas
+    - funciones
+    - objetos
+    - clases
+    - diccionarios
+    - metodos
+    - arrays
+    - matrices
+    - recursividad
+    - algoritmos 
+    - algoritmos de búsqueda
+    - algoritmos de ordenamiento
+    - estructuras de datos
+    - programación orientada a objetos
+    - programación funcional
+    - programación concurrente
+    - programación reactiva
+    - programación web
+    - programación móvil
+    - programación de videojuegos
+    - programación de sistemas embebidos
+    - programación de inteligencia artificial
+    - programación de aprendizaje automático
+    - programación de ciencia de datos
+    - programación de redes
+    - programación de bases de datos
+
      
 - intent: soporte_tecnico
   examples: |

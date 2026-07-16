@@ -358,6 +358,12 @@ class ActionAprenderTema(Action):
         logger.info("texto=%s", tracker.latest_message.get("text"))
         logger.info("intent=%s", tracker.get_intent_of_latest_message())
         logger.info("=" * 80)
+        
+        logger.warning(
+        "[TRACE][ActionAprenderTema] llm_request al entrar=%s",
+        tracker.get_slot("llm_request"),
+        )
+        
         pregunta = tracker.latest_message.get("text") or ""
 
         materia = detectar_materia(pregunta)

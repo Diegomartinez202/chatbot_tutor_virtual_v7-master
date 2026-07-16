@@ -111,7 +111,10 @@ class ActionHandleWithLLM(Action):
 
         Detecta el flujo y delega al builder correspondiente.
         """
-
+        logger.warning(
+            "[TRACE][ActionHandleWithLLM] llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
         flow = self._detect_flow(tracker)
 
         logger.info(
@@ -173,135 +176,135 @@ class ActionHandleWithLLM(Action):
             "instruction",
             "",
         )
-# ==========================================================
-# DETECCIÓN DEL FLUJO
-# ==========================================================
+    # ==========================================================
+    # DETECCIÓN DEL FLUJO
+    # ==========================================================
 
-def _detect_flow(
-    self,
-    tracker: Tracker,
-) -> str:
-    """
-    Determina el macroflujo conversacional.
+    def _detect_flow(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Determina el macroflujo conversacional.
 
-    Prioridad:
+        Prioridad:
 
-        1. Flujos especiales del LLM
-        2. Académico
-        3. Autenticación
-        4. Soporte
-        5. Ayuda
-        6. General
+            1. Flujos especiales del LLM
+            2. Académico
+            3. Autenticación
+            4. Soporte
+            5. Ayuda
+            6. General
 
-    Los subflujos (PQRS, certificados, correo,
-    soporte técnico, etc.) permanecen dentro del
-    contexto del LLM y no modifican el flujo principal.
-    """
+        Los subflujos (PQRS, certificados, correo,
+        soporte técnico, etc.) permanecen dentro del
+        contexto del LLM y no modifican el flujo principal.
+        """
 
-    latest = tracker.latest_message or {}
+        latest = tracker.latest_message or {}
 
-    intent = (
-        latest.get("intent", {})
-        .get("name", "")
-    )
-
-    # ======================================================
-    # PRIORIDAD 1
-    # FLUJOS ESPECIALES DEFINIDOS POR EL ORQUESTADOR
-    # ======================================================
-
-    llm_request = tracker.get_slot("llm_request") or {}
-
-    context = llm_request.get(
-        "context",
-        {},
-    )
-
-    flujo_llm = context.get("flujo")
-
-    if flujo_llm == "guardian_encuesta":
-        logger.info(
-            "[FLOW] Flujo guardian_encuesta detectado."
+        intent = (
+            latest.get("intent", {})
+            .get("name", "")
         )
-        return self.FLOW_GENERAL
 
-    if flujo_llm == "cierre_conversacion":
-        logger.info(
-            "[FLOW] Flujo cierre_conversacion detectado."
+        # ======================================================
+        # PRIORIDAD 1
+        # FLUJOS ESPECIALES DEFINIDOS POR EL ORQUESTADOR
+        # ======================================================
+
+        llm_request = tracker.get_slot("llm_request") or {}
+
+        context = llm_request.get(
+            "context",
+            {},
         )
-        return self.FLOW_GENERAL
 
-    # ======================================================
-    # FLUJOS DE CIERRE / ENCUESTA
-    # ======================================================
+        flujo_llm = context.get("flujo")
 
-    if tracker.get_slot("esperando_encuesta_general"):
-        return self.FLOW_GENERAL
+        if flujo_llm == "guardian_encuesta":
+            logger.info(
+                "[FLOW] Flujo guardian_encuesta detectado."
+            )
+            return self.FLOW_GENERAL
 
-    if tracker.get_slot("encuesta_activa"):
-        return self.FLOW_GENERAL
+        if flujo_llm == "cierre_conversacion":
+            logger.info(
+                "[FLOW] Flujo cierre_conversacion detectado."
+            )
+            return self.FLOW_GENERAL
 
-    if tracker.get_slot("confirmacion_cierre"):
-        return self.FLOW_GENERAL
+        # ======================================================
+        # FLUJOS DE CIERRE / ENCUESTA
+        # ======================================================
 
-    # ======================================================
-    # FLUJO ACADÉMICO
-    # ======================================================
+        if tracker.get_slot("esperando_encuesta_general"):
+            return self.FLOW_GENERAL
 
-    proceso = tracker.get_slot("proceso_activo")
+        if tracker.get_slot("encuesta_activa"):
+            return self.FLOW_GENERAL
 
-    tema = tracker.get_slot("tema_consulta")
+        if tracker.get_slot("confirmacion_cierre"):
+            return self.FLOW_GENERAL
 
-    materia = tracker.get_slot("materia_detectada")
+        # ======================================================
+        # FLUJO ACADÉMICO
+        # ======================================================
 
-    esperando = tracker.get_slot(
-        "esperando_tema"
-    )
+        proceso = tracker.get_slot("proceso_activo")
 
-    logger.debug(
-        "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
-        proceso,
-        bool(tema),
-        bool(materia),
-    )
+        tema = tracker.get_slot("tema_consulta")
 
-    if (
-        esperando
-        or proceso == "aprender_tema"
-        or tema
-        or materia
-    ):
-        logger.info(
-            "[FLOW] Flujo académico detectado."
+        materia = tracker.get_slot("materia_detectada")
+
+        esperando = tracker.get_slot(
+            "esperando_tema"
         )
-        return self.FLOW_ACADEMIC
 
-    # ======================================================
-    # AUTENTICACIÓN
-    # ======================================================
+        logger.debug(
+            "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
+            proceso,
+            bool(tema),
+            bool(materia),
+        )
 
-    if context.get("flujo") == "auth_required":
-        return self.FLOW_AUTH
+        if (
+            esperando
+            or proceso == "aprender_tema"
+            or tema
+            or materia
+        ):
+            logger.info(
+                "[FLOW] Flujo académico detectado."
+            )
+            return self.FLOW_ACADEMIC
 
-    # ======================================================
-    # SOPORTE
-    # ======================================================
+        # ======================================================
+        # AUTENTICACIÓN
+        # ======================================================
 
-    if context.get("flujo") == "support":
-        return self.FLOW_SUPPORT
+        if context.get("flujo") == "auth_required":
+            return self.FLOW_AUTH
 
-    # ======================================================
-    # AYUDA
-    # ======================================================
+        # ======================================================
+        # SOPORTE
+        # ======================================================
 
-    if intent == "ayuda":
-        return self.FLOW_HELP
+        if context.get("flujo") == "support":
+            return self.FLOW_SUPPORT
 
-    # ======================================================
-    # GENERAL
-    # ======================================================
+        # ======================================================
+        # AYUDA
+        # ======================================================
 
-    return self.FLOW_GENERAL
+        if intent == "ayuda":
+            return self.FLOW_HELP
+
+        # ======================================================
+        # GENERAL
+        # ======================================================
+
+        return self.FLOW_GENERAL
     # ======================================================
     # BUILDERS ESPECIALIZADOS
     # ==========================================================
@@ -375,8 +378,43 @@ def _detect_flow(
                 "[LLM] Rol académico seleccionado: %s",
                 rol,
             )
+        continuando = tracker.get_slot("continuando_tema")
 
-        return pregunta
+        if continuando:
+            return f"""
+        Continúa explicando el siguiente tema.
+
+        Tema:
+
+        {pregunta}
+
+        No repitas la introducción.
+
+        Profundiza en el tema.
+
+        Incluye nuevos ejemplos.
+
+        Amplía la explicación paso a paso.
+
+        """.strip()
+
+        else:
+
+            return f"""
+        Explica de forma didáctica el siguiente tema.
+
+        Tema:
+
+        {pregunta}
+
+        Incluye:
+
+        - definición
+        - conceptos principales
+        - ejemplo práctico
+        - explicación paso a paso
+
+        """.strip()
 
 
     # ==========================================================
@@ -632,6 +670,8 @@ def _detect_flow(
         )
         return [
 
+            SlotSet("llm_request", None),
+
             SlotSet(
                 "esperando_tema",
                 False,
@@ -668,8 +708,9 @@ def _detect_flow(
         tracker: Tracker,
     ) -> str:
         """
-        Construye un prompt enriquecido para continuar
-        una explicación ya iniciada.
+        Construye un prompt enriquecido para continuar una
+        explicación ya iniciada aprovechando el contexto de
+        la última respuesta generada por el LLM.
         """
 
         tema = (
@@ -677,39 +718,77 @@ def _detect_flow(
             or tracker.get_slot("tema_consulta")
             or "el tema anterior"
         )
+
         nivel = (
             tracker.get_slot("nivel_explicacion")
             or "basico"
         )
 
-        return f"""
-    Tema actual:
+        ultima_respuesta = (
+            tracker.get_slot("ultima_respuesta_llm")
+            or ""
+        ).strip()
+        if len(ultima_respuesta) > 1200:
+            ultima_respuesta = ultima_respuesta[-1200:]
+        prompt = f"""
+    Continúa explicando el siguiente tema académico.
+
+    Tema:
 
     {tema}
 
-    Nivel de explicación:
+    Nivel actual de explicación:
 
     {nivel}
 
     El estudiante ya recibió una explicación inicial.
 
-    Continúa exactamente desde donde terminó.
+    NO vuelvas a empezar desde la definición.
 
-    No repitas la introducción.
+    NO repitas la introducción.
 
-    No saludes nuevamente.
+    NO vuelvas a explicar conceptos que ya fueron desarrollados.
 
-    Profundiza el tema.
+    Continúa exactamente desde donde terminó la explicación anterior.
+    """
 
-    Adapta la explicación al nivel {nivel}.
+        if ultima_respuesta:
 
-    Incluye ejemplos prácticos.
+            prompt += f"""
 
-    Si aplica agrega un ejercicio corto.
+    La explicación anterior terminó así:
 
-    Mantén continuidad pedagógica.
-    """.strip()
-    
+    {ultima_respuesta}
+
+    Usa esa explicación únicamente como contexto para continuar.
+  
+    No la copies ni la repitas.
+    """
+
+        prompt += f"""
+
+    Profundiza el tema de acuerdo con el nivel:
+
+    {nivel}
+
+    Incluye, cuando sea pertinente:
+
+    - conceptos más avanzados
+    - detalles técnicos
+    - relaciones con otros conceptos
+    - ejemplos nuevos
+    - casos prácticos
+    - errores comunes
+    - recomendaciones
+    - buenas prácticas
+    - un ejercicio corto con solución
+
+    Mantén continuidad pedagógica como si la conversación nunca se hubiera interrumpido.
+
+    Responde directamente con la continuación de la explicación.
+    """
+
+        return prompt.strip()
     # ==========================================================
     # INVOCACIÓN DEL LLM
     # ==========================================================
@@ -778,11 +857,68 @@ def _detect_flow(
             SlotSet("requested_slot", None),
         ]
 
+        logger.warning(
+            "[TRACE][ActionHandleWithLLM] llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
+
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
         intent = tracker.get_intent_of_latest_message()
 
+        # ======================================================
+        # MODO APRENDIZAJE
+        # Si el usuario sigue dentro del flujo académico,
+        # cualquier texto debe tratarse como una nueva consulta.
+        # ======================================================
 
+        if (
+            tracker.get_slot("proceso_activo") == "aprender_tema"
+            and tracker.latest_message.get("text", "").strip()
+            and intent not in (
+                "continuar_tema_si",
+                "ir_menu_principal",
+                "terminar_conversacion_segura",
+            )
+        ):
+
+            logger.info(
+                "[ACADEMICO] Consulta detectada durante aprendizaje."
+            )
+
+            nuevo_tema = tracker.latest_message["text"].strip()
+
+            return (
+
+                limpieza
+
+                + [
+
+                    SlotSet(
+                        "tema_actual",
+                        nuevo_tema,
+                    ),
+
+                    SlotSet(
+                        "tema_consulta",
+                        nuevo_tema,
+                    ),
+
+                ]
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ACADEMIC,
+
+                    prompt=nuevo_tema,
+
+                )
+
+            )
         # ======================================================
         # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
         # ======================================================
@@ -851,6 +987,39 @@ def _detect_flow(
             "continuar_tema_si",
 
         ):
+
+            logger.info(
+                "[ACADEMICO] Profundizando tema."
+            )
+
+            return (
+
+                limpieza
+
+                + [
+
+                     SlotSet(
+                         "continuando_tema",
+                         True,
+                     ),
+
+                ]
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ACADEMIC,
+
+                    prompt=self._build_continue_prompt(
+                        tracker
+                    ),
+
+                )
+
+            )
 
             logger.info(
                 "[ACADEMICO] Continuando tema."
@@ -1140,37 +1309,45 @@ def _detect_flow(
                 flow,
             )
 
-            if flow in (
-                self.FLOW_ACADEMIC,
-                self.FLOW_SUPPORT,
-            ):
+            # -----------------------------------------------------
+            # Mantener proceso_activo SOLO para soporte.
+            #
+            # El flujo académico utiliza "aprender_tema".
+            # No debe sobrescribirse con "academic",
+            # porque rompe la lógica conversacional.
+            # -----------------------------------------------------
+
+            if flow == self.FLOW_SUPPORT:
 
                 events.insert(
-                     0,
-                     SlotSet(
-                         "proceso_activo",
-                         flow,
-                     ),
+                    0,
+                    SlotSet(
+                        "proceso_activo",
+                        "support",
+                    ),
                 )
 
+            # -----------------------------------------------------
+            # Flujo académico
+            # -----------------------------------------------------
 
             if flow == self.FLOW_ACADEMIC:
 
                 events.extend(
 
-                   [
+                    [
 
-                      SlotSet(
-                          "ultima_respuesta_llm",
-                          respuesta,
-                      ),
+                        SlotSet(
+                            "ultima_respuesta_llm",
+                            respuesta,
+                        ),
 
-                      SlotSet(
-                         "ultima_interaccion",
-                         datetime.utcnow().isoformat(),
-                      ),
-
-                   ]
+                        SlotSet(
+                            "ultima_interaccion",
+                            datetime.utcnow().isoformat(),
+                        ),
+  
+                    ]
 
                 )
 
@@ -1184,11 +1361,19 @@ def _detect_flow(
                             tracker
                         ),
 
+
                     )
 
                 )
 
+                events.append(
 
+                    SlotSet(
+                        "continuando_tema",
+                        False,
+                )
+            )
+    
             return events
 
         except Exception:
