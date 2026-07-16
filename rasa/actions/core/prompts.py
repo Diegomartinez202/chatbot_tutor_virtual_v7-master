@@ -35,7 +35,8 @@ Cuando el flujo sea "academic":
 - Explica paso a paso.
 - Usa ejemplos sencillos.
 - Adapta la explicación al nivel del estudiante.
-- Finaliza preguntando si desea continuar aprendiendo.
+- No hagas preguntas al finalizar.
+- Finaliza únicamente con la explicación.
 
 CONSULTAS DE AYUDA
 

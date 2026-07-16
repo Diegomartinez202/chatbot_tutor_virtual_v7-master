@@ -111,6 +111,11 @@ class ActionHandleWithLLM(Action):
 
         Detecta el flujo y delega al builder correspondiente.
         """
+        
+        logger.info(
+            "[LLM] _build_prompt() intent=%s",
+            tracker.get_intent_of_latest_message(),
+        )
         logger.warning(
             "[TRACE][ActionHandleWithLLM] llm_request=%s",
             tracker.get_slot("llm_request"),
@@ -126,6 +131,19 @@ class ActionHandleWithLLM(Action):
             return self._build_auth_prompt(tracker)
 
         if flow == self.FLOW_ACADEMIC:
+
+            intent = tracker.get_intent_of_latest_message()
+
+            if intent in (
+                "continuar_tema",
+                "continuar_tema_si",
+            ):
+                logger.info("[LLM] Builder seleccionado=_build_continue_prompt")
+                return self._build_continue_prompt(tracker)
+
+            logger.info("[LLM] Builder seleccionado=_build_academic_prompt")
+            return self._build_academic_prompt(tracker)
+
             return self._build_academic_prompt(tracker)
 
         if flow == self.FLOW_HELP:
@@ -344,6 +362,11 @@ class ActionHandleWithLLM(Action):
         build_prompt() será el único responsable de construir el
         prompt final.
         """
+        logger.warning("=" * 80)
+        logger.warning("USANDO _build_academic_prompt()")
+        logger.warning("pregunta=%s", pregunta)
+        logger.warning("=" * 80)
+        
         latest = tracker.latest_message or {}
         pregunta = (
             tracker.get_slot("tema_consulta")
@@ -655,7 +678,9 @@ class ActionHandleWithLLM(Action):
         Inicializa el flujo académico cuando el usuario escribe
         el tema solicitado.
         """
-
+        logger.info(
+            "[ACADEMICO] Desactivando esperando_tema"
+        )
         latest = tracker.latest_message or {}
 
         tema = latest.get(
@@ -712,7 +737,14 @@ class ActionHandleWithLLM(Action):
         explicación ya iniciada aprovechando el contexto de
         la última respuesta generada por el LLM.
         """
-
+        logger.info("=" * 70)
+        logger.info("[LLM] USANDO _build_continue_prompt()")
+        logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.info("nivel=%s", tracker.get_slot("nivel_explicacion"))
+        logger.info("ultima_respuesta=%s", bool(tracker.get_slot("ultima_respuesta_llm")))
+        logger.info("=" * 70)
+       
         tema = (
             tracker.get_slot("tema_actual")
             or tracker.get_slot("tema_consulta")
@@ -741,13 +773,29 @@ class ActionHandleWithLLM(Action):
 
     {nivel}
 
-    El estudiante ya recibió una explicación inicial.
+    IMPORTANTE:
+
+    El estudiante NO está iniciando un tema nuevo.
+
+    Ya recibió una explicación inicial sobre este mismo tema.
+
+    Esta conversación es una continuación directa de la explicación anterior.
+
+    NO preguntes qué desea aprender.
+
+    NO preguntes qué concepto desea explicar.
+
+    NO solicites aclaraciones.
 
     NO vuelvas a empezar desde la definición.
 
     NO repitas la introducción.
 
     NO vuelvas a explicar conceptos que ya fueron desarrollados.
+
+    NO reinicies la explicación.
+
+    NO respondas como si fuera una consulta nueva.
 
     Continúa exactamente desde donde terminó la explicación anterior.
     """
@@ -756,13 +804,17 @@ class ActionHandleWithLLM(Action):
 
             prompt += f"""
 
-    La explicación anterior terminó así:
+    Profundiza el tema de acuerdo con el nivel:
 
     {ultima_respuesta}
 
     Usa esa explicación únicamente como contexto para continuar.
-  
-    No la copies ni la repitas.
+
+    No la copies.
+
+    No la repitas.
+
+    Continúa desde el último punto desarrollado.
     """
 
         prompt += f"""
@@ -785,9 +837,20 @@ class ActionHandleWithLLM(Action):
 
     Mantén continuidad pedagógica como si la conversación nunca se hubiera interrumpido.
 
-    Responde directamente con la continuación de la explicación.
-    """
+    Comienza inmediatamente ampliando la explicación.
 
+    No hagas preguntas.
+
+    No solicites que el estudiante elija un tema.
+
+    No pidas confirmación.
+
+    Finaliza únicamente cuando hayas desarrollado la continuación del tema.
+    """
+        logger.info("=" * 70)
+        logger.info("[LLM] Prompt CONTINUE")
+        logger.info(prompt)
+        logger.info("=" * 70)
         return prompt.strip()
     # ==========================================================
     # INVOCACIÓN DEL LLM
@@ -867,6 +930,39 @@ class ActionHandleWithLLM(Action):
         intent = tracker.get_intent_of_latest_message()
 
         # ======================================================
+        # CONTINUAR TEMA (PRIORIDAD)
+        # ======================================================
+
+        if intent in (
+            "continuar_tema",
+            "continuar_tema_si",
+        ):
+
+            logger.info("=" * 70)
+            logger.info("[ACADEMICO] CONTINUAR TEMA")
+            logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
+            logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+            logger.info("nivel=%s", tracker.get_slot("nivel_explicacion"))
+            logger.info(
+                "ultima_respuesta=%s",
+                bool(tracker.get_slot("ultima_respuesta_llm")),
+            )
+            logger.info("esperando_tema=%s", tracker.get_slot("esperando_tema"))
+            logger.info("=" * 70)
+
+            return (
+                limpieza
+                + [
+                    SlotSet("continuando_tema", True),
+                ]
+                + self._ejecutar_procesamiento_llm(
+                    dispatcher,
+                    tracker,
+                    self.FLOW_ACADEMIC,
+                    prompt=self._build_continue_prompt(tracker),
+                )
+            )
+        # ======================================================
         # MODO APRENDIZAJE
         # Si el usuario sigue dentro del flujo académico,
         # cualquier texto debe tratarse como una nueva consulta.
@@ -905,20 +1001,12 @@ class ActionHandleWithLLM(Action):
                     ),
 
                 ]
-
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_ACADEMIC,
-
-                    prompt=nuevo_tema,
-
-                )
-
             )
+
+        logger.info(
+            "[DEBUG] esperando_tema=%s",
+            tracker.get_slot("esperando_tema"),
+        )
         # ======================================================
         # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
         # ======================================================
@@ -1107,7 +1195,11 @@ class ActionHandleWithLLM(Action):
                 ↓
            _call_model()
         """
-
+        logger.info("=" * 70)
+        logger.info("[LLM] _ejecutar_procesamiento_llm")
+        logger.info("flow=%s", flow)
+        logger.info("prompt recibido=%s", prompt[:120] if prompt else None)
+        logger.info("=" * 70)
         logger.info(
             "[DEBUG LLM] llm_request=%s",
             tracker.get_slot("llm_request"),
@@ -1189,12 +1281,19 @@ class ActionHandleWithLLM(Action):
                 len(prompt),
             )
 
-
+            logger.info("=" * 70)
+            logger.info("[LLM] Prompt FINAL")
+            logger.info(prompt)
+            logger.info("=" * 70)
             prompt = build_prompt(
                 base_prompt=prompt,
                 tracker=tracker,
                 context=context,
             )
+            logger.info("=" * 70)
+            logger.info("[LLM] Prompt FINAL")
+            logger.info(prompt)
+            logger.info("=" * 70)
             logger.info(
                 "[PROMPT] final=%d caracteres",
                 len(prompt),

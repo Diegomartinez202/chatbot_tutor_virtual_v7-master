@@ -33,7 +33,7 @@ FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "qwen2.5:3b")
 MAX_TOKENS = int(
     os.getenv(
         "OLLAMA_MAX_TOKENS",
-        "180"
+        "600"
     )
 )
 MAX_PROMPT_CHARS = int(
@@ -169,7 +169,14 @@ def _call_model(
         logger.info("[OLLAMA PAYLOAD]")
         
         logger.info("=" * 80)
-        
+        logger.warning("=" * 80)
+        logger.warning("SYSTEM PROMPT")
+        logger.warning(PROMPT_SYSTEM)
+        logger.warning("=" * 80)
+
+        logger.warning("USER PROMPT")
+        logger.warning(clean_prompt)
+        logger.warning("=" * 80)
         
         response = requests.post(
             LLM_BASE_URL,

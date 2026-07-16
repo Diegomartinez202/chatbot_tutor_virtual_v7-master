@@ -107,6 +107,12 @@ slots:
     mappings:
       - type: custom
 
+  continuando_tema:
+    type: bool
+    influence_conversation: false
+    mappings:
+      - type: custom
+
   session_activa:
     type: bool
     influence_conversation: true
