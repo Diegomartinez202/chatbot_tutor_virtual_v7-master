@@ -8,6 +8,8 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
 from rasa_sdk.events import FollowupAction
+from rasa_sdk.events import Restarted
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,6 +34,7 @@ class ActionReiniciarConversacion(Action):
         dispatcher.utter_message(response="utter_reinicio_confirmado")
 
         return [
+            Restarted(),
             SlotSet("session_activa", True),
             SlotSet("encuesta_activa", False),       
             SlotSet("encuesta_incompleta", False),  
@@ -39,8 +42,6 @@ class ActionReiniciarConversacion(Action):
             SlotSet("confirmacion_cierre", None),
             SlotSet("turnos_conversacion", 0),
             SlotSet("sesion_larga", False),
-
-            # 🔥 HARD RESET SEGURIDAD
             SlotSet("is_authenticated", False),
             SlotSet("user_token", ""),
             SlotSet("auth_state", "inactive"),

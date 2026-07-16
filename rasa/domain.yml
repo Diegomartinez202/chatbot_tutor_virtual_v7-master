@@ -635,7 +635,7 @@ responses:
 
   utter_ofrecer_continuar:
   - text: >
-      ¿Deseas continuar profundizando en este tema o prefieres realizar otra consulta?
+      ¿Qué deseas hacer ahora?
     buttons:
       - title: "✅ Continuar tema"
         payload: "/continuar_tema_si"

@@ -22,6 +22,7 @@ principio de responsabilidad única (SRP).
 """
 import time
 import logging
+import traceback
 from typing import Any, Dict, List, Text
 from rasa_sdk.events import ActiveLoop
 from rasa_sdk import Action, Tracker
@@ -66,6 +67,7 @@ from .core.prompts import (
 )
 from .core.history import build_history
 from .core.materias import MATERIAS
+
 # ---------------------------------------------------------------------
 # Configuración del módulo
 # ---------------------------------------------------------------------
@@ -356,27 +358,31 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
         """
-        Devuelve únicamente la consulta académica realizada por el
-        estudiante.
+        Construye el prompt académico según el estado del
+        aprendizaje.
 
-        build_prompt() será el único responsable de construir el
-        prompt final.
+        Casos:
+
+        1. Primera explicación del tema.
+        2. Profundización sobre un subtema.
+        3. Continuar aumentando el nivel del mismo tema.
         """
-        logger.warning("=" * 80)
-        logger.warning("USANDO _build_academic_prompt()")
-        logger.warning("pregunta=%s", pregunta)
-        logger.warning("=" * 80)
-        
+
         latest = tracker.latest_message or {}
+
         pregunta = (
             tracker.get_slot("tema_consulta")
             or latest.get("text", "")
         ).strip()
 
+        tema_principal = (
+            tracker.get_slot("tema_actual")
+            or pregunta
+        )
 
         materia = (
             tracker.get_slot("materia_detectada")
-            or detectar_materia(pregunta)
+            or detectar_materia(tema_principal)
             or "General"
         )
 
@@ -388,57 +394,96 @@ class ActionHandleWithLLM(Action):
             )
         )
 
-        if not tracker.get_slot("materia_detectada"):
+        continuando = tracker.get_slot(
+            "continuando_tema"
+        )
 
-            logger.debug(
-                "[LLM] Materia detectada automáticamente: %s",
-                materia,
-            )
+        logger.info("=" * 80)
+        logger.info("USANDO _build_academic_prompt()")
+        logger.info("tema_actual=%s", tema_principal)
+        logger.info("tema_consulta=%s", pregunta)
+        logger.info("continuando=%s", continuando)
+        logger.info("=" * 80)
 
-        if not tracker.get_slot("rol_academico"):
-
-            logger.debug(
-                "[LLM] Rol académico seleccionado: %s",
-                rol,
-            )
-        continuando = tracker.get_slot("continuando_tema")
+        # ======================================================
+        # CONTINUAR TEMA
+        # ======================================================
 
         if continuando:
-            return f"""
-        Continúa explicando el siguiente tema.
-
-        Tema:
-
-        {pregunta}
-
-        No repitas la introducción.
-
-        Profundiza en el tema.
-
-        Incluye nuevos ejemplos.
-
-        Amplía la explicación paso a paso.
-
-        """.strip()
-
-        else:
 
             return f"""
-        Explica de forma didáctica el siguiente tema.
+    Eres {rol}.
 
-        Tema:
+    Continúa profundizando el siguiente tema.
 
-        {pregunta}
+    Tema principal:
 
-        Incluye:
+    {tema_principal}
 
-        - definición
-        - conceptos principales
-        - ejemplo práctico
-        - explicación paso a paso
+    No repitas la introducción.
 
-        """.strip()
+    Asume que el estudiante ya comprendió la explicación anterior.
 
+    Aumenta el nivel técnico.
+
+    Incluye nuevos ejemplos.
+
+    Relaciona la explicación con lo explicado anteriormente.
+
+    No reinicies el tema.
+    """.strip()
+
+        # ======================================================
+        # PRIMERA EXPLICACIÓN
+        # ======================================================
+
+        if pregunta == tema_principal:
+
+            return f"""
+    Eres {rol}.
+
+    Explica el siguiente tema como un tutor especializado del SENA.
+
+    Tema:
+
+    {tema_principal}
+
+    Incluye:
+
+    - definición
+    - conceptos principales
+    - explicación paso a paso
+    - ejemplos sencillos
+    - buenas prácticas
+
+    No asumas conocimientos previos.
+    """.strip()
+
+        # ======================================================
+        # SUBCONSULTA
+        # ======================================================
+
+        return f"""
+    Eres {rol}.
+
+    El estudiante está aprendiendo el siguiente tema:
+
+    {tema_principal}
+
+    Ahora desea profundizar específicamente en:
+
+    {pregunta}
+
+    No reinicies la explicación.
+
+    No vuelvas a explicar el tema completo.
+
+    Concéntrate únicamente en este subtema.
+
+    Relaciona la respuesta con el tema principal.
+
+    Usa el contexto de las respuestas anteriores.
+    """.strip()
 
     # ==========================================================
     # HELP PROMPT
@@ -952,9 +997,6 @@ class ActionHandleWithLLM(Action):
 
             return (
                 limpieza
-                + [
-                    SlotSet("continuando_tema", True),
-                ]
                 + self._ejecutar_procesamiento_llm(
                     dispatcher,
                     tracker,
@@ -964,14 +1006,17 @@ class ActionHandleWithLLM(Action):
             )
         # ======================================================
         # MODO APRENDIZAJE
-        # Si el usuario sigue dentro del flujo académico,
-        # cualquier texto debe tratarse como una nueva consulta.
+        # El usuario ya tiene un tema activo.
+        # Cualquier texto nuevo se interpreta como una
+        # profundización (subconsulta) del mismo tema.
         # ======================================================
 
         if (
             tracker.get_slot("proceso_activo") == "aprender_tema"
+            and not tracker.get_slot("esperando_tema")
             and tracker.latest_message.get("text", "").strip()
             and intent not in (
+                "continuar_tema",
                 "continuar_tema_si",
                 "ir_menu_principal",
                 "terminar_conversacion_segura",
@@ -979,10 +1024,16 @@ class ActionHandleWithLLM(Action):
         ):
 
             logger.info(
-                "[ACADEMICO] Consulta detectada durante aprendizaje."
+                "[ACADEMICO] Subconsulta detectada."
             )
 
-            nuevo_tema = tracker.latest_message["text"].strip()
+            subtema = tracker.latest_message["text"].strip()
+
+            logger.info(
+                "[ACADEMICO] Tema principal=%s | Subtema=%s",
+                tracker.get_slot("tema_actual"),
+                subtema,
+            )
 
             return (
 
@@ -990,25 +1041,38 @@ class ActionHandleWithLLM(Action):
 
                 + [
 
-                    SlotSet(
-                        "tema_actual",
-                        nuevo_tema,
-                    ),
-
+                    # Solo cambia el foco de la consulta.
+                    # El tema principal permanece igual.
                     SlotSet(
                         "tema_consulta",
-                        nuevo_tema,
+                        subtema,
                     ),
 
                 ]
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ACADEMIC,
+
+                )
+
             )
+
 
         logger.info(
             "[DEBUG] esperando_tema=%s",
             tracker.get_slot("esperando_tema"),
         )
+
         # ======================================================
         # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
+        # Primera explicación del flujo académico.
+        # Este es el único lugar donde se inicializa
+        # tema_actual.
         # ======================================================
 
         if self._is_waiting_for_topic(tracker):
@@ -1019,7 +1083,7 @@ class ActionHandleWithLLM(Action):
             ).strip()
 
             logger.info(
-                "[ACADEMICO] Tema recibido: %s",
+                "[ACADEMICO] Tema inicial recibido: %s",
                 nuevo_tema,
             )
 
@@ -1028,7 +1092,7 @@ class ActionHandleWithLLM(Action):
                 limpieza
 
                 + self._build_topic_events(
-                   tracker
+                    tracker
                 )
 
                 + self._ejecutar_procesamiento_llm(
@@ -1044,76 +1108,17 @@ class ActionHandleWithLLM(Action):
                 )
 
             )
-        # ======================================================
-        # CONSULTA ACADÉMICA NUEVA
-        # ======================================================
 
-        if intent == "explicacion_academica":
-
-            nuevo_tema = tracker.latest_message.get("text")
-
-            return (
-                limpieza
-                + [
-                    SlotSet("tema_actual", nuevo_tema),
-                ]
-                + self._ejecutar_procesamiento_llm(
-                    dispatcher,
-                    tracker,
-                    self.FLOW_ACADEMIC,
-                )
-            )
 
         # ======================================================
-        # CONTINUAR TEMA
+        # FLUJO NORMAL
         # ======================================================
 
-        if intent in (
+        return (
 
-            "continuar_tema",
+            limpieza
 
-            "continuar_tema_si",
-
-        ):
-
-            logger.info(
-                "[ACADEMICO] Profundizando tema."
-            )
-
-            return (
-
-                limpieza
-
-                + [
-
-                     SlotSet(
-                         "continuando_tema",
-                         True,
-                     ),
-
-                ]
-
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_ACADEMIC,
-
-                    prompt=self._build_continue_prompt(
-                        tracker
-                    ),
-
-                )
-
-            )
-
-            logger.info(
-                "[ACADEMICO] Continuando tema."
-            )
-
-            return self._ejecutar_procesamiento_llm(
+            + self._ejecutar_procesamiento_llm(
 
                 dispatcher,
 
@@ -1121,23 +1126,8 @@ class ActionHandleWithLLM(Action):
 
                 flow,
 
-                prompt=self._build_continue_prompt(
-                    tracker
-                ),
-
             )
 
-        # ======================================================
-        # FLUJO NORMAL
-        # ======================================================
-
-        return (
-            limpieza
-            + self._ejecutar_procesamiento_llm(
-                dispatcher,
-                tracker,
-               flow,
-            )
         )
     
     def _next_explanation_level(
@@ -1465,13 +1455,6 @@ class ActionHandleWithLLM(Action):
 
                 )
 
-                events.append(
-
-                    SlotSet(
-                        "continuando_tema",
-                        False,
-                )
-            )
     
             return events
 
@@ -1509,6 +1492,22 @@ class ActionMemoryWrapper(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        
+        logger.warning(
+            "[MEMORY_WRAPPER] Ejecutado. intent=%s sender=%s",
+            tracker.get_intent_of_latest_message(),
+            tracker.sender_id,
+        )
+        logger.warning(
+            "".join(traceback.format_stack(limit=8))
+        )
+        logger.warning("=" * 80)
+        logger.warning("[MEMORY_WRAPPER] EJECUTADO")
+        logger.warning("intent=%s", tracker.get_intent_of_latest_message())
+        logger.warning("sender=%s", tracker.sender_id)
+        logger.warning("stack:")
+        logger.warning("".join(traceback.format_stack(limit=8)))
+        logger.warning("=" * 80)
         logger.debug(
             "[MEMORY_WRAPPER] Persistiendo conversación"
         )
