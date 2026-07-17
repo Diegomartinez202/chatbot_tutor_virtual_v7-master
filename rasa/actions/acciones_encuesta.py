@@ -559,43 +559,25 @@ class ActionProcesarRespuestaResolucion(Action):
 
         if ultimo_intent in [
             "respuesta_resuelto_no",
-            "respuesta_insatisfecho",  
-            "deny",                    
-        ]: 
-            botones = [
-
-                {
-                    "title": "📚 Seguir con el tema",
-                    "payload": "/continuar_tema_si",
-                },
-
-                {
-                    "title": "🏠 Menú Principal",
-                    "payload": "/menu_principal",
-                },
-
-                {
-                    "title": "🚪 Salir y Calificar Bot",
-                    "payload": "/forzar_salida",
-                },
-
-            ]
+            "respuesta_insatisfecho",
+            "deny",
+        ]:
 
             dispatcher.utter_message(
-                text=(
-                    "Lamento que no hayamos resuelto tu inquietud por completo. "
-                    "¿Qué te gustaría hacer ahora?"
-                ),
-                buttons=botones,
+                text="Lamento que no hayamos resuelto tu inquietud por completo."
+            )
+
+            dispatcher.utter_message(
+                response="utter_ofrecer_continuar"
             )
 
             return [
 
                 SlotSet(
                     "esperando_resolucion",
-                    False,
+                     False,
                 ),
-                
+
                 SlotSet(
                     "encuesta_incompleta",
                     True,

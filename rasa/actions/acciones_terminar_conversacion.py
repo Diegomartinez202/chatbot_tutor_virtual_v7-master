@@ -330,10 +330,10 @@ class ActionDecidirCierre(Action):
         # continuar donde quedó.
         # =====================================================
 
-        if tracker.get_slot("encuesta_activa"):
+        if tracker.get_slot("encuesta_activa") or tracker.get_slot("encuesta_incompleta"):
 
             logger.info(
-                "[CIERRE] Reanudando encuesta activa."
+                "[CIERRE] Reanudando encuesta activa o pendiente."
             )
 
             return [
