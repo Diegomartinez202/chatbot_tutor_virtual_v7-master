@@ -300,7 +300,17 @@ class ActionTerminarConversacionSegura(Action):
 class ActionCancelarCierre(Action):
     def name(self) -> Text: return "action_cancelar_cierre"
     def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        dispatcher.utter_message(response="utter_cierre_cancelado")
+        if tracker.get_slot("proceso_activo") == "aprender_tema":
+
+            dispatcher.utter_message(
+                response="utter_ofrecer_continuar"
+            )
+
+        else:
+
+            dispatcher.utter_message(
+                response="utter_cierre_cancelado"
+            )
         return [SlotSet("confirmacion_cierre", None), ConversationResumed()]
 
 class ActionDecidirCierre(Action):

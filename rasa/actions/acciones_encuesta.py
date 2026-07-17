@@ -532,6 +532,16 @@ class ActionProcesarRespuestaResolucion(Action):
         domain: Dict[Text, Any],
     ) -> List[EventType]:
 
+        logger.info("=== ESTADO DESPUÉS DE SEGUIR TEMA ===")
+        logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.info("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+        logger.info("encuesta_incompleta=%s", tracker.get_slot("encuesta_incompleta"))
+        logger.info("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
+        logger.info("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.info("llm_request=%s", tracker.get_slot("llm_request"))
+        
         latest = tracker.latest_message or {}
 
         ultimo_intent = (
@@ -556,7 +566,7 @@ class ActionProcesarRespuestaResolucion(Action):
 
                 {
                     "title": "📚 Seguir con el tema",
-                    "payload": "/continuar_tema",
+                    "payload": "/continuar_tema_si",
                 },
 
                 {

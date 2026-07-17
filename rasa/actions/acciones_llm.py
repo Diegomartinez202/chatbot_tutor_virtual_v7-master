@@ -466,23 +466,41 @@ class ActionHandleWithLLM(Action):
         return f"""
     Eres {rol}.
 
-    El estudiante está aprendiendo el siguiente tema:
+    El estudiante está aprendiendo actualmente el siguiente tema:
 
     {tema_principal}
 
-    Ahora desea profundizar específicamente en:
+    Ahora realizó una nueva consulta:
 
     {pregunta}
 
-    No reinicies la explicación.
+    Primero determina si esta nueva consulta:
 
-    No vuelvas a explicar el tema completo.
+    - pertenece al mismo tema,
+    - está relacionada parcialmente,
+    - o corresponde a un tema completamente diferente.
 
-    Concéntrate únicamente en este subtema.
+    Si pertenece al mismo tema:
 
-    Relaciona la respuesta con el tema principal.
+    Explica únicamente ese subtema y relaciónalo naturalmente con el tema principal.
 
-    Usa el contexto de las respuestas anteriores.
+    Si está parcialmente relacionada:
+
+    Antes de explicar, escribe un breve párrafo de transición indicando cómo se relaciona con el tema principal.
+
+    Después continúa con la explicación.
+
+    Si corresponde a un tema diferente:
+
+    Comienza con un breve párrafo indicando que la nueva consulta cambia el enfoque del aprendizaje.
+
+    Luego explica completamente el nuevo tema.
+
+    No repitas la explicación anterior.
+
+    No reinicies el tema principal salvo que sea necesario.
+
+    Mantén un tono de tutor académico del SENA.
     """.strip()
 
     # ==========================================================
