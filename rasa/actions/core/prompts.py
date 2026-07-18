@@ -30,7 +30,7 @@ REGLAS GENERALES
 
 CONSULTAS ACADÉMICAS
 
-Cuando el flujo sea "academic":
+Cuando el macroflujo sea "academic":
 
 - Explica paso a paso.
 - Usa ejemplos sencillos.
@@ -40,7 +40,7 @@ Cuando el flujo sea "academic":
 
 CONSULTAS DE AYUDA
 
-Cuando el flujo sea "help":
+Cuando el macroflujo sea "help":
 
 - Explica qué puede hacer el Tutor Virtual.
 - Indica qué consultas requieren autenticación.
@@ -48,7 +48,7 @@ Cuando el flujo sea "help":
 
 CONSULTAS DE SOPORTE
 
-Cuando el flujo sea "support":
+Cuando el macroflujo sea "support":
 
 - Ayuda a resolver el problema reportado.
 - Explica claramente los pasos.
@@ -56,7 +56,7 @@ Cuando el flujo sea "support":
 
 CONSULTAS DE ENCUESTA
 
-Cuando el flujo sea "guardian_encuesta":
+Cuando el macroflujo sea "guardian_encuesta":
 
 - Limítate únicamente a agradecer la participación del usuario.
 - Si existe un comentario, agradécelo de forma breve y cordial.
@@ -67,7 +67,7 @@ Cuando el flujo sea "guardian_encuesta":
 - No invites a continuar aprendiendo.
 - La respuesta debe tener máximo 3 líneas.
 
-Cuando el flujo sea "cierre_conversacion":
+Cuando el macroflujo sea "cierre_conversacion":
 
 - Genera únicamente un mensaje corto de despedida.
 - No expliques temas académicos.
@@ -75,9 +75,23 @@ Cuando el flujo sea "cierre_conversacion":
 - No invites a continuar aprendiendo.
 - Agradece la visita y desea éxitos al estudiante.
 
+Si el macroflujo es administrative:
+
+- responde únicamente temas administrativos
+
+- no actúes como tutor académico
+
+- no expliques materias
+
+- no generes clases
+
+- limita la respuesta al trámite solicitado
+
+- No respondas como si fueras un docente.
+
 CONSULTAS PROTEGIDAS
 
-Cuando el flujo sea "auth":
+Cuando el macroflujo sea "auth":
 
 - Explica que la información requiere autenticación.
 - Nunca inventes datos personales.
@@ -222,7 +236,19 @@ def build_prompt(
                 "[PROMPT BUILDER] Error recuperando memoria."
             )
 
-    flujo = ctx.get("flujo", "general")
+    macroflujo = ctx.get(
+        "macroflujo",
+        "general",
+    )
+
+    subflujo = ctx.get(
+        "subflujo",
+        "",
+    )
+    flujo = ctx.get(
+        "flujo",
+        macroflujo,
+    )
 
     if flujo in (
         "guardian_encuesta",
@@ -240,32 +266,98 @@ def build_prompt(
         "rol",
         "",
     )
+    programa = ctx.get(
+        "programa",
+        "",
+    )
+
+    ficha = ctx.get(
+        "ficha",
+        "",
+    )
+
+    estado = ctx.get(
+        "estado",
+        "",
+    )
+
+    ticket = ctx.get(
+        "ticket",
+        "",
+    )
+
+    proceso = ctx.get(
+        "proceso",
+        "",
+    )
+
 
     prompt_final = f"""
-Contexto de la conversación
+    Contexto de la conversación
 
-Flujo: {flujo}
+    Macroflujo: {macroflujo}
 
-Materia: {materia or "No definida"}
+    Subflujo: {subflujo}
+    """
+    if materia:
+        prompt_final += f"""
 
-Rol: {rol or "No definido"}
+    Materia: {materia}
+    """
 
-Historial reciente:
+    if rol:
+        prompt_final += f"""
 
-{history or "Sin historial."}
+    Rol: {rol}
+    """
 
-Memoria relevante:
+    if programa:
+        prompt_final += f"""
 
-{memory or "Sin memoria relevante."}
+    Programa: {programa}
+    """
 
-Consulta del estudiante:
+    if ficha:
+        prompt_final += f"""
 
-{base_prompt.strip()}
-"""
+    Ficha: {ficha}
+    """
+
+    if estado:
+        prompt_final += f"""
+
+    Estado del estudiante: {estado}
+    """
+
+    if ticket:
+        prompt_final += f"""
+
+    Ticket: {ticket}
+    """
+
+    if proceso:
+        prompt_final += f"""
+
+    Proceso: {proceso}
+    """
+    prompt_final += f"""
+    Historial reciente:
+
+    {history or "Sin historial."}
+
+    Memoria relevante:
+
+    {memory or "Sin memoria relevante."}
+
+    Consulta del estudiante:
+
+    {base_prompt.strip()}
+    """
 
     logger.info(
-        "[PROMPT BUILDER] Flujo=%s | Prompt=%d caracteres",
-        flujo,
+        "[PROMPT BUILDER] macro=%s | sub=%s | Prompt=%d caracteres",
+        macroflujo,
+        subflujo,
         len(prompt_final),
     )
 
@@ -274,8 +366,9 @@ Consulta del estudiante:
         prompt_final,
     )
     logger.info(
-        "[PROMPT BUILDER] Flujo=%s | Prompt=%d caracteres",
-        flujo,
+        "[PROMPT BUILDER] macro=%s | sub=%s | Prompt=%d caracteres",
+        macroflujo,
+        subflujo,
         len(prompt_final),
     )
 

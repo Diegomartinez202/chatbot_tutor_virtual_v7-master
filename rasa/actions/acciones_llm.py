@@ -94,6 +94,7 @@ class ActionHandleWithLLM(Action):
     FLOW_HELP = "help"
     FLOW_SUPPORT = "support"
     FLOW_GENERAL = "general"
+    FLOW_ADMINISTRATIVE = "administrative"
 
     def name(self) -> Text:
         return "action_handle_with_llm"
@@ -148,6 +149,16 @@ class ActionHandleWithLLM(Action):
 
             return self._build_academic_prompt(tracker)
 
+        if flow == self.FLOW_ADMINISTRATIVE:
+
+            logger.info(
+                "[LLM] Builder=_build_administrative_prompt"
+            )
+
+            return self._build_administrative_prompt(
+               tracker
+            )
+        
         if flow == self.FLOW_HELP:
             return self._build_help_prompt(tracker)
         
@@ -271,6 +282,14 @@ class ActionHandleWithLLM(Action):
             if macroflujo == "general":
                 return self.FLOW_GENERAL
 
+            if macroflujo == "administrative":
+
+                logger.info(
+                    "[FLOW] Flujo administrativo detectado."
+                )
+
+                return self.FLOW_ADMINISTRATIVE
+
         # ======================================================
         # COMPATIBILIDAD CON FLUJOS ANTIGUOS
         # ======================================================
@@ -308,6 +327,12 @@ class ActionHandleWithLLM(Action):
         if tracker.get_slot("confirmacion_cierre"):
             return self.FLOW_GENERAL
 
+        
+        # ======================================================
+        # COMPATIBILIDAD CON LA ARQUITECTURA ANTERIOR
+        # Se utiliza únicamente cuando el ACTION_CATALOG aún
+        # no ha definido el macroflujo.
+        # ======================================================
         # ======================================================
         # FLUJO ACADÉMICO
         # ======================================================
@@ -578,6 +603,23 @@ class ActionHandleWithLLM(Action):
             ).strip()
         )
 
+    def _build_administrative_prompt(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Construye el mensaje base para consultas
+        administrativas.
+        """
+
+        latest = tracker.latest_message or {}
+
+        return latest.get(
+            "text",
+            "",
+        ).strip()
+     
+    
      # ==========================================================
      # CONTEXTO PARA EL LLM
      # ==========================================================
@@ -613,15 +655,17 @@ class ActionHandleWithLLM(Action):
              {},
          )
 
-         macroflujo = (
-             request_context.get("macroflujo")
-             or flow
+         macroflujo = request_context.get(
+             "macroflujo",
+             flow,
          )
-
-         subflujo = (
-             request_context.get("subflujo")
-             or request_context.get("flujo")
-             or ""
+  
+         subflujo = request_context.get(
+             "subflujo",
+             request_context.get(
+                "flujo",
+                "",
+             ),
          )
 
          context = {
@@ -666,44 +710,76 @@ class ActionHandleWithLLM(Action):
              self.FLOW_ACADEMIC,
          ):
 
-             pregunta = (
-                 tracker.get_slot("tema_consulta")
-                 or latest.get("text", "")
-             )
+             # --------------------------------------------------
+             # Aprendizaje de un tema
+             # Únicamente aquí tiene sentido detectar materia.
+             # --------------------------------------------------
 
-             materia = (
-                 tracker.get_slot("materia_detectada")
-                 or detectar_materia(pregunta)
-                 or "General"
-             )
-
-             rol = (
-                 tracker.get_slot("rol_academico")
-                 or MATERIAS.get(
-                     str(materia).lower(),
-                     "Tutor Académico General",
+             if subflujo == "aprender_tema":
+             
+             
+                 pregunta = (
+                     tracker.get_slot("tema_consulta")
+                     or latest.get("text", "")
                  )
-             )
 
-             context.update(
+                 materia = (
+                     tracker.get_slot("materia_detectada")
+                     or detectar_materia(pregunta)
+                     or "General"
+                 )
 
-                 {
+                 rol = (
+                     tracker.get_slot("rol_academico")
+                     or MATERIAS.get(
+                         str(materia).lower(),
+                         "Tutor Académico General",
+                     )
+                 )
 
-                     "materia": materia,
+                 context.update(
 
-                     "rol": rol,
+                     {
 
-                     "tema_consulta": tracker.get_slot(
-                     "tema_consulta"
-                     ),
+                         "materia": materia,
 
-                     "nivel_explicacion": tracker.get_slot(
-                     "nivel_explicacion"
-                     ),
+                         "rol": rol,
 
-                 }
+                         "tema_consulta": tracker.get_slot(
+                         "tema_consulta"
+                         ),
 
-             )
+                         "nivel_explicacion": tracker.get_slot(
+                         "nivel_explicacion"
+                         ),
+
+                     }
+
+                 )
+             
+             # --------------------------------------------------
+             # Resto de flujos académicos
+             # (certificados, horarios, notas, pagos, tutor, etc.)
+             # --------------------------------------------------
+
+             else:
+
+                 context.update(
+
+                     {
+
+                         "tema_consulta": tracker.get_slot(
+                             "tema_consulta"
+                         ),
+
+                         "nivel_explicacion": tracker.get_slot(
+                             "nivel_explicacion"
+                         ),
+
+                     }
+
+                 )
+
 
          # ======================================================
          # CONTEXTO SOPORTE
@@ -755,6 +831,34 @@ class ActionHandleWithLLM(Action):
 
              )
 
+
+         elif macroflujo in (
+
+             "administrative",
+
+             self.FLOW_ADMINISTRATIVE,
+
+         ):
+
+             context.update(
+
+                 {
+
+                     "programa": tracker.get_slot(
+                         "programa"
+                     ),
+
+                     "ficha": tracker.get_slot(
+                         "ficha"
+                     ),
+
+                     "estado": tracker.get_slot(
+                         "estado_estudiante"
+                     ),
+
+                 }
+
+             )
          # ======================================================
          # CONTEXTO GENERAL
          # ======================================================

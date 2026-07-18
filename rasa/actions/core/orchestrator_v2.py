@@ -43,21 +43,30 @@ ACTION_CATALOG = {
 
     "aprender_tema": {
         "action": "action_aprender_tema",
-        "backend": None,
         "requires_auth": False,
-        "module": "academico",
+        "macroflujo": "academic",
+        "subflujo": "aprender_tema",
     },
 
-    "saludo": {
-        "llm": True,
+    "saludo":{
+        "llm":True,
+        "requires_auth": False,
+        "macroflujo":"general",
+        "subflujo":"saludo",
     },
 
     "despedida": {
         "llm": True,
+        "requires_auth": False,
+        "macroflujo": "general",
+        "subflujo": "despedida",
     },
 
     "agradecimiento": {
         "llm": True,
+        "requires_auth": False,
+        "macroflujo": "general",
+        "subflujo": "agradecimiento",
     },
 
     # ============================================================
@@ -67,16 +76,22 @@ ACTION_CATALOG = {
     "login": {
         "action": "action_ingreso_zajuna",
         "requires_auth": False,
+        "macroflujo": "auth",
+        "subflujo": "login",
     },
 
     "reset_password": {
         "action": "action_reset_password",
         "requires_auth": False,
+        "macroflujo": "auth",
+        "subflujo": "reset_password",
     },
 
     "recuperar_contrasena": {
         "action": "action_recuperar_contrasena",
         "requires_auth": False,
+        "macroflujo": "auth",
+        "subflujo": "recuperar_contrasena",
     },
 
     # ============================================================
@@ -87,35 +102,47 @@ ACTION_CATALOG = {
         "action": "action_ver_estado_estudiante",
         "backend": "estado_estudiante",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "administrative",
+        "subflujo": "estado_estudiante",
+    },
+
+    "solicitar_soporte": {
+        "action":"action_soporte_tecnico_llm",
+        "requires_auth": True,
+        "macroflujo":"support",
+        "subflujo":"ticket",
     },
 
     "consultar_horarios": {
         "action": "action_consultar_horarios_clases",
         "backend": "horarios",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "academic",
+        "subflujo": "horarios",
     },
 
     "consultar_progreso": {
         "action": "action_consultar_progreso_curso",
         "backend": "progreso",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo":"academic",
+        "subflujo":"progreso",
     },
 
     "consultar_tutor": {
         "action": "action_tutor_asignado",
         "backend": "tutor_asignado",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo":"academic",
+        "subflujo":"tutor",
     },
 
     "consultar_certificados": {
         "action": "action_consultar_certificados",
         "backend": "certificados",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "academic",
+        "subflujo": "certificados",
     },
 
     # ============================================================
@@ -126,29 +153,70 @@ ACTION_CATALOG = {
         "action": "action_consultar_pagos",
         "backend": "pagos",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "academic",
+        "subflujo": "pagos",
     },
 
     "consultar_notas": {
         "action": "action_consultar_notas",
         "backend": "notas",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "academic",
+        "subflujo": "notas",
     },
 
     "consultar_ficha": {
         "action": "action_consultar_ficha",
         "backend": "ficha",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "administrative",
+        "subflujo": "ficha",
     },
 
     "consultar_inscripciones": {
         "action": "action_consultar_inscripciones",
         "backend": "inscripciones",
         "requires_auth": True,
-        "module": "academico",
+        "macroflujo": "administrative",
+        "subflujo": "inscripciones",
     },
+
+    "hablar_asesor":{
+       "action":"action_escalar_humano",
+       "requires_auth": True,
+       "macroflujo":"support",
+       "subflujo":"asesor",
+    },
+
+    "contactar_tutor":{
+       "action":"action_enviar_correo_tutor",
+       "requires_auth": True,
+       "macroflujo":"support",
+       "subflujo":"correo",
+    },
+
+    "pqrs":{
+       "action":"action_pqrs_llm",
+       "requires_auth": False,
+       "macroflujo":"support",
+       "subflujo":"pqrs",
+    },
+
+    "preguntas_frecuentes":{
+
+       "action":"action_preguntas_frecuentes_llm",
+       "requires_auth": False,
+       "macroflujo":"support",
+       "subflujo":"faq",
+    },
+
+    "consultar_historial":{
+       "action":"action_historial_academico",
+       "backend":"historial",
+       "requires_auth":True,
+       "macroflujo":"administrative",
+       "subflujo":"historial",
+    }
 
 }
 # ================================================================
@@ -193,123 +261,158 @@ class OrchestratorV2:
 
         config = ACTION_CATALOG.get(intent, {})
 
-        if config.get("llm", False):
-            materia = "tema academico"
-        else:
-            materia = detectar_materia(text)
+        macroflujo = config.get(
+            "macroflujo",
+            "general",
+        )
 
-        # --------------------------------------------------------
-        # Slots relevantes
-        # --------------------------------------------------------
+        subflujo = config.get(
+            "subflujo",
+            intent,
+        )
 
-        important_slots = {
-            "materia": tracker.get_slot("materia"),
-            "rol": tracker.get_slot("rol"),
-            "is_authenticated": tracker.get_slot("is_authenticated"),
-            "curso": tracker.get_slot("curso"),
-            "programa": tracker.get_slot("programa"),
-            "ficha": tracker.get_slot("ficha"),
-        }
+        context = {
 
-        # eliminar slots vacíos
-
-        important_slots = {
-            key: value
-            for key, value in important_slots.items()
-            if value not in (None, "", [], {})
-        }
-
-        return {
             "text": clean_text,
-            "clean_text": clean_text,
-            "materia": materia,
             "user": tracker.sender_id,
-            "slots": important_slots,
+            "macroflujo": macroflujo,
+            "subflujo": subflujo,
         }
 
+        if macroflujo == "academic":
+            materia = detectar_materia(text)
+            context["materia"] = materia
+            context["rol"] = tracker.get_slot(
+                "rol_academico"
+            )
+            context["tema_consulta"] = tracker.get_slot(
+                "tema_consulta"
+            )
+            context["nivel_explicacion"] = tracker.get_slot(
+                "nivel_explicacion"
+)
+
+        elif macroflujo == "support":
+            context["ticket"] = tracker.get_slot(
+                "ticket_id"
+            )
+
+            context["proceso"] = tracker.get_slot(
+                "proceso_activo"
+            )
+
+        elif macroflujo == "administrative":
+            context["programa"] = tracker.get_slot(
+                "programa"
+            )
+
+            context["ficha"] = tracker.get_slot(
+                "ficha"
+            )
+
+            context["estado"] = tracker.get_slot(
+                "estado_estudiante"
+            )
+
+        elif macroflujo == "auth":
+
+            context["auth_state"] = tracker.get_slot(
+                "auth_state"
+            )
+
+            context["is_authenticated"] = tracker.get_slot(
+                "is_authenticated"
+            )
+
+        return context
     # ------------------------------------------------------------
     # ⚖️ DECISION ENGINE
     # ------------------------------------------------------------
 
-def route(self, tracker: Tracker) -> dict[str, Any]:
-    """
-    Decide cuál será el flujo de procesamiento utilizando el
-    catálogo central de acciones.
-    """
+    def route(self, tracker: Tracker) -> dict[str, Any]:
+        """
+        Decide cuál será el flujo de procesamiento utilizando el
+        catálogo central de acciones.
+        """
 
-    intent = self.detect_intent(tracker)
+        intent = self.detect_intent(tracker)
 
-    context = self.build_context(tracker)
+        context = self.build_context(tracker)
 
-    config = ACTION_CATALOG.get(intent)
+        config = ACTION_CATALOG.get(intent)
 
-    # --------------------------------------------------------
-    # Intent registrado en el catálogo
-    # --------------------------------------------------------
+        # --------------------------------------------------------
+        # Intent registrado en el catálogo
+        # --------------------------------------------------------
 
-    if config:
+        if config:
+
+            self.logger.info(
+                "[ACTION_CATALOG] intent=%s config=%s",
+                intent,
+                config,
+            )
+            if config.get("action"):
+
+                return {
+                    "type":"action",
+                    "action":config["action"],
+                    "context":context
+                }
+            # ----------------------------------------------------
+            # Acción Rasa
+            # ----------------------------------------------------
+
+            if config.get("action"):
+
+                return {
+                    "type": "action",
+                    "action": config["action"],
+                    "context": context,
+                }
+
+            # ----------------------------------------------------
+            # Backend
+            # ----------------------------------------------------
+
+            if config.get("backend"):
+
+                return {
+                    "type": "backend",
+                    "intent": config["backend"],
+                    "context": context,
+                }
+
+            # ----------------------------------------------------
+            # LLM
+            # ----------------------------------------------------
+
+            if config.get("llm"):
+
+                return {
+                    "type": "llm",
+                    "prompt": context["text"],
+                    "context": context,
+                }
+
+        # --------------------------------------------------------
+        # Compatibilidad temporal mientras migran todos los intents
+        # --------------------------------------------------------
 
         self.logger.info(
-            "[ACTION_CATALOG] intent=%s config=%s",
-            intent,
-            config,
-        )
-        if config.get("action"):
 
-            return {
-                "type":"action",
-                "action":config["action"],
-                "context":context
-            }
-        # ----------------------------------------------------
-        # Acción Rasa
-        # ----------------------------------------------------
+                 "[ORCHESTRATOR_V2] intent=%s macro=%s sub=%s",
 
-        if config.get("action"):
+                 intent,
 
-            return {
-                "type": "action",
-                "action": config["action"],
-                "context": context,
-            }
+                 context.get("macroflujo"),
 
-        # ----------------------------------------------------
-        # Backend
-        # ----------------------------------------------------
+                 context.get("subflujo"),
 
-        if config.get("backend"):
+           )
 
-            return {
-                "type": "backend",
-                "intent": config["backend"],
-                "context": context,
-            }
-
-        # ----------------------------------------------------
-        # LLM
-        # ----------------------------------------------------
-
-        if config.get("llm"):
-
-            return {
-                "type": "llm",
-                "prompt": context["text"],
-                "context": context,
-            }
-
-    # --------------------------------------------------------
-    # Compatibilidad temporal mientras migran todos los intents
-    # --------------------------------------------------------
-
-    self.logger.info(
-        "[ORCHESTRATOR_V2] intent=%s user=%s materia=%s",
-        intent,
-        context["user"],
-        context["materia"],
-    )
-
-    return {
-        "type": "llm",
-        "prompt": context["text"],
-        "context": context,
-    }
+        return {
+            "type": "llm",
+            "prompt": context["text"],
+            "context": context,
+        }
