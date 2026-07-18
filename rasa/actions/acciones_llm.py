@@ -209,16 +209,16 @@ class ActionHandleWithLLM(Action):
 
         Prioridad:
 
-            1. Flujos especiales del LLM
-            2. Académico
-            3. Autenticación
-            4. Soporte
-            5. Ayuda
-            6. General
+            1. Macroflujo definido por el orquestador (llm_request)
+            2. Flujos especiales (cierre / encuesta)
+            3. Académico
+            4. Autenticación
+            5. Soporte
+            6. Ayuda
+            7. General
 
-        Los subflujos (PQRS, certificados, correo,
-        soporte técnico, etc.) permanecen dentro del
-        contexto del LLM y no modifican el flujo principal.
+        Mantiene compatibilidad con la arquitectura actual mientras
+        se migran progresivamente todos los subflujos.
         """
 
         latest = tracker.latest_message or {}
@@ -228,34 +228,75 @@ class ActionHandleWithLLM(Action):
             .get("name", "")
         )
 
-        # ======================================================
-        # PRIORIDAD 1
-        # FLUJOS ESPECIALES DEFINIDOS POR EL ORQUESTADOR
-        # ======================================================
-
         llm_request = tracker.get_slot("llm_request") or {}
 
-        context = llm_request.get(
+        request_context = llm_request.get(
             "context",
             {},
         )
 
-        flujo_llm = context.get("flujo")
+        macroflujo = request_context.get(
+            "macroflujo"
+        )
 
-        if flujo_llm == "guardian_encuesta":
-            logger.info(
-                "[FLOW] Flujo guardian_encuesta detectado."
-            )
-            return self.FLOW_GENERAL
-
-        if flujo_llm == "cierre_conversacion":
-            logger.info(
-                "[FLOW] Flujo cierre_conversacion detectado."
-            )
-            return self.FLOW_GENERAL
+        subflujo = request_context.get(
+            "subflujo"
+        )
 
         # ======================================================
-        # FLUJOS DE CIERRE / ENCUESTA
+        # PRIORIDAD 1
+        # NUEVA ARQUITECTURA (macroflujo / subflujo)
+        # ======================================================
+
+        if macroflujo:
+
+            logger.info(
+                "[FLOW] Macroflujo=%s | Subflujo=%s",
+                macroflujo,
+                subflujo,
+            )
+
+            if macroflujo == "academic":
+                return self.FLOW_ACADEMIC
+
+            if macroflujo == "support":
+                return self.FLOW_SUPPORT
+
+            if macroflujo == "auth":
+                return self.FLOW_AUTH
+
+            if macroflujo == "help":
+                return self.FLOW_HELP
+
+            if macroflujo == "general":
+                return self.FLOW_GENERAL
+
+        # ======================================================
+        # COMPATIBILIDAD CON FLUJOS ANTIGUOS
+        # ======================================================
+
+        flujo = request_context.get("flujo")
+
+        if flujo in (
+            "guardian_encuesta",
+            "cierre_conversacion",
+        ):
+
+            logger.info(
+                "[FLOW] Flujo especial=%s",
+                flujo,
+            )
+
+            return self.FLOW_GENERAL
+
+        if flujo == "auth_required":
+            return self.FLOW_AUTH
+
+        if flujo == "support":
+            return self.FLOW_SUPPORT
+
+        # ======================================================
+        # FLUJOS DE CIERRE
         # ======================================================
 
         if tracker.get_slot("esperando_encuesta_general"):
@@ -282,7 +323,7 @@ class ActionHandleWithLLM(Action):
         )
 
         logger.debug(
-            "[FLOW] proceso_activo=%s | tema=%s | materia=%s",
+            "[FLOW] proceso=%s tema=%s materia=%s",
             proceso,
             bool(tema),
             bool(materia),
@@ -294,24 +335,12 @@ class ActionHandleWithLLM(Action):
             or tema
             or materia
         ):
+
             logger.info(
                 "[FLOW] Flujo académico detectado."
             )
+
             return self.FLOW_ACADEMIC
-
-        # ======================================================
-        # AUTENTICACIÓN
-        # ======================================================
-
-        if context.get("flujo") == "auth_required":
-            return self.FLOW_AUTH
-
-        # ======================================================
-        # SOPORTE
-        # ======================================================
-
-        if context.get("flujo") == "support":
-            return self.FLOW_SUPPORT
 
         # ======================================================
         # AYUDA
@@ -325,9 +354,10 @@ class ActionHandleWithLLM(Action):
         # ======================================================
 
         return self.FLOW_GENERAL
-    # ======================================================
-    # BUILDERS ESPECIALIZADOS
-    # ==========================================================
+
+        # ======================================================
+        # BUILDERS ESPECIALIZADOS
+        # ==========================================================
 
     def _build_auth_prompt(
        self,
@@ -548,84 +578,194 @@ class ActionHandleWithLLM(Action):
             ).strip()
         )
 
-
-    # ==========================================================
-    # CONTEXTO PARA EL LLM
-    # ==========================================================
+     # ==========================================================
+     # CONTEXTO PARA EL LLM
+     # ==========================================================
 
     def _build_llm_context(
         self,
         tracker: Tracker,
         flow: str,
-    ) -> Dict[str, Any]:
-        """
-        Construye el contexto estructurado que utilizará build_prompt().
+     ) -> Dict[str, Any]:
+         """
+         Construye el contexto estructurado enviado al Prompt Builder.
 
-        Este método NO genera prompts.
-        Únicamente recopila información del flujo.
-        """
+         El contexto depende del macroflujo.
 
-        latest = tracker.latest_message or {}
-        intent = latest.get("intent", {}) or {}
+         No todos los flujos requieren información académica.
 
-        pregunta = (
-            tracker.get_slot("tema_consulta")
-            or latest.get("text", "")
-        )
+         Mantiene compatibilidad con la arquitectura actual.
+         """
 
-        materia = (
-            tracker.get_slot("materia_detectada")
-            or detectar_materia(pregunta)
-            or "General"
-        )
+         latest = tracker.latest_message or {}
 
-        rol = (
-            tracker.get_slot("rol_academico")
-            or MATERIAS.get(
-                str(materia).lower(),
-                "Tutor Académico General",
-            )
-        )
+         intent = latest.get(
+             "intent",
+             {},
+         ) or {}
 
-        llm_request = tracker.get_slot("llm_request") or {}
+         llm_request = tracker.get_slot(
+             "llm_request"
+         ) or {}
 
-        request_context = llm_request.get(
-            "context",
-            {},
-        )
+         request_context = llm_request.get(
+             "context",
+             {},
+         )
 
-        return {
+         macroflujo = (
+             request_context.get("macroflujo")
+             or flow
+         )
 
-            "flujo": flow,
+         subflujo = (
+             request_context.get("subflujo")
+             or request_context.get("flujo")
+             or ""
+         )
 
-            "materia": materia,
-            "rol": rol,
+         context = {
 
-            "intent": intent.get(
-                "name",
-                "desconocido",
-            ),
+             "macroflujo": macroflujo,
 
-            "confidence": intent.get(
-                "confidence",
-                0.0,
-            ),
+             "subflujo": subflujo,
 
-            "session_id": tracker.get_slot(
-                "session_id",
-            ),
+             "flujo": flow,
 
-            "pending_action": request_context.get(
-                "pending_action",
-                "",
-            ),
+             "intent": intent.get(
+                 "name",
+                 "desconocido",
+             ),
 
-            "auth_required": request_context.get(
-                "requires_auth",
-                False,
-            ),
+             "confidence": intent.get(
+                 "confidence",
+                 0.0,
+             ),
 
-        }
+             "session_id": tracker.get_slot(
+                 "session_id",
+             ),
+
+             "pending_action": request_context.get(
+                 "pending_action",
+                 "",
+             ),
+
+             "auth_required": request_context.get(
+                 "requires_auth",
+                 False,
+             ),
+         }
+
+         # ======================================================
+         # CONTEXTO ACADÉMICO
+         # ======================================================
+
+         if macroflujo in (
+             "academic",
+             self.FLOW_ACADEMIC,
+         ):
+
+             pregunta = (
+                 tracker.get_slot("tema_consulta")
+                 or latest.get("text", "")
+             )
+
+             materia = (
+                 tracker.get_slot("materia_detectada")
+                 or detectar_materia(pregunta)
+                 or "General"
+             )
+
+             rol = (
+                 tracker.get_slot("rol_academico")
+                 or MATERIAS.get(
+                     str(materia).lower(),
+                     "Tutor Académico General",
+                 )
+             )
+
+             context.update(
+
+                 {
+
+                     "materia": materia,
+
+                     "rol": rol,
+
+                     "tema_consulta": tracker.get_slot(
+                     "tema_consulta"
+                     ),
+
+                     "nivel_explicacion": tracker.get_slot(
+                     "nivel_explicacion"
+                     ),
+
+                 }
+
+             )
+
+         # ======================================================
+         # CONTEXTO SOPORTE
+         # ======================================================
+
+         elif macroflujo in (
+             "support",
+             self.FLOW_SUPPORT,
+         ):
+
+             context.update(
+
+                 {
+
+                     "ticket": tracker.get_slot(
+                         "ticket_id"
+                     ),
+
+                     "proceso": tracker.get_slot(
+                         "proceso_activo"
+                     ),
+
+                 }
+
+             )
+
+         # ======================================================
+         # CONTEXTO AUTENTICACIÓN
+         # ======================================================
+
+         elif macroflujo in (
+             "auth",
+             self.FLOW_AUTH,
+         ):
+
+             context.update(
+
+                 {
+
+                     "auth_state": tracker.get_slot(
+                         "auth_state"
+                     ),
+
+                     "is_authenticated": tracker.get_slot(
+                         "is_authenticated"
+                     ),
+
+                 }
+
+             )
+
+         # ======================================================
+         # CONTEXTO GENERAL
+         # ======================================================
+
+         logger.info(
+             "[LLM CONTEXT] macroflujo=%s | subflujo=%s",
+             macroflujo,
+             subflujo,
+         )
+
+         return context
 
     # ==========================================================
     # SUPPORT PROMPT
@@ -1533,12 +1673,11 @@ class ActionMemoryWrapper(Action):
         try:
             latest = tracker.latest_message or {}
 
-            text = latest.get(
-                "text",
-                "",
-            )
+            text = str(
+                latest.get("text") or ""
+            ).strip()
 
-            if not text.strip():
+            if not text:
                 return []
 
             # ==========================================================

@@ -26,7 +26,6 @@ stories:
   steps:
     - intent: consultar_certificados
     - action: action_consultar_certificados
-    - action: action_ofrecer_continuar_tema
   
 - story: soporte tecnico guiado
   steps:
@@ -75,6 +74,7 @@ stories:
   steps:
     - intent: consultar_progreso_curso
     - action: action_consultar_progreso_curso
+  
   
 - story: crear pqrs
   steps:

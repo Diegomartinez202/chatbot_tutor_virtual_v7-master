@@ -13,7 +13,7 @@ rules:
     steps:
       - intent: historial_academico
       - action: action_historial_academico
-        
+  
   - rule: Finalizar login
     condition:
       - active_loop: auth_login_form
@@ -135,10 +135,6 @@ rules:
     steps:
       - intent: cargar_progreso
       - action: action_guardian_cargar_progreso
-  
-  - rule: Incrementar turnos
-    steps:
-      - action: action_incrementar_turnos_conversacion
   
   - rule: enviar correo recuperacion
     steps:

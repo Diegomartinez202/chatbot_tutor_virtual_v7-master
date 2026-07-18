@@ -75,4 +75,12 @@ def handler(
         items,
     )
 
-    return notas
+    # ==========================================================
+    # FIN DEL FLUJO ADMINISTRATIVO
+    # ==========================================================
+
+    dispatcher.utter_message(
+        response="utter_fin_consulta_academica",
+    )
+
+    return []

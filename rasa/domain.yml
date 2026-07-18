@@ -589,6 +589,37 @@ responses:
       - title: "🚪 Terminar conversación"
         payload: "/salir"
           
+  utter_login_requerido:
+  - text: |
+       🔒 Esta consulta requiere autenticación.
+
+       La información solicitada corresponde a datos académicos personales del estudiante
+       (como certificados, estado académico, tutor asignado, horarios, progreso e historial académico).
+       Por motivos de privacidad y seguridad, esta información solo puede consultarse después de
+       autenticarse en la plataforma institucional.
+
+       Para continuar sigue estos pasos:
+
+       1️⃣ Haz clic en «Iniciar sesión».
+       2️⃣ Ingresa tus credenciales institucionales en la plataforma Zajuna.
+       3️⃣ La plataforma validará tu identidad y generará un token de acceso (JWT).
+       4️⃣ El Bot Tutor Virtual utilizará ese token para consultar únicamente la información académica autorizada.
+       5️⃣ Los resultados serán mostrados directamente en esta conversación.
+
+       ⚠️ En esta versión del proyecto se deja implementado el punto de integración con el sistema de autenticación.
+       La conexión con la plataforma Zajuna y la obtención del token JWT deberán ser configuradas por la institución,
+       ya que requieren acceso a las APIs y credenciales oficiales.
+
+    buttons:
+      - title: "🔐 Iniciar sesión"
+        url: "https://zajuna.sena.edu.co/"
+
+      - title: "📚 Menú académico"
+        payload: "/ir_menu_academico"
+
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+
   utter_solicitar_tema:
   - text: >
       📚 Indícame el tema que deseas aprender.
@@ -644,6 +675,17 @@ responses:
       - title: "👋 Finalizar"
         payload: "/terminar_conversacion_segura"
 
+  utter_fin_consulta_academica: 
+  - text: | 
+      ¿Qué deseas hacer ahora? 
+    buttons: 
+       - title: "📚 Menú académico" 
+         payload: "/ir_menu_academico" 
+       - title: "🏠 Menú principal" 
+         payload: "/ir_menu_principal" 
+       - title: "👋 Finalizar" 
+         payload: "/terminar_conversacion_segura"
+        
   utter_ofrecer_humano:
   - text: "🤝 Veo que requieres asistencia especializada. ¿Deseas que transfiera esta sesión a un agente humano del SENA?
       ¿Deseas que realice la solicitud?"
@@ -676,7 +718,6 @@ responses:
 
       - title: "⏳ Historial Académico" 
         payload: "/historial_academico"
-
 
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
@@ -947,6 +988,7 @@ actions:
 - action_solicitar_tema
 - action_guardar_calificacion_general
 - action_preguntar_encuesta_general
+- action_solicitar_login
 
 
 

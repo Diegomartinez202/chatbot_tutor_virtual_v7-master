@@ -34,14 +34,15 @@ def handler(
         )
         return {}
 
-    progreso = data.get("progreso")
-    if progreso is None:
-        progreso = 0
-
+    progreso = data.get("progreso", 0)
     estado = data.get("estado") or "desconocido"
 
     dispatcher.utter_message(
         text=f"📚 Estado: {estado} | Progreso: {progreso}%"
+    )
+
+    dispatcher.utter_message(
+        response="utter_fin_consulta_academica"
     )
 
     return data

@@ -1,7 +1,6 @@
 # ruta: rasa/actions/acciones_academico.py
-
 from __future__ import annotations
-
+import os
 import logging
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
@@ -20,6 +19,8 @@ from .core.nlp_utils import detectar_materia
 from .core.materias import MATERIAS
 logger = logging.getLogger(__name__)
 
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
 # ================================================================
 # 🚀 BOOTSTRAP SAFE
 # ================================================================
@@ -32,38 +33,34 @@ except Exception:
 
 
 def validar_autenticacion(
-    tracker: Tracker,
-    pending_action: str,
-) -> Optional[List[EventType]]:
+    tracker,
+    pending_action,
+):
 
+    # ==========================================================
+    # MODO DEMOSTRACIÓN
+    # Permite ejecutar únicamente la consulta de certificados
+    # sin autenticación para demostrar el flujo completo del bot.
+    # En producción DEMO_MODE debe permanecer en False.
+    # ==========================================================
+    if DEMO_MODE and pending_action == "certificados":
+        logger.info(
+            "[AUTH] DEMO_MODE activo - omitiendo autenticación para certificados."
+        )
+        return None
+   
     if tracker.get_slot("is_authenticated"):
         return None
 
     return [
 
         SlotSet(
-            "llm_request",
-            {
-                "instruction": (
-                    "Explica al estudiante que necesita autenticarse "
-                    "antes de consultar información personal."
-                ),
-
-                "context": {
-                    "flujo": "auth_required",
-                    "pending_action": pending_action,
-                },
-
-                "fallback": (
-                    "Debes iniciar sesión para continuar."
-                ),
-          
-                 "next_action": None,
-            },
+            "pending_action",
+            pending_action,
         ),
 
         FollowupAction(
-            "action_handle_with_llm",
+            "action_solicitar_login",
         ),
 
     ]

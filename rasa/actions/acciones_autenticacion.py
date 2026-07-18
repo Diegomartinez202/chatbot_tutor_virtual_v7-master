@@ -196,3 +196,29 @@ class ActionEnviarCorreoRecuperacion(Action):
         )
 
         return []
+
+
+class ActionSolicitarLogin(Action):
+
+    def name(self):
+        return "action_solicitar_login"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        pending = tracker.get_slot("pending_action")
+
+        dispatcher.utter_message(
+            response="utter_login_requerido"
+        )
+
+        logger.info(
+            "[AUTH] Login requerido para %s",
+            pending,
+        )
+
+        return []

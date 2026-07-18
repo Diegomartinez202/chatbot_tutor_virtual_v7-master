@@ -35,6 +35,11 @@ def handler(
         dispatcher.utter_message(
             text="📜 No tienes certificados registrados."
         )
+
+        dispatcher.utter_message(
+            response="utter_fin_consulta_academica",
+        )
+
         return []
 
     dispatcher.utter_message(
@@ -62,4 +67,12 @@ def handler(
         items,
     )
 
-    return certificados
+    # ==========================================================
+    # FIN DEL FLUJO ADMINISTRATIVO
+    # ==========================================================
+
+    dispatcher.utter_message(
+        response="utter_fin_consulta_academica",
+    )
+
+    return []
