@@ -15,7 +15,7 @@ from .runtime.action_handler import action_handler
 from typing import Any, Dict, List, Optional, Text
 from rasa_sdk.events import EventType
 from .core.llm_engine import run_llm
-from .core.nlp_utils import detectar_materia
+from .core.nlp_utils import detectar_materia, build_llm_request
 from .core.materias import MATERIAS
 logger = logging.getLogger(__name__)
 
@@ -344,30 +344,26 @@ class ActionConsultarInscripciones(Action):
             dispatcher,
             tracker,
         )
-class ActionAprenderTema(Action):
-
-    def name(self):
-        return "action_aprender_tema"
-
     def run(self, dispatcher, tracker, domain):
+
         logger.info("=" * 80)
         logger.info("[ACADEMICO] ActionAprenderTema EJECUTADA")
         logger.info("texto=%s", tracker.latest_message.get("text"))
         logger.info("intent=%s", tracker.get_intent_of_latest_message())
         logger.info("=" * 80)
-        
+
         logger.warning(
-        "[TRACE][ActionAprenderTema] llm_request al entrar=%s",
-        tracker.get_slot("llm_request"),
+            "[TRACE][ActionAprenderTema] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
         )
-        
+
         pregunta = tracker.latest_message.get("text") or ""
 
         materia = detectar_materia(pregunta)
 
         rol = MATERIAS.get(
             materia.lower(),
-            "Tutor Académico General"
+            "Tutor Académico General",
         )
 
         eventos = [
@@ -387,9 +383,9 @@ class ActionAprenderTema(Action):
             SlotSet("auth_login_form", None),
 
         ]
+
         # ====================================================
         # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
-        # (antes estaba en ActionExplicarTemaLLM)
         # ====================================================
 
         if tracker.get_intent_of_latest_message() != "continuar_tema_si":
@@ -399,17 +395,48 @@ class ActionAprenderTema(Action):
             )
 
         # ====================================================
-        # ENVIAR LA CONSULTA AL PIPELINE LLM
+        # CONSTRUIR LLM REQUEST
+        # ====================================================
+
+        request = build_llm_request(
+
+            instruction=pregunta,
+
+            macroflujo="academic",
+
+            subflujo="aprender_tema",
+
+            requires_auth=False,
+
+            next_action="action_ofrecer_continuar_tema",
+
+        )
+
+        logger.info(
+            "[ACADEMICO] llm_request construido=%s",
+            request,
+        )
+
+        eventos.append(
+
+            SlotSet(
+                "llm_request",
+                request,
+            )
+
+        )
+
+        # ====================================================
+        # CONTINUAR HACIA EL LLM
         # ====================================================
 
         eventos.append(
             FollowupAction("action_handle_with_llm")
         )
-        logger.info(
-            "[ACADEMICO] llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
+
         logger.info("Eventos que retorna ActionAprenderTema:")
+
         for e in eventos:
             logger.info("  %s", e)
+
         return eventos

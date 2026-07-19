@@ -460,6 +460,45 @@ class ActionHandleWithLLM(Action):
         logger.info("continuando=%s", continuando)
         logger.info("=" * 80)
 
+        
+        
+        cambio_tema = tracker.get_slot("cambio_tema")
+    
+        if cambio_tema:
+
+           tema_anterior = (
+               tracker.get_slot("tema_anterior")
+               or "el tema anterior"
+           )
+
+           return f"""
+        Eres {rol}.
+
+        El estudiante estaba aprendiendo:
+
+        {tema_anterior}
+
+        Ahora escribió:
+
+        {tema_principal}
+
+        La consulta corresponde a un tema diferente.
+ 
+        Antes de iniciar la explicación escribe un único párrafo de transición.
+
+        Si ambos temas tienen relación, explica brevemente cuál es.
+
+        Si pertenecen a materias distintas, indícalo de forma natural y explica por qué ambos son importantes dentro de la formación del SENA.
+
+        Después inicia la explicación del nuevo tema desde cero.
+
+        No continúes el tema anterior.
+
+        No hagas preguntas.
+
+        La transición debe ocupar solamente un párrafo.
+        """.strip()
+        
         # ======================================================
         # CONTINUAR TEMA
         # ======================================================
@@ -488,6 +527,7 @@ class ActionHandleWithLLM(Action):
     No reinicies el tema.
     """.strip()
 
+        
         # ======================================================
         # PRIMERA EXPLICACIÓN
         # ======================================================
@@ -1035,6 +1075,65 @@ class ActionHandleWithLLM(Action):
 
         ]
 
+
+    def _is_new_topic(
+        self,
+        tracker,
+        texto,
+    ):
+
+        tema_actual = (
+            tracker.get_slot("tema_actual")
+            or ""
+        ).lower().strip()
+
+        if not tema_actual:
+            return True
+
+        texto = texto.lower().strip()
+
+        if "?" in texto:
+            return False
+
+        if texto.startswith((
+            "que",
+            "qué",
+            "como",
+            "cómo",
+            "por qué",
+            "porque",
+            "cual",
+            "cuál",
+            "cuando",
+            "cuándo",
+            "donde",
+            "dónde",
+        )):
+            return False
+
+        materia_actual = detectar_materia(
+            tema_actual
+        )
+
+        materia_nueva = detectar_materia(
+            texto
+        )
+
+        if (
+            materia_actual
+            and materia_nueva
+            and materia_actual != materia_nueva
+        ):
+            return True
+
+        if tema_actual in texto:
+            return False
+
+        if len(texto.split()) <= 3:
+            return True
+
+        return False
+
     def _build_continue_prompt(
         self,
         tracker: Tracker,
@@ -1062,6 +1161,50 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("nivel_explicacion")
             or "basico"
         )
+
+        if nivel == "basico":
+
+            instrucciones = """
+        Amplía la explicación utilizando ejemplos sencillos.
+
+        Mantén un lenguaje fácil de comprender.
+
+        No profundices demasiado en aspectos técnicos.
+        """
+
+        elif nivel == "intermedio":
+
+            instrucciones = """
+        Profundiza la explicación.
+
+        Relaciona conceptos.
+
+        Explica el funcionamiento interno.
+
+        Incluye casos prácticos.
+
+        Introduce terminología técnica cuando sea necesaria.
+        """
+
+        else:
+
+            instrucciones = """
+        Realiza una explicación avanzada.
+
+        Incluye arquitectura.
+
+        Casos reales.
+
+        Comparaciones técnicas.
+
+        Errores frecuentes.
+
+        Buenas prácticas profesionales.
+
+        Optimización.
+
+        Finaliza con un ejercicio práctico resuelto.
+        """
 
         ultima_respuesta = (
             tracker.get_slot("ultima_respuesta_llm")
@@ -1111,54 +1254,41 @@ class ActionHandleWithLLM(Action):
 
             prompt += f"""
 
-    Profundiza el tema de acuerdo con el nivel:
+        La explicación anterior fue exactamente la siguiente:
 
-    {ultima_respuesta}
+        ------------------------------------------------------------
 
-    Usa esa explicación únicamente como contexto para continuar.
+        {ultima_respuesta}
 
-    No la copies.
+         ------------------------------------------------------------
 
-    No la repitas.
+         Todo lo anterior YA fue explicado.
 
-    Continúa desde el último punto desarrollado.
-    """
+         Úsalo únicamente como contexto.
 
-        prompt += f"""
+         NO copies ningún párrafo.
 
-    Profundiza el tema de acuerdo con el nivel:
+         NO vuelvas a escribir la definición.
 
-    {nivel}
+         NO vuelvas a enumerar los conceptos principales.
 
-    Incluye, cuando sea pertinente:
+         NO reinicies la explicación.
 
-    - conceptos más avanzados
-    - detalles técnicos
-    - relaciones con otros conceptos
-    - ejemplos nuevos
-    - casos prácticos
-    - errores comunes
-    - recomendaciones
-    - buenas prácticas
-    - un ejercicio corto con solución
+         NO repitas ejemplos anteriores.
 
-    Mantén continuidad pedagógica como si la conversación nunca se hubiera interrumpido.
+         Comienza exactamente desde el siguiente concepto que todavía no ha sido desarrollado.
 
-    Comienza inmediatamente ampliando la explicación.
-
-    No hagas preguntas.
-
-    No solicites que el estudiante elija un tema.
-
-    No pidas confirmación.
-
-    Finaliza únicamente cuando hayas desarrollado la continuación del tema.
-    """
+         La primera frase debe continuar naturalmente el último párrafo de la explicación anterior.
+         """
         logger.info("=" * 70)
         logger.info("[LLM] Prompt CONTINUE")
         logger.info(prompt)
         logger.info("=" * 70)
+
+        prompt += "\n\n"
+        prompt += instrucciones
         return prompt.strip()
+    
     # ==========================================================
     # INVOCACIÓN DEL LLM
     # ==========================================================
@@ -1254,23 +1384,53 @@ class ActionHandleWithLLM(Action):
                 "ultima_respuesta=%s",
                 bool(tracker.get_slot("ultima_respuesta_llm")),
             )
-            logger.info("esperando_tema=%s", tracker.get_slot("esperando_tema"))
+            logger.info(
+                "esperando_tema=%s",
+                tracker.get_slot("esperando_tema"),
+            )
             logger.info("=" * 70)
 
+            nuevo_nivel = self._next_explanation_level(
+                tracker.get_slot("nivel_explicacion")
+            )
+            
             return (
+
                 limpieza
+
+                + [
+
+                    SlotSet(
+                        "continuando_tema",
+                        True,
+                    ),
+
+                    SlotSet(
+                        "nivel_explicacion",
+                        nuevo_nivel,
+                    ),
+
+                ]
+
                 + self._ejecutar_procesamiento_llm(
+
                     dispatcher,
                     tracker,
                     self.FLOW_ACADEMIC,
                     prompt=self._build_continue_prompt(tracker),
-                )
+
             )
+
+)
+
         # ======================================================
         # MODO APRENDIZAJE
+        #
         # El usuario ya tiene un tema activo.
-        # Cualquier texto nuevo se interpreta como una
-        # profundización (subconsulta) del mismo tema.
+        #
+        # Puede:
+        #   1. Cambiar completamente de tema.
+        #   2. Hacer una subconsulta.
         # ======================================================
 
         if (
@@ -1285,16 +1445,95 @@ class ActionHandleWithLLM(Action):
             )
         ):
 
+            texto = tracker.latest_message["text"].strip()
+
+            tema_actual = (
+                tracker.get_slot("tema_actual") or ""
+            ).strip()
+
+            # --------------------------------------------------
+            # CAMBIO DE TEMA
+            #
+            # Frases cortas sin relación con el tema actual.
+            # --------------------------------------------------
+
+            if self._is_new_topic(
+                tracker,
+                texto,
+            ):
+
+                logger.info(
+                    "[ACADEMICO] Nuevo tema detectado."
+                )
+
+                return (
+
+                    limpieza
+
+                    + [
+
+                        
+                        SlotSet(
+                            "tema_anterior",
+                            tema_actual,
+                        ),
+
+                        SlotSet(
+                            "cambio_tema",
+                            True,
+                        ),
+                        
+                        SlotSet(
+                            "tema_actual",
+                            texto,
+                        ),
+
+                        SlotSet(
+                            "tema_consulta",
+                            texto,
+                        ),
+
+                        SlotSet(
+                            "nivel_explicacion",
+                            "basico",
+                        ),
+
+                        SlotSet(
+                            "ultima_respuesta_llm",
+                            None,
+                        ),
+
+                        SlotSet(
+                            "continuando_tema",
+                            None,
+                        ),
+
+                    ]
+
+                    + self._ejecutar_procesamiento_llm(
+
+                        dispatcher,
+
+                        tracker,
+
+                        self.FLOW_ACADEMIC,
+
+                    )
+
+                )
+
+            # --------------------------------------------------
+            # SUBCONSULTA
+            # --------------------------------------------------
+
             logger.info(
                 "[ACADEMICO] Subconsulta detectada."
             )
 
-            subtema = tracker.latest_message["text"].strip()
-
             logger.info(
                 "[ACADEMICO] Tema principal=%s | Subtema=%s",
-                tracker.get_slot("tema_actual"),
-                subtema,
+                tema_actual,
+                texto,
             )
 
             return (
@@ -1303,11 +1542,9 @@ class ActionHandleWithLLM(Action):
 
                 + [
 
-                    # Solo cambia el foco de la consulta.
-                    # El tema principal permanece igual.
                     SlotSet(
                         "tema_consulta",
-                        subtema,
+                        texto,
                     ),
 
                 ]
@@ -1324,7 +1561,6 @@ class ActionHandleWithLLM(Action):
 
             )
 
-
         logger.info(
             "[DEBUG] esperando_tema=%s",
             tracker.get_slot("esperando_tema"),
@@ -1332,9 +1568,7 @@ class ActionHandleWithLLM(Action):
 
         # ======================================================
         # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
-        # Primera explicación del flujo académico.
-        # Este es el único lugar donde se inicializa
-        # tema_actual.
+        # Primera explicación.
         # ======================================================
 
         if self._is_waiting_for_topic(tracker):
@@ -1354,7 +1588,7 @@ class ActionHandleWithLLM(Action):
                 limpieza
 
                 + self._build_topic_events(
-                    tracker
+                    tracker,
                 )
 
                 + self._ejecutar_procesamiento_llm(
@@ -1370,7 +1604,6 @@ class ActionHandleWithLLM(Action):
                 )
 
             )
-
 
         # ======================================================
         # FLUJO NORMAL
@@ -1479,14 +1712,22 @@ class ActionHandleWithLLM(Action):
                         "",
                     )
 
-                # -------------------------------------------------
-                # Construir siempre el contexto base del flujo
-                # -------------------------------------------------
+               # -------------------------------------------------
+               # Construir siempre el contexto base del flujo
+               # -------------------------------------------------
 
                 context_llm = llm_request.get("context", {})
-                flujo_llm = context_llm.get("flujo")
 
-               # Para flujos especiales NO reutilizamos el contexto académico
+               # =====================================================
+               # Compatibilidad entre el formato antiguo ("flujo")
+               # y el nuevo ("macroflujo").
+               # =====================================================
+                flujo_llm = (
+                   context_llm.get("macroflujo")
+                   or context_llm.get("flujo")
+                )
+
+                # Para flujos especiales NO reutilizamos el contexto académico
                 if flujo_llm in (
                     "guardian_encuesta",
                 ):
@@ -1494,17 +1735,30 @@ class ActionHandleWithLLM(Action):
 
                 else:
 
-                    context = self._build_llm_context(
-                        tracker,
-                        flow,
-                    )
+                   context = self._build_llm_context(
+                       tracker,
+                       flow,
+                   )
 
-                    context.update(context_llm)
+                   context.update(context_llm)
+
+                   logger.info(
+                       "[LLM] macro=%s | sub=%s | next_action=%s | pending=%s",
+                       context.get("macroflujo"),
+                       context.get("subflujo"),
+                       llm_request.get("next_action"),
+                       context.get("pending_action"),
+                   )
 
                 fallback = llm_request.get(
                     "fallback",
                     "Lo siento, no puedo responder en este momento.",
                 )
+
+            # =====================================================
+            # NO hay llm_request
+            # (flujo académico clásico, continuar tema, etc.)
+            # =====================================================
 
             else:
 
@@ -1519,12 +1773,19 @@ class ActionHandleWithLLM(Action):
                     flow,
                 )
 
+                logger.info(
+                    "[LLM] flujo clásico | macro=%s | sub=%s",
+                    context.get("macroflujo"),
+                    context.get("subflujo"),
+                )
+
                 fallback = (
                     "Lo siento, no puedo responder en este momento."
                 )
-
-
-
+            
+                
+                
+                
             # =====================================================
             # Construir SIEMPRE el prompt final
             # =====================================================
@@ -1702,22 +1963,23 @@ class ActionHandleWithLLM(Action):
 
                 )
 
-                events.append(
+                events.extend(
 
-                    SlotSet(
+                    [
 
-                        "nivel_explicacion",
+                         SlotSet(
+                             "continuando_tema",
+                             False,
+                         ),
 
-                        self._next_explanation_level(
-                            tracker
-                        ),
+                         SlotSet(
+                             "cambio_tema",
+                             False,
+                         ),
 
-
-                    )
+                    ]
 
                 )
-
-    
             return events
 
         except Exception:

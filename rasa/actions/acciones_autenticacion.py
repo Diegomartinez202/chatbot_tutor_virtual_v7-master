@@ -86,33 +86,36 @@ class ActionCheckAuth(Action):
 
         action_to_execute = protected_intents.get(intent)
 
-        if not action_to_execute:
-            dispatcher.utter_message(text="⚠️ Acción no reconocida.")
-            return []
-
         if not is_authenticated:
             return [
+
                 SlotSet(
+
                     "llm_request",
-                    {
-                        "instruction":
-                            "Explica al estudiante que primero debe autenticarse.",
 
-                    "context": {
-                        "flujo": "auth_required",
-                        "pending_action": intent,
-                    },
+                    build_llm_request(
 
-                    "fallback":
-                        "Debes iniciar sesión para continuar.",
+                        instruction=(
+                            "Explica al estudiante que primero debe autenticarse."
+                        ),
 
-                    "next_action": None,
-                    }
+                        macroflujo="auth",
+
+                        subflujo="auth_required",
+
+                        requires_auth=True,
+
+                        pending_action=intent,
+
+                        fallback="Debes iniciar sesión para continuar.",
+
+                    ),
+
                 ),
 
                 FollowupAction(
                     "action_handle_with_llm"
-                )
+                ),
             ]
 
 # ================================================================

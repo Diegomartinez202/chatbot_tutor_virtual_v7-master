@@ -125,6 +125,12 @@ slots:
     initial_value: false
     mappings:
       - type: custom
+  
+  cambio_tema:
+    type: bool
+    influence_conversation: false
+    mappings:
+      - type: custom
 
   nota:
     type: text

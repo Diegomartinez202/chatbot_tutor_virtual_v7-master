@@ -112,3 +112,48 @@ def anonymize_text(text: str) -> str:
     text = ANONYMIZE_NUM_REGEX.sub("[NUM]", text)
     
     return text
+
+def build_llm_request(
+    instruction: str,
+    macroflujo: str,
+    subflujo: str,
+    requires_auth: bool = False,
+    next_action: str | None = None,
+    pending_action: str | None = None,
+    fallback: str | None = None,
+) -> dict:
+    """
+    Construye siempre la misma estructura de llm_request.
+
+    Evita inconsistencias entre acciones.
+    """
+
+    request = {
+
+        "instruction": instruction,
+
+        "context": {
+
+            "macroflujo": macroflujo,
+
+            "subflujo": subflujo,
+
+            "requires_auth": requires_auth,
+
+        }
+
+    }
+
+    if pending_action:
+
+        request["context"]["pending_action"] = pending_action
+
+    if next_action:
+
+        request["next_action"] = next_action
+
+    if fallback:
+
+        request["fallback"] = fallback
+
+    return request
