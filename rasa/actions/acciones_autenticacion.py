@@ -14,7 +14,7 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, FollowupAction, EventType
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
-
+from actions.core.nlp_utils import build_llm_request
 logger = logging.getLogger(__name__)
 
 # ================================================================

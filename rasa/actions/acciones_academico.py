@@ -344,6 +344,13 @@ class ActionConsultarInscripciones(Action):
             dispatcher,
             tracker,
         )
+
+class ActionAprenderTema(Action):
+
+    def name(self):
+        return "action_aprender_tema"
+
+
     def run(self, dispatcher, tracker, domain):
 
         logger.info("=" * 80)
@@ -375,6 +382,11 @@ class ActionConsultarInscripciones(Action):
             SlotSet("proceso_activo", "aprender_tema"),
 
             SlotSet("tema_consulta", pregunta),
+
+            SlotSet(
+                "nivel_explicacion",
+                "basico",
+            ),
 
             SlotSet("materia_detectada", materia),
 

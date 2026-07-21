@@ -147,7 +147,6 @@ class ActionHandleWithLLM(Action):
             logger.info("[LLM] Builder seleccionado=_build_academic_prompt")
             return self._build_academic_prompt(tracker)
 
-            return self._build_academic_prompt(tracker)
 
         if flow == self.FLOW_ADMINISTRATIVE:
 
@@ -474,30 +473,46 @@ class ActionHandleWithLLM(Action):
            return f"""
         Eres {rol}.
 
-        El estudiante estaba aprendiendo:
+        El estudiante venía aprendiendo sobre:
 
         {tema_anterior}
 
-        Ahora escribió:
+        Ahora ha decidido comenzar un tema diferente:
 
         {tema_principal}
 
-        La consulta corresponde a un tema diferente.
- 
-        Antes de iniciar la explicación escribe un único párrafo de transición.
+        Esta consulta corresponde a un cambio de tema y NO es una continuación de la explicación anterior.
 
-        Si ambos temas tienen relación, explica brevemente cuál es.
+       Antes de iniciar la explicación escribe únicamente un breve párrafo de transición.
 
-        Si pertenecen a materias distintas, indícalo de forma natural y explica por qué ambos son importantes dentro de la formación del SENA.
+       La transición debe cumplir las siguientes reglas:
 
-        Después inicia la explicación del nuevo tema desde cero.
+       - Reconoce de forma natural que el estudiante cambió de tema.
+       - Si ambos temas tienen relación, menciona brevemente esa relación.
+       - Si pertenecen a áreas distintas, indícalo de manera natural explicando que ambos forman parte del proceso de formación del SENA.
+       - La transición debe ocupar un solo párrafo.
+       - No hagas preguntas.
+       - No repitas contenido del tema anterior.
+       - Después de la transición comienza inmediatamente la explicación del nuevo tema desde el nivel básico.
 
-        No continúes el tema anterior.
+       Ejemplos válidos de transición:
 
-        No hagas preguntas.
+       "Ahora abordaremos un tema diferente que complementa tu proceso de aprendizaje."
 
-        La transición debe ocupar solamente un párrafo.
-        """.strip()
+       "Dejando atrás el tema anterior, comenzaremos a estudiar un nuevo concepto."
+
+       "A continuación iniciaremos un tema distinto que también hace parte de tu formación."
+
+       "Ahora cambiaremos de enfoque para aprender un nuevo tema."
+
+       Después de ese único párrafo inicia inmediatamente la explicación de:
+
+       {tema_principal}
+
+       No vuelvas a mencionar el tema anterior durante el resto de la respuesta.
+
+       La explicación debe ser clara, progresiva, didáctica y adecuada para un estudiante del SENA.
+       """.strip()
         
         # ======================================================
         # CONTINUAR TEMA
@@ -537,21 +552,51 @@ class ActionHandleWithLLM(Action):
             return f"""
     Eres {rol}.
 
-    Explica el siguiente tema como un tutor especializado del SENA.
+    El estudiante está comenzando por primera vez este tema.
 
     Tema:
 
     {tema_principal}
 
-    Incluye:
+    Desarrolla una explicación completa, pedagógica y estructurada.
 
-    - definición
-    - conceptos principales
-    - explicación paso a paso
-    - ejemplos sencillos
-    - buenas prácticas
+    La explicación debe ser suficiente para que un estudiante que nunca ha visto el tema pueda comprenderlo.
 
-    No asumas conocimientos previos.
+    Organiza la respuesta en el siguiente orden:
+
+    1. Definición.
+
+    2. ¿Por qué es importante aprender este tema?
+
+    3. Conceptos fundamentales.
+
+    4. Explicación paso a paso.
+
+    5. Ejemplo práctico.
+
+    6. Buenas prácticas.
+
+    7. Errores comunes.
+
+    8. Resumen final.
+
+    Escribe varios párrafos.
+
+    No respondas con un único párrafo corto.
+
+    No preguntes nada.
+
+    No finalices diciendo que puedes ampliar el tema.
+
+    La explicación debe ser completa antes de terminar.
+
+    La respuesta debe ser extensa.
+
+    Escribe entre 6 y 10 párrafos.
+
+    No hagas resúmenes demasiado cortos.
+
+    Desarrolla suficientemente cada sección antes de finalizar
     """.strip()
 
         # ======================================================
@@ -1034,6 +1079,16 @@ class ActionHandleWithLLM(Action):
             "text",
             "",
         ).strip()
+
+        logger.warning("=" * 80)
+        logger.warning("[ACADEMICO] _build_topic_events")
+        logger.warning("latest_message=%s", latest)
+        logger.warning("tema capturado=%s", tema)
+        logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
+        logger.warning("=" * 80)
+
         materia = detectar_materia(tema) or "General"
 
         rol = MATERIAS.get(
@@ -1063,6 +1118,12 @@ class ActionHandleWithLLM(Action):
                 "proceso_activo",
                 "aprender_tema",
             ),
+
+            SlotSet(
+                "nivel_explicacion",
+                "basico",
+            ),
+
             SlotSet(
                "materia_detectada",
                materia,
@@ -1081,6 +1142,14 @@ class ActionHandleWithLLM(Action):
         tracker,
         texto,
     ):
+
+        """
+        Determina si el usuario cambió completamente de tema o si
+        simplemente continúa realizando preguntas sobre el mismo.
+
+        True  -> Nuevo tema.
+        False -> Continuación / subconsulta.
+        """
 
         tema_actual = (
             tracker.get_slot("tema_actual")
@@ -1108,6 +1177,8 @@ class ActionHandleWithLLM(Action):
             "cuándo",
             "donde",
             "dónde",
+            "para qué",
+            "para que",
         )):
             return False
 
@@ -1124,20 +1195,76 @@ class ActionHandleWithLLM(Action):
             and materia_nueva
             and materia_actual != materia_nueva
         ):
+            logger.info(
+                "[ACADEMICO] Cambio de materia detectado."
+            )
+            
             return True
 
         if tema_actual in texto:
+      
+            logger.info(
+               "[ACADEMICO] El tema actual aparece dentro del texto."
+            )
+            return False
+        # ----------------------------------------
+        # Si alguna palabra importante coincide,
+        # probablemente sigue hablando
+        # del mismo tema.
+        # ----------------------------------------
+
+        palabras_actual = {
+            p
+            for p in tema_actual.split()
+            if len(p) > 3
+        }
+
+        palabras_texto = {
+            p
+            for p in texto.split()
+            if len(p) > 3
+        }
+
+        coincidencias = palabras_actual.intersection(
+            palabras_texto
+        )
+
+        logger.info(
+            "[ACADEMICO] Coincidencias=%s",
+            coincidencias,
+        )
+
+        if coincidencias:
+            logger.info(
+                "[ACADEMICO] Se mantiene el mismo tema."
+            )
+            
             return False
 
-        if len(texto.split()) <= 3:
+        # ----------------------------------------
+        # Frases muy cortas suelen ser
+        # un nuevo tema.
+        # ----------------------------------------
+
+        if len(texto.split()) <= 2:
+            
+            logger.info(
+                "[ACADEMICO] Cambio de tema: texto muy corto."
+            )
             return True
 
-        return False
+       
+        logger.info(
+            "[ACADEMICO] Sin coincidencias relevantes. Se mantiene el tema actual."
+        )
+
+        return True
 
     def _build_continue_prompt(
         self,
         tracker: Tracker,
-    ) -> str:
+        nivel=None,
+    ):
         """
         Construye un prompt enriquecido para continuar una
         explicación ya iniciada aprovechando el contexto de
@@ -1157,15 +1284,19 @@ class ActionHandleWithLLM(Action):
             or "el tema anterior"
         )
 
-        nivel = (
-            tracker.get_slot("nivel_explicacion")
-            or "basico"
-        )
+        if nivel is None:
+
+            nivel = (
+               tracker.get_slot(
+                   "nivel_explicacion"
+               )
+               or "basico"
+            )
 
         if nivel == "basico":
 
             instrucciones = """
-        Amplía la explicación utilizando ejemplos sencillos.
+        Continúa ampliando los conceptos básicos del tema.
 
         Mantén un lenguaje fácil de comprender.
 
@@ -1175,7 +1306,7 @@ class ActionHandleWithLLM(Action):
         elif nivel == "intermedio":
 
             instrucciones = """
-        Profundiza la explicación.
+        Ahora profundiza en el funcionamiento interno del mismo tema.
 
         Relaciona conceptos.
 
@@ -1189,7 +1320,7 @@ class ActionHandleWithLLM(Action):
         else:
 
             instrucciones = """
-        Realiza una explicación avanzada.
+        Ahora desarrolla aspectos avanzados del mismo tema, incluyendo arquitectura, optimización y casos reales.
 
         Incluye arquitectura.
 
@@ -1213,42 +1344,53 @@ class ActionHandleWithLLM(Action):
         if len(ultima_respuesta) > 1200:
             ultima_respuesta = ultima_respuesta[-1200:]
         prompt = f"""
-    Continúa explicando el siguiente tema académico.
+        El estudiante está estudiando el mismo tema.
 
-    Tema:
+        Tema:
 
-    {tema}
+        {tema}
 
-    Nivel actual de explicación:
+        Nivel actual:
 
-    {nivel}
+        {nivel}
 
-    IMPORTANTE:
+        Esta conversación NO corresponde a un tema nuevo.
 
-    El estudiante NO está iniciando un tema nuevo.
+        Corresponde a la continuación de una explicación previamente iniciada.
 
-    Ya recibió una explicación inicial sobre este mismo tema.
+        Debes continuar exactamente desde donde terminó la explicación anterior.
 
-    Esta conversación es una continuación directa de la explicación anterior.
+        No reinicies el tema.
 
-    NO preguntes qué desea aprender.
+        No vuelvas a realizar una introducción.
 
-    NO preguntes qué concepto desea explicar.
+        No vuelvas a definir conceptos que ya fueron explicados.
 
-    NO solicites aclaraciones.
+        No repitas ejemplos anteriores.
 
-    NO vuelvas a empezar desde la definición.
+        Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
 
-    NO repitas la introducción.
+        La primera oración debe comenzar como una continuación natural.
 
-    NO vuelvas a explicar conceptos que ya fueron desarrollados.
+        Ejemplos:
 
-    NO reinicies la explicación.
+        "Ahora que comprendemos los conceptos básicos..."
 
-    NO respondas como si fuera una consulta nueva.
+        "A continuación profundizaremos..."
 
-    Continúa exactamente desde donde terminó la explicación anterior.
-    """
+        "Una vez entendida la estructura general..."
+
+        Nunca empieces diciendo:
+
+        "El modelo OSI es..."
+
+        "Fundamentos de programación es..."
+
+        "Variables son..."
+
+        porque eso indica que reiniciaste la explicación.
+
+        """
 
         if ultima_respuesta:
 
@@ -1262,23 +1404,21 @@ class ActionHandleWithLLM(Action):
 
          ------------------------------------------------------------
 
-         Todo lo anterior YA fue explicado.
+         La explicación mostrada arriba representa el contenido que el estudiante YA leyó.
 
-         Úsalo únicamente como contexto.
+         Considera toda esa información como conocida.
 
-         NO copies ningún párrafo.
+         Tu respuesta debe comenzar exactamente después del último concepto desarrollado.
 
-         NO vuelvas a escribir la definición.
+         No repitas párrafos.
 
-         NO vuelvas a enumerar los conceptos principales.
+         No repitas listas.
 
-         NO reinicies la explicación.
+         No repitas definiciones.
 
-         NO repitas ejemplos anteriores.
+         No vuelvas al inicio del tema.
 
-         Comienza exactamente desde el siguiente concepto que todavía no ha sido desarrollado.
 
-         La primera frase debe continuar naturalmente el último párrafo de la explicación anterior.
          """
         logger.info("=" * 70)
         logger.info("[LLM] Prompt CONTINUE")
@@ -1390,10 +1530,27 @@ class ActionHandleWithLLM(Action):
             )
             logger.info("=" * 70)
 
-            nuevo_nivel = self._next_explanation_level(
-                tracker.get_slot("nivel_explicacion")
-            )
+            logger.info(
+                "TIPO TRACKER=%s",
+                type(tracker),
+)
             
+            nuevo_nivel = self._next_explanation_level(
+                tracker
+            )
+            logger.info(
+                "nuevo_nivel=%s",
+                nuevo_nivel,
+            )
+            logger.info(
+                "[ACADEMICO] Se enviará SlotSet(nivel_explicacion=%s)",
+                nuevo_nivel,
+            )
+
+            prompt = self._build_continue_prompt(
+                tracker,
+                nivel=nuevo_nivel,
+            )
             return (
 
                 limpieza
@@ -1409,6 +1566,10 @@ class ActionHandleWithLLM(Action):
                         "nivel_explicacion",
                         nuevo_nivel,
                     ),
+                    logger.info(
+                        "[ACADEMICO] Guardando nivel_explicacion=%s",
+                        nuevo_nivel,
+                    )
 
                 ]
 
@@ -1417,7 +1578,7 @@ class ActionHandleWithLLM(Action):
                     dispatcher,
                     tracker,
                     self.FLOW_ACADEMIC,
-                    prompt=self._build_continue_prompt(tracker),
+                    prompt=prompt,
 
             )
 
@@ -1451,65 +1612,79 @@ class ActionHandleWithLLM(Action):
                 tracker.get_slot("tema_actual") or ""
             ).strip()
 
+
             # --------------------------------------------------
-            # CAMBIO DE TEMA
-            #
-            # Frases cortas sin relación con el tema actual.
+            # Decisión: ¿nuevo tema o continuación?
             # --------------------------------------------------
 
-            if self._is_new_topic(
+            es_nuevo = self._is_new_topic(
                 tracker,
                 texto,
-            ):
+            )
+
+            logger.info(
+                "[ACADEMICO] ¿Nuevo tema?: %s",
+                es_nuevo,
+            )
+
+            # --------------------------------------------------
+            # CAMBIO DE TEMA
+            # --------------------------------------------------
+
+            if es_nuevo:
 
                 logger.info(
                     "[ACADEMICO] Nuevo tema detectado."
                 )
 
-                return (
+                logger.info(
+                    "[ACADEMICO] Reiniciando explicación | nuevo tema=%s",
+                    texto,
+                )
 
+                return (
+                    
                     limpieza
 
                     + [
 
-                        
-                        SlotSet(
-                            "tema_anterior",
-                            tema_actual,
-                        ),
+                         SlotSet(
+                             "tema_anterior",
+                             tema_actual,
+                         ),
 
-                        SlotSet(
-                            "cambio_tema",
-                            True,
-                        ),
-                        
-                        SlotSet(
-                            "tema_actual",
-                            texto,
-                        ),
+                         SlotSet(
+                             "cambio_tema",
+                             True,
+                         ),
 
-                        SlotSet(
-                            "tema_consulta",
-                            texto,
-                        ),
+                         SlotSet(
+                             "tema_actual",
+                             texto,
+                         ),
 
-                        SlotSet(
-                            "nivel_explicacion",
-                            "basico",
-                        ),
+                         SlotSet(
+                             "tema_consulta",
+                             texto,
+                         ),
 
-                        SlotSet(
-                            "ultima_respuesta_llm",
-                            None,
-                        ),
+                         SlotSet(
+                             "nivel_explicacion",
+                             "basico",
+                         ),
 
-                        SlotSet(
-                            "continuando_tema",
-                            None,
-                        ),
+                         SlotSet(
+                             "ultima_respuesta_llm",
+                             None,
+                         ),
+
+                         SlotSet(
+                             "continuando_tema",
+                             False,
+                         ),
 
                     ]
-
+                    
                     + self._ejecutar_procesamiento_llm(
 
                         dispatcher,
@@ -1520,8 +1695,8 @@ class ActionHandleWithLLM(Action):
 
                     )
 
-                )
-
+               )
+            
             # --------------------------------------------------
             # SUBCONSULTA
             # --------------------------------------------------
@@ -1536,6 +1711,13 @@ class ActionHandleWithLLM(Action):
                 texto,
             )
 
+            logger.info(
+                "[ACADEMICO] Enviando al LLM | tema=%s | consulta=%s | continuando=%s",
+                tracker.get_slot("tema_actual"),
+                texto,
+                True,
+            )
+            
             return (
 
                 limpieza
@@ -1546,9 +1728,18 @@ class ActionHandleWithLLM(Action):
                         "tema_consulta",
                         texto,
                     ),
+                    SlotSet(
+                        "continuando_tema",
+                        True,
+                    ),
+
+                    SlotSet(
+                        "cambio_tema",
+                        False,
+                    ),
 
                 ]
-
+              
                 + self._ejecutar_procesamiento_llm(
 
                     dispatcher,
@@ -1583,6 +1774,21 @@ class ActionHandleWithLLM(Action):
                 nuevo_tema,
             )
 
+            logger.warning("=" * 80)
+            logger.warning("[ACADEMICO] ENTRANDO A _build_topic_events")
+            logger.warning(
+                "latest_message=%s",
+                tracker.latest_message.get("text"),
+            )
+            logger.warning(
+                "tema_actual=%s",
+                tracker.get_slot("tema_actual"),
+            )
+            logger.warning(
+                "tema_consulta=%s",
+                tracker.get_slot("tema_consulta"),
+            )
+            logger.warning("=" * 80)
             return (
 
                 limpieza
@@ -1629,7 +1835,10 @@ class ActionHandleWithLLM(Action):
         self,
         tracker: Tracker,
     ) -> str:
-
+        logger.info(
+            "TRACKER RECIBIDO=%s",
+            type(tracker),
+        ) 
         actual = tracker.get_slot(
             "nivel_explicacion"
         )
@@ -1680,6 +1889,11 @@ class ActionHandleWithLLM(Action):
                 ↓
            _call_model()
         """
+        
+        logger.info(
+        "[LLM] nivel_explicacion recibido=%s",
+        tracker.get_slot("nivel_explicacion"),
+        )
         logger.info("=" * 70)
         logger.info("[LLM] _ejecutar_procesamiento_llm")
         logger.info("flow=%s", flow)
@@ -1793,6 +2007,11 @@ class ActionHandleWithLLM(Action):
                 "[PROMPT] base=%d caracteres",
                 len(prompt),
             )
+            logger.warning("=" * 80)
+            logger.warning("PROMPT ACADÉMICO FINAL")
+            logger.warning(prompt)
+            logger.warning("=" * 80)
+
 
             logger.info("=" * 70)
             logger.info("[LLM] Prompt FINAL")
@@ -1980,6 +2199,11 @@ class ActionHandleWithLLM(Action):
                     ]
 
                 )
+
+            logger.info(
+                "[LLM] nivel_explicacion al salir=%s",
+                tracker.get_slot("nivel_explicacion"),
+            )
             return events
 
         except Exception:
