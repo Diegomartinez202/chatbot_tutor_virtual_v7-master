@@ -38,13 +38,19 @@ ENCUESTAS_POR_MODULO = {
     # -------------------------
     "aprender_tema": "satisfaccion",
 
-    "consultar_horarios": "satisfaccion",
+    "certificados": "satisfaccion",
+
+    "estado_estudiante": "satisfaccion",
 
     "consultar_progreso": "satisfaccion",
 
+    "consultar_horarios": "satisfaccion",
+
     "historial_academico": "satisfaccion",
 
-    "estado_estudiante": "satisfaccion",
+    "tutor_asignado": "satisfaccion",
+
+   
 
     # -------------------------
     # Soporte
@@ -571,11 +577,20 @@ class ActionProcesarRespuestaResolucion(Action):
                 response="utter_ofrecer_continuar"
             )
 
+            logger.info(
+                "[RESOLUCION] Se ofreció continuar. Esperando nueva decisión del usuario."
+            )
+            
             return [
 
                 SlotSet(
                     "esperando_resolucion",
                      False,
+                ),
+
+                SlotSet(
+                    "encuesta_activa",
+                    False,
                 ),
 
                 SlotSet(

@@ -17,6 +17,15 @@ from rasa_sdk.forms import FormValidationAction
 from actions.core.nlp_utils import build_llm_request
 logger = logging.getLogger(__name__)
 
+from .acciones_academico import ACCIONES_ACADEMICAS
+
+RESUME_ACTIONS = {
+    cfg["proceso"]: cfg["resume_action"]
+    for cfg in ACCIONES_ACADEMICAS.values()
+    if cfg.get("resume_action")
+}
+
+
 # ================================================================
 # 🔐 CONFIG
 # ================================================================
@@ -62,12 +71,24 @@ class ActionCheckAuth(Action):
             es_valido = True 
             if es_valido:
                 dispatcher.utter_message(text="✅ ¡Login exitoso! Ya puedes consultar tu información.")
-                return [
-                    SlotSet("is_authenticated", True), 
+                
+                pending = tracker.get_slot("pending_action")
+
+                events = [
+                    SlotSet("is_authenticated", True),
                     SlotSet("auth_state", "active"),
+                    SlotSet("password", None),
                     SlotSet("llm_request", None),
-                    SlotSet("email", email),
+                    SlotSet("email", email), 
                 ]
+
+                if pending:
+                    events.append(
+                        FollowupAction("action_reanudar_pending_action")
+                    )
+
+                return events
+
             else:
                 dispatcher.utter_message(text="❌ Credenciales incorrectas. Por favor, intenta de nuevo.")
                 return [SlotSet("is_authenticated", False), SlotSet("email", None), SlotSet("password", None)]
@@ -225,3 +246,66 @@ class ActionSolicitarLogin(Action):
         )
 
         return []
+
+
+class ActionReanudarPendingAction(Action):
+
+    def name(self) -> Text:
+        return "action_reanudar_pending_action"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        pending = tracker.get_slot("pending_action")
+
+        logger.info(
+            "[PENDING] Reanudando acción pendiente=%s",
+            pending,
+        )
+
+        if not pending:
+
+            logger.info(
+                "[PENDING] No existe acción pendiente."
+            )
+
+            return []
+
+        resume_action = RESUME_ACTIONS.get(pending)
+
+        if not resume_action:
+
+            logger.warning(
+                "[PENDING] No existe resume_action para %s",
+                pending,
+            )
+
+            dispatcher.utter_message(
+                text="No fue posible reanudar la acción solicitada."
+            )
+
+            return [
+                SlotSet("pending_action", None),
+            ]
+
+        logger.info(
+            "[PENDING] Ejecutando %s",
+            resume_action,
+        )
+
+        return [
+
+            SlotSet(
+                "pending_action",
+                None,
+            ),
+
+            FollowupAction(
+                resume_action,
+            ),
+
+        ]

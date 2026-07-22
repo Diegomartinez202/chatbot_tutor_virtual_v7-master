@@ -713,6 +713,9 @@ class ActionHandleWithLLM(Action):
         self,
         tracker: Tracker,
         flow: str,
+        nivel_explicacion: str | None = None,
+        tema_actual=None,
+        tema_consulta=None,
      ) -> Dict[str, Any]:
          """
          Construye el contexto estructurado enviado al Prompt Builder.
@@ -724,6 +727,25 @@ class ActionHandleWithLLM(Action):
          Mantiene compatibilidad con la arquitectura actual.
          """
 
+         tema_actual_ctx = (
+             tema_actual
+             if tema_actual is not None
+             else tracker.get_slot("tema_actual")
+         )
+
+         tema_consulta_ctx = (
+             tema_consulta
+             if tema_consulta is not None
+             else tracker.get_slot("tema_consulta")
+         )
+
+         nivel_ctx = (
+             nivel_explicacion
+             if nivel_explicacion is not None
+             else tracker.get_slot("nivel_explicacion")
+         )
+         
+         
          latest = tracker.latest_message or {}
 
          intent = latest.get(
@@ -804,7 +826,7 @@ class ActionHandleWithLLM(Action):
              
              
                  pregunta = (
-                     tracker.get_slot("tema_consulta")
+                     tema_consulta_ctx
                      or latest.get("text", "")
                  )
 
@@ -830,13 +852,11 @@ class ActionHandleWithLLM(Action):
 
                          "rol": rol,
 
-                         "tema_consulta": tracker.get_slot(
-                         "tema_consulta"
-                         ),
+                         "tema_actual": tema_actual_ctx,
 
-                         "nivel_explicacion": tracker.get_slot(
-                         "nivel_explicacion"
-                         ),
+                         "tema_consulta": tema_consulta_ctx,
+
+                         "nivel_explicacion": nivel_ctx,
 
                      }
 
@@ -853,13 +873,11 @@ class ActionHandleWithLLM(Action):
 
                      {
 
-                         "tema_consulta": tracker.get_slot(
-                             "tema_consulta"
-                         ),
+                         "tema_actual": tema_actual_ctx,
 
-                         "nivel_explicacion": tracker.get_slot(
-                             "nivel_explicacion"
-                         ),
+                         "tema_consulta": tema_consulta_ctx,
+
+                         "nivel_explicacion": nivel_ctx,
 
                      }
 
@@ -916,7 +934,9 @@ class ActionHandleWithLLM(Action):
 
              )
 
-
+    # ======================================================
+    # CONTEXTO ADMINISTRATIVO
+    # ======================================================
          elif macroflujo in (
 
              "administrative",
@@ -949,9 +969,11 @@ class ActionHandleWithLLM(Action):
          # ======================================================
 
          logger.info(
-             "[LLM CONTEXT] macroflujo=%s | subflujo=%s",
+             "[LLM CONTEXT] macro=%s | sub=%s | tema=%s | nivel=%s",
              macroflujo,
              subflujo,
+             tema_actual_ctx,
+             nivel_ctx,
          )
 
          return context
@@ -1255,7 +1277,7 @@ class ActionHandleWithLLM(Action):
 
        
         logger.info(
-            "[ACADEMICO] Sin coincidencias relevantes. Se mantiene el tema actual."
+            "[ACADEMICO] Sin coincidencias relevantes. Nuevo tema detectado."
         )
 
         return True
@@ -1483,6 +1505,29 @@ class ActionHandleWithLLM(Action):
         domain,
     ) -> List[EventType]:
 
+        
+        logger.warning("=" * 80)
+        logger.warning("[ENTRY ACTION_HANDLE_WITH_LLM]")
+        logger.warning("intent=%s", (tracker.latest_message.get("intent") or {}).get("name"))
+        logger.warning("text=%s", tracker.latest_message.get("text"))
+        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+        logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
+        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("=" * 80)
+        
+        
+        logger.warning("=" * 80)
+        logger.warning(
+            "[TRACKER] Eventos=%d",
+            len(tracker.events),
+        )
+        logger.warning(
+            "[TRACKER] Sender=%s",
+            tracker.sender_id,
+        )
+        logger.warning("=" * 80)
+        
         logger.info("=" * 80)
         logger.info("[DEBUG ACTION_HANDLE_WITH_LLM]")
         logger.info("intent=%s", tracker.get_intent_of_latest_message())
@@ -1579,6 +1624,9 @@ class ActionHandleWithLLM(Action):
                     tracker,
                     self.FLOW_ACADEMIC,
                     prompt=prompt,
+                    nivel_explicacion=nuevo_nivel,
+                    tema_actual=tracker.get_slot("tema_actual"),
+                    tema_consulta=tracker.get_slot("tema_consulta"),
 
             )
 
@@ -1594,7 +1642,19 @@ class ActionHandleWithLLM(Action):
         #   2. Hacer una subconsulta.
         # ======================================================
 
+        logger.warning("=" * 70)
+        logger.warning("[MODO APRENDIZAJE]")
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
+        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+        logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
+        logger.warning("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
+        logger.warning("intent=%s", intent)
+        logger.warning("=" * 70)
+        
         if (
+          
+
             tracker.get_slot("proceso_activo") == "aprender_tema"
             and not tracker.get_slot("esperando_tema")
             and tracker.latest_message.get("text", "").strip()
@@ -1603,9 +1663,14 @@ class ActionHandleWithLLM(Action):
                 "continuar_tema_si",
                 "ir_menu_principal",
                 "terminar_conversacion_segura",
+                "deny",
+                "affirm",
+                "respuesta_resuelto_si",
+                "respuesta_resuelto_no",
+                "respuesta_insatisfecho",
             )
         ):
-
+            logger.error("########## ENTRÉ A MODO APRENDIZAJE ##########")
             texto = tracker.latest_message["text"].strip()
 
             tema_actual = (
@@ -1621,6 +1686,22 @@ class ActionHandleWithLLM(Action):
                 tracker,
                 texto,
             )
+
+            logger.warning("=" * 70)
+            logger.warning("[DEBUG CAMBIO TEMA]")
+            logger.warning("texto=%s", texto)
+            logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
+            logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+            logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
+            logger.warning("intent=%s", tracker.get_intent_of_latest_message())
+            logger.warning("=" * 70)
+
+            es_nuevo = self._is_new_topic(
+                tracker,
+                texto,
+            )
+
+            logger.warning("[DEBUG CAMBIO TEMA] es_nuevo=%s", es_nuevo)
 
             logger.info(
                 "[ACADEMICO] ¿Nuevo tema?: %s",
@@ -1692,6 +1773,12 @@ class ActionHandleWithLLM(Action):
                         tracker,
 
                         self.FLOW_ACADEMIC,
+                        
+                        nivel_explicacion="basico",
+
+                        tema_actual=texto,
+                        
+                        tema_consulta=texto,
 
                     )
 
@@ -1747,6 +1834,14 @@ class ActionHandleWithLLM(Action):
                     tracker,
 
                     self.FLOW_ACADEMIC,
+
+                    nivel_explicacion=tracker.get_slot(
+                        "nivel_explicacion"
+                    ),
+
+                    tema_actual=tema_actual,
+
+                    tema_consulta=texto,
 
                 )
 
@@ -1806,6 +1901,8 @@ class ActionHandleWithLLM(Action):
                     self.FLOW_ACADEMIC,
 
                     prompt=nuevo_tema,
+
+                    nivel_explicacion="basico"
 
                 )
 
@@ -1871,11 +1968,14 @@ class ActionHandleWithLLM(Action):
 
     def _ejecutar_procesamiento_llm(
         self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        flow: str,
-        prompt: str | None = None,
-    ) -> List[EventType]:
+        dispatcher,
+        tracker,
+        flow,
+        prompt=None,
+        nivel_explicacion=None,
+        tema_actual=None,
+        tema_consulta=None,
+    ):
         """
         Orquesta todo el procesamiento del LLM.
 
@@ -1890,9 +1990,20 @@ class ActionHandleWithLLM(Action):
            _call_model()
         """
         
+        nivel_actual = (
+            nivel_explicacion
+            if nivel_explicacion is not None
+            else tracker.get_slot("nivel_explicacion")
+        )
+
         logger.info(
-        "[LLM] nivel_explicacion recibido=%s",
-        tracker.get_slot("nivel_explicacion"),
+            "[LLM] nivel_explicacion=%s",
+            nivel_actual,
+        )
+        
+        logger.info(
+        "[LLM] nivel_explicacion=%s",
+        nivel_actual,
         )
         logger.info("=" * 70)
         logger.info("[LLM] _ejecutar_procesamiento_llm")
@@ -1952,6 +2063,9 @@ class ActionHandleWithLLM(Action):
                    context = self._build_llm_context(
                        tracker,
                        flow,
+                       nivel_explicacion=nivel_actual,
+                       tema_actual=tema_actual,
+                       tema_consulta=tema_consulta,
                    )
 
                    context.update(context_llm)
@@ -1985,6 +2099,9 @@ class ActionHandleWithLLM(Action):
                 context = self._build_llm_context(
                     tracker,
                     flow,
+                    nivel_explicacion=nivel_actual,
+                    tema_actual=tema_actual,
+                    tema_consulta=tema_consulta,
                 )
 
                 logger.info(
@@ -2094,6 +2211,20 @@ class ActionHandleWithLLM(Action):
                         text=texto,
                     )
 
+                    store_message(
+                        text=texto,
+                        user_id=tracker.sender_id,
+                        session_id=(
+                            tracker.get_slot("session_id")
+                            or tracker.sender_id
+                       ),
+                       metadata={
+                           "role": "assistant",
+                           "flow": flow,
+                           "intent_llm": intent_llm,
+                       },
+                    )
+
                 logger.info(
                     "[LLM] Intent detectado=%s",
                     intent_llm,
@@ -2105,9 +2236,21 @@ class ActionHandleWithLLM(Action):
                     text=respuesta,
                 )
 
-            logger.info(
-                "[LLM] Respuesta enviada.",
-            )
+                store_message(
+                    text=respuesta,
+                    user_id=tracker.sender_id,
+                    session_id=(
+                        tracker.get_slot("session_id")
+                        or tracker.sender_id
+                    ),
+                    metadata={
+                        "role": "assistant",
+                        "flow": flow,
+                    },
+                )
+                logger.info(
+                    "[LLM] Respuesta enviada.",
+                )
 
             # =====================================================
             # Acción posterior definida por llm_request
@@ -2126,7 +2269,10 @@ class ActionHandleWithLLM(Action):
 
                     SlotSet("llm_request", None),
 
-                    SlotSet("ultima_respuesta_llm", None),
+                    SlotSet(
+                        "ultima_respuesta_llm",
+                        respuesta,
+                    ),
 
                     FollowupAction(next_action),
 

@@ -268,6 +268,21 @@ class ActionConfirmarCierre(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        latest = tracker.latest_message or {}
+
+        logger.warning("=" * 70)
+        logger.warning("[CIERRE] ActionConfirmarCierre ejecutada")
+        logger.warning(
+            "texto=%s",
+            latest.get("text"),
+        )
+        logger.warning(
+            "intent=%s",
+            (latest.get("intent") or {}).get("name"),
+        )
+        logger.warning("=" * 70)
+        
+        
         if tracker.get_slot("proceso_activo"):
 
             dispatcher.utter_message(
@@ -325,6 +340,17 @@ class ActionDecidirCierre(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        logger.info(
+
+            "[CIERRE] proceso=%s pending=%s",
+
+            tracker.get_slot("proceso_activo"),
+
+            tracker.get_slot("pending_action"),
+
+        )
+        
+        
         # =====================================================
         # Si la encuesta ya estaba iniciada,
         # continuar donde quedó.

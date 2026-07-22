@@ -178,7 +178,7 @@ rules:
 
   - rule: Manejo de consultas generales fuera del árbol de diálogos
     steps:
-      - intent: nlu_fallback
+      - intent: llm_fallback
       - action: action_handle_with_llm
 
   - rule: Responder solicitud de estado académico
@@ -231,7 +231,7 @@ rules:
   - rule: Ir al menú académico siempre que se solicite
     steps:
       - intent: ir_menu_academico
-      - action: utter_menu_academico
+      - action: action_ir_menu_academico
 
   - rule: Volver al menú anterior
     steps:

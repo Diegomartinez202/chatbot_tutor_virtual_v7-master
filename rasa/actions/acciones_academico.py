@@ -34,7 +34,7 @@ except Exception:
 
 def validar_autenticacion(
     tracker,
-    pending_action,
+    pending_action: str,
 ):
 
     # ==========================================================
@@ -53,6 +53,11 @@ def validar_autenticacion(
         return None
 
     return [
+
+        SlotSet(
+            "proceso_activo",
+            pending_action,
+        ),
 
         SlotSet(
             "pending_action",
@@ -74,31 +79,43 @@ ACCIONES_ACADEMICAS = {
     "estado_estudiante": {
         "backend": "estado_estudiante",
         "requires_auth": True,
+        "proceso": "estado_estudiante",
+        "resume_action": "action_ver_estado_estudiante",
     },
 
     "tutor_asignado": {
         "backend": "tutor_asignado",
         "requires_auth": True,
+        "proceso": "tutor_asignado",
+        "resume_action": "action_tutor_asignado",
     },
 
     "horarios": {
         "backend": "horarios",
         "requires_auth": True,
+        "proceso": "consultar_horarios",
+        "resume_action": "action_consultar_horarios_clases",
     },
 
     "progreso": {
         "backend": "progreso",
         "requires_auth": True,
+        "proceso": "consultar_progreso",
+         "resume_action": "action_consultar_progreso_curso",
     },
 
     "historial": {
         "backend": "historial",
         "requires_auth": True,
+        "proceso": "historial_academico",
+        "resume_action": "action_historial_academico",
     },
 
     "certificados": {
         "backend": "certificados",
         "requires_auth": True,
+        "proceso": "certificados",
+        "resume_action": "action_consultar_certificados",
     },
 
     # --------------------------------------------------------
@@ -108,21 +125,29 @@ ACCIONES_ACADEMICAS = {
     "pagos": {
         "backend": "pagos",
         "requires_auth": True,
+        "proceso": "pagos",
+        "resume_action": "action_consultar_pagos",
     },
 
     "notas": {
         "backend": "notas",
         "requires_auth": True,
+        "proceso": "notas",
+        "resume_action": "action_consultar_notas",
     },
 
     "ficha": {
         "backend": "ficha",
         "requires_auth": True,
+        "proceso": "notas",
+        "resume_action": "action_consultar_ficha",
     },
 
     "inscripciones": {
         "backend": "inscripciones",
         "requires_auth": True,
+         "proceso": "inscripciones",
+        "resume_action": "action_consultar_inscripciones",
     },
 
     # --------------------------------------------------------
@@ -189,29 +214,84 @@ def ejecutar_accion_academica(
         dispatcher.utter_message(
             text="La acción académica no está registrada."
         )
-
         return []
+
+    backend = config["backend"]
+    proceso = config["proceso"]
+
+    eventos: List[EventType] = []
+
+    # ==========================================================
+    # Acciones protegidas
+    # ==========================================================
 
     if config["requires_auth"]:
 
         auth = validar_autenticacion(
             tracker,
-            accion,
+            proceso,
         )
 
         if auth:
             return auth
 
-    backend = config["backend"]
+        # ------------------------------------------------------
+        # Ya autenticado.
+        # Registrar el proceso para reutilizar el pipeline
+        # de cierre, encuestas y reinicio.
+        # ------------------------------------------------------
+
+        eventos.append(
+
+            SlotSet(
+                "proceso_activo",
+                proceso,
+            )
+
+        )
+
+        eventos.append(
+
+            SlotSet(
+                "pending_action",
+                None,
+            )
+
+        )
+
+    else:
+
+        # ------------------------------------------------------
+        # Flujo público
+        # ------------------------------------------------------
+
+        eventos.append(
+
+            SlotSet(
+                "proceso_activo",
+                proceso,
+            )
+
+        )
+
+    # ==========================================================
+    # ACCIONES SIN BACKEND
+    # ==========================================================
 
     if backend is None:
-        return []
+        return eventos
 
-    return _exec(
+    # ==========================================================
+    # EJECUTAR BACKEND
+    # ==========================================================
+
+    resultado = _exec(
         backend,
         dispatcher,
         tracker,
     )
+
+    return eventos + resultado
 #================================================================
 
 # 🧠 ACCIONES ACADÉMICAS
@@ -353,6 +433,10 @@ class ActionAprenderTema(Action):
 
     def run(self, dispatcher, tracker, domain):
 
+        logger.warning(
+            "[TRACE] esperando_tema=True"
+        )
+        
         logger.info("=" * 80)
         logger.info("[ACADEMICO] ActionAprenderTema EJECUTADA")
         logger.info("texto=%s", tracker.latest_message.get("text"))
@@ -363,7 +447,10 @@ class ActionAprenderTema(Action):
             "[TRACE][ActionAprenderTema] llm_request al entrar=%s",
             tracker.get_slot("llm_request"),
         )
-
+        logger.warning(
+            "[DEBUG] latest_message=%s",
+            tracker.latest_message,
+        )
         pregunta = tracker.latest_message.get("text") or ""
 
         materia = detectar_materia(pregunta)

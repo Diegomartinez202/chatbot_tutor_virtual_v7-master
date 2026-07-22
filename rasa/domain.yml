@@ -66,6 +66,7 @@ intents:
   - respuesta_resuelto_si
   - respuesta_resuelto_no
   - calificar_bot
+  - llm_fallback
 
 entities:
   - email
@@ -512,6 +513,13 @@ slots:
     influence_conversation: false
     mappings:
       - type: custom
+  
+  tema_anterior:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
   
   auth_login_form:
     type: any
@@ -995,6 +1003,7 @@ actions:
 - action_guardar_calificacion_general
 - action_preguntar_encuesta_general
 - action_solicitar_login
+- action_reanudar_pending_action
 
 
 

@@ -212,6 +212,7 @@ def build_prompt(
 
     history = ""
     memory = ""
+    ultima_respuesta = ""
 
     if tracker:
 
@@ -219,6 +220,14 @@ def build_prompt(
         if len(history) > 1500:
             history = history[-1500:]
 
+        ultima_respuesta = (
+            tracker.get_slot("ultima_respuesta_llm")
+            or ""
+        ).strip()
+
+        if len(ultima_respuesta) > 1500:
+            ultima_respuesta = ultima_respuesta[-1500:]
+            
         try:
 
             consulta = base_prompt.strip()
@@ -247,6 +256,10 @@ def build_prompt(
             logger.info(
                 "[PROMPT] Historial=%d caracteres",
                 len(history),
+            )
+            logger.info(
+                "[PROMPT] Última respuesta=%d caracteres",
+                len(ultima_respuesta),
             )
 
             logger.info(
@@ -280,6 +293,7 @@ def build_prompt(
     ):
         history = ""
         memory = ""
+        ultima_respuesta = ""
 
     materia = ctx.get(
         "materia",
@@ -369,9 +383,13 @@ def build_prompt(
 
     {history or "Sin historial."}
 
-    Memoria relevante:
+    Memoria semántica relevante:
 
     {memory or "Sin memoria relevante."}
+
+    Última respuesta generada por el tutor:
+
+    {ultima_respuesta or "No existe respuesta previa."}
 
     Consulta del estudiante:
 

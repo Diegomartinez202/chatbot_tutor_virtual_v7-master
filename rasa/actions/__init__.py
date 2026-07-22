@@ -32,6 +32,7 @@ from .acciones_autenticacion import (
     ActionSetAuthenticatedTrue,
     ActionEnviarCorreoRecuperacion,
     ActionSolicitarLogin,
+    ActionReanudarPendingAction,
     
 )
 
@@ -163,6 +164,9 @@ __all__ = [
     "ActionIngresoZajuna",
     "ActionSetAuthenticatedTrue",
     "ActionEnviarCorreoRecuperacion",
+    "ActionSolicitarLogin",
+    "ActionReanudarPendingAction",
+
 
 
     

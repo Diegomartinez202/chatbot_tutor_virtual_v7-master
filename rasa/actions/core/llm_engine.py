@@ -33,13 +33,13 @@ FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "qwen2.5:3b")
 MAX_TOKENS = int(
     os.getenv(
         "OLLAMA_MAX_TOKENS",
-        "600"
+        "900"
     )
 )
 MAX_PROMPT_CHARS = int(
     os.getenv(
         "LLM_MAX_PROMPT_CHARS",
-        "6000",
+        "8000",
     )
 )
 logger.info(
@@ -99,12 +99,12 @@ def _call_model(
         if len(prompt) > MAX_PROMPT_CHARS:
 
             logger.warning(
-                "[LLM] Prompt demasiado largo (%d), recortando a %d chars",
+                "[LLM] Prompt demasiado largo (%d), recortando a %d caracteres desde el inicio.",
                 len(prompt),
                 MAX_PROMPT_CHARS,
             )
 
-            prompt = prompt[-MAX_PROMPT_CHARS:]
+            prompt = prompt[:MAX_PROMPT_CHARS]
 
         clean_prompt = (
             prompt
@@ -153,7 +153,7 @@ def _call_model(
 
                 "num_predict": MAX_TOKENS,
 
-                "num_ctx": 2048,
+                "num_ctx": 4096,
 
                 "top_k": 20,
 

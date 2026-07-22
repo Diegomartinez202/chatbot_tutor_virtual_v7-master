@@ -120,7 +120,7 @@ stories:
     - intent: ir_menu_principal
     - action: action_ir_menu_principal
     - intent: ir_menu_academico
-    - action: utter_menu_academico
+    - action: action_ir_menu_academico
     - intent: volver
     - action: utter_volver_menu
   
