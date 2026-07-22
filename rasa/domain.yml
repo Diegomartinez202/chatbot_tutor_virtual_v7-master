@@ -580,6 +580,7 @@ forms:
       - email
 
 responses:
+
   utter_cierre_confirmado_seguro:
   - text: "Cierre confirmado. Tu información ha sido gestionada y la sesión se ha cerrado correctamente. ¡Hasta pronto!"
   utter_respeto_decision:

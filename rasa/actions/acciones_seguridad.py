@@ -44,6 +44,13 @@ class ActionGuardarProgresoEncuesta(Action):
                 "[ENCUESTA] Reanudando pregunta de resolución."
             )
 
+            logger.info(
+                    "[GUARDAR_PROGRESO] Antes de preguntar resolución: proceso=%s tema=%s llm=%s",
+                    tracker.get_slot("proceso_activo"),
+                    tracker.get_slot("tema_actual"),
+                    tracker.get_slot("llm_request"),
+                )
+
             return [
 
                 SlotSet(
@@ -53,11 +60,6 @@ class ActionGuardarProgresoEncuesta(Action):
 
                 SlotSet(
                     "confirmacion_cierre",
-                    None,
-                ),
-
-                SlotSet(
-                    "proceso_activo",
                     None,
                 ),
 

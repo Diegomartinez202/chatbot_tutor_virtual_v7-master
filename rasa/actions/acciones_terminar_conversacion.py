@@ -350,6 +350,13 @@ class ActionDecidirCierre(Action):
 
         )
         
+        logger.info(
+            "[CIERRE] encuesta_activa=%s encuesta_incompleta=%s esperando_resolucion=%s proceso=%s",
+            tracker.get_slot("encuesta_activa"),
+            tracker.get_slot("encuesta_incompleta"),
+            tracker.get_slot("esperando_resolucion"),
+            tracker.get_slot("proceso_activo"),
+        )
         
         # =====================================================
         # Si la encuesta ya estaba iniciada,
@@ -383,15 +390,17 @@ class ActionDecidirCierre(Action):
                 "[CIERRE] Proceso '%s' requiere encuesta.",
                 proceso,
             )
-
+            logger.info(
+                "[CIERRE] Antes de lanzar encuesta: proceso=%s tema=%s",
+                tracker.get_slot("proceso_activo"),
+                tracker.get_slot("tema_actual"),
+)
             return [
 
                 SlotSet(
                     "confirmacion_cierre",
                     None,
                 ),
-
-                SlotSet("proceso_activo", None),
 
                 SlotSet(
                     "encuesta_activa",

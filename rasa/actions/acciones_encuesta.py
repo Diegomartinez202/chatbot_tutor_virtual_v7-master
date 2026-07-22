@@ -351,7 +351,11 @@ class ActionPreguntarResolucion(Action):
         logger.info(
             "[ENCUESTA] Preguntando si el problema fue resuelto."
         )
-
+        logger.info(
+            "[PREGUNTAR_RESOLUCION] proceso=%s tema=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("tema_actual"),
+        )
         dispatcher.utter_message(
             response="utter_esta_resuelto"
         )
@@ -573,14 +577,33 @@ class ActionProcesarRespuestaResolucion(Action):
                 text="Lamento que no hayamos resuelto tu inquietud por completo."
             )
 
-            dispatcher.utter_message(
-                response="utter_ofrecer_continuar"
-            )
+            proceso = tracker.get_slot("proceso_activo")
+            tema = tracker.get_slot("tema_actual")
 
             logger.info(
-                "[RESOLUCION] Se ofreció continuar. Esperando nueva decisión del usuario."
+                "[RESOLUCION] proceso=%s tema=%s",
+                proceso,
+                tema,
             )
-            
+
+
+
+            if proceso == "aprender_tema" and tema:
+
+                logger.info("[RESOLUCION] -> Rama APRENDER_TEMA")
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar"
+                )
+
+            else:
+
+                logger.info("[RESOLUCION] -> Rama MENU_ACADEMICO")
+
+                dispatcher.utter_message(
+                    response="utter_fin_consulta_academica"
+                )
+                   
             return [
 
                 SlotSet(
@@ -747,6 +770,14 @@ class ActionLanzarEncuestaGeneral(Action):
         tracker: Tracker,
         domain: Dict[Text, Any],
     ) -> List[EventType]:
+        
+        logger.info(
+            "[ENCUESTA_GENERAL] proceso=%s encuesta_incompleta=%s esperando_resolucion=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("encuesta_incompleta"),
+            tracker.get_slot("esperando_resolucion"),
+        )
+        
         logger.warning("=" * 80)
         logger.warning("[ENCUESTA GENERAL] EJECUTANDO ACTION")
         logger.warning("=" * 80)

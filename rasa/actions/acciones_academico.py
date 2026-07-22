@@ -433,6 +433,28 @@ class ActionAprenderTema(Action):
 
     def run(self, dispatcher, tracker, domain):
 
+        
+        intent = tracker.get_intent_of_latest_message()
+
+        if intent == "continuar_tema_si":
+
+           tema = tracker.get_slot("tema_actual")
+           llm_request = tracker.get_slot("llm_request")
+           pending = tracker.get_slot("pending_action")
+
+           if not any([tema, llm_request, pending]):
+
+               dispatcher.utter_message(
+                   text="No hay un tema activo para continuar."
+               )
+
+               dispatcher.utter_message(
+                   response="utter_fin_consulta_academica"
+               )
+
+               return []
+        
+        
         logger.warning(
             "[TRACE] esperando_tema=True"
         )
@@ -451,6 +473,7 @@ class ActionAprenderTema(Action):
             "[DEBUG] latest_message=%s",
             tracker.latest_message,
         )
+        
         pregunta = tracker.latest_message.get("text") or ""
 
         materia = detectar_materia(pregunta)
@@ -487,7 +510,7 @@ class ActionAprenderTema(Action):
         # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
         # ====================================================
 
-        if tracker.get_intent_of_latest_message() != "continuar_tema_si":
+        if intent != "continuar_tema_si":
 
             eventos.append(
                 SlotSet("tema_actual", pregunta)
