@@ -293,9 +293,15 @@ slots:
     mappings:
       - type: custom
 
+  esperando_decision_post_resolucion:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+      
   problema_resuelto:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
       - type: custom
 
@@ -320,7 +326,7 @@ slots:
 
   satisfaccion:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
     - type: custom
 
@@ -481,7 +487,7 @@ slots:
 
   materia_detectada:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
       - type: custom
 

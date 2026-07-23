@@ -1637,11 +1637,70 @@ class ActionHandleWithLLM(Action):
                 [
                     "respuesta_resuelto_si",
                     "respuesta_resuelto_no",
+                    "affirm",
+                    "deny",
                 ],
                 "No entendí. ¿Tu problema quedó resuelto? Responde únicamente Sí o No.",
             ):
                 return limpieza
-        
+        # ======================================================
+        # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
+        #
+        # El usuario ya respondió si el problema quedó resuelto.
+        # Ahora puede decidir:
+        #
+        #   • Continuar tema
+        #   • Ir al menú principal
+        #   • Finalizar conversación
+        #
+        # También puede escribir directamente una subconsulta
+        # relacionada con el tema actual, la cual será procesada
+        # posteriormente por el modo aprendizaje.
+        # ======================================================
+
+        intent = tracker.get_intent_of_latest_message()
+
+        if tracker.get_slot("esperando_decision_post_resolucion"):
+
+            # ----------------------------------------------
+            # Opciones válidas del flujo
+            # ----------------------------------------------
+
+            if intent in (
+                "continuar_tema",
+                "continuar_tema_si",
+                "ir_menu_principal",
+                "terminar_conversacion_segura",
+            ):
+                pass
+
+            # ----------------------------------------------
+            # Si el NLU no entendió el mensaje,
+            # mantener al usuario dentro del flujo.
+            # ----------------------------------------------
+
+            elif intent == "nlu_fallback":
+
+                dispatcher.utter_message(
+                    text=(
+                        "Puedes elegir una de estas opciones:\n"
+                        "• Continuar tema\n"
+                        "• Menú principal\n"
+                        "• Finalizar conversación\n\n"
+                        "O escribir directamente una pregunta relacionada con el tema actual."
+                    )
+                )
+
+                return limpieza
+
+                # ----------------------------------------------
+                # Cualquier otro intent se deja continuar.
+                # Puede ser una subconsulta del tema actual.
+                # El modo aprendizaje decidirá si es:
+                #   - continuación
+                #   - subconsulta
+                #   - cambio de tema
+                # ----------------------------------------------
             
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
@@ -1781,6 +1840,7 @@ class ActionHandleWithLLM(Action):
 
         if (
             tracker.get_slot("esperando_resolucion")
+            or tracker.get_slot("esperando_decision_post_resolucion")
             or tracker.get_slot("confirmacion_cierre") == "pendiente"
             or tracker.get_slot("encuesta_activa")
             or tracker.get_slot("esperando_encuesta_general")

@@ -149,7 +149,6 @@ class ActionHealthCheck(Action):
 
         return []
 
-
 # ================================================================
 # 🔄 CONTINUIDAD DE FLUJO (ORCHESTRATOR FRIENDLY)
 # ================================================================
@@ -166,8 +165,15 @@ class ActionOfrecerContinuarTema(Action):
     ) -> List[EventType]:
 
         dispatcher.utter_message(response="utter_ofrecer_continuar")
+        
+        return [
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+        ]
 
-        return []
+        
 
 class ActionSolicitarTema(Action):
 

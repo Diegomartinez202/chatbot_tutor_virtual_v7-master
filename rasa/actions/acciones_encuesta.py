@@ -542,6 +542,16 @@ class ActionProcesarRespuestaResolucion(Action):
         domain: Dict[Text, Any],
     ) -> List[EventType]:
 
+        logger.warning("=" * 80)
+        logger.warning("ESTADO DEL TRACKER")
+        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+        logger.warning("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
+        logger.warning("encuesta_incompleta=%s", tracker.get_slot("encuesta_incompleta"))
+        logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("=" * 80)
+        
         logger.info("=== ESTADO DESPUÉS DE SEGUIR TEMA ===")
         logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
         logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
@@ -610,6 +620,8 @@ class ActionProcesarRespuestaResolucion(Action):
                     "esperando_resolucion",
                      False,
                 ),
+
+                SlotSet("esperando_decision_post_resolucion", True),
 
                 SlotSet(
                     "encuesta_activa",

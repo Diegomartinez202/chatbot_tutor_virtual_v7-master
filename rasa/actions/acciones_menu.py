@@ -35,6 +35,12 @@ class ActionIrMenuPrincipal(Action):
         )
 
         return [
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+
             SlotSet(
                 "menu_actual",
                 "principal"
