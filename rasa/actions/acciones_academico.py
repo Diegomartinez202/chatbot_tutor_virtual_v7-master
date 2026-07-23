@@ -17,7 +17,9 @@ from rasa_sdk.events import EventType
 from .core.llm_engine import run_llm
 from .core.nlp_utils import detectar_materia, build_llm_request
 from .core.materias import MATERIAS
+from .core.orchestrator_v2 import ACTION_CATALOG
 logger = logging.getLogger(__name__)
+
 
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
@@ -35,6 +37,7 @@ except Exception:
 def validar_autenticacion(
     tracker,
     pending_action: str,
+    llm_request: dict,
 ):
 
     # ==========================================================
@@ -49,9 +52,31 @@ def validar_autenticacion(
         )
         return None
    
+    logger.warning("=" * 80)
+    logger.warning("[TUTOR] Entró nuevamente")
+    logger.warning(
+        "authenticated=%s",
+        tracker.get_slot("is_authenticated"),
+    )
+    logger.warning(
+        "pending=%s",
+        tracker.get_slot("pending_action"),
+    )
+    logger.warning(
+        "llm_request=%s",
+        tracker.get_slot("llm_request"),
+    )
+    logger.warning("=" * 80)
+    
+    
     if tracker.get_slot("is_authenticated"):
         return None
 
+    logger.warning(
+        "[AUTH] Solicitando login para %s",
+        pending_action,
+    )
+    
     return [
 
         SlotSet(
@@ -62,6 +87,12 @@ def validar_autenticacion(
         SlotSet(
             "pending_action",
             pending_action,
+        ),
+
+       
+        SlotSet(
+            "llm_request",
+            llm_request,
         ),
 
         FollowupAction(
@@ -76,45 +107,45 @@ def validar_autenticacion(
 
 ACCIONES_ACADEMICAS = {
 
-    "estado_estudiante": {
+    "consultar_estado": {
         "backend": "estado_estudiante",
         "requires_auth": True,
-        "proceso": "estado_estudiante",
+        "proceso": "consultar_estado",
         "resume_action": "action_ver_estado_estudiante",
     },
 
-    "tutor_asignado": {
+    "consultar_tutor": {
         "backend": "tutor_asignado",
         "requires_auth": True,
-        "proceso": "tutor_asignado",
+        "proceso": "consultar_tutor",
         "resume_action": "action_tutor_asignado",
     },
 
-    "horarios": {
+    "consultar_horarios": {
         "backend": "horarios",
         "requires_auth": True,
         "proceso": "consultar_horarios",
         "resume_action": "action_consultar_horarios_clases",
     },
 
-    "progreso": {
+    "consultar_progreso": {
         "backend": "progreso",
         "requires_auth": True,
         "proceso": "consultar_progreso",
          "resume_action": "action_consultar_progreso_curso",
     },
 
-    "historial": {
+    "consultar_historial": {
         "backend": "historial",
         "requires_auth": True,
-        "proceso": "historial_academico",
+        "proceso": "consultar_historial",
         "resume_action": "action_historial_academico",
     },
 
-    "certificados": {
+    "consultar_certificados": {
         "backend": "certificados",
         "requires_auth": True,
-        "proceso": "certificados",
+        "proceso": "consultar_certificados",
         "resume_action": "action_consultar_certificados",
     },
 
@@ -122,31 +153,31 @@ ACCIONES_ACADEMICAS = {
     # NUEVAS ACCIONES
     # --------------------------------------------------------
 
-    "pagos": {
+    "consultar_pagos": {
         "backend": "pagos",
         "requires_auth": True,
-        "proceso": "pagos",
+        "proceso": "consultar_pagos",
         "resume_action": "action_consultar_pagos",
     },
 
-    "notas": {
+    "consultar_notas": {
         "backend": "notas",
         "requires_auth": True,
-        "proceso": "notas",
+        "proceso": "consultar_notas",
         "resume_action": "action_consultar_notas",
     },
 
-    "ficha": {
+    "consultar_ficha": {
         "backend": "ficha",
         "requires_auth": True,
-        "proceso": "notas",
+        "proceso": "consultar_ficha",
         "resume_action": "action_consultar_ficha",
     },
 
-    "inscripciones": {
+    "consultar_inscripciones": {
         "backend": "inscripciones",
         "requires_auth": True,
-         "proceso": "inscripciones",
+        "proceso": "consultar_inscripciones",
         "resume_action": "action_consultar_inscripciones",
     },
 
@@ -207,10 +238,16 @@ def ejecutar_accion_academica(
     tracker,
 ):
 
+    logger.info(
+        "[ACADEMICO] Inicio proceso=%s authenticated=%s pending=%s",
+        accion,
+        tracker.get_slot("is_authenticated"),
+        tracker.get_slot("pending_action"),
+    )
+    
     config = ACCIONES_ACADEMICAS.get(accion)
 
     if not config:
-
         dispatcher.utter_message(
             text="La acción académica no está registrada."
         )
@@ -219,19 +256,48 @@ def ejecutar_accion_academica(
     backend = config["backend"]
     proceso = config["proceso"]
 
+    llm_config = ACTION_CATALOG.get(proceso)
+
+    if not llm_config:
+        logger.error(
+            "[ACADEMICO] No existe ACTION_CATALOG[%s]",
+            proceso,
+        )
+       
+        return []
+
+    macroflujo = llm_config["macroflujo"]
+    subflujo = llm_config["subflujo"]
+    requires_auth = llm_config["requires_auth"]
+
     eventos: List[EventType] = []
 
     # ==========================================================
     # Acciones protegidas
     # ==========================================================
 
-    if config["requires_auth"]:
+    if requires_auth:
 
+        llm_request = build_llm_request(
+        instruction="",
+        macroflujo=macroflujo,
+        subflujo=subflujo,
+        requires_auth=requires_auth,
+        pending_action=proceso,
+    )
+        logger.warning(
+            "[ACADEMICO] llm_request=%s",
+            llm_request,
+        )
         auth = validar_autenticacion(
             tracker,
             proceso,
+            llm_request,
         )
-
+        logger.warning(
+            "[ACADEMICO] validar_autenticacion retornó=%s",
+            auth,
+        )
         if auth:
             return auth
 
@@ -285,6 +351,12 @@ def ejecutar_accion_academica(
     # EJECUTAR BACKEND
     # ==========================================================
 
+    logger.info(
+        "[ACADEMICO] Ejecutando backend=%s con proceso_activo=%s",
+        proceso,
+        backend,
+    )
+    
     resultado = _exec(
         backend,
         dispatcher,
@@ -304,8 +376,25 @@ class ActionVerEstadoEstudiante(Action):
 
     def run(self, dispatcher, tracker, domain):
 
+        
+        logger.warning("=" * 80)
+        logger.warning("[TUTOR] Entró nuevamente")
+        logger.warning(
+            "authenticated=%s",
+            tracker.get_slot("is_authenticated"),
+        )
+        logger.warning(
+            "pending=%s",
+            tracker.get_slot("pending_action"),
+        )
+        logger.warning(
+            "llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
+        logger.warning("=" * 80)
+        
         return ejecutar_accion_academica(
-            "estado_estudiante",
+            "consultar_estado",
             dispatcher,
             tracker,
         )
@@ -318,7 +407,7 @@ class ActionTutorAsignado(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "tutor_asignado",
+            "consultar_tutor",
             dispatcher,
             tracker,
         )
@@ -331,7 +420,7 @@ class ActionConsultarHorariosClases(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "horarios",
+            "consultar_horarios",
             dispatcher,
             tracker,
         )
@@ -343,7 +432,7 @@ class ActionHistorialAcademico(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "historial",
+            "consultar_historial",
             dispatcher,
             tracker,
         )
@@ -356,7 +445,7 @@ class ActionConsultarProgresoCurso(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "progreso",
+            "consultar_progreso",
             dispatcher,
             tracker,
         )
@@ -369,7 +458,7 @@ class ActionConsultarCertificados(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "certificados",
+            "consultar_certificados",
             dispatcher,
             tracker,
         )
@@ -382,7 +471,7 @@ class ActionConsultarPagos(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "pagos",
+            "consultar_pagos",
             dispatcher,
             tracker,
         )
@@ -395,7 +484,7 @@ class ActionConsultarNotas(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "notas",
+            "consultar_notas",
             dispatcher,
             tracker,
         )
@@ -407,7 +496,7 @@ class ActionConsultarFicha(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "ficha",
+            "consultar_ficha",
             dispatcher,
             tracker,
         )
@@ -420,7 +509,7 @@ class ActionConsultarInscripciones(Action):
     def run(self, dispatcher, tracker, domain):
 
         return ejecutar_accion_academica(
-            "inscripciones",
+            "consultar_inscripciones",
             dispatcher,
             tracker,
         )
@@ -473,8 +562,24 @@ class ActionAprenderTema(Action):
             "[DEBUG] latest_message=%s",
             tracker.latest_message,
         )
-        
-        pregunta = tracker.latest_message.get("text") or ""
+
+        pregunta = (
+            tracker.latest_message.get("text") or ""
+        ).strip()
+
+        if len(pregunta) < 2:
+
+            dispatcher.utter_message(
+
+                text=(
+                    "No logré entender el tema. "
+                    "¿Podrías escribirlo nuevamente?"
+                )
+
+            )
+
+            return []
+
 
         materia = detectar_materia(pregunta)
 

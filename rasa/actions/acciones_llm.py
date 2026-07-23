@@ -79,6 +79,20 @@ logger = logging.getLogger(__name__)
 MAX_INTENTOS_FORM: int = 3
 
 
+def validar_respuesta(
+    tracker,
+    dispatcher,
+    intents_validos,
+    mensaje,
+):
+    intent = tracker.get_intent_of_latest_message()
+
+    if intent not in intents_validos:
+        dispatcher.utter_message(text=mensaje)
+        return True
+
+    return False
+
 class ActionHandleWithLLM(Action):
     """
     Acción principal encargada de orquestar la interacción entre
@@ -210,6 +224,36 @@ class ActionHandleWithLLM(Action):
     # DETECCIÓN DEL FLUJO
     # ==========================================================
 
+    
+    
+    FLOW_GENERAL = "general"
+    FLOW_ACADEMIC = "academic"
+    FLOW_SUPPORT = "support"
+    FLOW_AUTH = "auth"
+    FLOW_ADMINISTRATIVE = "administrative"
+    FLOW_HELP = "help"
+
+    # ==========================================
+    # Compatibilidad con arquitectura anterior
+    # ==========================================
+
+    ACADEMIC_PROCESSES = {
+        "aprender_tema",
+        "consultar_horarios",
+        "consultar_progreso",
+        "consultar_tutor",
+        "consultar_certificados",
+        "consultar_pagos",
+        "consultar_notas",
+    }
+
+    ADMIN_PROCESSES = {
+        "consultar_estado",
+        "consultar_ficha",
+        "consultar_historial",
+        "consultar_inscripciones",
+    }
+    
     def _detect_flow(
         self,
         tracker: Tracker,
@@ -349,22 +393,33 @@ class ActionHandleWithLLM(Action):
         logger.debug(
             "[FLOW] proceso=%s tema=%s materia=%s",
             proceso,
+            tracker.get_slot("pending_action"),
             bool(tema),
             bool(materia),
         )
 
         if (
             esperando
-            or proceso == "aprender_tema"
+            or proceso in self.ACADEMIC_PROCESSES
             or tema
             or materia
         ):
 
             logger.info(
-                "[FLOW] Flujo académico detectado."
+                "[FLOW] Flujo académico detectado. proceso=%s",
+                proceso,
             )
 
             return self.FLOW_ACADEMIC
+
+        if proceso in self.ADMIN_PROCESSES:
+
+            logger.info(
+                "[FLOW] Flujo administrativo detectado. proceso=%s",
+                proceso,
+            )
+
+            return self.FLOW_ADMINISTRATIVE
 
         # ======================================================
         # AYUDA
@@ -1505,6 +1560,15 @@ class ActionHandleWithLLM(Action):
         domain,
     ) -> List[EventType]:
 
+        logger.warning("=" * 80)
+        logger.warning("[LLM] ENTRANDO A ACTION_HANDLE_WITH_LLM")
+        logger.warning("sender=%s", tracker.sender_id)
+        logger.warning("pending_action=%s", tracker.get_slot("pending_action"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("requires_auth=%s", tracker.get_slot("requires_auth"))
+        logger.warning("=" * 80)
+        
         
         logger.warning("=" * 80)
         logger.warning("[ENTRY ACTION_HANDLE_WITH_LLM]")
@@ -1547,8 +1611,41 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("llm_request"),
         )
 
+        # ======================================================
+        # VALIDACIÓN DE CIERRE
+        # ======================================================
+
+        if tracker.get_slot("confirmacion_cierre") == "pendiente":
+
+            if validar_respuesta(
+                tracker,
+                dispatcher,
+                ["affirm", "deny"],
+                "No entendí tu respuesta. Por favor responde únicamente 'Sí' o 'No'.",
+            ):
+                return limpieza
+
+        # ======================================================
+        # VALIDACIÓN RESPUESTA DE RESOLUCIÓN
+        # ======================================================
+
+        if tracker.get_slot("esperando_resolucion"):
+
+            if validar_respuesta(
+                tracker,
+                dispatcher,
+                [
+                    "respuesta_resuelto_si",
+                    "respuesta_resuelto_no",
+                ],
+                "No entendí. ¿Tu problema quedó resuelto? Responde únicamente Sí o No.",
+            ):
+                return limpieza
+        
+            
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
+
         intent = tracker.get_intent_of_latest_message()
 
         # ======================================================
@@ -1596,6 +1693,12 @@ class ActionHandleWithLLM(Action):
                 tracker,
                 nivel=nuevo_nivel,
             )
+
+            logger.info(
+                        "[ACADEMICO] Guardando nivel_explicacion=%s",
+                        nuevo_nivel,
+            )
+
             return (
 
                 limpieza
@@ -1611,11 +1714,7 @@ class ActionHandleWithLLM(Action):
                         "nivel_explicacion",
                         nuevo_nivel,
                     ),
-                    logger.info(
-                        "[ACADEMICO] Guardando nivel_explicacion=%s",
-                        nuevo_nivel,
-                    )
-
+                    
                 ]
 
                 + self._ejecutar_procesamiento_llm(
@@ -1642,6 +1741,11 @@ class ActionHandleWithLLM(Action):
         #   2. Hacer una subconsulta.
         # ======================================================
 
+        
+        logger.warning(
+            "[ENTRY MODO APRENDIZAJE] llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
         logger.warning("=" * 70)
         logger.warning("[MODO APRENDIZAJE]")
         logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
@@ -1652,6 +1756,38 @@ class ActionHandleWithLLM(Action):
         logger.warning("intent=%s", intent)
         logger.warning("=" * 70)
         
+        logger.error(
+            "[ANTES MODO APRENDIZAJE] "
+            "esperando_resolucion=%s "
+            "encuesta_incompleta=%s "
+            "encuesta_activa=%s "
+            "intent=%s",
+            tracker.get_slot("esperando_resolucion"),
+            tracker.get_slot("encuesta_incompleta"),
+            tracker.get_slot("encuesta_activa"),
+            intent,
+        )
+        logger.error(
+            "[STATE] "
+            "esperando_tema=%s "
+            "confirmacion_cierre=%s "
+            "requested_slot=%s "
+            "proceso=%s",
+            tracker.get_slot("esperando_tema"),
+            tracker.get_slot("confirmacion_cierre"),
+            tracker.get_slot("requested_slot"),
+            tracker.get_slot("proceso_activo"),
+        )
+
+        if (
+            tracker.get_slot("esperando_resolucion")
+            or tracker.get_slot("confirmacion_cierre") == "pendiente"
+            or tracker.get_slot("encuesta_activa")
+            or tracker.get_slot("esperando_encuesta_general")
+        ):
+            return limpieza
+
+
         if (
           
 

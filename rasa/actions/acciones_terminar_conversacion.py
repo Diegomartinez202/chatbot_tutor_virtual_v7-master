@@ -59,27 +59,41 @@ def limpiar_slots() -> List[EventType]:
 
         SlotSet("encuesta_incompleta", False),
 
+        SlotSet("esperando_resolucion", False),
+
+        SlotSet("esperando_encuesta_general", False),
+
         SlotSet("proceso_activo", None),
 
-        SlotSet("escalar_humano", False),
+        SlotSet("esperando_tema", False),
 
-        SlotSet("autosave_estado", None),
+        SlotSet("continuando_tema", False),
+
+        SlotSet("cambio_tema", False),
 
         SlotSet("tema_actual", None),
 
         SlotSet("tema_consulta", None),
 
-        SlotSet("encuesta_tipo", None),
+        SlotSet("tema_anterior", None),
 
-        SlotSet("esperando_resolucion", False),
+        SlotSet("materia_detectada", None),
 
-        SlotSet("esperando_encuesta_general", False),
+        SlotSet("rol_academico", None),
 
-        SlotSet("llm_request", None),
+        SlotSet("nivel_explicacion", None),
 
         SlotSet("ultima_respuesta_llm", None),
 
+        SlotSet("encuesta_tipo", None),
+
+        SlotSet("llm_request", None),
+
         SlotSet("requested_slot", None),
+
+        SlotSet("autosave_estado", None),
+
+        SlotSet("escalar_humano", False),
     ]
 
 def registrar_encuesta_si_corresponde(tracker: Tracker):
@@ -251,7 +265,9 @@ def ejecutar_cierre_limpio(
             usar_llm=usar_llm,
         )
     )
-
+    events.extend(
+        limpiar_slots()
+    )
     return events
 
 # --- ACCIONES ÚNICAS ---
@@ -313,9 +329,24 @@ class ActionTerminarConversacionSegura(Action):
         return ejecutar_cierre_limpio(dispatcher, tracker, finalizar_encuesta=True, usar_llm=False)
 
 class ActionCancelarCierre(Action):
-    def name(self) -> Text: return "action_cancelar_cierre"
-    def run(self, dispatcher, tracker, domain) -> List[EventType]:
-        if tracker.get_slot("proceso_activo") == "aprender_tema":
+
+    def name(self) -> Text:
+        return "action_cancelar_cierre"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ) -> List[EventType]:
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        if proceso == "aprender_tema":
+
+            logger.info(
+                "[CIERRE] Reanudando flujo académico."
+            )
 
             dispatcher.utter_message(
                 response="utter_ofrecer_continuar"
@@ -326,7 +357,19 @@ class ActionCancelarCierre(Action):
             dispatcher.utter_message(
                 response="utter_cierre_cancelado"
             )
-        return [SlotSet("confirmacion_cierre", None), ConversationResumed()]
+
+        eventos = [
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
+
+            ConversationResumed(),
+
+        ]
+
+        return eventos
 
 class ActionDecidirCierre(Action):
 
@@ -477,7 +520,9 @@ class ActionFinalizarCierre(Action):
         logger.info(
             "[CIERRE] Finalizando conversación."
         )
-
+        logger.warning("=" * 80)
+        logger.warning("[FINALIZAR_CIERRE] EJECUTANDO")
+        logger.warning("=" * 80)
         events = limpiar_slots()
 
         events.append(

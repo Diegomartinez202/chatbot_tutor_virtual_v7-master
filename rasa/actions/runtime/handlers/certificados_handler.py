@@ -1,3 +1,5 @@
+
+import os
 from typing import Any, Dict
 
 from rasa_sdk import Tracker
@@ -10,7 +12,14 @@ from .base_handler import (
 )
 
 MAX_CERTIFICADOS = 5
+# ==========================================================
+# MODO DEMOSTRACIÓN
+# En sustentación permite mostrar el flujo autenticado sin
+# depender de la API real de Zajuna.
+# En producción debe permanecer en False.
+# ==========================================================
 
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 def handler(
     dispatcher: CollectingDispatcher,
@@ -19,6 +28,35 @@ def handler(
 ):
 
     payload = payload or {}
+
+    # ==========================================================
+    # DEMO
+    # ==========================================================
+
+    if DEMO_MODE:
+
+        dispatcher.utter_message(
+            text="📜 Tienes 2 certificados disponibles."
+        )
+
+        send_lines(
+            dispatcher,
+            "📜 Certificados:",
+            [
+                "• Certificado de Fundamentos de Programación",
+                "• Certificado de Bases de Datos Relacionales",
+            ],
+        )
+
+        dispatcher.utter_message(
+            response="utter_fin_consulta_academica",
+        )
+
+        return []
+    
+    # ==========================================================
+    # PRODUCCIÓN
+    # ==========================================================
 
     response = safe_backend_response(
         call(

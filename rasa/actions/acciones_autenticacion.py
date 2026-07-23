@@ -78,9 +78,14 @@ class ActionCheckAuth(Action):
                     SlotSet("is_authenticated", True),
                     SlotSet("auth_state", "active"),
                     SlotSet("password", None),
-                    SlotSet("llm_request", None),
                     SlotSet("email", email), 
                 ]
+
+                logger.info(
+                    "[AUTH] Login exitoso. pending=%s llm_request=%s",
+                    tracker.get_slot("pending_action"),
+                    tracker.get_slot("llm_request"),
+                )
 
                 if pending:
                     events.append(
@@ -260,12 +265,28 @@ class ActionReanudarPendingAction(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        logger.warning("=" * 80)
+        logger.warning("[REANUDAR] Entrando a ActionReanudarPendingAction")
+        logger.warning(
+            "authenticated=%s pending=%s llm_request=%s",
+            tracker.get_slot("is_authenticated"),
+            tracker.get_slot("pending_action"),
+            tracker.get_slot("llm_request"),
+        )
+        logger.warning("=" * 80)
+        
         pending = tracker.get_slot("pending_action")
 
         logger.info(
             "[PENDING] Reanudando acción pendiente=%s",
             pending,
         )
+        logger.info(
+            "[REANUDAR] pending=%s authenticated=%s",
+            pending,
+            tracker.get_slot("is_authenticated"),
+        )
+
 
         if not pending:
 
@@ -276,7 +297,13 @@ class ActionReanudarPendingAction(Action):
             return []
 
         resume_action = RESUME_ACTIONS.get(pending)
-
+       
+        logger.info(
+            "[REANUDAR] Ejecutando resume_action=%s",
+            resume_action,
+        )
+        
+        
         if not resume_action:
 
             logger.warning(
@@ -296,6 +323,11 @@ class ActionReanudarPendingAction(Action):
             "[PENDING] Ejecutando %s",
             resume_action,
         )
+        logger.warning(
+            "[REANUDAR] Ejecutando resume_action=%s",
+            resume_action,
+        )
+
 
         return [
 

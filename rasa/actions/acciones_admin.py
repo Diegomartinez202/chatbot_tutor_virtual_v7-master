@@ -30,10 +30,21 @@ class ActionReiniciarConversacion(Action):
     ) -> List[EventType]:
 
         logger.info(f"[ADMIN] reset_conversation user={tracker.sender_id}")
+        logger.warning("=" * 80)
+        logger.warning("[RESTART] EJECUTANDO")
+        logger.warning("=" * 80)
 
         dispatcher.utter_message(response="utter_reinicio_confirmado")
 
+        logger.warning(
+                "[RESTART] eventos antes=%s",
+                len(tracker.events),
+        )
+        logger.info(
+            "[RESTART] Solicitando Restarted() a Rasa."
+        )
         return [
+
             Restarted(),
             SlotSet("session_activa", True),
             SlotSet("encuesta_activa", False),       
@@ -51,6 +62,9 @@ class ActionReiniciarConversacion(Action):
             SlotSet("is_authenticated", False),
             SlotSet("user_token", None),
             SlotSet("auth_state", "inactive"),
+            SlotSet("pending_action", None),
+            SlotSet("llm_request",None),
+            SlotSet("requires_auth", None),
             FollowupAction("action_listen"),
         ]
 

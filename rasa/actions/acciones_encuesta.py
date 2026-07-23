@@ -747,6 +747,11 @@ class ActionPreguntarEncuestaGeneral(Action):
         return [
 
             SlotSet(
+                "encuesta_activa",
+                False,
+            ),
+
+            SlotSet(
                 "esperando_encuesta_general",
                 True,
             ),
@@ -834,6 +839,46 @@ class ActionGuardarCalificacionGeneral(Action):
 
             tracker.get_slot("nota"),
         )
+
+        logger.info(
+            "[ENCUESTA GENERAL] intent=%s",
+            tracker.get_intent_of_latest_message(),
+        )
+
+        logger.info(
+            "[ENCUESTA GENERAL] nota=%s",
+            nota,
+        )
+
+        logger.info(
+            "[ENCUESTA GENERAL] texto=%s",
+            tracker.latest_message.get("text"),
+        )
+
+        # =====================================================
+        # VALIDACIÓN CALIFICACIÓN
+        # =====================================================
+
+        if nota not in ["1", "2", "3", "4", "5"]:
+
+            logger.warning(
+                "[ENCUESTA GENERAL] Calificación inválida. intent=%s texto=%s nota=%s",
+                tracker.get_intent_of_latest_message(),
+                tracker.latest_message.get("text"),
+                nota,
+            )
+            
+            dispatcher.utter_message(
+
+                text=(
+                    "No entendí la calificación. "
+                    "Por favor selecciona una de las estrellas."
+                )
+
+            )
+
+            return []
+        
 
         logger.info(
             "[ENCUESTA GENERAL] Calificación=%s",
