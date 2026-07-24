@@ -367,7 +367,7 @@ class ActionHandleWithLLM(Action):
         if tracker.get_slot("encuesta_activa"):
             return self.FLOW_GENERAL
 
-        if tracker.get_slot("confirmacion_cierre"):
+        if tracker.get_slot("confirmacion_cierre") == "pendiente":
             return self.FLOW_GENERAL
 
         
@@ -1611,51 +1611,28 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("llm_request"),
         )
 
-        # ======================================================
-        # VALIDACIÓN DE CIERRE
-        # ======================================================
+        logger.info(
+            "[VALIDATION] cierre=%s resolucion=%s post=%s intent=%s",
+            tracker.get_slot("confirmacion_cierre"),
+            tracker.get_slot("esperando_resolucion"),
+            tracker.get_slot("esperando_decision_post_resolucion"),
+            tracker.get_intent_of_latest_message(),
+       )
 
-        if tracker.get_slot("confirmacion_cierre") == "pendiente":
-
-            if validar_respuesta(
-                tracker,
-                dispatcher,
-                ["affirm", "deny"],
-                "No entendí tu respuesta. Por favor responde únicamente 'Sí' o 'No'.",
-            ):
-                return limpieza
-
-        # ======================================================
-        # VALIDACIÓN RESPUESTA DE RESOLUCIÓN
-        # ======================================================
-
-        if tracker.get_slot("esperando_resolucion"):
-
-            if validar_respuesta(
-                tracker,
-                dispatcher,
-                [
-                    "respuesta_resuelto_si",
-                    "respuesta_resuelto_no",
-                    "affirm",
-                    "deny",
-                ],
-                "No entendí. ¿Tu problema quedó resuelto? Responde únicamente Sí o No.",
-            ):
-                return limpieza
         # ======================================================
         # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
         #
         # El usuario ya respondió si el problema quedó resuelto.
-        # Ahora puede decidir:
+        # Mientras este estado permanezca activo, tiene prioridad
+        # sobre cualquier otra validación de Sí/No.
         #
+        # Puede:
         #   • Continuar tema
         #   • Ir al menú principal
         #   • Finalizar conversación
         #
-        # También puede escribir directamente una subconsulta
-        # relacionada con el tema actual, la cual será procesada
-        # posteriormente por el modo aprendizaje.
+        # También puede escribir directamente una nueva pregunta
+        # relacionada con el tema actual.
         # ======================================================
 
         intent = tracker.get_intent_of_latest_message()
@@ -1693,15 +1670,45 @@ class ActionHandleWithLLM(Action):
 
                 return limpieza
 
-                # ----------------------------------------------
-                # Cualquier otro intent se deja continuar.
-                # Puede ser una subconsulta del tema actual.
-                # El modo aprendizaje decidirá si es:
-                #   - continuación
-                #   - subconsulta
-                #   - cambio de tema
-                # ----------------------------------------------
-            
+            # ----------------------------------------------
+            # Cualquier otro intent se deja continuar.
+            # El modo aprendizaje decidirá si corresponde
+            # a una continuación del tema o un nuevo tema.
+            # ----------------------------------------------
+
+        # ======================================================
+        # VALIDACIÓN DE CIERRE
+        # ======================================================
+
+        if tracker.get_slot("confirmacion_cierre") == "pendiente":
+
+            if validar_respuesta(
+                tracker,
+                dispatcher,
+                ["affirm", "deny"],
+                "No entendí tu respuesta. Por favor responde únicamente 'Sí' o 'No'.",
+            ):
+                return limpieza
+
+        # ======================================================
+        # VALIDACIÓN RESPUESTA DE RESOLUCIÓN
+        # ======================================================
+
+        if tracker.get_slot("esperando_resolucion"):
+
+            if validar_respuesta(
+                tracker,
+                dispatcher,
+                [
+                    "respuesta_resuelto_si",
+                    "respuesta_resuelto_no",
+                    "affirm",
+                    "deny",
+                ],
+                "No entendí. ¿Tu problema quedó resuelto? Responde únicamente Sí o No.",
+            ):
+                return limpieza
+
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
 
@@ -2561,14 +2568,76 @@ class ActionHandleWithLLM(Action):
                 )
             )
 
+            # =====================================================
+            # RECOVERY DE FLUJO
+            # =====================================================
+
+            en_cierre = any(
+
+                [
+
+                    tracker.get_slot("confirmacion_cierre") == "pendiente",
+
+                    tracker.get_slot("esperando_resolucion"),
+
+                    tracker.get_slot("esperando_decision_post_resolucion"),
+
+                    tracker.get_slot("esperando_encuesta_general"),
+
+                    tracker.get_slot("encuesta_activa"),
+
+                    tracker.get_slot("encuesta_incompleta"),
+
+                ]
+
+)
+            # =====================================================
+            # SI EL ERROR OCURRIÓ DURANTE EL CIERRE,
+            # FORZAR UN CIERRE LIMPIO.
+            # =====================================================
+
+            if en_cierre:
+
+              logger.error(
+                  "[RECOVERY] Error durante el flujo de cierre. "
+                  "Se fuerza action_cierre_limpio."
+              )
+
+              logger.error(
+                    "[RECOVERY] confirmacion=%s "
+                    "esperando_resolucion=%s "
+                    "esperando_decision=%s "
+                    "encuesta_general=%s "
+                    "encuesta_activa=%s "
+                    "encuesta_incompleta=%s",
+                    tracker.get_slot("confirmacion_cierre"),
+                    tracker.get_slot("esperando_resolucion"),
+                    tracker.get_slot("esperando_decision_post_resolucion"),
+                    tracker.get_slot("esperando_encuesta_general"),
+                    tracker.get_slot("encuesta_activa"),
+                    tracker.get_slot("encuesta_incompleta"),
+              )
+
+              return [
+
+                  SlotSet("llm_request", None),
+
+                  FollowupAction("action_cierre_limpio"),
+
+              ]
+
+          # =====================================================
+          # ERROR EN OTRO FLUJO
+          # =====================================================
+              
             return [
 
                 SlotSet(
-                   "llm_request",
-                   None,
-                ),
+                    "llm_request",
+                    None,
+            ),
 
-            ]
+]
 
 class ActionMemoryWrapper(Action):
 

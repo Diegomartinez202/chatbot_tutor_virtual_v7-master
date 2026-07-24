@@ -273,7 +273,7 @@ rules:
   - rule: Usuario indica que sí quedó resuelto
     condition:
       - slot_was_set:
-          - encuesta_incompleta: true
+          - esperando_resolucion: true
     steps:
       - intent: respuesta_resuelto_si
       - action: action_procesar_respuesta_resolucion

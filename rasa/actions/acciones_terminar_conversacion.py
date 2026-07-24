@@ -221,6 +221,24 @@ def ejecutar_cierre_limpio(
     usar_llm=True,
 ) -> List[EventType]:
 
+    events: List[EventType] = [
+
+        SlotSet("confirmacion_cierre", None),
+
+        SlotSet("esperando_resolucion", False),
+
+        SlotSet("esperando_decision_post_resolucion", False),
+
+        SlotSet("esperando_encuesta_general", False),
+
+        SlotSet("encuesta_activa", False),
+
+        SlotSet("encuesta_incompleta", False),
+
+        SlotSet("llm_request", None),
+
+    ]
+
     # --------------------------------------------------------
     # Si el usuario mostró frustración o confusión,
     # ofrecer contacto con un tutor antes del cierre.
@@ -245,18 +263,6 @@ def ejecutar_cierre_limpio(
     if finalizar_encuesta:
         registrar_encuesta_si_corresponde(tracker)
 
-    # --------------------------------------------------------
-    # Preparar eventos del cierre.
-    # despedir_usuario() devolverá:
-    #
-    #   • [] cuando usar_llm=False
-    #
-    #   • o bien:
-    #       SlotSet("llm_request", ...)
-    #       FollowupAction("action_handle_with_llm")
-    #
-    # --------------------------------------------------------
-    events: List[EventType] = []
 
     events.extend(
         despedir_usuario(
@@ -320,6 +326,21 @@ class ActionConfirmarCierre(Action):
 
             dispatcher.utter_message(
                 response="utter_confirmar_cierre"
+            )
+            logger.warning(
+                "[ESTADO CIERRE][ActionConfirmarCierre] "
+                "confirmacion=%s | "
+                "esperando_resolucion=%s | "
+                "esperando_decision=%s | "
+                "encuesta_activa=%s | "
+                "encuesta_incompleta=%s | "
+                "esperando_encuesta_general=%s",
+                tracker.get_slot("confirmacion_cierre"),
+                tracker.get_slot("esperando_resolucion"),
+                tracker.get_slot("esperando_decision_post_resolucion"),
+                tracker.get_slot("encuesta_activa"),
+                tracker.get_slot("encuesta_incompleta"),
+                tracker.get_slot("esperando_encuesta_general"),
             )
 
         return [
@@ -436,6 +457,11 @@ class ActionDecidirCierre(Action):
 
             return [
 
+                SlotSet(
+                    "confirmacion_cierre",
+                    None,
+                ),
+
                 FollowupAction(
                     "action_guardar_progreso_encuesta"
                 )
@@ -492,11 +518,27 @@ class ActionDecidirCierre(Action):
             "[CIERRE] No existe proceso activo. Cierre limpio."
         )
 
+        logger.warning(
+            "[ESTADO CIERRE][ActionDecidirCierre] "
+            "confirmacion=%s | "
+            "esperando_resolucion=%s | "
+            "esperando_decision=%s | "
+            "encuesta_activa=%s | "
+            "encuesta_incompleta=%s | "
+            "esperando_encuesta_general=%s",
+            tracker.get_slot("confirmacion_cierre"),
+            tracker.get_slot("esperando_resolucion"),
+            tracker.get_slot("esperando_decision_post_resolucion"),
+            tracker.get_slot("encuesta_activa"),
+            tracker.get_slot("encuesta_incompleta"),
+            tracker.get_slot("esperando_encuesta_general"),
+         )
+
         return [
 
             FollowupAction(
                 "action_cierre_limpio"
-            )
+            ),
 
         ]
 class ActionCierreLimpio(Action):
@@ -546,7 +588,9 @@ class ActionFinalizarCierre(Action):
         logger.warning("[FINALIZAR_CIERRE] EJECUTANDO")
         logger.warning("=" * 80)
         events = limpiar_slots()
-
+        logger.error(
+            "[RECOVERY] Entrando al cierre definitivo."
+        )
         events.append(
             FollowupAction(
                 "action_reiniciar_conversacion"

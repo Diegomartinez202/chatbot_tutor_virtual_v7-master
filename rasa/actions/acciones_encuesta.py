@@ -633,6 +633,10 @@ class ActionProcesarRespuestaResolucion(Action):
                     True,
                 ),
 
+                SlotSet(
+                   "confirmacion_cierre",
+                   None,
+                ),
             ]
 
         # ==========================================================
@@ -658,6 +662,11 @@ class ActionProcesarRespuestaResolucion(Action):
                 SlotSet(
                     "encuesta_activa",
                     True,
+                ),
+
+                SlotSet(
+                    "confirmacion_cierre",
+                    None,
                 ),
 
                 FollowupAction(
@@ -920,6 +929,18 @@ class ActionGuardarCalificacionGeneral(Action):
 
             SlotSet("nota", None),
 
+            SlotSet("confirmacion_cierre", None),
+
+            SlotSet("esperando_resolucion", False),
+
+            SlotSet("esperando_decision_post_resolucion", False),
+
+            SlotSet("esperando_encuesta_general", False),
+
+            SlotSet("encuesta_activa", False),
+
+            SlotSet("encuesta_incompleta", False),
+
             SlotSet("proceso_activo", None),
 
             SlotSet("tema_actual", None),
@@ -931,8 +952,6 @@ class ActionGuardarCalificacionGeneral(Action):
             SlotSet("ultima_respuesta_llm", None),
 
             SlotSet("nivel_explicacion", None),
-
-            SlotSet("esperando_encuesta_general", False),
 
             SlotSet("llm_request", None),
 
