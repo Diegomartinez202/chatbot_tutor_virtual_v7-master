@@ -818,11 +818,18 @@ responses:
 
   utter_menu_soporte:
   - text: |
-      🔧 Menú de Soporte Técnico. 
-      "Puedo ayudarte con problemas de acceso a Zajuna, restablecimiento de credenciales o transferirte a un asesor humano."
+      🔧 Menú de Soporte Técnico.
+
+      Puedo ayudarte con problemas de acceso a Zajuna, resolver dudas frecuentes de la plataforma, crear solicitudes de soporte o indicarte cómo contactar a un asesor.
 
       Selecciona una opción:
     buttons:
+
+      - title: "❓ Preguntas frecuentes"
+        payload: "/preguntas_frecuentes"
+
+      - title: "📝 PQRS"
+        payload: "/pqrs"
 
       - title: "🎫 Crear caso"
         payload: "/solicitar_soporte"

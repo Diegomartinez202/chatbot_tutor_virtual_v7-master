@@ -81,7 +81,7 @@ stories:
     - intent: pqrs
     - action: action_pqrs_llm
   
-- story: preguntas frecuentes plataforma
+- story: preguntas frecuentes soporte
 
   steps:
     - intent: preguntas_frecuentes
@@ -98,13 +98,6 @@ stories:
     - action: action_ping_servidor
     - intent: mostrar_token
     - action: action_mostrar_token
-
-
- 
-- story: usuario pide ayuda inteligente
-  steps:
-    - intent: ayuda
-    - action: action_handle_with_llm
   
 - story: Flujo de cierre seguro tras soporte
   steps:

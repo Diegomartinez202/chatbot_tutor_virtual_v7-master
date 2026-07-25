@@ -19,7 +19,10 @@ from rasa_sdk.forms import FormValidationAction
 from rasa_sdk.types import DomainDict
 from .core.llm_engine import run_llm
 from .utils_logging import get_logger
-
+from .core.nlp_utils import build_llm_request
+from rasa_sdk.events import (
+    ActiveLoop,
+)
 logger = get_logger(__name__)
 
 from .common import (
@@ -549,7 +552,6 @@ class ActionPQRSLLM(Action):
 
 
 class ActionPreguntasFrecuentesLLM(Action):
-    """Responde preguntas frecuentes (FAQ) usando el LLM central."""
 
     def name(self) -> Text:
         return "action_preguntas_frecuentes_llm"
@@ -560,18 +562,86 @@ class ActionPreguntasFrecuentesLLM(Action):
         tracker: Tracker,
         domain: DomainDict,
     ) -> List[EventType]:
-        logger.info("ActionPreguntasFrecuentesLLM ejecutada.")
 
-        dispatcher.utter_message(
-            text=(
-                "❓ Veo que tienes una duda frecuente sobre la plataforma o el proceso.\n\n"
-                "Voy a darte una explicación clara y resumida basada en la información "
-                "académica y de soporte de Zajuna. Si después quieres más detalle, "
-                "podemos profundizar o escalar a soporte humano. 🙂"
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.info("=" * 80)
+        logger.info("[SOPORTE] ActionPreguntasFrecuentesLLM")
+        logger.info("texto=%s", tracker.latest_message.get("text"))
+        logger.info("intent=%s", intent)
+        logger.info("=" * 80)
+
+        pregunta = (
+            tracker.latest_message.get("text") or ""
+        ).strip()
+
+        if len(pregunta) < 2:
+
+            dispatcher.utter_message(
+                text=(
+                    "No logré entender tu consulta. "
+                    "¿Podrías escribirla nuevamente?"
+                )
+            )
+
+            return []
+
+        eventos = [
+
+            ActiveLoop(None),
+
+            SlotSet("requested_slot", None),
+
+            SlotSet("proceso_activo", "faq"),
+
+            SlotSet("tema_consulta", pregunta),
+
+            SlotSet("auth_login_form", None),
+
+        ]
+
+        if intent != "continuar_tema_si":
+
+            eventos.append(
+                SlotSet(
+                    "tema_actual",
+                    pregunta,
+                )
+            )
+
+        request = build_llm_request(
+
+            instruction=pregunta,
+
+            macroflujo="support",
+
+            subflujo="faq",
+
+            requires_auth=False,
+
+            next_action="action_ofrecer_continuar_tema",
+
+        )
+
+        logger.info(
+            "[SOPORTE] llm_request=%s",
+            request,
+        )
+
+        eventos.append(
+            SlotSet(
+                "llm_request",
+                request,
             )
         )
 
-        return [FollowupAction("action_handle_with_llm")]
+        eventos.append(
+            FollowupAction(
+                "action_handle_with_llm"
+            )
+        )
+
+        return eventos
 
 
 class ActionSoporteTecnicoLLM(Action):
