@@ -322,3 +322,14 @@ rules:
     steps:
       - intent: deny
       - action: action_cierre_limpio
+  
+
+  - rule: Continuar tema después de pregunta de resolución
+    condition:
+      - slot_was_set:
+          - esperando_decision_post_resolucion: true
+    steps:
+      - intent: continuar_tema_si
+      - action: action_memory_wrapper
+      - action: action_handle_with_llm
+      - action: action_ofrecer_continuar_tema

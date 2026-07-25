@@ -85,6 +85,12 @@ def validar_respuesta(
     intents_validos,
     mensaje,
 ):
+    if tracker.get_slot("esperando_decision_post_resolucion"):
+
+        logger.info(
+            "[VALIDAR_RESPUESTA] Recuperando decisión post resolución."
+        )
+
     intent = tracker.get_intent_of_latest_message()
 
     if intent not in intents_validos:
@@ -102,7 +108,6 @@ class ActionHandleWithLLM(Action):
     compatibilidad con la arquitectura existente, pero organiza
     internamente la lógica por responsabilidades.
     """
-
     FLOW_AUTH = "auth"
     FLOW_ACADEMIC = "academic"
     FLOW_HELP = "help"
@@ -253,6 +258,13 @@ class ActionHandleWithLLM(Action):
         "consultar_historial",
         "consultar_inscripciones",
     }
+
+    SPECIAL_MACROFLOWS = (
+        "guardian_encuesta",
+         "guardian_autenticacion",
+         "guardian_recuperacion",
+         "cierre_conversacion",
+    )
     
     def _detect_flow(
         self,
@@ -297,10 +309,24 @@ class ActionHandleWithLLM(Action):
             "subflujo"
         )
 
+        flujo = request_context.get(
+           "flujo"
+        )
+
+        if not macroflujo and flujo:
+
+            logger.info(
+                "[FLOW] Compatibilidad: promoviendo flujo '%s' como macroflujo.",
+                flujo,
+            )
+
+            macroflujo = flujo
+
         # ======================================================
         # PRIORIDAD 1
         # NUEVA ARQUITECTURA (macroflujo / subflujo)
         # ======================================================
+
 
         if macroflujo:
 
@@ -333,16 +359,27 @@ class ActionHandleWithLLM(Action):
 
                 return self.FLOW_ADMINISTRATIVE
 
+            # ------------------------------------------
+            # Macroflujos especiales
+            # ------------------------------------------
+
+            if macroflujo in self.SPECIAL_MACROFLOWS:
+
+                 logger.info(
+                     "[FLOW] Macroflujo especial=%s",
+                     macroflujo,
+                 )
+
+                 return self.FLOW_GENERAL
+
+            if macroflujo == "auth_required":
+                 return self.FLOW_AUTH
+
         # ======================================================
         # COMPATIBILIDAD CON FLUJOS ANTIGUOS
         # ======================================================
 
-        flujo = request_context.get("flujo")
-
-        if flujo in (
-            "guardian_encuesta",
-            "cierre_conversacion",
-        ):
+        if flujo in self.SPECIAL_MACROFLOWS:
 
             logger.info(
                 "[FLOW] Flujo especial=%s",
@@ -1601,6 +1638,19 @@ class ActionHandleWithLLM(Action):
         logger.info("materia_detectada=%s", tracker.get_slot("materia_detectada"))
         logger.info("=" * 80)
 
+        logger.warning("=========== SLOTS ===========")
+        for k, v in tracker.current_slot_values().items():
+           logger.warning("%s = %s", k, v)
+        logger.warning("=============================")
+
+        logger.warning("=" * 80)
+        logger.warning("ÚLTIMOS 20 EVENTOS DEL TRACKER")
+        for i, e in enumerate(tracker.events[-20:], 1):
+            logger.warning("[%02d] %s", i, e)
+        logger.warning("=" * 80)
+
+
+
         limpieza = [
             ActiveLoop(None),
             SlotSet("requested_slot", None),
@@ -1635,21 +1685,31 @@ class ActionHandleWithLLM(Action):
         # relacionada con el tema actual.
         # ======================================================
 
-        intent = tracker.get_intent_of_latest_message()
+        # ======================================================
+        # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
+        # ======================================================
 
         if tracker.get_slot("esperando_decision_post_resolucion"):
 
-            # ----------------------------------------------
-            # Opciones válidas del flujo
-            # ----------------------------------------------
+            logger.info(
+                "[POST_RESOLUCION] Intent=%s",
+                intent,
+            )
 
-            if intent in (
-                "continuar_tema",
-                "continuar_tema_si",
-                "ir_menu_principal",
-                "terminar_conversacion_segura",
-            ):
-                pass
+            if intent == "nlu_fallback":
+
+                 dispatcher.utter_message(
+                    text=(
+                        "Puedes elegir una de estas opciones:\n"
+                        "• Continuar tema\n"
+                        "• Menú principal\n"
+                        "• Finalizar conversación\n\n"
+                        "O escribir directamente una pregunta relacionada con el tema actual."
+                        "O escribir directamente una pregunta no relacionada con el tema actual."
+                    )
+                 )
+
+                 return limpieza
 
             # ----------------------------------------------
             # Si el NLU no entendió el mensaje,
@@ -1708,6 +1768,36 @@ class ActionHandleWithLLM(Action):
                 "No entendí. ¿Tu problema quedó resuelto? Responde únicamente Sí o No.",
             ):
                 return limpieza
+
+        # ======================================================
+        # PRIORIDAD DE MACROFLUJOS DEL ORQUESTADOR
+        #
+        # Si otra Action ya construyó un llm_request con un
+        # macro/subflujo especial, NO debemos dejar que el
+        # proceso académico vuelva a interpretar el mensaje.
+        #
+        # Esto evita que comentarios de encuesta como
+        #
+        #     "yyjju"
+        #
+        # sean tratados como un nuevo tema académico.
+        #
+        # También preserva la arquitectura basada en
+        # ACTION_CATALOG + llm_request.
+        # ======================================================
+
+        llm_request = tracker.get_slot("llm_request") or {}
+
+        contexto = llm_request.get("context", {})
+
+        flujo_especial = contexto.get("flujo")
+
+        if flujo_especial:
+
+            logger.info("=" * 70)
+            logger.info("[FLOW PRIORITY] Macroflujo especial=%s", flujo_especial)
+            logger.info("[FLOW PRIORITY] Se omite la lógica académica.")
+            logger.info("=" * 70)
 
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
@@ -1850,6 +1940,7 @@ class ActionHandleWithLLM(Action):
             or tracker.get_slot("esperando_decision_post_resolucion")
             or tracker.get_slot("confirmacion_cierre") == "pendiente"
             or tracker.get_slot("encuesta_activa")
+            or tracker.get_slot("encuesta_incompleta")
             or tracker.get_slot("esperando_encuesta_general")
         ):
             return limpieza
@@ -1857,8 +1948,13 @@ class ActionHandleWithLLM(Action):
 
         if (
           
-
-            tracker.get_slot("proceso_activo") == "aprender_tema"
+            flujo_especial not in (
+                "guardian_encuesta",
+                "guardian_autenticacion",
+                "guardian_recuperacion",
+                "cierre_conversacion",
+            )
+            and tracker.get_slot("proceso_activo") == "aprender_tema"
             and not tracker.get_slot("esperando_tema")
             and tracker.latest_message.get("text", "").strip()
             and intent not in (
@@ -2193,6 +2289,12 @@ class ActionHandleWithLLM(Action):
            _call_model()
         """
         
+        logger.warning("=" * 80)
+        logger.warning("[DEBUG LLM_REQUEST]")
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
+        
+        
         nivel_actual = (
             nivel_explicacion
             if nivel_explicacion is not None
@@ -2355,6 +2457,62 @@ class ActionHandleWithLLM(Action):
                 len(prompt),
             )
 
+            logger.info("=" * 70)
+            logger.info("[LLM] Estado previo a invocar el modelo")
+            logger.info("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+            logger.info("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+            logger.info("esperando_decision_post_resolucion=%s", tracker.get_slot("esperando_decision_post_resolucion"))
+            logger.info("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
+            logger.info("encuesta_incompleta=%s", tracker.get_slot("encuesta_incompleta"))
+            logger.info("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
+            logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+            logger.info("flow=%s", flow)
+            logger.info("=" * 70)
+
+            
+            
+            # =====================================================
+            # Construir SIEMPRE el prompt final
+            # =====================================================
+
+            prompt = build_prompt(
+                base_prompt=prompt,
+                tracker=tracker,
+                context=context,
+            )
+
+            logger.info("=" * 70)
+            logger.info("[LLM] Prompt FINAL")
+            logger.info(prompt)
+            logger.info("=" * 70)
+
+            # =====================================================
+            # DETERMINAR EL ESTADO CONVERSACIONAL
+            # ANTES DE INVOCAR EL LLM
+            # =====================================================
+
+            estado_conversacion = "normal"
+
+            if tracker.get_slot("confirmacion_cierre") == "pendiente":
+                estado_conversacion = "confirmacion_cierre"
+
+            elif tracker.get_slot("esperando_resolucion"):
+               estado_conversacion = "esperando_resolucion"
+
+            elif tracker.get_slot("esperando_decision_post_resolucion"):
+               estado_conversacion = "decision_post_resolucion"
+
+            elif tracker.get_slot("esperando_encuesta_general"):
+               estado_conversacion = "encuesta_general"
+
+            elif tracker.get_slot("encuesta_activa"):
+               estado_conversacion = "encuesta_activa"
+
+            logger.info(
+                "[LLM] Estado conversacional=%s",
+                estado_conversacion,
+            )
+            
             # =====================================================
             # Invocar LLM
             # =====================================================
@@ -2455,6 +2613,13 @@ class ActionHandleWithLLM(Action):
                     "[LLM] Respuesta enviada.",
                 )
 
+           
+                logger.warning("=" * 80)
+                logger.warning("[DEBUG NEXT ACTION]")
+                logger.warning("llm_request=%s", llm_request)
+                logger.warning("next_action=%s", llm_request.get("next_action") if llm_request else None)
+                logger.warning("=" * 80)
+                
             # =====================================================
             # Acción posterior definida por llm_request
             # =====================================================
@@ -2464,6 +2629,12 @@ class ActionHandleWithLLM(Action):
             )
 
             if next_action:
+
+                logger.warning(
+                    "[LLM] RETORNANDO FollowupAction(%s)",
+                    next_action,
+                )
+
                 return [
 
                     ActiveLoop(None),
@@ -2563,81 +2734,58 @@ class ActionHandleWithLLM(Action):
 
             dispatcher.utter_message(
                 text=(
-                    "Ocurrió un problema al procesar "
-                    "tu solicitud."
+                    "Ocurrió un problema al procesar tu solicitud."
                 )
             )
 
             # =====================================================
-            # RECOVERY DE FLUJO
+            # RECOVERY DE DIAGNÓSTICO
             # =====================================================
 
-            en_cierre = any(
+            logger.error("=" * 80)
+            logger.error("[RECOVERY]")
+            logger.error(
+                "Estado conversacional=%s",
+                estado_conversacion,
+            )
+            logger.error(
+                "confirmacion_cierre=%s",
+                tracker.get_slot("confirmacion_cierre"),
+            )
+            logger.error(
+                "esperando_resolucion=%s",
+                tracker.get_slot("esperando_resolucion"),
+            )
+            logger.error(
+                "esperando_decision_post_resolucion=%s",
+                tracker.get_slot("esperando_decision_post_resolucion"),
+            )
+            logger.error(
+                "esperando_encuesta_general=%s",
+                tracker.get_slot("esperando_encuesta_general"),
+            )
+            logger.error(
+                "encuesta_activa=%s",
+                tracker.get_slot("encuesta_activa"),
+            )
+            logger.error(
+                "encuesta_incompleta=%s",
+                tracker.get_slot("encuesta_incompleta"),
+            )
+            logger.error("=" * 80)
 
-                [
-
-                    tracker.get_slot("confirmacion_cierre") == "pendiente",
-
-                    tracker.get_slot("esperando_resolucion"),
-
-                    tracker.get_slot("esperando_decision_post_resolucion"),
-
-                    tracker.get_slot("esperando_encuesta_general"),
-
-                    tracker.get_slot("encuesta_activa"),
-
-                    tracker.get_slot("encuesta_incompleta"),
-
-                ]
-
-)
             # =====================================================
-            # SI EL ERROR OCURRIÓ DURANTE EL CIERRE,
-            # FORZAR UN CIERRE LIMPIO.
+            # LIMPIEZA MÍNIMA
             # =====================================================
 
-            if en_cierre:
-
-              logger.error(
-                  "[RECOVERY] Error durante el flujo de cierre. "
-                  "Se fuerza action_cierre_limpio."
-              )
-
-              logger.error(
-                    "[RECOVERY] confirmacion=%s "
-                    "esperando_resolucion=%s "
-                    "esperando_decision=%s "
-                    "encuesta_general=%s "
-                    "encuesta_activa=%s "
-                    "encuesta_incompleta=%s",
-                    tracker.get_slot("confirmacion_cierre"),
-                    tracker.get_slot("esperando_resolucion"),
-                    tracker.get_slot("esperando_decision_post_resolucion"),
-                    tracker.get_slot("esperando_encuesta_general"),
-                    tracker.get_slot("encuesta_activa"),
-                    tracker.get_slot("encuesta_incompleta"),
-              )
-
-              return [
-
-                  SlotSet("llm_request", None),
-
-                  FollowupAction("action_cierre_limpio"),
-
-              ]
-
-          # =====================================================
-          # ERROR EN OTRO FLUJO
-          # =====================================================
-              
             return [
 
                 SlotSet(
                     "llm_request",
                     None,
-            ),
+                ),
 
-]
+            ]
 
 class ActionMemoryWrapper(Action):
 
@@ -2681,6 +2829,59 @@ class ActionMemoryWrapper(Action):
             if not text:
                 return []
 
+            # ==========================================================
+            # PROTECCIÓN DE CONTEXTO CONVERSACIONAL
+            # ==========================================================
+
+            if tracker.get_slot("confirmacion_cierre") == "pendiente":
+
+                 logger.info(
+                     "[MEMORY_WRAPPER] Flujo de confirmación de cierre activo. "
+                     "No se procesa memoria adicional."
+                 )
+
+                 return []
+
+            elif tracker.get_slot("esperando_resolucion"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando respuesta de resolución."
+                )
+
+                return []
+
+            elif tracker.get_slot("esperando_decision_post_resolucion"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando decisión posterior a la resolución."
+                )
+
+                return []
+
+            elif tracker.get_slot("esperando_encuesta_general"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando inicio de encuesta."
+                )
+
+                return []
+
+            elif tracker.get_slot("encuesta_activa"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Encuesta activa."
+                )
+
+                return []
+
+            elif tracker.get_slot("encuesta_incompleta"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Encuesta incompleta."
+                )
+
+                return []
+            
             # ==========================================================
             # TELEMETRÍA: MEDIDOR DE TIEMPO DE EJECUCIÓN
             # ==========================================================

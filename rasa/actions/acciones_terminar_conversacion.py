@@ -300,7 +300,63 @@ class ActionConfirmarCierre(Action):
         logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
         logger.warning("=" * 80)
        
-        
+        logger.warning("=" * 80)
+        logger.warning("[CIERRE] ActionConfirmarCierre INVOCADA")
+        logger.warning("Último intent=%s", tracker.get_intent_of_latest_message())
+        logger.warning("Última acción=%s", tracker.latest_action_name)
+        logger.warning("Estado actual:")
+        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+        logger.warning(
+            "esperando_decision_post_resolucion=%s",
+            tracker.get_slot("esperando_decision_post_resolucion"),
+        )
+        logger.warning("=" * 80)
+
+        # ======================================================
+        # Evitar relanzar la pregunta de cierre
+        # si el flujo ya avanzó a otra etapa.
+        # ======================================================
+
+        if (
+            tracker.get_slot("esperando_resolucion")
+            or tracker.get_slot("esperando_decision_post_resolucion")
+        ):
+
+            logger.info(
+                "[CIERRE] Recuperando confirmación pendiente."
+            )
+            if tracker.get_slot("proceso_activo"):
+
+                dispatcher.utter_message(
+                    response="utter_confirmar_cierre_con_proceso"
+                )
+
+            else:
+
+                dispatcher.utter_message(
+                    response="utter_confirmar_cierre"
+                )
+
+            return []
+
+        # ======================================================
+        # Evitar relanzar la pregunta si el flujo ya avanzó
+        # a una etapa posterior.
+        # ======================================================
+
+        if (
+            tracker.get_slot("esperando_resolucion")
+            or tracker.get_slot("esperando_decision_post_resolucion")
+        ):
+
+            logger.info(
+                "[CIERRE] Se omite ActionConfirmarCierre porque el flujo ya avanzó."
+            )
+
+            return []
+
+
         latest = tracker.latest_message or {}
 
         logger.warning("=" * 70)

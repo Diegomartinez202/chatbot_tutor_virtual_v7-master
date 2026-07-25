@@ -166,6 +166,11 @@ class ActionOfrecerContinuarTema(Action):
 
         dispatcher.utter_message(response="utter_ofrecer_continuar")
         
+        logger.error("=" * 80)
+        logger.error("[SALIDA] action_ofrecer_continuar_tema")
+        logger.error("intent=%s", tracker.get_intent_of_latest_message())
+        logger.error("sender=%s", tracker.sender_id)
+        logger.error("=" * 80)
         return [
             SlotSet(
                 "esperando_decision_post_resolucion",

@@ -562,6 +562,18 @@ class ActionProcesarRespuestaResolucion(Action):
         logger.info("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
         logger.info("llm_request=%s", tracker.get_slot("llm_request"))
         
+        if not tracker.get_slot("esperando_resolucion"):
+
+            logger.info(
+                "[RESOLUCION] Acción invocada fuera del flujo de resolución."
+            )
+            
+            return []
+        logger.info(
+            "[RESOLUCION] Recuperando flujo de resolución."
+        )
+
+
         latest = tracker.latest_message or {}
 
         ultimo_intent = (

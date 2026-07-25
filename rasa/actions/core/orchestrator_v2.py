@@ -352,13 +352,7 @@ class OrchestratorV2:
                 intent,
                 config,
             )
-            if config.get("action"):
 
-                return {
-                    "type":"action",
-                    "action":config["action"],
-                    "context":context
-                }
             # ----------------------------------------------------
             # Acción Rasa
             # ----------------------------------------------------
