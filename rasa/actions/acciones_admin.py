@@ -48,11 +48,15 @@ class ActionReiniciarConversacion(Action):
             Restarted(),
             SlotSet("session_activa", True),
             SlotSet("encuesta_activa", False),       
-            SlotSet("encuesta_incompleta", False),  
+            SlotSet("encuesta_incompleta", False), 
+            SlotSet("esperando_tema", False),
+            SlotSet("esperando_resolucion", False),
+            SlotSet("esperando_decision_post_resolucion", False),
+            SlotSet("esperando_encuesta_general", False),
             SlotSet("proceso_activo", None),
             SlotSet("tema_actual", None),
             SlotSet("tema_consulta", None),
-            SlotSet("nivel_explicacion", False),
+            SlotSet("nivel_explicacion", None),
             SlotSet("ultima_respuesta_llm", None),
             SlotSet("rol_academico", None),
             SlotSet("materia_detectada", None),
@@ -63,8 +67,9 @@ class ActionReiniciarConversacion(Action):
             SlotSet("user_token", None),
             SlotSet("auth_state", "inactive"),
             SlotSet("pending_action", None),
-            SlotSet("llm_request",None),
             SlotSet("requires_auth", None),
+            SlotSet("llm_request",None),
+
             FollowupAction("action_listen"),
         ]
 

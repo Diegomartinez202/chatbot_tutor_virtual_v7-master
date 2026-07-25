@@ -318,8 +318,13 @@ class ActionGuardarFeedback(Action):
 
         return [
             SlotSet("feedback_tipo", None),
+
             SlotSet("feedback_texto", None),
-            SlotSet("proceso_activo", None),
+
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema", 
+            ),
 
             SlotSet("tema_actual", None),
 
@@ -849,7 +854,10 @@ class ActionLanzarEncuestaGeneral(Action):
                 None,
             ),
 
-            SlotSet("proceso_activo", None),
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema",
+            ),
 
             FollowupAction("action_listen"),
 
@@ -953,7 +961,10 @@ class ActionGuardarCalificacionGeneral(Action):
 
             SlotSet("encuesta_incompleta", False),
 
-            SlotSet("proceso_activo", None),
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema",
+            ),
 
             SlotSet("tema_actual", None),
 

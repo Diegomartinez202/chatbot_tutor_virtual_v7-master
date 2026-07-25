@@ -48,7 +48,7 @@ def limpiar_mongo(tracker: Tracker) -> None:
         logger.exception("Error limpiando Mongo.")
 
 def limpiar_slots() -> List[EventType]:
-
+ 
     return [
 
         SlotSet("session_activa", False),
@@ -87,7 +87,7 @@ def limpiar_slots() -> List[EventType]:
 
         SlotSet("encuesta_tipo", None),
 
-        SlotSet("llm_request", None),
+        # SlotSet("llm_request", None),
 
         SlotSet("requested_slot", None),
 
@@ -274,6 +274,14 @@ def ejecutar_cierre_limpio(
     events.extend(
         limpiar_slots()
     )
+
+    logger.warning("=" * 80)
+    logger.warning("[CIERRE] EVENTOS DEVUELTOS")
+    for i, e in enumerate(events):
+         logger.warning("[%02d] %s", i + 1, e)
+    logger.warning("=" * 80)
+
+
     return events
 
 # --- ACCIONES ÚNICAS ---

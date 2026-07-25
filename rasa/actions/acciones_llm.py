@@ -85,19 +85,15 @@ def validar_respuesta(
     intents_validos,
     mensaje,
 ):
-    if tracker.get_slot("esperando_decision_post_resolucion"):
-
-        logger.info(
-            "[VALIDAR_RESPUESTA] Recuperando decisión post resolución."
-        )
-
+  
     intent = tracker.get_intent_of_latest_message()
 
     if intent not in intents_validos:
-        dispatcher.utter_message(text=mensaje)
-        return True
+   
+        return False
+    dispatcher.utter_message(text=mensaje)
 
-    return False
+    return True
 
 class ActionHandleWithLLM(Action):
     """
@@ -1378,6 +1374,8 @@ class ActionHandleWithLLM(Action):
         self,
         tracker: Tracker,
         nivel=None,
+        modo="continuacion",
+        tema=None,
     ):
         """
         Construye un prompt enriquecido para continuar una
@@ -1393,11 +1391,16 @@ class ActionHandleWithLLM(Action):
         logger.info("=" * 70)
        
         tema = (
-            tracker.get_slot("tema_actual")
+            tema
+            or tracker.get_slot("tema_actual")
             or tracker.get_slot("tema_consulta")
             or "el tema anterior"
         )
 
+        consulta_actual = (
+            tracker.get_slot("tema_consulta")
+            or tema
+        )
         if nivel is None:
 
             nivel = (
@@ -1455,85 +1458,182 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("ultima_respuesta_llm")
             or ""
         ).strip()
+        
         if len(ultima_respuesta) > 1200:
             ultima_respuesta = ultima_respuesta[-1200:]
-        prompt = f"""
-        El estudiante está estudiando el mismo tema.
+
+
+        # =====================================================
+        # CONTEXTO PEDAGÓGICO SEGÚN EL MODO
+        # =====================================================
+
+        if modo == "tema_nuevo":
+
+            prompt = f"""
+        Tipo de aprendizaje:
+
+        Tema nuevo
 
         Tema:
 
         {tema}
 
-        Nivel actual:
+        Nivel inicial:
 
         {nivel}
 
-        Esta conversación NO corresponde a un tema nuevo.
+        El estudiante acaba de iniciar este tema.
 
-        Corresponde a la continuación de una explicación previamente iniciada.
+        Comienza desde cero.
 
-        Debes continuar exactamente desde donde terminó la explicación anterior.
+        Haz una introducción clara.
 
-        No reinicies el tema.
+        Explica primero los conceptos fundamentales.
 
-        No vuelvas a realizar una introducción.
+        No asumas conocimientos previos.
 
-        No vuelvas a definir conceptos que ya fueron explicados.
+        Organiza la explicación de forma progresiva.
 
-        No repitas ejemplos anteriores.
-
-        Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
-
-        La primera oración debe comenzar como una continuación natural.
-
-        Ejemplos:
-
-        "Ahora que comprendemos los conceptos básicos..."
-
-        "A continuación profundizaremos..."
-
-        "Una vez entendida la estructura general..."
-
-        Nunca empieces diciendo:
-
-        "El modelo OSI es..."
-
-        "Fundamentos de programación es..."
-
-        "Variables son..."
-
-        porque eso indica que reiniciaste la explicación.
-
+        Al finalizar deja abierta la posibilidad de continuar aprendiendo.
         """
 
-        if ultima_respuesta:
+        elif modo == "subconsulta":
+
+            prompt = f"""
+        Tipo de aprendizaje:
+
+        Subconsulta
+
+        Tema principal:
+
+        {tema}
+
+         Consulta realizada por el estudiante:
+
+         {consulta_actual}
+
+         Nivel actual:
+
+         {nivel}
+
+         La pregunta pertenece al mismo tema.
+
+         No es un tema nuevo.
+
+         Responde primero únicamente la duda realizada.
+
+         Utiliza la explicación anterior únicamente como contexto.
+
+         No vuelvas a explicar todo el tema.
+
+         Después de responder la duda,
+         retoma naturalmente el hilo del aprendizaje.
+
+         No cambies de tema.
+
+         No reinicies la explicación.
+         """
+
+        else:
+
+            prompt = f"""
+        Tipo de aprendizaje:
+
+        Continuación
+
+        Tema:
+
+       {tema}
+
+       Nivel actual:
+
+       {nivel}
+
+       Esta conversación NO corresponde a un tema nuevo.
+
+       Corresponde a la continuación de una explicación previamente iniciada.
+
+       Debes continuar exactamente desde donde terminó la explicación anterior.
+
+       No reinicies el tema.
+
+       No vuelvas a realizar una introducción.
+
+       No vuelvas a definir conceptos que ya fueron explicados.
+
+       No repitas ejemplos anteriores.
+
+       Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
+
+       La primera oración debe comenzar como una continuación natural.
+
+       Ejemplos:
+
+       "Ahora que comprendemos los conceptos básicos..."
+
+       "A continuación profundizaremos..."
+
+       "Una vez entendida la estructura general..."
+
+       Nunca empieces diciendo:
+
+       "El modelo OSI es..."
+
+       "Fundamentos de programación es..."
+
+       "Variables son..."
+
+       porque eso indica que reiniciaste la explicación.
+       """
+
+        if modo != "tema_nuevo" and ultima_respuesta:
 
             prompt += f"""
 
-        La explicación anterior fue exactamente la siguiente:
+        La explicación anterior fue:
 
-        ------------------------------------------------------------
+        ----------------------------
 
         {ultima_respuesta}
 
-         ------------------------------------------------------------
+        ----------------------------
 
-         La explicación mostrada arriba representa el contenido que el estudiante YA leyó.
+        Toda esa información ya fue aprendida.
 
-         Considera toda esa información como conocida.
+        No la repitas.
 
-         Tu respuesta debe comenzar exactamente después del último concepto desarrollado.
+        No reinicies el tema.
 
-         No repitas párrafos.
+        Comienza exactamente desde el último concepto desarrollado.
 
-         No repitas listas.
+         La continuidad debe seguir estas reglas:
 
-         No repitas definiciones.
+        1. Comienza con una transición muy breve (máximo dos frases)
+           conectando la explicación anterior con la nueva.
 
-         No vuelvas al inicio del tema.
+        2. Resume únicamente la idea principal de lo ya aprendido,
+           sin repetir listas ni volver a explicar conceptos.
 
+        3. Introduce únicamente contenido nuevo.
 
-         """
+        4. Aumenta el nivel de profundidad respecto a la respuesta
+           anterior.
+
+        5. Si el tema tiene varias partes, continúa con la siguiente
+           parte lógica, nunca regreses al inicio.
+
+        6. Mantén continuidad como si fuera el siguiente capítulo
+           del mismo libro.
+
+        7. Evita reutilizar párrafos completos de la respuesta
+           anterior.
+
+        8. Solo vuelve a mencionar conceptos anteriores cuando sean
+           necesarios para comprender el nuevo contenido.
+
+        9. Al finalizar deja abierta naturalmente la explicación
+           para que pueda existir otro nivel de profundización.
+        """
         logger.info("=" * 70)
         logger.info("[LLM] Prompt CONTINUE")
         logger.info(prompt)
@@ -1670,6 +1770,24 @@ class ActionHandleWithLLM(Action):
        )
 
         # ======================================================
+        # CONTEXTO DEL MENSAJE ACTUAL
+        # ======================================================
+
+        flow = self._detect_flow(tracker)
+
+        logger.info(
+            "[DEBUG] Flow detectado=%s",
+            flow,
+        )
+
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.info(
+            "[DEBUG] Intent detectado=%s",
+            intent,
+        )
+    
+        # ======================================================
         # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
         #
         # El usuario ya respondió si el problema quedó resuelto.
@@ -1695,7 +1813,10 @@ class ActionHandleWithLLM(Action):
                 "[POST_RESOLUCION] Intent=%s",
                 intent,
             )
-
+            # ----------------------------------------------
+            # El NLU no entendió la respuesta.
+            # Permanecer dentro del flujo.
+            # ----------------------------------------------
             if intent == "nlu_fallback":
 
                  dispatcher.utter_message(
@@ -1704,36 +1825,23 @@ class ActionHandleWithLLM(Action):
                         "• Continuar tema\n"
                         "• Menú principal\n"
                         "• Finalizar conversación\n\n"
-                        "O escribir directamente una pregunta relacionada con el tema actual."
-                        "O escribir directamente una pregunta no relacionada con el tema actual."
+                        "O escribir directamente una pregunta "
+                        "relacionada con el tema actual."
                     )
                  )
 
                  return limpieza
 
             # ----------------------------------------------
-            # Si el NLU no entendió el mensaje,
-            # mantener al usuario dentro del flujo.
-            # ----------------------------------------------
-
-            elif intent == "nlu_fallback":
-
-                dispatcher.utter_message(
-                    text=(
-                        "Puedes elegir una de estas opciones:\n"
-                        "• Continuar tema\n"
-                        "• Menú principal\n"
-                        "• Finalizar conversación\n\n"
-                        "O escribir directamente una pregunta relacionada con el tema actual."
-                    )
-                )
-
-                return limpieza
-
-            # ----------------------------------------------
-            # Cualquier otro intent se deja continuar.
-            # El modo aprendizaje decidirá si corresponde
-            # a una continuación del tema o un nuevo tema.
+            # Para cualquier otro intent se continúa
+            # el flujo normal.
+            #
+            # continuar_tema
+            # continuar_tema_si
+            # menu_principal
+            # despedida
+            # nuevo tema
+            # etc.
             # ----------------------------------------------
 
         # ======================================================
@@ -1848,6 +1956,7 @@ class ActionHandleWithLLM(Action):
             prompt = self._build_continue_prompt(
                 tracker,
                 nivel=nuevo_nivel,
+                modo="continuacion",
             )
 
             logger.info(
@@ -1936,17 +2045,6 @@ class ActionHandleWithLLM(Action):
         )
 
         if (
-            tracker.get_slot("esperando_resolucion")
-            or tracker.get_slot("esperando_decision_post_resolucion")
-            or tracker.get_slot("confirmacion_cierre") == "pendiente"
-            or tracker.get_slot("encuesta_activa")
-            or tracker.get_slot("encuesta_incompleta")
-            or tracker.get_slot("esperando_encuesta_general")
-        ):
-            return limpieza
-
-
-        if (
           
             flujo_especial not in (
                 "guardian_encuesta",
@@ -2022,6 +2120,12 @@ class ActionHandleWithLLM(Action):
                     texto,
                 )
 
+                prompt = self._build_continue_prompt(
+                    tracker,
+                    tema=texto,
+                    nivel="basico",
+                    modo="tema_nuevo",
+                )
                 return (
                     
                     limpieza
@@ -2072,6 +2176,8 @@ class ActionHandleWithLLM(Action):
                         tracker,
 
                         self.FLOW_ACADEMIC,
+
+                        prompt=prompt,
                         
                         nivel_explicacion="basico",
 
@@ -2104,6 +2210,13 @@ class ActionHandleWithLLM(Action):
                 True,
             )
             
+            prompt = self._build_continue_prompt(
+                tracker,
+                tema=tema_actual,
+                nivel=tracker.get_slot("nivel_explicacion"),
+                modo="subconsulta",
+            )
+
             return (
 
                 limpieza
@@ -2133,6 +2246,8 @@ class ActionHandleWithLLM(Action):
                     tracker,
 
                     self.FLOW_ACADEMIC,
+
+                    prompt=prompt,
 
                     nivel_explicacion=tracker.get_slot(
                         "nivel_explicacion"
@@ -2183,6 +2298,14 @@ class ActionHandleWithLLM(Action):
                 tracker.get_slot("tema_consulta"),
             )
             logger.warning("=" * 80)
+            
+            prompt = self._build_continue_prompt(
+                tracker,
+                tema=nuevo_tema,
+                nivel="basico",
+                modo="tema_nuevo",
+            )
+            
             return (
 
                 limpieza
@@ -2199,9 +2322,14 @@ class ActionHandleWithLLM(Action):
 
                     self.FLOW_ACADEMIC,
 
-                    prompt=nuevo_tema,
+                    prompt=prompt,
 
-                    nivel_explicacion="basico"
+                    nivel_explicacion="basico",
+
+                    tema_actual=nuevo_tema,
+
+                    tema_consulta=nuevo_tema,
+
 
                 )
 
@@ -2739,42 +2867,6 @@ class ActionHandleWithLLM(Action):
             )
 
             # =====================================================
-            # RECOVERY DE DIAGNÓSTICO
-            # =====================================================
-
-            logger.error("=" * 80)
-            logger.error("[RECOVERY]")
-            logger.error(
-                "Estado conversacional=%s",
-                estado_conversacion,
-            )
-            logger.error(
-                "confirmacion_cierre=%s",
-                tracker.get_slot("confirmacion_cierre"),
-            )
-            logger.error(
-                "esperando_resolucion=%s",
-                tracker.get_slot("esperando_resolucion"),
-            )
-            logger.error(
-                "esperando_decision_post_resolucion=%s",
-                tracker.get_slot("esperando_decision_post_resolucion"),
-            )
-            logger.error(
-                "esperando_encuesta_general=%s",
-                tracker.get_slot("esperando_encuesta_general"),
-            )
-            logger.error(
-                "encuesta_activa=%s",
-                tracker.get_slot("encuesta_activa"),
-            )
-            logger.error(
-                "encuesta_incompleta=%s",
-                tracker.get_slot("encuesta_incompleta"),
-            )
-            logger.error("=" * 80)
-
-            # =====================================================
             # LIMPIEZA MÍNIMA
             # =====================================================
 
@@ -2846,14 +2938,6 @@ class ActionMemoryWrapper(Action):
 
                 logger.info(
                     "[MEMORY_WRAPPER] Esperando respuesta de resolución."
-                )
-
-                return []
-
-            elif tracker.get_slot("esperando_decision_post_resolucion"):
-
-                logger.info(
-                    "[MEMORY_WRAPPER] Esperando decisión posterior a la resolución."
                 )
 
                 return []
