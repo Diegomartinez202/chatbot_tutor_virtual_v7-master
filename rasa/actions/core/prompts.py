@@ -77,6 +77,11 @@ Cuando el macroflujo sea "support":
 - Ayuda a resolver el problema reportado.
 - Explica claramente los pasos.
 - No inventes procedimientos inexistentes.
+Si la consulta es sobre acceso a Zajuna, recuperación de contraseña, errores comunes (404, 500, pantalla blanca o negra, plataforma lenta, contenido que no carga, etc.), ofrece una guía práctica paso a paso basada en buenas prácticas de soporte.
+Si no conoces un procedimiento específico del SENA, indícalo claramente y sugiere contactar al soporte institucional, pero primero proporciona verificaciones básicas (conexión, navegador, caché, credenciales, estado de la plataforma, etc.).
+No conviertas una incidencia técnica en una explicación académica.
+No desarrolles conceptos como si fueran un tema de aprendizaje.
+Responde de forma breve, orientada a resolver el problema.
 
 CONSULTAS DE ENCUESTA
 
@@ -210,11 +215,36 @@ def build_prompt(
 
     ctx = context or {}
 
+    
+    
     history = ""
     memory = ""
     ultima_respuesta = ""
 
-    if tracker:
+    macroflujo = ctx.get(
+        "macroflujo",
+        "general",
+    )
+
+    subflujo = ctx.get(
+        "subflujo",
+        "",
+    )
+    flujo = ctx.get(
+        "flujo",
+        macroflujo,
+    )
+    
+    # ------------------------------------------------------------
+    # FAQ de soporte:
+    # No recuperar memoria conversacional ni semántica.
+    # ------------------------------------------------------------
+    es_faq_soporte = (
+        macroflujo == "support"
+        and subflujo == "faq"
+    )
+
+    if tracker and not es_faq_soporte:
 
         history = build_history(tracker)
         if len(history) > 1500:
@@ -272,20 +302,6 @@ def build_prompt(
             logger.exception(
                 "[PROMPT BUILDER] Error recuperando memoria."
             )
-
-    macroflujo = ctx.get(
-        "macroflujo",
-        "general",
-    )
-
-    subflujo = ctx.get(
-        "subflujo",
-        "",
-    )
-    flujo = ctx.get(
-        "flujo",
-        macroflujo,
-    )
 
     if flujo in (
         "guardian_encuesta",
@@ -378,23 +394,40 @@ def build_prompt(
 
     Proceso: {proceso}
     """
-    prompt_final += f"""
-    Historial reciente:
 
-    {history or "Sin historial."}
+        # ------------------------------------------------------------
+    # FAQ de soporte:
+    # Prompt mínimo.
+    # ------------------------------------------------------------
+    if es_faq_soporte:
 
-    Memoria semántica relevante:
+        prompt_final += f"""
 
-    {memory or "Sin memoria relevante."}
+Consulta del estudiante:
 
-    Última respuesta generada por el tutor:
+{base_prompt.strip()}
+"""
 
-    {ultima_respuesta or "No existe respuesta previa."}
+    else:
 
-    Consulta del estudiante:
+        prompt_final += f"""
 
-    {base_prompt.strip()}
-    """
+Historial reciente:
+
+{history or "Sin historial."}
+
+Memoria semántica relevante:
+
+{memory or "Sin memoria relevante."}
+
+Última respuesta generada por el tutor:
+
+{ultima_respuesta or "No existe respuesta previa."}
+
+Consulta del estudiante:
+
+{base_prompt.strip()}
+"""
 
     logger.info(
         "[PROMPT BUILDER] macro=%s | sub=%s | Prompt=%d caracteres",

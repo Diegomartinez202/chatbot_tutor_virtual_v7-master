@@ -1207,11 +1207,8 @@ nlu:
     - quiero reportar una inconformidad
     - necesito gestionar una pqrs
 
-- intent: preguntas_frecuentes
+- intent: preguntas_frecuentes 
   examples: |
-    - quiero consultar pamtalla em blanco
-    - quiero consultar pamtalla negra
-    - quiero consultar pamtalla de colores
     - tengo una pregunta frecuente
     - cuáles son las preguntas frecuentes
     - ver preguntas frecuentes
@@ -1219,24 +1216,8 @@ nlu:
     - consultar preguntas frecuentes
     - faq
     - sección de preguntas frecuentes
-    - necesito ayuda general
-    - cómo funciona la plataforma
-    - dónde encuentro información
-    - cuáles son los medios de contacto
-    - información general de la plataforma
-    - guía de uso
-    - ayuda sobre la plataforma
     - preguntas comunes
     - dudas frecuentes
-    - información institucional
-    - consultar ayuda
-    - centro de ayuda
-    - manual de usuario
-    - soporte consultas frecuentes
-    - información de funcionamiento
-    - cómo utilizar la plataforma
-    - guía rápida
-    - información básica
     - preguntas habituales
     - necesito consultar las faq
     - dónde puedo ver las preguntas frecuentes
@@ -1244,284 +1225,34 @@ nlu:
     - dónde encuentro las faq
     - quiero consultar las faq
     - abrir preguntas frecuentes
+    - consultar ayuda
+    - centro de ayuda
+    - soporte consultas frecuentes
+    - ayuda sobre la plataforma
+    - guía de uso
+    - guía rápida
+    - manual de usuario
     - mostrar el centro de ayuda
     - necesito ver la ayuda
     - abrir ayuda
     - cómo obtengo ayuda
     - dónde está la ayuda
-    - cómo uso el asistente
-    - cómo utilizar este chatbot
-    - cómo funciona este asistente
-    - qué puede hacer este chatbot
-    - qué puedes hacer
-    - qué servicios ofreces
-    - en qué puedes ayudarme
-    - qué consultas puedes responder
-    - qué opciones tengo
-    - qué funciones tiene la plataforma
-    - cuáles son los servicios disponibles
-    - cómo navegar por la plataforma
-    - dónde puedo consultar mis datos
-    - cómo acceder a mi información
-    - cómo actualizar mis datos
-    - cómo cambiar mis datos
-    - cómo modificar mi información
-    - cómo acceder al campus virtual
-    - dónde ingreso al campus
-    - servicios administrativos
-    - servicios académicos
-    - servicios de soporte
-    - servicios de ayuda
-    - servicios de orientación
-    - servicios de información
-    - servicios de consulta
-    - servicios de contacto
-    - servicios de asistencia
-    - servicios de comunicación
-    - servicios de guía
-    - servicios de recursos
-    - servicios de formación
-    - servicios de aprendizaje
-    - servicios de capacitación
-    - servicios de desarrollo
-    - servicios de actualización
-    - servicios de mejora
-    - servicios de seguimiento
-    - servicios de evaluación
-    - servicios de progreso
-    - servicios de rendimiento
-    - servicios psicológicos
-    - servicios de tutoría
-    - servicios de asesoría
-    - servicios de consultoría
-    - servicios de acompañamiento
-    - servicios de orientación académica
-    - servocops de orientación administrativa
-    - servicios de bienestar estudiantil
-    - servivios de apoyo académico
-    - servicios de vocacion estudiantil
-    - servicios de vocacion laboral
-    - servicios de orientación profesional
-    - servicios de orientación vocacional
-    - servicios de orientación personal
-    - servicios de orientación tecnológica
-    - servicios de apoyo emocional
-    - servicios de apoyo psicológico
-    - servicios de apoyo social
-    - servicios de apoyo financiero
-    - servicios de apoyo legal
-    - servicios de apoyo administrativo
-    - servicios de emprendimiento
-    - servicios de contratación
-    - servicios de innovación
-    - servicios de investigación
-    - servicio de contrato de ap´rendizaje
-    - dónde consulto mi progreso
-    - apotp ecomonico
-    - apoyo psico social
-    - responsabilidad social
-    - deberes y derechos del aprendiz
-    - manual de convivencia
-    - manual de convivencia institucional
-    - manual del aprendiz
-    - manual de convivencia del aprendiz
-    - reglamento interno
-    - reglamento interno institucional
-    - reglamento del aprendiz
-    - reglamento de convivencia del aprendiz
-    - reglamento de convivencia institucional
-    - reglamento académico
-    - dónde reporto un problema
-    - cómo reportar un error
-    - cómo hacer una consulta administrativa
-    - dónde encuentro información institucional
-    - cómo funciona zajuna
-    - qué es zajuna
-    - qué es esta plataforma
-    - para qué sirve esta plataforma
-    - cómo aprovechar la plataforma
-    - cómo acceder a los recursos
-    - dónde están los recursos
-    - cómo consultar la guía de usuario
-    - existe un manual de uso
-    - dónde está el manual
-    - necesito orientación administrativa
-    - necesito orientación academica
-    - cómo empiezo a usar la plataforma
+    - quiero información de ayuda
+    - necesito ayuda general
+    - información general de la plataforma
+    - información de funcionamiento
+    - información básica
+    - información institucional
+    - dónde encuentro información
+    - cuáles son los medios de contacto
     - cómo resolver dudas frecuentes
     - cuáles son las consultas más comunes
-    - quiero información de ayuda
-    - cómo obtener información general
     - necesito información sobre la plataforma
-    - tengo un error en la plataforma
-    - la página no carga
-    - no puedo ingresar
-    - tengo problemas técnicos
-    - el sistema falla
-    - la aplicación presenta errores
-    - la plataforma está caída
-    - no funciona el sistema
-    - aparece un error
-    - tengo una falla técnica
-    - no puedo acceder a mi cuenta
-    - la plataforma se bloquea
-    - me sale un mensaje de error
-    - tengo inconvenientes técnicos
-    - no abre el curso
-    - no carga el contenido
-    - tengo problemas con el acceso
-    - el sistema está lento
-    - la página se congela
-    - no puedo entrar al curso
-    - tengo problemas de conexión
-    - no me deja continuar
-    - la plataforma no responde
-    - tengo un problema informático
-    - hay un fallo técnico
-    - el sistema presenta fallas
-    - error en la aplicación
-    - algo está dañado en la plataforma
-    - necesito soporte técnico
-    - la plataforma no carga
-    - la página quedó en blanco
-    - aparece un error 500
-    - aparece un error 404
-    - el sistema está caído
-    - la aplicación se cerró
-    - la aplicación se bloqueó
-    - el curso no abre
-    - el contenido no carga
-    - no puedo acceder a zajuna
-    - no puedo ingresar a la plataforma
-    - se queda cargando
-    - la pantalla queda congelada
-    - la plataforma está muy lenta
-    - aparece un mensaje de error
-    - el sistema no responde
-    - el servidor no responde
-    - no funciona la plataforma
-    - tengo un problema técnico
-    - el botón no funciona
-    - la página no responde
-    - no carga el aula virtual
-    - no abre el curso
-    - el sistema presenta fallas
-    - hay un fallo del sistema
-    - error al ingresar
-    - error de autenticación
-    - error del servidor
-    - falla técnica
-    - pantalla blanca
-    - pantalla negra
-    - pantalla de colores
-    - consultar pantalla blanca
-    - consultar pantalla negra
-    - consultar pantalla de colores
-    - tema pantalla blanca
-    - tema pantalla negra
-    - tema pantalla de colores
-    - ayuda pantalla blanca
-    - ayuda pantalla negra
-    - ayuda pantalla de colores
-    - consultar error 404
-    - consultar error 500
-    - tema error 404
-    - tema error 500
-    - ayuda error 404
-    - ayuda error 500
-    - error servidor
-    - error inicio sesión
-    - servicios tecnicos de soporte zajuna
-    - campus virtual
-    - acceso plataforma
-    - acceso zajuna
-    - datos personales
-    - actualizar datos
-    - modificar datos
-    - reportar problema
-    - reportar error
-    - consulta administrativa
-    - recursos plataforma
-    - guía usuario
-    - manual usuario
-    - orientación administrativa
-    - orientación académica
-    - plataforma lenta
-    - plataforma caída
-    - plataforma bloqueada
-    - página congelada
-    - página blanca
-    - página negra
-    - contenido no carga
-    - aula virtual
-    - curso bloqueado
-    - curso no abre
-    - botón no funciona
-    - mensaje error
-    - falla técnica
-    - problema técnico
-    - conexión plataforma
-    - apoyo finaciero
-    - apoyo sostenimiento
-    - manual de procesos 
-    - maual de calidad de los programas
-    - causales de retiro
-    - causales de retiro de los programas
-    - causales de retiro de los aprendices
-    - causales de retiro de los aprendices del sena
-    - causales de desercion estudiantil
-    - causales de retiro de los aprendices del sena
-    - ayuda
-    - necesito ayuda sos
-    - requiero ayuda
-    - necesito asistencia
-    - ayúdame por favor
-    - tengo una duda
-    - necesito orientación
-    - ayuda por favor
-    - no sé qué hacer
-    - tengo una situación
-    - me ayudas
-    - requiero ayuda rapida
-    - requiero ayuda express
-    - tengo preguntas
-    - ayúdame
-    - necesito ayuda
-    - puedes ayudarme
-    - oriéntame
-    - guíame
-    - échame una mano
-    - tengo varias dudas
-    - necesito resolver una duda
-    - necesito que me expliques
-    - estoy perdido
-    - no entiendo
-    - estoy confundido
-    - no comprendo cómo hacerlo
-    - puedes orientarme
-    - me puedes orientar
-    - puedes explicarme
-    - necesito asistencia para continuar
-    - necesito ayuda con esto
-    - quiero hacer una consulta
-    - tengo una inquietud
-    - tengo una consulta
-    - necesito resolver un problema
-    - ¿me puedes ayudar?
-    - ¿puedes orientarme?
-    - ¿qué puedo hacer?
-    - ¿cómo me ayudas?
-    - ¿me puedes guiar?
-    - por favor ayúdame
-    - necesito apoyo para continuar
-    - no encuentro lo que busco
-    - no sé cómo continuar
-    - tengo un inconveniente
-    - necesito una orientación
-    
 
 - intent: explicacion_preguntas_frecuentes
   examples: |
+  
+    - no puedo ingresar a la plataforma
     - ¿por qué la pantalla queda en blanco?
     - ¿por qué la pantalla queda negra?
     - ¿por qué la pantalla muestra colores extraños?
@@ -1568,7 +1299,191 @@ nlu:
     - ¿qué debo hacer para solucionarlo?
     - ¿cómo puedo resolver este problema?
     - ¿por qué la pantalla queda blanca?
-
+    - falla técnica
+    - pantalla blanca
+    - pantalla negra
+    - pantalla de colores
+    - cómo funciona la plataforma
+    - cómo funciona zajuna
+    - qué es zajuna
+    - qué es esta plataforma
+    - para qué sirve esta plataforma
+    - cómo aprovechar la plataforma
+    - cómo utilizar la plataforma
+    - cómo uso el asistente
+    - cómo utilizar este chatbot
+    - cómo funciona este asistente
+    - qué puede hacer este chatbot
+    - qué puedes hacer
+    - qué servicios ofreces
+    - en qué puedes ayudarme
+    - qué consultas puedes responder
+    - qué opciones tengo
+    - qué funciones tiene la plataforma
+    - cuáles son los servicios disponibles
+    - cómo navegar por la plataforma
+    - cómo acceder al campus virtual
+    - dónde ingreso al campus
+    - campus virtual
+    - acceso plataforma
+    - acceso zajuna
+    - no puedo acceder a zajuna
+    - no puedo ingresar
+    - no puedo acceder a mi cuenta
+    - dónde puedo consultar mis datos
+    - cómo acceder a mi información
+    - cómo actualizar mis datos
+    - cómo cambiar mis datos
+    - cómo modificar mi información
+    - datos personales
+    - actualizar datos
+    - modificar datos
+    - cómo acceder a los recursos
+    - dónde están los recursos
+    - recursos plataforma
+    - cómo consultar la guía de usuario
+    - existe un manual de uso
+    - dónde está el manual
+    - guía usuario
+    - manual usuario
+    - servicios administrativos
+    - servicios académicos
+    - servicios de soporte
+    - servicios de ayuda
+    - servicios de orientación
+    - servicios de información
+    - servicios de consulta
+    - servicios de contacto
+    - servicios de asistencia
+    - servicios de comunicación
+    - servicios de guía
+    - servicios de recursos
+    - servicios de formación
+    - servicios de aprendizaje
+    - servicios de capacitación
+    - servicios de desarrollo
+    - servicios de actualización
+    - servicios de mejora
+    - servicios de seguimiento
+    - servicios de evaluación
+    - servicios de progreso
+    - servicios de rendimiento
+    - servicios psicológicos
+    - servicios de tutoría
+    - servicios de asesoría
+    - servicios de consultoría
+    - servicios de acompañamiento
+    - servicios de orientación académica
+    - servicios de orientación administrativa
+    - servicios de bienestar estudiantil
+    - servicios de apoyo académico
+    - servicios de vocación estudiantil
+    - servicios de vocación laboral
+    - servicios de orientación profesional
+    - servicios de orientación vocacional
+    - servicios de orientación personal
+    - servicios de orientación tecnológica
+    - servicios de apoyo emocional
+    - servicios de apoyo psicológico
+    - servicios de apoyo social
+    - servicios de apoyo financiero
+    - servicios de apoyo legal
+    - servicios de apoyo administrativo
+    - servicios de emprendimiento
+    - servicios de contratación
+    - servicios de innovación
+    - servicios de investigación
+    - servicio de contrato de aprendizaje
+    - deberes y derechos del aprendiz
+    - manual de convivencia
+    - manual de convivencia institucional
+    - manual del aprendiz
+    - manual de convivencia del aprendiz
+    - reglamento interno
+    - reglamento interno institucional
+    - reglamento del aprendiz
+    - reglamento de convivencia del aprendiz
+    - reglamento de convivencia institucional
+    - reglamento académico
+    - manual de procesos
+    - manual de calidad de los programas
+    - causales de retiro
+    - causales de retiro de los programas
+    - causales de retiro de los aprendices
+    - causales de retiro de los aprendices del sena
+    - causales de deserción estudiantil
+    - apoyo financiero
+    - apoyo sostenimiento
+    - apoyo psicosocial
+    - responsabilidad social
+    - tengo un error en la plataforma
+    - la página no carga
+    - tengo problemas técnicos
+    - el sistema falla
+    - la aplicación presenta errores
+    - la plataforma está caída
+    - no funciona el sistema
+    - aparece un error
+    - tengo una falla técnica
+    - la plataforma se bloquea
+    - me sale un mensaje de error
+    - tengo inconvenientes técnicos
+    - no abre el curso
+    - no carga el contenido
+    - tengo problemas con el acceso
+    - el sistema está lento
+    - la página se congela
+    - no puedo entrar al curso
+    - tengo problemas de conexión
+    - no me deja continuar
+    - la plataforma no responde
+    - tengo un problema informático
+    - hay un fallo técnico
+    - el sistema presenta fallas
+    - error en la aplicación
+    - algo está dañado en la plataforma
+    - necesito soporte técnico
+    - la plataforma no carga
+    - la página quedó en blanco
+    - aparece un error 404
+    - aparece un error 500
+    - el sistema está caído
+    - la aplicación se cerró
+    - la aplicación se bloqueó
+    - el curso no abre
+    - el contenido no carga
+    - se queda cargando
+    - la pantalla queda congelada
+    - la plataforma está muy lenta
+    - aparece un mensaje de error
+    - el sistema no responde
+    - el servidor no responde
+    - el botón no funciona
+    - la página no responde
+    - no carga el aula virtual
+    - error al ingresar
+    - error de autenticación
+    - error del servidor
+    - pantalla blanca
+    - pantalla negra
+    - pantalla de colores
+    - consultar pantalla blanca
+    - consultar pantalla negra
+    - consultar pantalla de colores
+    - tema pantalla blanca
+    - tema pantalla negra
+    - tema pantalla de colores
+    - ayuda pantalla blanca
+    - ayuda pantalla negra
+    - ayuda pantalla de colores
+    - consultar error 404
+    - consultar error 500
+    - tema error 404
+    - tema error 500
+    - ayuda error 404
+    - ayuda error 500
+    - error servidor
+    - error inicio sesión
 
 - intent: recuperar_contrasena
   examples: |

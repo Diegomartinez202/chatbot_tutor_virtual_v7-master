@@ -67,7 +67,7 @@ from .core.prompts import (
 )
 from .core.history import build_history
 from .core.materias import MATERIAS
-
+from .core.nlp_utils import build_llm_request
 # ---------------------------------------------------------------------
 # Configuración del módulo
 # ---------------------------------------------------------------------
@@ -1995,6 +1995,91 @@ class ActionHandleWithLLM(Action):
             )
 
 )
+
+        # ======================================================
+        # FAQ
+        #
+        # El usuario ya seleccionó "Preguntas frecuentes"
+        # y ahora estamos esperando que escriba la consulta.
+        #
+        # No debe entrar al flujo académico.
+        # ======================================================
+
+        if (
+            tracker.get_slot("proceso_activo") == "faq"
+            and tracker.get_slot("esperando_tema")
+            and tracker.latest_message.get("text", "").strip()
+        ):
+
+            pregunta = tracker.latest_message.get(
+                "text",
+                ""
+            ).strip()
+
+            logger.info("=" * 70)
+            logger.info("[FAQ] Procesando pregunta frecuente")
+            logger.info("pregunta=%s", pregunta)
+            logger.info("=" * 70)
+
+            request = build_llm_request(
+
+                instruction=pregunta,
+
+                macroflujo="support",
+
+                subflujo="faq",
+
+                requires_auth=False,
+
+                next_action="action_ofrecer_continuar_tema",
+
+            )
+
+            return (
+
+                limpieza
+
+                + [
+
+                    SlotSet(
+                        "esperando_tema",
+                        False,
+                    ),
+
+                    SlotSet(
+                        "tema_actual",
+                        pregunta,
+                    ),
+
+                    SlotSet(
+                        "tema_consulta",
+                        pregunta,
+                    ),
+
+                    SlotSet(
+                        "llm_request",
+                        request,
+                    ),
+
+                ]
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=pregunta,
+
+                    tema_actual=pregunta,
+
+                    tema_consulta=pregunta,
+
+                )
+
+            )
 
         # ======================================================
         # MODO APRENDIZAJE

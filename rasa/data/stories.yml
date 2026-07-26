@@ -34,6 +34,13 @@ stories:
     - action: action_memory_wrapper
     - action: action_handle_with_llm
     - action: action_ofrecer_continuar_tema
+  
+- story: continuar preguntas frecuentes
+  steps:
+    - intent: continuar_tema_si
+    - action: action_memory_wrapper
+    - action: action_handle_with_llm
+    - action: action_ofrecer_continuar_tema
 
 - story: consultar certificados
   steps:
