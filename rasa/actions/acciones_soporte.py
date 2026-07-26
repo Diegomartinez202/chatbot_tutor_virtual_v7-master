@@ -571,6 +571,11 @@ class ActionPreguntasFrecuentesLLM(Action):
         logger.info("intent=%s", intent)
         logger.info("=" * 80)
 
+        logger.warning(
+            "[TRACE][FAQ] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
+        )
+        
         pregunta = (
             tracker.latest_message.get("text") or ""
         ).strip()
@@ -601,14 +606,24 @@ class ActionPreguntasFrecuentesLLM(Action):
         ]
 
         if intent != "continuar_tema_si":
+  
+            eventos.extend(
 
-            eventos.append(
-                SlotSet(
-                    "tema_actual",
-                    pregunta,
-                )
+                [
+
+                    SlotSet(
+                        "tema_actual",
+                        pregunta,
+                    ),
+
+                    SlotSet(
+                        "nivel_explicacion",
+                        "basico",
+                    ),
+
+                ]
+
             )
-
         request = build_llm_request(
 
             instruction=pregunta,
@@ -641,6 +656,15 @@ class ActionPreguntasFrecuentesLLM(Action):
             )
         )
 
+        logger.info(
+            "Eventos que retorna ActionPreguntasFrecuentesLLM:"
+        )
+
+        for e in eventos:
+            logger.info("  %s", e)
+
+        return eventos
+        
         return eventos
 
 
@@ -681,4 +705,43 @@ class ActionSoporteTecnicoLLM(Action):
             FollowupAction(
                 "action_handle_with_llm"
             ),
+        ]
+
+class ActionSolicitarPreguntaFAQ(Action):
+
+    def name(self):
+        return "action_solicitar_pregunta_faq"
+
+    def run(self, dispatcher, tracker, domain):
+
+        logger.warning(
+            "[TRACE][ActionSolicitarPreguntaFAQ] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
+        )
+
+        logger.info(
+            "[SOPORTE] Activando espera de pregunta FAQ"
+        )
+
+        dispatcher.utter_message(
+            response="utter_solicitar_pregunta_faq"
+        )
+
+        return [
+
+            SlotSet(
+                "llm_request",
+                None,
+            ),
+
+            SlotSet(
+                "esperando_tema",
+                True,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "faq",
+            ),
+
         ]

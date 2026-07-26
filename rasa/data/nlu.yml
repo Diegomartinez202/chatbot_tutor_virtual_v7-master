@@ -1087,70 +1087,6 @@ nlu:
     - programación de redes
     - programación de bases de datos
 
-     
-- intent: soporte_tecnico
-  examples: |
-    - tengo un error en la plataforma
-    - la página no carga
-    - no puedo ingresar
-    - tengo problemas técnicos
-    - el sistema falla
-    - la aplicación presenta errores
-    - la plataforma está caída
-    - no funciona el sistema
-    - aparece un error
-    - tengo una falla técnica
-    - no puedo acceder a mi cuenta
-    - la plataforma se bloquea
-    - me sale un mensaje de error
-    - tengo inconvenientes técnicos
-    - no abre el curso
-    - no carga el contenido
-    - tengo problemas con el acceso
-    - el sistema está lento
-    - la página se congela
-    - no puedo entrar al curso
-    - error al iniciar sesión
-    - tengo problemas de conexión
-    - no me deja continuar
-    - la plataforma no responde
-    - tengo un problema informático
-    - hay un fallo técnico
-    - el sistema presenta fallas
-    - error en la aplicación
-    - algo está dañado en la plataforma
-    - necesito soporte técnico
-    - la plataforma no carga
-    - la página quedó en blanco
-    - aparece un error 500
-    - aparece un error 404
-    - no puedo iniciar sesión
-    - el sistema está caído
-    - la aplicación se cerró
-    - la aplicación se bloqueó
-    - el curso no abre
-    - el contenido no carga
-    - no puedo acceder a zajuna
-    - no puedo ingresar a la plataforma
-    - se queda cargando
-    - la pantalla queda congelada
-    - la plataforma está muy lenta
-    - aparece un mensaje de error
-    - el sistema no responde
-    - el servidor no responde
-    - no funciona la plataforma
-    - tengo un problema técnico
-    - el botón no funciona
-    - la página no responde
-    - no carga el aula virtual
-    - no abre el curso
-    - el sistema presenta fallas
-    - hay un fallo del sistema
-    - error al ingresar
-    - error de autenticación
-    - error del servidor
-    - falla técnica
-    - comunicarme con soporte humano
 
 - intent: solicitar_soporte
   examples: |
@@ -1180,9 +1116,6 @@ nlu:
     - busco asesoría
     - necesito acompañamiento académico
     - tengo una situación por resolver
-    - quiero consultar pamtalla em blanco
-    - quiero consultar pamtalla negra
-    - quiero consultar pamtalla de colores
     - necesito soporte por favor
     - necesito hablar con soporte
     - quiero contactar soporte
@@ -1205,6 +1138,7 @@ nlu:
     - necesito soporte humano
     - quiero soporte especializado
     - necesito soporte
+    - comunicarme con soporte humano
 
 - intent: contactar_tutor
   examples: |
@@ -1238,6 +1172,7 @@ nlu:
     - contactar asesor académico
     - hablar con el tutor asignado
     - solicitar contacto con tutor
+    - necesito apoyo
 
 - intent: pqrs
   examples: |
@@ -1274,6 +1209,9 @@ nlu:
 
 - intent: preguntas_frecuentes
   examples: |
+    - quiero consultar pamtalla em blanco
+    - quiero consultar pamtalla negra
+    - quiero consultar pamtalla de colores
     - tengo una pregunta frecuente
     - cuáles son las preguntas frecuentes
     - ver preguntas frecuentes
@@ -1285,9 +1223,6 @@ nlu:
     - cómo funciona la plataforma
     - dónde encuentro información
     - cuáles son los medios de contacto
-    - cómo recuperar mi contraseña
-    - cómo descargar certificados
-    - cómo consultar mis cursos
     - información general de la plataforma
     - guía de uso
     - ayuda sobre la plataforma
@@ -1326,8 +1261,6 @@ nlu:
     - qué funciones tiene la plataforma
     - cuáles son los servicios disponibles
     - cómo navegar por la plataforma
-    - cómo ingreso a mis cursos
-    - dónde veo mis cursos
     - dónde puedo consultar mis datos
     - cómo acceder a mi información
     - cómo actualizar mis datos
@@ -1335,24 +1268,69 @@ nlu:
     - cómo modificar mi información
     - cómo acceder al campus virtual
     - dónde ingreso al campus
-    - cómo iniciar sesión
-    - olvidé mi usuario
-    - olvidé mi contraseña segura 
-    - tengo problemas para iniciar sesión
-    - cómo restablecer mi contraseña
-    - cómo cambiar la contraseña
-    - dónde descargo mis certificados
-    - cómo obtener un certificado
-    - cómo consultar certificados
+    - servicios administrativos
+    - servicios académicos
+    - servicios de soporte
+    - servicios de ayuda
+    - servicios de orientación
+    - servicios de información
+    - servicios de consulta
+    - servicios de contacto
+    - servicios de asistencia
+    - servicios de comunicación
+    - servicios de guía
+    - servicios de recursos
+    - servicios de formación
+    - servicios de aprendizaje
+    - servicios de capacitación
+    - servicios de desarrollo
+    - servicios de actualización
+    - servicios de mejora
+    - servicios de seguimiento
+    - servicios de evaluación
+    - servicios de progreso
+    - servicios de rendimiento
+    - servicios psicológicos
+    - servicios de tutoría
+    - servicios de asesoría
+    - servicios de consultoría
+    - servicios de acompañamiento
+    - servicios de orientación académica
+    - servocops de orientación administrativa
+    - servicios de bienestar estudiantil
+    - servivios de apoyo académico
+    - servicios de vocacion estudiantil
+    - servicios de vocacion laboral
+    - servicios de orientación profesional
+    - servicios de orientación vocacional
+    - servicios de orientación personal
+    - servicios de orientación tecnológica
+    - servicios de apoyo emocional
+    - servicios de apoyo psicológico
+    - servicios de apoyo social
+    - servicios de apoyo financiero
+    - servicios de apoyo legal
+    - servicios de apoyo administrativo
+    - servicios de emprendimiento
+    - servicios de contratación
+    - servicios de innovación
+    - servicios de investigación
+    - servicio de contrato de ap´rendizaje
     - dónde consulto mi progreso
-    - cómo revisar mi avance
-    - cómo consultar mi estado académico
-    - dónde encuentro mi horario
-    - cómo consultar el horario
-    - cómo contactar soporte
-    - cómo comunicarme con soporte
-    - cómo contactar un asesor
-    - como solicitar asistencia
+    - apotp ecomonico
+    - apoyo psico social
+    - responsabilidad social
+    - deberes y derechos del aprendiz
+    - manual de convivencia
+    - manual de convivencia institucional
+    - manual del aprendiz
+    - manual de convivencia del aprendiz
+    - reglamento interno
+    - reglamento interno institucional
+    - reglamento del aprendiz
+    - reglamento de convivencia del aprendiz
+    - reglamento de convivencia institucional
+    - reglamento académico
     - dónde reporto un problema
     - cómo reportar un error
     - cómo hacer una consulta administrativa
@@ -1375,6 +1353,222 @@ nlu:
     - quiero información de ayuda
     - cómo obtener información general
     - necesito información sobre la plataforma
+    - tengo un error en la plataforma
+    - la página no carga
+    - no puedo ingresar
+    - tengo problemas técnicos
+    - el sistema falla
+    - la aplicación presenta errores
+    - la plataforma está caída
+    - no funciona el sistema
+    - aparece un error
+    - tengo una falla técnica
+    - no puedo acceder a mi cuenta
+    - la plataforma se bloquea
+    - me sale un mensaje de error
+    - tengo inconvenientes técnicos
+    - no abre el curso
+    - no carga el contenido
+    - tengo problemas con el acceso
+    - el sistema está lento
+    - la página se congela
+    - no puedo entrar al curso
+    - tengo problemas de conexión
+    - no me deja continuar
+    - la plataforma no responde
+    - tengo un problema informático
+    - hay un fallo técnico
+    - el sistema presenta fallas
+    - error en la aplicación
+    - algo está dañado en la plataforma
+    - necesito soporte técnico
+    - la plataforma no carga
+    - la página quedó en blanco
+    - aparece un error 500
+    - aparece un error 404
+    - el sistema está caído
+    - la aplicación se cerró
+    - la aplicación se bloqueó
+    - el curso no abre
+    - el contenido no carga
+    - no puedo acceder a zajuna
+    - no puedo ingresar a la plataforma
+    - se queda cargando
+    - la pantalla queda congelada
+    - la plataforma está muy lenta
+    - aparece un mensaje de error
+    - el sistema no responde
+    - el servidor no responde
+    - no funciona la plataforma
+    - tengo un problema técnico
+    - el botón no funciona
+    - la página no responde
+    - no carga el aula virtual
+    - no abre el curso
+    - el sistema presenta fallas
+    - hay un fallo del sistema
+    - error al ingresar
+    - error de autenticación
+    - error del servidor
+    - falla técnica
+    - pantalla blanca
+    - pantalla negra
+    - pantalla de colores
+    - consultar pantalla blanca
+    - consultar pantalla negra
+    - consultar pantalla de colores
+    - tema pantalla blanca
+    - tema pantalla negra
+    - tema pantalla de colores
+    - ayuda pantalla blanca
+    - ayuda pantalla negra
+    - ayuda pantalla de colores
+    - consultar error 404
+    - consultar error 500
+    - tema error 404
+    - tema error 500
+    - ayuda error 404
+    - ayuda error 500
+    - error servidor
+    - error inicio sesión
+    - servicios tecnicos de soporte zajuna
+    - campus virtual
+    - acceso plataforma
+    - acceso zajuna
+    - datos personales
+    - actualizar datos
+    - modificar datos
+    - reportar problema
+    - reportar error
+    - consulta administrativa
+    - recursos plataforma
+    - guía usuario
+    - manual usuario
+    - orientación administrativa
+    - orientación académica
+    - plataforma lenta
+    - plataforma caída
+    - plataforma bloqueada
+    - página congelada
+    - página blanca
+    - página negra
+    - contenido no carga
+    - aula virtual
+    - curso bloqueado
+    - curso no abre
+    - botón no funciona
+    - mensaje error
+    - falla técnica
+    - problema técnico
+    - conexión plataforma
+    - apoyo finaciero
+    - apoyo sostenimiento
+    - manual de procesos 
+    - maual de calidad de los programas
+    - causales de retiro
+    - causales de retiro de los programas
+    - causales de retiro de los aprendices
+    - causales de retiro de los aprendices del sena
+    - causales de desercion estudiantil
+    - causales de retiro de los aprendices del sena
+    - ayuda
+    - necesito ayuda sos
+    - requiero ayuda
+    - necesito asistencia
+    - ayúdame por favor
+    - tengo una duda
+    - necesito orientación
+    - ayuda por favor
+    - no sé qué hacer
+    - tengo una situación
+    - me ayudas
+    - requiero ayuda rapida
+    - requiero ayuda express
+    - tengo preguntas
+    - ayúdame
+    - necesito ayuda
+    - puedes ayudarme
+    - oriéntame
+    - guíame
+    - échame una mano
+    - tengo varias dudas
+    - necesito resolver una duda
+    - necesito que me expliques
+    - estoy perdido
+    - no entiendo
+    - estoy confundido
+    - no comprendo cómo hacerlo
+    - puedes orientarme
+    - me puedes orientar
+    - puedes explicarme
+    - necesito asistencia para continuar
+    - necesito ayuda con esto
+    - quiero hacer una consulta
+    - tengo una inquietud
+    - tengo una consulta
+    - necesito resolver un problema
+    - ¿me puedes ayudar?
+    - ¿puedes orientarme?
+    - ¿qué puedo hacer?
+    - ¿cómo me ayudas?
+    - ¿me puedes guiar?
+    - por favor ayúdame
+    - necesito apoyo para continuar
+    - no encuentro lo que busco
+    - no sé cómo continuar
+    - tengo un inconveniente
+    - necesito una orientación
+    
+
+- intent: explicacion_preguntas_frecuentes
+  examples: |
+    - ¿por qué la pantalla queda en blanco?
+    - ¿por qué la pantalla queda negra?
+    - ¿por qué la pantalla muestra colores extraños?
+    - ¿por qué no puedo iniciar sesión?
+    - ¿por qué olvidé mi contraseña y no puedo recuperarla?
+    - ¿por qué no puedo ingresar a la plataforma?
+    - ¿qué significa el error 404?
+    - ¿qué significa el error 500?
+    - ¿por qué aparece un mensaje de error?
+    - ¿por qué la plataforma no carga?
+    - ¿por qué el sistema está caído?
+    - ¿por qué el sistema está tan lento?
+    - ¿por qué la plataforma no responde?
+    - ¿por qué la aplicación se bloqueó?
+    - ¿por qué la aplicación se cerró?
+    - ¿por qué el curso no abre?
+    - ¿por qué no carga el contenido?
+    - ¿por qué no carga el aula virtual?
+    - ¿cómo descargo un certificado?
+    - ¿cómo obtengo un certificado?
+    - ¿dónde consulto mis certificados?
+    - ¿cómo consulto mis cursos?
+    - ¿dónde veo mis cursos?
+    - ¿cómo consulto mi progreso?
+    - ¿cómo reviso mi avance?
+    - ¿cómo consulto mi estado académico?
+    - ¿dónde encuentro mi horario?
+    - ¿cómo consulto el horario?
+    - ¿cómo actualizo mis datos?
+    - ¿cómo modifico mi información?
+    - ¿cómo accedo a mi información?
+    - ¿cómo ingreso al campus virtual?
+    - ¿cómo funciona la plataforma?
+    - ¿qué es Zajuna?
+    - ¿para qué sirve la plataforma?
+    - ¿cómo utilizo la plataforma?
+    - ¿cómo accedo a los recursos?
+    - ¿dónde encuentro los recursos?
+    - ¿cómo reporto un problema?
+    - ¿cómo contacto a soporte?
+    - ¿cómo me comunico con un asesor?
+    - ¿cómo hago una consulta administrativa?
+    - explícame por qué ocurre ese error
+    - ¿qué debo hacer para solucionarlo?
+    - ¿cómo puedo resolver este problema?
+    - ¿por qué la pantalla queda blanca?
+
 
 - intent: recuperar_contrasena
   examples: |
@@ -1386,6 +1580,7 @@ nlu:
     - necesito restablecer mi contraseña
     - quiero recuperar el acceso
     - no puedo ingresar a mi cuenta
+    - ¿por qué no puedo acceder a mi cuenta?
     - necesito cambiar mi contraseña
     - recuperar acceso
     - enviar limk de recuperación
@@ -1400,6 +1595,18 @@ nlu:
     - no puede iniciar sesión
     - recuperar acceso a la plataforma
     - necesito una nueva contraseña
+    - ¿cómo cambio mi contraseña?
+    - cambio de contaseña
+    - cambiar contraseña
+    - restablecer clave
+    - actualizar contraseña
+    - modificar contraseña
+    - resetear contraseña
+    - cambiar clave de acceso
+    - restablecer clave de acceso
+    - actualizar clave de acceso
+    - modificar clave de acceso
+    - resetear clave de acceso
 
 
 - intent: pedir_humano
@@ -1435,66 +1642,6 @@ nlu:
     - pasar con un agente
     - quiero hablar con un ser humano
 
-
-- intent: ayuda
-  examples: |
-    - ayuda
-    - necesito ayuda sos
-    - puedes ayudarme
-    - requiero ayuda
-    - necesito asistencia
-    - ayúdame por favor
-    - tengo una duda
-    - necesito orientación
-    - ayuda por favor
-    - necesito información
-    - no sé qué hacer
-    - tengo una situación
-    - me ayudas
-    - puedes orientarme
-    - requiero ayuda rapida
-    - requiero ayuda express
-    - necesito apoyo
-    - tengo preguntas
-    - ayúdame
-    - necesito ayuda
-    - puedes ayudarme
-    - necesito apoyo
-    - oriéntame
-    - guíame
-    - échame una mano
-    - tengo una duda
-    - tengo varias dudas
-    - necesito resolver una duda
-    - necesito información
-    - necesito que me expliques
-    - no sé qué hacer
-    - estoy perdido
-    - no entiendo
-    - estoy confundido
-    - no comprendo cómo hacerlo
-    - puedes orientarme
-    - me puedes orientar
-    - puedes explicarme
-    - necesito asistencia para continuar
-    - necesito ayuda con esto
-    - quiero hacer una consulta
-    - tengo una inquietud
-    - tengo una consulta
-    - necesito resolver un problema
-    - ¿me puedes ayudar?
-    - ¿puedes orientarme?
-    - ¿qué puedo hacer?
-    - ¿cómo me ayudas?
-    - ¿me puedes guiar?
-    - ayúdame por favor
-    - por favor ayúdame
-    - necesito apoyo para continuar
-    - no encuentro lo que busco
-    - no sé cómo continuar
-    - tengo un inconveniente
-    - necesito una orientación
-    
 - intent: despedida
   examples: |
     - salir de la conversación

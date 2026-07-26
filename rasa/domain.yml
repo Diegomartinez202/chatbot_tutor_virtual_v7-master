@@ -9,7 +9,6 @@ intents:
   - affirm
   - cancelar
   - volver
-  - ayuda
   - salir
   - consultar_certificados
   - ver_estado_estudiante
@@ -42,6 +41,7 @@ intents:
   - enviar_correo_recuperacion
   - explicacion_academica
   - preguntas_frecuentes
+  - explicacion_preguntas_frecuentes
   - saludo
   - forzar_salida
   - solicitar_reinicio
@@ -67,6 +67,7 @@ intents:
   - respuesta_resuelto_no
   - calificar_bot
   - llm_fallback
+
 
 entities:
   - email
@@ -934,6 +935,18 @@ responses:
   utter_ask_comentario:
   - text: "¿Deseas dejar un comentario adicional?"
   
+  utter_solicitar_pregunta_faq:
+
+  - text: |
+      ❓ Escribe tu duda sobre la plataforma Zajuna.
+
+      Por ejemplo:
+
+      • No puedo ingresar a la plataforma.
+      • No puedo subir una actividad.
+      • ¿Cómo recupero mi contraseña?
+      • Tengo problemas para presentar un examen.
+  
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -1018,6 +1031,7 @@ actions:
 - action_preguntar_encuesta_general
 - action_solicitar_login
 - action_reanudar_pending_action
+- action_solicitar_pregunta_faq
 
 
 

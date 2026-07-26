@@ -22,6 +22,19 @@ stories:
     - action: action_handle_with_llm
     - action: action_ofrecer_continuar_tema 
 
+- story: iniciar preguntas frecuentes
+  steps:
+    - intent: preguntas_frecuentes
+    - action: action_solicitar_pregunta_faq
+ 
+- story: responder preguntas frecuentes
+  steps:
+    - intent: explicacion_preguntas_frecuentes
+    - action: action_preguntas_frecuentes_llm
+    - action: action_memory_wrapper
+    - action: action_handle_with_llm
+    - action: action_ofrecer_continuar_tema
+
 - story: consultar certificados
   steps:
     - intent: consultar_certificados
@@ -80,12 +93,6 @@ stories:
   steps:
     - intent: pqrs
     - action: action_pqrs_llm
-  
-- story: preguntas frecuentes soporte
-
-  steps:
-    - intent: preguntas_frecuentes
-    - action: action_preguntas_frecuentes_llm
  
 - story: enviar correo tutor
   steps:

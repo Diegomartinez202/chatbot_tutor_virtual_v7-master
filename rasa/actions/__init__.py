@@ -23,6 +23,7 @@ from .acciones_soporte import (
     ActionPQRSLLM,
     ActionPreguntasFrecuentesLLM,
     ActionSoporteTecnicoLLM,
+    ActionSolicitarPreguntaFAQ,
 
 )
 
@@ -158,8 +159,9 @@ __all__ = [
     "ActionPQRSLLM",
     "ActionPreguntasFrecuentesLLM",
     "ActionSoporteTecnicoLLM",
+    "ActionSolicitarPreguntaFAQ",
     
- 
+    
     "ActionCheckAuth",
     "ActionIngresoZajuna",
     "ActionSetAuthenticatedTrue",
