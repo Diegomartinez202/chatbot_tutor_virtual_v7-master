@@ -138,6 +138,8 @@ def build_llm_request(
 
             "subflujo": subflujo,
 
+            "flujo": subflujo,
+
             "requires_auth": requires_auth,
 
         }

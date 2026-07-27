@@ -26,6 +26,19 @@ stories:
   steps:
     - intent: preguntas_frecuentes
     - action: action_solicitar_pregunta_faq
+  
+- story: iniciar pqrsd
+  steps:
+    - intent: pqrsd
+    - action: action_solicitar_pqrsd
+  
+- story: redactar pqrsd
+  steps:
+    - intent: describir_pqrsd
+    - action: action_pqrsd_llm
+    - action: action_memory_wrapper
+    - action: action_handle_with_llm
+    - action: action_ofrecer_radicar_pqrsd
  
 - story: responder preguntas frecuentes
   steps:
@@ -94,13 +107,7 @@ stories:
   steps:
     - intent: consultar_progreso_curso
     - action: action_consultar_progreso_curso
-  
-  
-- story: crear pqrs
-  steps:
-    - intent: pqrs
-    - action: action_pqrs_llm
- 
+
 - story: enviar correo tutor
   steps:
     - intent: contactar_tutor

@@ -431,7 +431,7 @@ nlu:
     - fecha
     - fechas
     - clase
-    - clases
+    - clases programadas
     - cronograma
     - cuándo tengo clases
     - próximo horario
@@ -1174,10 +1174,10 @@ nlu:
     - solicitar contacto con tutor
     - necesito apoyo
 
-- intent: pqrs
+- intent: pqrsd
   examples: |
     - quiero presentar una queja
-    - deseo radicar una pqrs
+    - deseo radicar una pqrsd
     - tengo un reclamo
     - quiero hacer una petición
     - deseo presentar una sugerencia
@@ -1189,7 +1189,7 @@ nlu:
     - quiero registrar una petición
     - enviar una sugerencia
     - tengo una inconformidad
-    - quiero realizar una pqrs
+    - quiero realizar una pqrsd
     - presentar una solicitud formal
     - quiero dejar una queja
     - necesito radicar una petición
@@ -1205,7 +1205,107 @@ nlu:
     - hacer una reclamación
     - registrar una solicitud
     - quiero reportar una inconformidad
-    - necesito gestionar una pqrs
+    - necesito gestionar una pqrsd
+
+- intent: describir_pqrsd
+  examples: |
+    - Quiero presentar una queja en contar de una accion
+    - Deseo radicar un reclamo
+    - Necesito redactar una petición
+    - Quiero denunciar una irregularidad
+    - Necesito redactar una PQRSD formal
+    - Quiero enviar una queja a la institucion
+    - Ayúdame a escribir un reclamo
+    - Necesito redactar una denuncia
+    - quiero presentar una incorformidad
+    - quiero presentar una queja
+    - deseo presentar una queja
+    - necesito presentar una queja
+    - quiero radicar una queja
+    - deseo radicar una queja
+    - necesito radicar una queja
+    - ayúdame a redactar una queja
+    - ayúdame a escribir una queja
+    - necesito redactar una queja
+    - quiero elaborar una queja
+    - crear una queja formal
+    - deseo manifestar una inconformidad
+    - quiero expresar una inconformidad
+    - deseo presentar un reclamo
+    - quiero presentar un reclamo
+    - necesito presentar un reclamo
+    - quiero radicar un reclamo
+    - ayúdame a redactar un reclamo
+    - ayúdame a escribir un reclamo
+    - necesito elaborar un reclamo
+    - quiero formular un reclamo
+    - deseo formular un reclamo
+    - quiero presentar una petición
+    - deseo presentar una petición
+    - necesito presentar una petición
+    - quiero redactar una petición
+    - ayúdame a redactar una petición
+    - quiero elaborar una petición
+    - deseo elaborar una petición
+    - necesito hacer una petición
+    - quiero presentar una sugerencia
+    - deseo presentar una sugerencia
+    - necesito presentar una sugerencia
+    - ayúdame a redactar una sugerencia
+    - ayúdame a escribir una sugerencia
+    - quiero elaborar una sugerencia
+    - deseo formular una sugerencia
+    - quiero registrar una sugerencia
+    - quiero presentar una denuncia
+    - deseo presentar una denuncia
+    - necesito presentar una denuncia
+    - quiero radicar una denuncia
+    - ayúdame a redactar una denuncia
+    - ayúdame a escribir una denuncia
+    - quiero formular una denuncia
+    - deseo formular una denuncia
+    - quiero presentar una felicitación
+    - deseo presentar una felicitación
+    - necesito presentar una felicitación
+    - quiero redactar una felicitación
+    - ayúdame a redactar una felicitación
+    - quiero reconocer una buena atención
+    - deseo reconocer una buena atención
+    - quiero elaborar una felicitación
+    - necesito redactar una PQRSD
+    - quiero redactar una PQRSD
+    - deseo redactar una PQRSD
+    - ayúdame a redactar una PQRSD
+    - quiero elaborar una PQRSD
+    - necesito elaborar una PQRSD
+    - quiero generar una PQRSD
+    - deseo generar una PQRSD
+    - ayúdame a generar una PQRSD
+    - necesito escribir una PQRSD
+    - quiero escribir una PQRSD
+    - deseo escribir una PQRSD
+    - quiero crear una PQRSD
+    - necesito crear una PQRSD
+    - quiero preparar una PQRSD
+    - deseo preparar una PQRSD
+    - quiero hacer una queja
+    - quiero hacer un reclamo
+    - quiero hacer una petición
+    - quiero hacer una denuncia
+    - quiero hacer una sugerencia
+    - quiero dejar una queja
+    - quiero dejar un reclamo
+    - deseo dejar una sugerencia
+    - necesito registrar una queja
+    - necesito registrar un reclamo
+    - quiero interponer una queja
+    - quiero interponer un reclamo
+    - deseo interponer una denuncia
+    - quiero tramitar una PQRSD
+    - necesito tramitar una PQRSD
+    - ayúdame con una PQRSD
+    - quiero diligenciar una PQRSD
+    - necesito diligenciar una PQRSD
 
 - intent: preguntas_frecuentes 
   examples: |
@@ -1251,7 +1351,6 @@ nlu:
 
 - intent: explicacion_preguntas_frecuentes
   examples: |
-  
     - no puedo ingresar a la plataforma
     - ¿por qué la pantalla queda en blanco?
     - ¿por qué la pantalla queda negra?

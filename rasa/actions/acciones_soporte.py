@@ -523,12 +523,10 @@ class ActionVerificarMaxIntentosForm(Action):
             SlotSet("escalar_humano", True)
         ]
 
-
-class ActionPQRSLLM(Action):
-    """Genera y/o refina una PQRS usando el LLM central."""
+class ActionSolicitarPQRSD(Action):
 
     def name(self) -> Text:
-        return "action_pqrs_llm"
+        return "action_solicitar_pqrsd"
 
     def run(
         self,
@@ -536,20 +534,215 @@ class ActionPQRSLLM(Action):
         tracker: Tracker,
         domain: DomainDict,
     ) -> List[EventType]:
-        logger.info("ActionPQRSLLM ejecutada.")
+
+        logger.warning(
+            "[TRACE][ActionSolicitarPQRSD] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
+        )
+
+        logger.info(
+            "[SOPORTE] Activando espera de descripción PQRSD"
+        )
 
         dispatcher.utter_message(
-            text=(
-                "📝 Perfecto, voy a ayudarte a redactar tu PQRS (petición, queja, "
-                "reclamo o sugerencia) de forma clara y respetuosa.\n\n"
-                "Por favor cuéntame, con tus palabras, qué quieres reportar, "
-                "y luego ajustaré el mensaje con lenguaje formal para que puedas "
-                "enviarlo por los canales oficiales. ✅"
+            response="utter_solicitar_pqrsd"
+        )
+
+        return [
+
+            SlotSet(
+                "llm_request",
+                None,
+            ),
+
+            SlotSet(
+                "esperando_tema",
+                True,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
+            ),
+
+        ]
+
+
+class ActionPQRSDLLM(Action):
+    """
+    Envía al LLM la descripción del usuario para que redacte una
+    PQRSD formal.
+    """
+
+    def name(self) -> Text:
+        return "action_pqrsd_llm"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.info("=" * 80)
+        logger.info("[PQRSD] ActionPQRSDLLM")
+        logger.info("texto=%s", tracker.latest_message.get("text"))
+        logger.info("=" * 80)
+
+        descripcion = (
+            tracker.latest_message.get("text") or ""
+        ).strip()
+
+        if len(descripcion) < 5:
+
+            dispatcher.utter_message(
+                text=(
+                    "No logré comprender la descripción de tu solicitud. "
+                    "¿Podrías escribirla nuevamente con un poco más de detalle?"
+                )
+            )
+
+            return []
+
+        tipo = (
+            tracker.get_slot("tipo_pqrsd")
+            or "PQRSD"
+        )
+
+        instruction = (
+            f"Tipo de solicitud: {tipo}\n\n"
+            f"Descripción del usuario:\n{descripcion}"
+        )
+
+        eventos = [
+
+            ActiveLoop(None),
+
+            SlotSet(
+                "requested_slot",
+                None,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
+            ),
+
+            SlotSet(
+                "tema_consulta",
+                descripcion,
+            ),
+
+            SlotSet(
+                "auth_login_form",
+                None,
+            ),
+
+        ]
+
+        if intent != "continuar_tema_si":
+
+            eventos.extend(
+
+                [
+
+                    SlotSet(
+                        "tema_actual",
+                        descripcion,
+                    ),
+
+                ]
+
+            )
+        request = build_llm_request(
+
+            instruction=instruction,
+
+            macroflujo="support",
+
+            subflujo="pqrsd",
+
+            requires_auth=False,
+
+            next_action="action_ofrecer_radicar_pqrsd",
+
+        )
+        logger.info(
+            "[PQRSD] llm_request=%s",
+            request,
+        )
+        eventos.append(
+
+            SlotSet(
+                "llm_request",
+                request,
             )
         )
 
-        return [FollowupAction("action_handle_with_llm")]
+        eventos.append(
+            FollowupAction(
+                "action_handle_with_llm"
+           )
 
+        )
+
+        logger.info(
+            "Eventos que retorna ActionPQRSDLLM:"
+        )
+
+        for evento in eventos:
+            logger.info("  %s", evento)
+
+        return eventos
+
+class ActionOfrecerRadicarPQRSD(Action):
+
+    def name(self) -> Text:
+        return "action_ofrecer_radicar_pqrsd"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        dispatcher.utter_message(
+            text=(
+                "✅ La PQRSD ha sido redactada correctamente.\n\n"
+
+                "Ahora puedes radicarla por los canales oficiales del SENA.\n\n"
+
+                "Pasos para radicarla:\n\n"
+
+                "1. Ingresa al Portal PQRSD del SENA:\n"
+                "https://sciudadanos.sena.edu.co/\n\n"
+
+                "2. Selecciona el tipo de usuario "
+                "(Ciudadano o Anónimo).\n\n"
+
+                "3. Copia y pega el texto generado por el asistente.\n\n"
+
+                "4. Completa la información solicitada.\n\n"
+
+                "5. Adjunta evidencias si cuentas con ellas "
+                "(capturas de pantalla, documentos, etc.).\n\n"
+
+                "6. Envía la solicitud y conserva el número de radicado para realizar seguimiento.\n\n"
+
+                "Si el inconveniente está relacionado con la plataforma Zajuna, "
+                "también puedes consultar:\n"
+                "https://zajuna.sena.edu.co/soporte.php"
+            )
+        )
+
+        dispatcher.utter_message(
+            response="utter_ofrecer_continuar_pqrsd"
+        )
+
+        return []
 
 class ActionPreguntasFrecuentesLLM(Action):
 
@@ -665,7 +858,6 @@ class ActionPreguntasFrecuentesLLM(Action):
 
         return eventos
         
-        return eventos
 
 
 class ActionSoporteTecnicoLLM(Action):

@@ -195,11 +195,11 @@ ACTION_CATALOG = {
        "subflujo":"correo",
     },
 
-    "pqrs":{
+    "pqrsd":{
        "action":"action_pqrs_llm",
        "requires_auth": False,
        "macroflujo":"support",
-       "subflujo":"pqrs",
+       "subflujo":"pqrsd",
     },
 
     "preguntas_frecuentes":{

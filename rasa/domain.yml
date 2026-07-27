@@ -30,7 +30,7 @@ intents:
   - pedir_humano
   - solicitar_soporte
   - soporte_tecnico
-  - pqrs
+  - pqrsd
   - contactar_tutor
   - reset_guardian
   - aprender_tema
@@ -67,6 +67,7 @@ intents:
   - respuesta_resuelto_no
   - calificar_bot
   - llm_fallback
+  - describir_pqrsd
 
 
 entities:
@@ -588,6 +589,35 @@ forms:
 
 responses:
 
+  utter_ofrecer_continuar_pqrsd:
+
+  - text: |
+     ¿Indica que deseas hacer?
+    buttons: 
+       - title: "📚 Menú académico" 
+         payload: "/ir_menu_academico" 
+       - title: "🏠 Menú principal" 
+         payload: "/ir_menu_principal" 
+       - title: "👋 Finalizar" 
+         payload: "/terminar_conversacion_segura"
+
+  utter_solicitar_pqrsd:
+  - text: |
+      📝 Voy a ayudarte a redactar una PQRSD.
+
+      Primero indícame qué tipo de solicitud deseas presentar:
+
+      • 📄 Petición: para solicitar información, un servicio o una gestión.
+      • 😕 Queja: para manifestar inconformidad por la atención o el comportamiento de una persona.
+      • ⚠️ Reclamo: cuando consideras que un servicio no fue prestado correctamente o se incumplió un derecho.
+      • 💡 Sugerencia: para proponer una idea o mejora del servicio.
+      • 🚨 Denuncia: para informar una posible irregularidad o situación que deba ser investigada.
+      • 🎉 Felicitación: para reconocer una buena atención o destacar un servicio recibido.
+
+      Después describe con el mayor detalle posible lo ocurrido.
+
+      Con la información que me proporciones redactaré una PQRSD con lenguaje formal, respetando el tipo de solicitud indicado, para que puedas copiarla y radicarla por los canales oficiales del SENA.
+
   utter_cierre_confirmado_seguro:
   - text: "Cierre confirmado. Tu información ha sido gestionada y la sesión se ha cerrado correctamente. ¡Hasta pronto!"
   utter_respeto_decision:
@@ -829,8 +859,8 @@ responses:
       - title: "❓ Preguntas frecuentes"
         payload: "/preguntas_frecuentes"
 
-      - title: "📝 PQRS"
-        payload: "/pqrs"
+      - title: "📝 PQRSD"
+        payload: "/pqrsd"
 
       - title: "🎫 Crear caso"
         payload: "/solicitar_soporte"
@@ -1020,7 +1050,7 @@ actions:
 - action_cancelar_cierre
 - action_incrementar_turnos_conversacion
 - validate_feedback_form
-- action_pqrs_llm
+- action_pqrsd_llm
 - action_memory_wrapper
 - action_guardar_encuesta_general
 - action_decidir_cierre
@@ -1032,6 +1062,8 @@ actions:
 - action_solicitar_login
 - action_reanudar_pending_action
 - action_solicitar_pregunta_faq
+- action_solicitar_pqrsd
+- action_ofrecer_radicar_pqrsd
 
 
 

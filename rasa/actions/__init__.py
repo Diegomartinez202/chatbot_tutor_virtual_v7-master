@@ -20,10 +20,11 @@ from .acciones_soporte import (
     ActionMarcarEscalarHumano,
     ActionRegistrarIntentoForm,
     ActionVerificarMaxIntentosForm,
-    ActionPQRSLLM,
+    ActionPQRSDLLM,
     ActionPreguntasFrecuentesLLM,
     ActionSoporteTecnicoLLM,
     ActionSolicitarPreguntaFAQ,
+    ActionSolicitarPQRSD,
 
 )
 
@@ -156,11 +157,11 @@ __all__ = [
     "ActionMarcarEscalarHumano",
     "ActionRegistrarIntentoForm",
     "ActionVerificarMaxIntentosForm",
-    "ActionPQRSLLM",
+    "ActionPQRSDLLM",
     "ActionPreguntasFrecuentesLLM",
     "ActionSoporteTecnicoLLM",
     "ActionSolicitarPreguntaFAQ",
-    
+    "ActionSolicitarPQRSD",
     
     "ActionCheckAuth",
     "ActionIngresoZajuna",

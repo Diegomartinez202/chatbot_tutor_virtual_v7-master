@@ -261,6 +261,14 @@ class ActionHandleWithLLM(Action):
          "guardian_recuperacion",
          "cierre_conversacion",
     )
+
+    SUPPORT_PROCESSES = {
+    "faq",
+    "pqrsd",
+    "crear_caso",
+    "contactar_tutor",
+    "recuperar_password",
+    }
     
     def _detect_flow(
         self,
@@ -431,6 +439,17 @@ class ActionHandleWithLLM(Action):
             bool(materia),
         )
 
+        proceso = tracker.get_slot("proceso_activo")
+
+        if proceso in self.SUPPORT_PROCESSES:
+
+             logger.info(
+                 "[FLOW] Flujo soporte detectado. proceso=%s",
+                 proceso,
+             )
+
+             return self.FLOW_SUPPORT
+        
         if (
             esperando
             or proceso in self.ACADEMIC_PROCESSES
@@ -2082,6 +2101,84 @@ class ActionHandleWithLLM(Action):
             )
 
         # ======================================================
+        # PQRSD
+        #
+        # El usuario ya seleccionó PQRSD y ahora estamos
+        # esperando que escriba la descripción.
+        #
+        # No debe entrar al flujo académico ni FAQ.
+        # ======================================================
+
+        if (
+            tracker.get_slot("proceso_activo") == "pqrsd"
+            and tracker.get_slot("esperando_tema")
+            and tracker.latest_message.get("text", "").strip()
+        ):
+
+            descripcion = tracker.latest_message.get(
+                "text",
+                ""
+            ).strip()
+
+            logger.info("=" * 70)
+            logger.info("[PQRSD] Procesando descripción")
+            logger.info("descripcion=%s", descripcion)
+            logger.info("=" * 70)
+
+            instruction = (
+                f"Tipo de solicitud: "
+                f"{tracker.get_slot('tipo_pqrsd') or 'PQRSD'}\n\n"
+                f"Descripción del usuario:\n{descripcion}"
+            )
+
+            request = build_llm_request(
+
+                instruction=instruction,
+
+                macroflujo="support",
+
+                subflujo="pqrsd",
+
+                requires_auth=False,
+
+                next_action="action_ofrecer_radicar_pqrsd",
+
+            )
+
+            return (
+
+                limpieza
+
+                + [
+
+                    SlotSet("esperando_tema", False),
+
+                    SlotSet("tema_actual", descripcion),
+
+                    SlotSet("tema_consulta", descripcion),
+
+                    SlotSet("llm_request", request),
+
+                ]
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=instruction,
+
+                    tema_actual=descripcion,
+
+                    tema_consulta=descripcion,
+
+                )
+
+            )
+        # ======================================================
         # MODO APRENDIZAJE
         #
         # El usuario ya tiene un tema activo.
@@ -2097,7 +2194,7 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("llm_request"),
         )
         logger.warning("=" * 70)
-        logger.warning("[MODO APRENDIZAJE]")
+        logger.error("########## ENTRÉ A MODO APRENDIZAJE ##########")
         logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
         logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
         logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
@@ -2652,6 +2749,15 @@ class ActionHandleWithLLM(Action):
             logger.info("[LLM] Prompt FINAL")
             logger.info(prompt)
             logger.info("=" * 70)
+
+            logger.warning("=" * 80)
+            logger.warning("[BUILD_PROMPT] CONTEXTO ENVIADO")
+            logger.warning("macroflujo=%s", context.get("macroflujo"))
+            logger.warning("subflujo=%s", context.get("subflujo"))
+            logger.warning("flujo=%s", context.get("flujo"))
+            logger.warning("context=%s", context)
+            logger.warning("=" * 80)
+
             prompt = build_prompt(
                 base_prompt=prompt,
                 tracker=tracker,
@@ -2682,23 +2788,7 @@ class ActionHandleWithLLM(Action):
             logger.info("flow=%s", flow)
             logger.info("=" * 70)
 
-            
-            
-            # =====================================================
-            # Construir SIEMPRE el prompt final
-            # =====================================================
-
-            prompt = build_prompt(
-                base_prompt=prompt,
-                tracker=tracker,
-                context=context,
-            )
-
-            logger.info("=" * 70)
-            logger.info("[LLM] Prompt FINAL")
-            logger.info(prompt)
-            logger.info("=" * 70)
-
+   
             # =====================================================
             # DETERMINAR EL ESTADO CONVERSACIONAL
             # ANTES DE INVOCAR EL LLM

@@ -83,6 +83,43 @@ No conviertas una incidencia técnica en una explicación académica.
 No desarrolles conceptos como si fueran un tema de aprendizaje.
 Responde de forma breve, orientada a resolver el problema.
 
+CONSULTAS PQRSD
+
+Cuando:
+
+macroflujo = "support"
+
+subflujo = "pqrs"
+
+Tu función es únicamente redactar una PQRS.
+
+Debes:
+
+- convertir el relato del usuario en lenguaje formal.
+
+- mantener únicamente los hechos narrados.
+
+- no inventar información.
+
+- no agregar datos personales.
+
+- no responder como docente.
+
+- no explicar teoría.
+
+- no indicar que eres un asistente.
+
+- no pedir autenticación.
+
+- devolver un texto listo para copiar y pegar.
+
+La respuesta debe contener:
+
+- Tipo de PQRSD.
+- Asunto.
+- Descripción de los hechos.
+- Solicitud final.
+
 CONSULTAS DE ENCUESTA
 
 Cuando el macroflujo sea "guardian_encuesta":
@@ -236,15 +273,26 @@ def build_prompt(
     )
     
     # ------------------------------------------------------------
-    # FAQ de soporte:
-    # No recuperar memoria conversacional ni semántica.
+    # Prompts directos:
+    # No utilizan historial ni memoria semántica.
     # ------------------------------------------------------------
-    es_faq_soporte = (
-        macroflujo == "support"
-        and subflujo == "faq"
+    PROMPTS_DIRECTOS = {
+        ("support", "faq"),
+        ("support", "pqrsd"),
+    }
+
+    es_prompt_directo = (
+         (macroflujo, subflujo) in PROMPTS_DIRECTOS
     )
 
-    if tracker and not es_faq_soporte:
+    # Flujos especiales existentes
+    if flujo in (
+        "guardian_encuesta",
+        "cierre_conversacion",
+    ):
+        es_prompt_directo = True
+
+    if tracker and not es_prompt_directo:
 
         history = build_history(tracker)
         if len(history) > 1500:
@@ -395,11 +443,11 @@ def build_prompt(
     Proceso: {proceso}
     """
 
-        # ------------------------------------------------------------
+    # ------------------------------------------------------------
     # FAQ de soporte:
     # Prompt mínimo.
     # ------------------------------------------------------------
-    if es_faq_soporte:
+    if es_prompt_directo:
 
         prompt_final += f"""
 
