@@ -189,6 +189,11 @@ class ActionRegistrarEncuesta(Action):
         # 3. LIMPIEZA DE SLOTS
         # ==========================================================
 
+        logger.warning("=" * 70)
+        logger.warning("[ENCUESTA] LLM_REQUEST ANTERIOR")
+        logger.warning("%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 70)
+        
         events: List[EventType] = [
 
             SlotSet(
@@ -279,6 +284,12 @@ class ActionGuardarFeedback(Action):
         tracker,
         domain,
     ):
+        logger.warning("=" * 80)
+        logger.warning("[FEEDBACK] proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("[FEEDBACK] tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.warning("[FEEDBACK] tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.warning("[FEEDBACK] llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
 
         feedback_tipo = tracker.get_slot(
             "feedback_tipo"
@@ -321,10 +332,7 @@ class ActionGuardarFeedback(Action):
 
             SlotSet("feedback_texto", None),
 
-            SlotSet(
-                "proceso_activo",
-                "aprender_tema", 
-            ),
+            SlotSet("proceso_activo", None),
 
             SlotSet("tema_actual", None),
 

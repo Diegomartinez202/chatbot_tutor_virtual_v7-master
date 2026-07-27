@@ -177,6 +177,9 @@ rules:
       - action: action_derivar_humano_confirmada
 
   - rule: Manejo de consultas generales fuera del árbol de diálogos
+    condition:
+      - slot_was_set:
+        - proceso_activo: null
     steps:
       - intent: llm_fallback
       - action: action_handle_with_llm

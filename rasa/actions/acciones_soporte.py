@@ -535,6 +535,8 @@ class ActionSolicitarPQRSD(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        logger.error("########## ENTRÓ ACTION_SOLICITAR_PQRSD ##########")
+        
         logger.warning(
             "[TRACE][ActionSolicitarPQRSD] llm_request al entrar=%s",
             tracker.get_slot("llm_request"),
@@ -548,17 +550,19 @@ class ActionSolicitarPQRSD(Action):
             response="utter_solicitar_pqrsd"
         )
 
-        return [
+        logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
+        logger.error("Eventos=%s", eventos)
+        
+        eventos = [
 
             SlotSet(
                 "llm_request",
                 None,
             ),
 
-            SlotSet(
-                "esperando_tema",
-                True,
-            ),
+            SlotSet("tema_actual", None),
+            SlotSet("tema_consulta", None),
+            SlotSet("ultima_respuesta_llm", None),
 
             SlotSet(
                 "proceso_activo",
@@ -566,6 +570,10 @@ class ActionSolicitarPQRSD(Action):
             ),
 
         ]
+
+        logger.error("Eventos=%s", eventos)
+
+        return eventos
 
 
 class ActionPQRSDLLM(Action):
@@ -585,6 +593,10 @@ class ActionPQRSDLLM(Action):
     ) -> List[EventType]:
 
         intent = tracker.get_intent_of_latest_message()
+
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD ACTION] Entró ActionPQRSDLLM")
+        logger.warning("=" * 80)
 
         logger.info("=" * 80)
         logger.info("[PQRSD] ActionPQRSDLLM")
@@ -926,10 +938,9 @@ class ActionSolicitarPreguntaFAQ(Action):
                 None,
             ),
 
-            SlotSet(
-                "esperando_tema",
-                True,
-            ),
+            SlotSet("tema_actual", None),
+            SlotSet("tema_consulta", None),
+            SlotSet("ultima_respuesta_llm", None),
 
             SlotSet(
                 "proceso_activo",

@@ -1917,14 +1917,36 @@ class ActionHandleWithLLM(Action):
 
         contexto = llm_request.get("context", {})
 
+        macroflujo = contexto.get("macroflujo")
+
         flujo_especial = contexto.get("flujo")
+
+        # ======================================================
+        # BLOQUEAR LÓGICA ACADÉMICA CUANDO EXISTE
+        # UN MACROFLUJO DE SOPORTE U OTRO FLUJO ESPECIAL
+        # ======================================================
+
+        bloquear_aprendizaje = (
+
+            macroflujo == "support"
+        )
+
+        logger.info(
+            "[FLOW PRIORITY] macro=%s | flujo=%s | bloquear_aprendizaje=%s",
+            macroflujo,
+            flujo_especial,
+            bloquear_aprendizaje,
+        )
+
 
         if flujo_especial:
 
-            logger.info("=" * 70)
-            logger.info("[FLOW PRIORITY] Macroflujo especial=%s", flujo_especial)
-            logger.info("[FLOW PRIORITY] Se omite la lógica académica.")
-            logger.info("=" * 70)
+            logger.info(
+                "[FLOW PRIORITY] macro=%s | flujo=%s | bloquear=%s",
+                macroflujo,
+                flujo_especial,
+                bloquear_aprendizaje,
+            )
 
         flow = self._detect_flow(tracker)
         logger.info("[DEBUG] Flow detectado = %s", flow)
@@ -2015,169 +2037,7 @@ class ActionHandleWithLLM(Action):
 
 )
 
-        # ======================================================
-        # FAQ
-        #
-        # El usuario ya seleccionó "Preguntas frecuentes"
-        # y ahora estamos esperando que escriba la consulta.
-        #
-        # No debe entrar al flujo académico.
-        # ======================================================
 
-        if (
-            tracker.get_slot("proceso_activo") == "faq"
-            and tracker.get_slot("esperando_tema")
-            and tracker.latest_message.get("text", "").strip()
-        ):
-
-            pregunta = tracker.latest_message.get(
-                "text",
-                ""
-            ).strip()
-
-            logger.info("=" * 70)
-            logger.info("[FAQ] Procesando pregunta frecuente")
-            logger.info("pregunta=%s", pregunta)
-            logger.info("=" * 70)
-
-            request = build_llm_request(
-
-                instruction=pregunta,
-
-                macroflujo="support",
-
-                subflujo="faq",
-
-                requires_auth=False,
-
-                next_action="action_ofrecer_continuar_tema",
-
-            )
-
-            return (
-
-                limpieza
-
-                + [
-
-                    SlotSet(
-                        "esperando_tema",
-                        False,
-                    ),
-
-                    SlotSet(
-                        "tema_actual",
-                        pregunta,
-                    ),
-
-                    SlotSet(
-                        "tema_consulta",
-                        pregunta,
-                    ),
-
-                    SlotSet(
-                        "llm_request",
-                        request,
-                    ),
-
-                ]
-
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_SUPPORT,
-
-                    prompt=pregunta,
-
-                    tema_actual=pregunta,
-
-                    tema_consulta=pregunta,
-
-                )
-
-            )
-
-        # ======================================================
-        # PQRSD
-        #
-        # El usuario ya seleccionó PQRSD y ahora estamos
-        # esperando que escriba la descripción.
-        #
-        # No debe entrar al flujo académico ni FAQ.
-        # ======================================================
-
-        if (
-            tracker.get_slot("proceso_activo") == "pqrsd"
-            and tracker.get_slot("esperando_tema")
-            and tracker.latest_message.get("text", "").strip()
-        ):
-
-            descripcion = tracker.latest_message.get(
-                "text",
-                ""
-            ).strip()
-
-            logger.info("=" * 70)
-            logger.info("[PQRSD] Procesando descripción")
-            logger.info("descripcion=%s", descripcion)
-            logger.info("=" * 70)
-
-            instruction = (
-                f"Tipo de solicitud: "
-                f"{tracker.get_slot('tipo_pqrsd') or 'PQRSD'}\n\n"
-                f"Descripción del usuario:\n{descripcion}"
-            )
-
-            request = build_llm_request(
-
-                instruction=instruction,
-
-                macroflujo="support",
-
-                subflujo="pqrsd",
-
-                requires_auth=False,
-
-                next_action="action_ofrecer_radicar_pqrsd",
-
-            )
-
-            return (
-
-                limpieza
-
-                + [
-
-                    SlotSet("esperando_tema", False),
-
-                    SlotSet("tema_actual", descripcion),
-
-                    SlotSet("tema_consulta", descripcion),
-
-                    SlotSet("llm_request", request),
-
-                ]
-
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_SUPPORT,
-
-                    prompt=instruction,
-
-                    tema_actual=descripcion,
-
-                    tema_consulta=descripcion,
-
-                )
-
-            )
         # ======================================================
         # MODO APRENDIZAJE
         #
@@ -2228,13 +2088,16 @@ class ActionHandleWithLLM(Action):
 
         if (
           
-            flujo_especial not in (
+           not bloquear_aprendizaje
+
+           and flujo_especial not in (
                 "guardian_encuesta",
                 "guardian_autenticacion",
                 "guardian_recuperacion",
                 "cierre_conversacion",
             )
             and tracker.get_slot("proceso_activo") == "aprender_tema"
+
             and not tracker.get_slot("esperando_tema")
             and tracker.latest_message.get("text", "").strip()
             and intent not in (
@@ -2450,72 +2313,77 @@ class ActionHandleWithLLM(Action):
 
         # ======================================================
         # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
-        # Primera explicación.
+        # Primera explicación únicamente para Aprender Tema.
         # ======================================================
 
-        if self._is_waiting_for_topic(tracker):
+        if (
 
-            nuevo_tema = tracker.latest_message.get(
-                "text",
-                "",
-            ).strip()
+             tracker.get_slot("proceso_activo") == "aprender_tema"
 
-            logger.info(
-                "[ACADEMICO] Tema inicial recibido: %s",
-                nuevo_tema,
-            )
+             and self._is_waiting_for_topic(tracker)
 
-            logger.warning("=" * 80)
-            logger.warning("[ACADEMICO] ENTRANDO A _build_topic_events")
-            logger.warning(
-                "latest_message=%s",
-                tracker.latest_message.get("text"),
-            )
-            logger.warning(
-                "tema_actual=%s",
-                tracker.get_slot("tema_actual"),
-            )
-            logger.warning(
-                "tema_consulta=%s",
-                tracker.get_slot("tema_consulta"),
-            )
-            logger.warning("=" * 80)
-            
-            prompt = self._build_continue_prompt(
-                tracker,
-                tema=nuevo_tema,
-                nivel="basico",
-                modo="tema_nuevo",
-            )
-            
-            return (
+        ):
 
-                limpieza
+             nuevo_tema = tracker.latest_message.get(
+                 "text",
+                 "",
+             ).strip()
 
-                + self._build_topic_events(
-                    tracker,
-                )
+             logger.info(
+                 "[ACADEMICO] Tema inicial recibido: %s",
+                 nuevo_tema,
+             )
 
-                + self._ejecutar_procesamiento_llm(
+             logger.warning("=" * 80)
+             logger.warning("[ACADEMICO] ENTRANDO A _build_topic_events")
+             logger.warning(
+                 "latest_message=%s",
+                 tracker.latest_message.get("text"),
+             )
+             logger.warning(
+                 "tema_actual=%s",
+                 tracker.get_slot("tema_actual"),
+             )
+             logger.warning(
+                 "tema_consulta=%s",
+                 tracker.get_slot("tema_consulta"),
+             )
+             logger.warning("=" * 80)
 
-                    dispatcher,
+             prompt = self._build_continue_prompt(
+                 tracker,
+                 tema=nuevo_tema,
+                 nivel="basico",
+                 modo="tema_nuevo",
+             )
 
-                    tracker,
+             return (
 
-                    self.FLOW_ACADEMIC,
+                 limpieza
 
-                    prompt=prompt,
+                 + self._build_topic_events(
+                     tracker,
+                 )
 
-                    nivel_explicacion="basico",
+                 + self._ejecutar_procesamiento_llm(
 
-                    tema_actual=nuevo_tema,
+                      dispatcher,
 
-                    tema_consulta=nuevo_tema,
+                      tracker,
 
+                      self.FLOW_ACADEMIC,
 
-                )
+                      prompt=prompt,
 
-            )
+                      nivel_explicacion="basico",
+
+                      tema_actual=nuevo_tema,
+
+                      tema_consulta=nuevo_tema,
+
+                    )
+
+                 )
 
         # ======================================================
         # FLUJO NORMAL
