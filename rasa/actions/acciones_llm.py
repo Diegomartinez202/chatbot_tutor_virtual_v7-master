@@ -1123,7 +1123,10 @@ class ActionHandleWithLLM(Action):
         Centralizar esta lógica evita que _ejecutar_procesamiento_llm()
         siga creciendo cada vez que se agreguen nuevos macroflujos.
         """
-
+        logger.warning(
+            "[FOLLOWUP] flow=%s",
+            flow,
+        )
         events: List[EventType] = [
 
             SlotSet(
@@ -2823,6 +2826,11 @@ class ActionHandleWithLLM(Action):
 
                 ]
 
+            
+            logger.warning("=" * 80)
+            logger.warning("FLOW=%s", flow)
+            logger.warning("LLM_REQUEST=%s", llm_request)
+            logger.warning("=" * 80)
             # =====================================================
             # Continuación normal del flujo
             # =====================================================
@@ -2934,6 +2942,16 @@ class ActionMemoryWrapper(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        
+        logger.warning("=" * 80)
+        logger.warning("[MEMORY_WRAPPER] EJECUTADO")
+        logger.warning("intent=%s", tracker.get_intent_of_latest_message())
+        logger.warning("sender=%s", tracker.sender_id)
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("stack:")
+        logger.warning("".join(traceback.format_stack(limit=8)))
+        logger.warning("=" * 80)
         
         logger.warning(
             "[MEMORY_WRAPPER] Ejecutado. intent=%s sender=%s",

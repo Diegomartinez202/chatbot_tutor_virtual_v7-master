@@ -18,11 +18,19 @@ from actions.core.nlp_utils import build_llm_request
 logger = logging.getLogger(__name__)
 
 from .acciones_academico import ACCIONES_ACADEMICAS
+from .acciones_soporte import ACCIONES_SOPORTE
 
 RESUME_ACTIONS = {
-    cfg["proceso"]: cfg["resume_action"]
-    for cfg in ACCIONES_ACADEMICAS.values()
-    if cfg.get("resume_action")
+    **{
+        cfg["proceso"]: cfg["resume_action"]
+        for cfg in ACCIONES_ACADEMICAS.values()
+        if cfg.get("resume_action")
+    },
+    **{
+        cfg["proceso"]: cfg["resume_action"]
+        for cfg in ACCIONES_SOPORTE.values()
+        if cfg.get("resume_action")
+    },
 }
 
 

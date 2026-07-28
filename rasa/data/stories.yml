@@ -84,8 +84,7 @@ stories:
 - story: crear ticket soporte
   steps:
     - intent: solicitar_soporte
-    - action: soporte_form
-    - active_loop: soporte_form
+    - action: action_iniciar_soporte
   
 - story: soporte completado
   steps:
@@ -111,7 +110,7 @@ stories:
 - story: enviar correo tutor
   steps:
     - intent: contactar_tutor
-    - action: action_enviar_correo_tutor
+    - action: action_contactar_tutor
   
 - story: Diagnóstico administrativo
   steps:
@@ -137,4 +136,4 @@ stories:
     - action: action_ir_menu_academico
     - intent: volver
     - action: utter_volver_menu
-  
+ 

@@ -27,7 +27,6 @@ intents:
   - confirmar_cierre_segura
   - cancelar_cierre_segura
   - negar_encuesta
-  - pedir_humano
   - solicitar_soporte
   - soporte_tecnico
   - pqrsd
@@ -68,6 +67,7 @@ intents:
   - calificar_bot
   - llm_fallback
   - describir_pqrsd
+  - hablar_asesor
 
 
 entities:
@@ -590,16 +590,15 @@ forms:
 responses:
 
   utter_ofrecer_continuar_pqrsd:
-
   - text: |
-     ¿Indica que deseas hacer?
+      ¿Indica que deseas hacer?
     buttons: 
-       - title: "📚 Menú académico" 
-         payload: "/ir_menu_academico" 
-       - title: "🏠 Menú principal" 
-         payload: "/ir_menu_principal" 
-       - title: "👋 Finalizar" 
-         payload: "/terminar_conversacion_segura"
+      - title: "📚 Menú académico" 
+        payload: "/ir_menu_academico" 
+      - title: "🏠 Menú principal" 
+        payload: "/ir_menu_principal" 
+      - title: "👋 Finalizar" 
+        payload: "/terminar_conversacion_segura"
 
   utter_solicitar_pqrsd:
   - text: |
@@ -743,7 +742,7 @@ responses:
       ¿Deseas que realice la solicitud?"
     buttons:
       - title: "✅ Sí"
-        payload: "/pedir_humano"
+        payload: "/hablar_asesor"
       - title: "❌ No"
         payload: "/continuar_tema_si"
 
@@ -866,7 +865,7 @@ responses:
         payload: "/solicitar_soporte"
 
       - title: "💬 Hablar con asesor"
-        payload: "/pedir_humano"
+        payload: "/hablar_asesor"
 
       - title: "🔑 Recuperar contraseña"
         payload: "/recuperar_contrasena"
@@ -976,7 +975,24 @@ responses:
       • No puedo subir una actividad.
       • ¿Cómo recupero mi contraseña?
       • Tengo problemas para presentar un examen.
-  
+  utter_ofrecer_continuar_soporte:
+  - text: |
+      ¿El problema continúa o deseas realizar otra acción?
+    buttons:
+      - title: "🎫 Crear caso de soporte"
+        payload: "/solicitar_soporte"
+
+      - title: "👨‍💼 Hablar con un asesor"
+        payload: "/hablar_asesor"
+
+      - title: "🏠 Menú soporte"
+        payload: "/ir_menu_soporte"
+
+      - title: "👋 Finalizar"
+        payload: "/terminar_conversacion_segura"
+
+
+      
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -1064,7 +1080,7 @@ actions:
 - action_solicitar_pregunta_faq
 - action_solicitar_pqrsd
 - action_ofrecer_radicar_pqrsd
-
-
-
-
+- action_iniciar_soporte
+- action_solicitar_humano
+- action_contactar_tutor
+- action_ofrecer_continuar_soporte

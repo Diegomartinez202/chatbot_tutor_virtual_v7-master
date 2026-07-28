@@ -54,8 +54,7 @@ rules:
   - rule: Iniciar soporte
     steps:
       - intent: solicitar_soporte
-      - action: soporte_form
-      - active_loop: soporte_form
+      - action: action_iniciar_soporte
 
   - rule: Finalizar soporte
     condition:
@@ -67,10 +66,14 @@ rules:
   
   - rule: Solicitar humano
     steps:
-      - intent: pedir_humano
-      - action: action_autosave_snapshot
-      - action: action_conectar_humano
+      - intent: hablar_asesor
+      - action: action_solicitar_humano
   
+  - rule: Contactar tutor
+    steps:
+      - intent: contactar_tutor
+      - action: action_contactar_tutor
+   
   - rule: Guardar progreso guardian
     steps:
       - intent: guardian_guardar_progreso

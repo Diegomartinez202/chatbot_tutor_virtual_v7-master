@@ -23,6 +23,8 @@ from .core.nlp_utils import build_llm_request
 from rasa_sdk.events import (
     ActiveLoop,
 )
+from .acciones_academico import validar_autenticacion
+
 logger = get_logger(__name__)
 
 from .common import (
@@ -39,7 +41,56 @@ _STORE_DIR = "data"
 _TICKETS_FILE = os.path.join(_STORE_DIR, "soporte.jsonl")
 MAX_INTENTOS_FORM = 2  
 
+# ================================================================
+# CATÁLOGO CENTRAL DE ACCIONES DE SOPORTE
+# ================================================================
 
+# ================================================================
+# CATÁLOGO CENTRAL DE ACCIONES DE SOPORTE
+# ================================================================
+
+ACCIONES_SOPORTE = {
+
+    "solicitar_soporte": {
+        "backend": None,
+        "requires_auth": True,
+        "proceso": "solicitar_soporte",
+        "resume_action": "action_iniciar_soporte",
+    },
+
+    "hablar_asesor": {
+        "backend": None,
+        "requires_auth": True,
+        "proceso": "hablar_asesor",
+        "resume_action": "action_escalar_humano",
+    },
+
+    "contactar_tutor": {
+        "backend": None,
+        "requires_auth": True,
+        "proceso": "contactar_tutor",
+        "resume_action": "action_enviar_correo_tutor",
+    },
+
+    "pqrsd": {
+        "backend": None,
+        "requires_auth": False,
+        "proceso": "pqrsd",
+    },
+
+    "preguntas_frecuentes": {
+        "backend": None,
+        "requires_auth": False,
+        "proceso": "preguntas_frecuentes",
+    },
+
+    "recuperar_contrasena": {
+        "backend": None,
+        "requires_auth": False,
+        "proceso": "recuperar_contrasena",
+    },
+
+}
 def _append_ticket_local(record: Dict[str, Any]) -> bool:
     """Guarda un registro de soporte en data/soporte.jsonl (log local)."""
     try:
@@ -51,6 +102,159 @@ def _append_ticket_local(record: Dict[str, Any]) -> bool:
         logger.exception("[SOPORTE_LOCAL] Error al escribir ticket local")
         return False
 
+
+class ActionIniciarSoporte(Action):
+
+    def name(self) -> Text:
+        return "action_iniciar_soporte"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        llm_request = build_llm_request(
+            instruction="",
+            macroflujo="support",
+            subflujo="ticket",
+            requires_auth=True,
+            pending_action="crear_caso",
+        )
+
+        auth = validar_autenticacion(
+            tracker,
+            "crear_caso",
+            llm_request,
+        )
+
+        if auth:
+            return auth
+
+        return [
+
+            SlotSet(
+                "proceso_activo",
+                "crear_caso",
+            ),
+
+            SlotSet(
+                "pending_action",
+                None,
+            ),
+
+            FollowupAction(
+                "action_autosave_snapshot",
+            ),
+            
+            FollowupAction(
+                "soporte_form",
+            ),
+
+        ]
+
+class ActionSolicitarHumano(Action):
+
+    def name(self) -> Text:
+        return "action_solicitar_humano"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        llm_request = build_llm_request(
+            instruction="",
+            macroflujo="support",
+            subflujo="asesor",
+            requires_auth=True,
+            pending_action="hablar_asesor",
+        )
+
+        auth = validar_autenticacion(
+            tracker,
+            "hablar_asesor",
+            llm_request,
+        )
+
+        if auth:
+            return auth
+
+        return [
+
+            SlotSet(
+                "proceso_activo",
+                "hablar_asesor",
+            ),
+
+            SlotSet(
+                "pending_action",
+                None,
+            ),
+
+             FollowupAction(
+                 "action_autosave_snapshot",
+             ),
+            
+            FollowupAction(
+                "action_conectar_humano",
+            ),
+
+        ]
+
+class ActionContactarTutor(Action):
+
+    def name(self) -> Text:
+        return "action_contactar_tutor"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        llm_request = build_llm_request(
+            instruction="",
+            macroflujo="support",
+            subflujo="correo",
+            requires_auth=True,
+            pending_action="contactar_tutor",
+        )
+
+        auth = validar_autenticacion(
+            tracker,
+            "contactar_tutor",
+            llm_request,
+        )
+
+        if auth:
+            return auth
+
+        return [
+
+            SlotSet(
+                "proceso_activo",
+                "contactar_tutor",
+            ),
+
+            SlotSet(
+                "pending_action",
+                None,
+            ),
+
+            FollowupAction(
+                "action_autosave_snapshot",
+            ),
+            
+            FollowupAction(
+                "action_enviar_correo_tutor",
+            ),
+
+        ]
 
 class ValidateSoporteForm(FormValidationAction):
     def name(self) -> Text:
@@ -549,10 +753,6 @@ class ActionSolicitarPQRSD(Action):
         dispatcher.utter_message(
             response="utter_solicitar_pqrsd"
         )
-
-        logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
-        logger.error("Eventos=%s", eventos)
-        
         eventos = [
 
             SlotSet(
@@ -570,7 +770,7 @@ class ActionSolicitarPQRSD(Action):
             ),
 
         ]
-
+        logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
         logger.error("Eventos=%s", eventos)
 
         return eventos
@@ -685,6 +885,11 @@ class ActionPQRSDLLM(Action):
             "[PQRSD] llm_request=%s",
             request,
         )
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD] REQUEST CONSTRUIDO")
+        logger.warning("REQUEST CONSTRUIDO = %s", request)
+        logger.warning("=" * 80)
+
         eventos.append(
 
             SlotSet(
@@ -703,6 +908,11 @@ class ActionPQRSDLLM(Action):
         logger.info(
             "Eventos que retorna ActionPQRSDLLM:"
         )
+
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD] EVENTOS A RETORNAR")
+        logger.warning("EVENTOS = %s", eventos)
+        logger.warning("=" * 80)
 
         for evento in eventos:
             logger.info("  %s", evento)
@@ -871,46 +1081,6 @@ class ActionPreguntasFrecuentesLLM(Action):
         return eventos
         
 
-
-class ActionSoporteTecnicoLLM(Action):
-
-    def name(self) -> Text:
-        return "action_soporte_tecnico_llm"
-
-    def run(
-        self,
-        dispatcher,
-        tracker,
-        domain,
-    ) -> List[EventType]:
-
-        logger.info("ActionSoporteTecnicoLLM ejecutada.")
-
-        return [
-
-            SlotSet(
-                "llm_request",
-                {
-                    "instruction": (
-                        "Genera un mensaje corto, empático y profesional "
-                        "para un estudiante que acaba de pedir soporte "
-                        "técnico en la plataforma Zajuna."
-                    ),
-
-                    "context": {
-                        "flujo": "support"
-                    },
-
-                    "fallback":
-                        "Hola. Revisemos tu problema técnico."
-                }
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm"
-            ),
-        ]
-
 class ActionSolicitarPreguntaFAQ(Action):
 
     def name(self):
@@ -948,3 +1118,80 @@ class ActionSolicitarPreguntaFAQ(Action):
             ),
 
         ]
+
+class ActionSoporteTecnicoLLM(Action):
+
+    def name(self) -> Text:
+        return "action_soporte_tecnico_llm"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ) -> List[EventType]:
+
+        logger.info("ActionSoporteTecnicoLLM ejecutada.")
+
+        request = build_llm_request(
+
+            instruction=(
+                "Actúa como el asistente técnico de la plataforma Zajuna. "
+                "Analiza el problema descrito por el estudiante y proporciona "
+                "una guía clara y paso a paso para intentar resolverlo. "
+                "Si el inconveniente no puede solucionarse mediante orientación, "
+                "indica amablemente que el estudiante puede crear un caso de soporte "
+                "o solicitar atención de un asesor humano."
+            ),
+
+            macroflujo="support",
+
+            subflujo="soporte_tecnico",
+
+            requires_auth=False,
+
+            next_action="action_ofrecer_continuar_soporte",
+
+            fallback=(
+                "Estoy listo para ayudarte con tu problema técnico. "
+                "Cuéntame qué inconveniente estás presentando."
+            ),
+        )
+
+        return [
+
+            SlotSet(
+                "llm_request",
+                request,
+            ),
+
+            FollowupAction(
+                "action_handle_with_llm",
+            ),
+
+        ]
+
+
+class ActionOfrecerContinuarSoporte(Action):
+
+    def name(self) -> Text:
+        return "action_ofrecer_continuar_soporte"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ) -> List[EventType]:
+
+        dispatcher.utter_message(
+            response="utter_ofrecer_continuar_soporte"
+        )
+
+        return [
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+        ]
+

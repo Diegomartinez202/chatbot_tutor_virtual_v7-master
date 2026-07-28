@@ -107,7 +107,7 @@ ACTION_CATALOG = {
     },
 
     "solicitar_soporte": {
-        "action":"action_soporte_tecnico_llm",
+        "action":"action_iniciar_soporte",
         "requires_auth": True,
         "macroflujo":"support",
         "subflujo":"ticket",
@@ -182,21 +182,21 @@ ACTION_CATALOG = {
     },
 
     "hablar_asesor":{
-       "action":"action_escalar_humano",
+       "action":"action_solicitar_humano",
        "requires_auth": True,
        "macroflujo":"support",
        "subflujo":"asesor",
     },
 
     "contactar_tutor":{
-       "action":"action_enviar_correo_tutor",
+       "action":"action_contactar_tutor",
        "requires_auth": True,
        "macroflujo":"support",
        "subflujo":"correo",
     },
 
     "pqrsd":{
-       "action":"action_pqrs_llm",
+       "action":"action_pqrsd_llm",
        "requires_auth": False,
        "macroflujo":"support",
        "subflujo":"pqrsd",

@@ -2,6 +2,8 @@ version: "3.1"
 
 nlu:
 
+
+
 - intent: calificar_bot
   examples: |
     - /calificar_bot{"nota":"1"}
@@ -1119,8 +1121,6 @@ nlu:
     - necesito soporte por favor
     - necesito hablar con soporte
     - quiero contactar soporte
-    - necesito ayuda de un asesor
-    - quisiera hablar con alguien
     - necesito comunicarme con soporte
     - deseo recibir asistencia
     - quiero ayuda personalizada
@@ -1128,10 +1128,7 @@ nlu:
     - quiero que alguien me ayude
     - necesito orientación personalizada
     - pueden atenderme
-    - necesito un asesor
-    - quiero contactar un asesor
     - requiero acompañamiento
-    - necesito hablar con un agente
     - quiero comunicarme con un funcionario
     - necesito asistencia personalizada
     - alguien puede atenderme
@@ -1139,6 +1136,90 @@ nlu:
     - quiero soporte especializado
     - necesito soporte
     - comunicarme con soporte humano
+ 
+- intent: hablar_asesor
+  examples: |
+    - quiero hablar con un asesor
+    - comunicarme con un asesor
+    - hablar con soporte humano
+    - quiero atención humana
+    - necesito hablar con una persona de atención al cliente
+    - necesio atención al cliente
+    - pásame con un asesor
+    - quiero que me atienda alguien
+    - comunicarme con un agente
+    - hablar con un agente
+    - quiero un asesor humano
+    - necesito un asesor humano
+    - hablar con soporte
+    - comunicarme con soporte
+    - quiero contactar de inmediato con un asesor
+    - necesito hablar con un agente
+    - quisiera hablar con alguien
+    - algun asesor puede atenderme
+    - necesito ayuda de un asesor
+    - es necario un asesor
+    - quiero contactar un asesor
+    - quiero hablar con una persona
+    - comunicarme con un asesor o tutor
+    - comunicarme con un tutor
+    - hablar con un humano
+    - atención humana
+    - transferirme con una persona
+    - necesito un agente
+    - quiero hablar con alguien
+    - pasar con el asesor
+    - hablar con un operador
+    - necesito atención priorizada
+    - quiero que me atienda una persona
+    - deseo hablar con un representante
+    - atención por un humano
+    - necesito ayuda humana
+    - transferir conversación
+    - pasarme con alguien
+    - comunicarme con un funcionario
+    - hablar con servicio al cliente
+    - necesito un asesor real
+    - quiero atención humana
+    - me puede atender una persona
+    - necesito hablar con alguien del equipo
+    - quiero asistencia humana
+    - deseo atención personalizada
+    - conectar con un asesor
+    - pasar con un agente
+    - quiero hablar con un ser humano
+ 
+
+
+- intent: solicitar_soporte
+  examples: |
+    - quiero crear un caso de soporte
+    - necesito crear un ticket
+    - quiero registrar un problema
+    - deseo abrir un caso
+    - quiero reportar un inconveniente
+    - necesito reportar un problema
+    - quiero registrar una incidencia
+    - necesito abrir un ticket
+    - deseo crear una solicitud de soporte
+    - quiero dejar un reporte
+    - necesito registrar una solicitud
+    - quiero reportar una falla
+    - necesito soporte para mi caso
+    - deseo abrir una solicitud
+    - quiero crear una solicitud
+    - registrar un caso de soporte
+    - abrir un caso de soporte
+    - crear un ticket de soporte
+    - reportar una incidencia
+    - registrar una incidencia
+    - crear una solicitud de ayuda
+    - abrir una solicitud de ayuda
+    - quiero que registren mi problema
+    - necesito que registren mi caso
+    - deseo dejar un caso de soporte
+    - crear una incidencia
+
 
 - intent: contactar_tutor
   examples: |
@@ -1183,129 +1264,51 @@ nlu:
     - deseo presentar una sugerencia
     - registrar una queja
     - presentar una inconformidad
-    - tengo una reclamación
-    - quiero dejar una observación
-    - deseo presentar un reclamo
-    - quiero registrar una petición
-    - enviar una sugerencia
-    - tengo una inconformidad
     - quiero realizar una pqrsd
-    - presentar una solicitud formal
-    - quiero dejar una queja
-    - necesito radicar una petición
-    - deseo hacer una observación
-    - registrar un reclamo
-    - presentar una sugerencia
-    - tengo una solicitud
-    - quiero presentar una felicitación
-    - deseo registrar una felicitación
-    - quiero dejar un comentario formal
-    - radicar una queja
-    - enviar una petición
-    - hacer una reclamación
-    - registrar una solicitud
-    - quiero reportar una inconformidad
     - necesito gestionar una pqrsd
+    - quiero diligenciar una pqrsd
+    - ayúdame con una pqrsd
+    - quiero enviar una queja formal
+    - deseo presentar un reclamo formal
+    - quiero hacer una solicitud formal
+    - deseo presentar una sugerencia formal
+    - quiero radicar una queja formal
+    - quiero enviar una felicitacion
+    - deseo presentar una felicitación
+    - 
 
 - intent: describir_pqrsd
   examples: |
-    - Quiero presentar una queja en contar de una accion
-    - Deseo radicar un reclamo
-    - Necesito redactar una petición
-    - Quiero denunciar una irregularidad
-    - Necesito redactar una PQRSD formal
-    - Quiero enviar una queja a la institucion
-    - Ayúdame a escribir un reclamo
-    - Necesito redactar una denuncia
-    - quiero presentar una incorformidad
-    - quiero presentar una queja
-    - deseo presentar una queja
-    - necesito presentar una queja
-    - quiero radicar una queja
-    - deseo radicar una queja
-    - necesito radicar una queja
-    - ayúdame a redactar una queja
-    - ayúdame a escribir una queja
-    - necesito redactar una queja
-    - quiero elaborar una queja
-    - crear una queja formal
-    - deseo manifestar una inconformidad
-    - quiero expresar una inconformidad
-    - deseo presentar un reclamo
-    - quiero presentar un reclamo
-    - necesito presentar un reclamo
-    - quiero radicar un reclamo
-    - ayúdame a redactar un reclamo
-    - ayúdame a escribir un reclamo
-    - necesito elaborar un reclamo
-    - quiero formular un reclamo
-    - deseo formular un reclamo
-    - quiero presentar una petición
-    - deseo presentar una petición
-    - necesito presentar una petición
-    - quiero redactar una petición
-    - ayúdame a redactar una petición
-    - quiero elaborar una petición
-    - deseo elaborar una petición
-    - necesito hacer una petición
-    - quiero presentar una sugerencia
-    - deseo presentar una sugerencia
-    - necesito presentar una sugerencia
-    - ayúdame a redactar una sugerencia
-    - ayúdame a escribir una sugerencia
-    - quiero elaborar una sugerencia
-    - deseo formular una sugerencia
-    - quiero registrar una sugerencia
-    - quiero presentar una denuncia
-    - deseo presentar una denuncia
-    - necesito presentar una denuncia
-    - quiero radicar una denuncia
-    - ayúdame a redactar una denuncia
-    - ayúdame a escribir una denuncia
-    - quiero formular una denuncia
-    - deseo formular una denuncia
-    - quiero presentar una felicitación
-    - deseo presentar una felicitación
-    - necesito presentar una felicitación
-    - quiero redactar una felicitación
-    - ayúdame a redactar una felicitación
-    - quiero reconocer una buena atención
-    - deseo reconocer una buena atención
-    - quiero elaborar una felicitación
-    - necesito redactar una PQRSD
-    - quiero redactar una PQRSD
-    - deseo redactar una PQRSD
-    - ayúdame a redactar una PQRSD
-    - quiero elaborar una PQRSD
-    - necesito elaborar una PQRSD
-    - quiero generar una PQRSD
-    - deseo generar una PQRSD
-    - ayúdame a generar una PQRSD
-    - necesito escribir una PQRSD
-    - quiero escribir una PQRSD
-    - deseo escribir una PQRSD
-    - quiero crear una PQRSD
-    - necesito crear una PQRSD
-    - quiero preparar una PQRSD
-    - deseo preparar una PQRSD
-    - quiero hacer una queja
-    - quiero hacer un reclamo
-    - quiero hacer una petición
-    - quiero hacer una denuncia
-    - quiero hacer una sugerencia
-    - quiero dejar una queja
-    - quiero dejar un reclamo
-    - deseo dejar una sugerencia
-    - necesito registrar una queja
-    - necesito registrar un reclamo
-    - quiero interponer una queja
-    - quiero interponer un reclamo
-    - deseo interponer una denuncia
-    - quiero tramitar una PQRSD
-    - necesito tramitar una PQRSD
-    - ayúdame con una PQRSD
-    - quiero diligenciar una PQRSD
-    - necesito diligenciar una PQRSD
+    - No puedo ingresar a la plataforma.
+    - La plataforma muestra un error 404.
+    - El sistema no carga correctamente.
+    - No puedo presentar el examen.
+    - No puedo subir la evidencia.
+    - Perdí mi actividad enviada.
+    - El tutor no calificó mi trabajo.
+    - Mi usuario aparece bloqueado.
+    - La contraseña no funciona.
+    - No recibí respuesta a mi solicitud.
+    - El certificado no se genera.
+    - La plataforma está muy lenta.
+    - Se cerró mi sesión inesperadamente.
+    - El contenido del curso no aparece.
+    - No puedo acceder al ambiente virtual.
+    - El sistema presenta un error interno.
+    - El botón de enviar no funciona.
+    - Mi calificación no aparece.
+    - El curso desapareció de mi panel.
+    - Tengo problemas para acceder a Zajuna.
+    - Llevo varios días sin poder ingresar.
+    - Mi actividad desapareció del curso.
+    - El sistema cerró mi sesión automáticamente.
+    - No puedo descargar el certificado.
+    - No puedo recuperar mi contraseña.
+    - El tutor nunca respondió mi solicitud.
+    - Mi evidencia fue eliminada.
+    - El sistema me bloqueó el acceso.
+    - No puedo matricularme en el curso.
+    - La plataforma se queda cargando indefinidamente.
 
 - intent: preguntas_frecuentes 
   examples: |
@@ -1622,40 +1625,6 @@ nlu:
     - modificar clave de acceso
     - resetear clave de acceso
 
-
-- intent: pedir_humano
-  examples: |
-    - quiero hablar con una persona
-    - necesito un asesor humano
-    - comunicarme con un asesor o tutor
-    - comunicarme con un tutor
-    - hablar con un humano
-    - atención humana
-    - transferirme con una persona
-    - necesito un agente
-    - quiero hablar con alguien
-    - pasar con el asesor
-    - hablar con un operador
-    - necesito atención priorizada
-    - quiero que me atienda una persona
-    - deseo hablar con un representante
-    - atención por un humano
-    - necesito ayuda humana
-    - transferir conversación
-    - pasarme con alguien
-    - comunicarme con un funcionario
-    - hablar con servicio al cliente
-    - necesito un asesor real
-    - quiero atención humana
-    - hablar con soporte humano
-    - me puede atender una persona
-    - necesito hablar con alguien del equipo
-    - quiero asistencia humana
-    - deseo atención personalizada
-    - conectar con un asesor
-    - pasar con un agente
-    - quiero hablar con un ser humano
-
 - intent: despedida
   examples: |
     - salir de la conversación
@@ -1664,6 +1633,7 @@ nlu:
     - hasta luego. ok
     - cerrar por favor
     - adiós, nos vemos pronto
+
 - intent: salir
   examples: |
     - cerrar
@@ -2169,6 +2139,36 @@ nlu:
     - seguir desde donde estaba
     - sí, recuperar conversación
 
+- intent: confirmar_handoff
+  examples: |
+    - sí, transfiéreme con el asesor
+    - sí, quiero la derivación
+    - sí, pásame con soporte humano
+    - sí, deseo hablar con un asesor
+    - confirmar derivación
+    - confirmar transferencia
+    - continuar con el asesor
+    - realizar la derivación
+    - aceptar la transferencia
+    - sí, proceder con el handoff
+
+- intent: cancelar_handoff
+  examples: |
+    - cancelar la derivación
+    - cancelar la transferencia
+    - cancelar soporte humano
+    - cancelar atención humana
+    - ya no quiero un asesor
+    - ya no necesito un asesor
+    - no transferir la conversación
+    - no contactar soporte humano
+    - no pasarme con un asesor
+    - prefiero seguir con el asistente
+    - prefiero continuar con el chatbot
+    - seguir con el bot
+    - continuar con el asistente virtual
+    - quiero seguir hablando con el bot
+    - mantener esta conversación
 
 - intent: reanudar_auto_no
   examples: |
@@ -2261,41 +2261,6 @@ nlu:
     - loguearme
     - quiero autenticarme
     - acceder con mi usuario
-
-- intent: cancelar_handoff
-  examples: |
-    - cancelar soporte
-    - cancelar atención humana
-    - no necesito ayuda humana
-    - seguir con el bot
-    - continuar con el chatbot
-    - prefiero seguir aquí
-    - ya no quiero un asesor
-    - no transferir la conversación
-    - cancelar transferencia
-    - no contactar soporte
-    - continuar con el asistente
-    - quiero seguir hablando con el bot
-    - no pasarme con un asesor
-    - cancelar contacto humano
-    - seguir usando el asistente virtual
-
-- intent: confirmar_handoff
-  examples: |
-    - sí quiero hablar con soporte
-    - hablar con un asesor
-    - pasar con un asesor
-    - comunicarme con un asesor
-    - quiero atención humana rapida
-    - contactar soporte humano
-    - transferirme a soporte
-    - sí, transferirme
-    - confirmar atención humana
-    - quiero un tutor
-    - necesito hablar con una persona
-    - deseo comunicarme con soporte
-    - pasarme con un funcionario
-    - sí quiero asistencia humana
 
 - intent: cargar_progreso
   examples: |

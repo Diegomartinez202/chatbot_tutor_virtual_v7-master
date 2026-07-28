@@ -25,6 +25,10 @@ from .acciones_soporte import (
     ActionSoporteTecnicoLLM,
     ActionSolicitarPreguntaFAQ,
     ActionSolicitarPQRSD,
+    ActionSolicitarHumano,
+    ActionContactarTutor,
+    ActionIniciarSoporte,
+    ActionOfrecerContinuarSoporte,
 
 )
 
@@ -153,7 +157,6 @@ __all__ = [
     "ActionEnviarSoporte",
     "ActionSoporteSubmit",
     "ActionEnviarCorreoTutor",
-    "ActionProcesarSoporte",
     "ActionMarcarEscalarHumano",
     "ActionRegistrarIntentoForm",
     "ActionVerificarMaxIntentosForm",
@@ -162,6 +165,13 @@ __all__ = [
     "ActionSoporteTecnicoLLM",
     "ActionSolicitarPreguntaFAQ",
     "ActionSolicitarPQRSD",
+    "ActionSolicitarHumano",
+    "ActionContactarTutor",
+    "ActionIniciarSoporte",
+    "ActionOfrecerContinuarSoporte",
+  
+
+    
     
     "ActionCheckAuth",
     "ActionIngresoZajuna",
@@ -175,7 +185,6 @@ __all__ = [
     
     "ActionVerEstadoEstudiante",
     "ActionTutorAsignado",
-    "ActionZajunaGetEstadoEstudiante",
     "ActionHistorialAcademico",
     "ActionConsultarHorariosClases",
     "ActionConsultarProgresoCurso",
@@ -188,7 +197,6 @@ __all__ = [
     "ActionLanzarEncuestaGeneral",
     "ActionPreguntarEncuestaGeneral",
     "ActionProcesarRespuestaResolucion",
-    "ActionFinalizarConversacion",
     "ActionFinalizarCierre",
     "ActionGuardarCalificacionGeneral",
     
@@ -213,9 +221,7 @@ __all__ = [
 
     "ActionCargarAutosaveMongo",
     "ActionAutoresumeConversacion",
-    "ActionResetConversacionSegura",
 
-    "ActionVerificarEstadoEncuestaSegura",
     "ActionGuardarProgresoEncuesta",
     "ActionTerminarConversacionSegura",
 
@@ -231,11 +237,7 @@ __all__ = [
     "ActionGuardianReanudar",
     "ActionGuardianReset",
     "ActionRegistrarEncuestaGuardian",
-  
-
-    "ActionAnalizarEstadoUsuario",
-
-
+ 
     "ActionRegistrarIntentoForm",
     "ActionVerificarMaxIntentosForm",  
     "ActionOfrecerHumano",
@@ -245,12 +247,10 @@ __all__ = [
     "ActionDerivarYRegistrarHumano",
     "ActionHandoffEnCola",
 
-    "ActionExplicarErrorActividadLLM",
+ 
     "ActionSoporteLLM",
-    "ActionHandleWithOllama",
-    "ActionRouteLLMIntent",
     "ActionMemoryWrapper",
-    "ActionResumenSesionLLM",
+   
 
     "ActionConsultarCertificados",
    
@@ -261,8 +261,6 @@ __all__ = [
     "ActionGuardianReanudar",
     "ActionGuardianReset",
     "ActionRegistrarEncuestaGuardian",
-    "ActionGuardarAutosave",
-
 
     "ActionReiniciarConversacion",
     "ActionPingServidor",
