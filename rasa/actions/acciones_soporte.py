@@ -41,9 +41,6 @@ _STORE_DIR = "data"
 _TICKETS_FILE = os.path.join(_STORE_DIR, "soporte.jsonl")
 MAX_INTENTOS_FORM = 2  
 
-# ================================================================
-# CATÁLOGO CENTRAL DE ACCIONES DE SOPORTE
-# ================================================================
 
 # ================================================================
 # CATÁLOGO CENTRAL DE ACCIONES DE SOPORTE
@@ -759,7 +756,10 @@ class ActionSolicitarPQRSD(Action):
                 "llm_request",
                 None,
             ),
-
+            SlotSet(
+                "esperando_tema",
+                True,
+            ),
             SlotSet("tema_actual", None),
             SlotSet("tema_consulta", None),
             SlotSet("ultima_respuesta_llm", None),
@@ -854,20 +854,17 @@ class ActionPQRSDLLM(Action):
 
         ]
 
-        if intent != "continuar_tema_si":
+        eventos.extend(
 
-            eventos.extend(
+            [
+                SlotSet(
+                    "tema_actual",
+                    descripcion,
+                ),
 
-                [
+            ]
 
-                    SlotSet(
-                        "tema_actual",
-                        descripcion,
-                    ),
-
-                ]
-
-            )
+        )
         request = build_llm_request(
 
             instruction=instruction,
@@ -980,6 +977,10 @@ class ActionPreguntasFrecuentesLLM(Action):
 
         intent = tracker.get_intent_of_latest_message()
 
+        
+        logger.error(
+            "########## ENTRÉ A ActionPreguntasFrecuentesLLM ##########"
+        )
         logger.info("=" * 80)
         logger.info("[SOPORTE] ActionPreguntasFrecuentesLLM")
         logger.info("texto=%s", tracker.latest_message.get("text"))
@@ -995,16 +996,6 @@ class ActionPreguntasFrecuentesLLM(Action):
             tracker.latest_message.get("text") or ""
         ).strip()
 
-        if len(pregunta) < 2:
-
-            dispatcher.utter_message(
-                text=(
-                    "No logré entender tu consulta. "
-                    "¿Podrías escribirla nuevamente?"
-                )
-            )
-
-            return []
 
         eventos = [
 
@@ -1020,8 +1011,8 @@ class ActionPreguntasFrecuentesLLM(Action):
 
         ]
 
-        if intent != "continuar_tema_si":
-  
+        if intent != "continuar_faq":
+
             eventos.extend(
 
                 [
@@ -1031,14 +1022,10 @@ class ActionPreguntasFrecuentesLLM(Action):
                         pregunta,
                     ),
 
-                    SlotSet(
-                        "nivel_explicacion",
-                        "basico",
-                    ),
-
                 ]
 
             )
+
         request = build_llm_request(
 
             instruction=pregunta,
@@ -1049,7 +1036,7 @@ class ActionPreguntasFrecuentesLLM(Action):
 
             requires_auth=False,
 
-            next_action="action_ofrecer_continuar_tema",
+            next_action="action_ofrecer_continuar_faq",
 
         )
 
@@ -1078,6 +1065,12 @@ class ActionPreguntasFrecuentesLLM(Action):
         for e in eventos:
             logger.info("  %s", e)
 
+        logger.error("=" * 80)
+        logger.error("[FAQ] REQUEST FINAL")
+        logger.error("%s", request)
+        logger.error("=" * 80)
+            
+            
         return eventos
         
 
@@ -1106,6 +1099,10 @@ class ActionSolicitarPreguntaFAQ(Action):
             SlotSet(
                 "llm_request",
                 None,
+            ),
+            SlotSet(
+                "esperando_tema",
+                True,
             ),
 
             SlotSet("tema_actual", None),
@@ -1194,4 +1191,25 @@ class ActionOfrecerContinuarSoporte(Action):
                 False,
             ),
         ]
+class ActionOfrecerContinuarFaq(Action):
 
+    def name(self) -> Text:
+        return "action_ofrecer_continuar_faq"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        dispatcher.utter_message(
+            response="utter_ofrecer_continuar_faq"
+        )
+
+        return [
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            )
+        ]

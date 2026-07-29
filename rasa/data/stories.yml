@@ -46,14 +46,12 @@ stories:
     - action: action_preguntas_frecuentes_llm
     - action: action_memory_wrapper
     - action: action_handle_with_llm
-    - action: action_ofrecer_continuar_tema
+    - action: action_ofrecer_continuar_faq
   
 - story: continuar preguntas frecuentes
   steps:
-    - intent: continuar_tema_si
-    - action: action_memory_wrapper
-    - action: action_handle_with_llm
-    - action: action_ofrecer_continuar_tema
+    - intent: continuar_faq
+    - action: action_solicitar_pregunta_faq
 
 - story: consultar certificados
   steps:

@@ -68,6 +68,7 @@ intents:
   - llm_fallback
   - describir_pqrsd
   - hablar_asesor
+  - continuar_faq
 
 
 entities:
@@ -589,12 +590,28 @@ forms:
 
 responses:
 
+  utter_ofrecer_continuar_faq:
+  - text: |
+      ¿Deseas realizar otra consulta sobre la plataforma Zajuna?
+
+    buttons:
+      - title: "❓ Otra pregunta"
+        payload: "/continuar_faq"
+
+      - title: "🛠️ Menú soporte"
+        payload: "/ir_menu_soporte"
+
+      - title: "🏠 Menú principal" 
+        payload: "/ir_menu_principal" 
+
+      - title: "👋 Finalizar"
+        payload: "/terminar_conversacion_segura"
   utter_ofrecer_continuar_pqrsd:
   - text: |
       ¿Indica que deseas hacer?
     buttons: 
-      - title: "📚 Menú académico" 
-        payload: "/ir_menu_academico" 
+      - title: "🛠 Soporte técnico"
+        payload: "/ir_menu_soporte"
       - title: "🏠 Menú principal" 
         payload: "/ir_menu_principal" 
       - title: "👋 Finalizar" 
@@ -965,34 +982,38 @@ responses:
   - text: "¿Deseas dejar un comentario adicional?"
   
   utter_solicitar_pregunta_faq:
+    - text: |
+        ❓ Escribe tu consulta sobre la plataforma Zajuna.
 
-  - text: |
-      ❓ Escribe tu duda sobre la plataforma Zajuna.
+        Puedes escribir una nueva duda o volver a formular la anterior si aún no quedó resuelta.
 
-      Por ejemplo:
+        Ejemplos:
 
-      • No puedo ingresar a la plataforma.
-      • No puedo subir una actividad.
-      • ¿Cómo recupero mi contraseña?
-      • Tengo problemas para presentar un examen.
+        • ¿Cómo recupero mi contraseña?
+        • ¿Por qué no puedo ingresar a la plataforma?
+        • ¿Qué significa el error 404?
+        • ¿Cómo puedo subir una actividad?
+        • ¿Por qué no carga el curso?
+        • ¿Cómo ingreso al aula virtual?
+
+        💡 Si lo que deseas es presentar una PQRSD o crear un caso de soporte, puedes hacerlo desde el menú de soporte.
+
   utter_ofrecer_continuar_soporte:
   - text: |
-      ¿El problema continúa o deseas realizar otra acción?
+      ¿Pudiste resolver tu duda o deseas realizar otra acción?
     buttons:
+      - title: "❓ Hacer otra pregunta"
+        payload: "/preguntas_frecuentes"
+
       - title: "🎫 Crear caso de soporte"
         payload: "/solicitar_soporte"
 
-      - title: "👨‍💼 Hablar con un asesor"
-        payload: "/hablar_asesor"
+      - title: "📝 Radicar una PQRSD"
+        payload: "/pqrsd"
 
       - title: "🏠 Menú soporte"
         payload: "/ir_menu_soporte"
 
-      - title: "👋 Finalizar"
-        payload: "/terminar_conversacion_segura"
-
-
-      
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -1084,3 +1105,4 @@ actions:
 - action_solicitar_humano
 - action_contactar_tutor
 - action_ofrecer_continuar_soporte
+- action_ofrecer_continuar_faq

@@ -525,6 +525,37 @@ class ActionAprenderTema(Action):
         
         intent = tracker.get_intent_of_latest_message()
 
+       
+        # ====================================================
+        # PROTECCIÓN DE FLUJOS ACTIVOS
+        # Evita que soporte sea tomado como académico
+        # ====================================================
+
+        proceso = tracker.get_slot(
+            "proceso_activo"
+        )
+
+        logger.warning(
+            "[ACADEMICO] proceso_activo actual=%s",
+            proceso,
+        )
+
+
+        if proceso in [
+            "pqrsd",
+            "crear_caso",
+            "asesor",
+            "recuperar_password",
+        ]:
+
+            logger.warning(
+                "[ACADEMICO] Bloqueado. Flujo soporte activo=%s",
+                proceso,
+            )
+
+            return []
+        
+        
         if intent == "continuar_tema_si":
 
            tema = tracker.get_slot("tema_actual")
@@ -594,8 +625,6 @@ class ActionAprenderTema(Action):
 
             SlotSet("requested_slot", None),
 
-            SlotSet("proceso_activo", "aprender_tema"),
-
             SlotSet("tema_consulta", pregunta),
 
             SlotSet(
@@ -611,6 +640,25 @@ class ActionAprenderTema(Action):
 
         ]
 
+        # ====================================================
+        # SOLO CAMBIA A ACADÉMICO SI NO EXISTE OTRO FLUJO
+        # ====================================================
+
+        if proceso not in [
+            "pqrsd",
+            "crear_caso",
+            "asesor",
+            "recuperar_password",
+        ]:
+
+            eventos.append(
+                SlotSet(
+                    "proceso_activo",
+                    "aprender_tema",
+                )
+            )
+       
+        
         # ====================================================
         # COMPATIBILIDAD CON EL FLUJO LLM ANTERIOR
         # ====================================================

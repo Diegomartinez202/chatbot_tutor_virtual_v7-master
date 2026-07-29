@@ -29,6 +29,7 @@ from .acciones_soporte import (
     ActionContactarTutor,
     ActionIniciarSoporte,
     ActionOfrecerContinuarSoporte,
+    ActionOfrecerContinuarFaq,
 
 )
 
@@ -169,8 +170,7 @@ __all__ = [
     "ActionContactarTutor",
     "ActionIniciarSoporte",
     "ActionOfrecerContinuarSoporte",
-  
-
+    "ActionOfrecerContinuarFaq",
     
     
     "ActionCheckAuth",

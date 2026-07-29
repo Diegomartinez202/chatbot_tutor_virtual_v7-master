@@ -238,14 +238,14 @@ class ActionHandleWithLLM(Action):
     # Compatibilidad con arquitectura anterior
     # ==========================================
 
-    ACADEMIC_PROCESSES = {
+    ACADEMIC_LEARNING_PROCESSES = {
         "aprender_tema",
+    }
+    
+    ACADEMIC_PROCESSES = {
         "consultar_horarios",
         "consultar_progreso",
         "consultar_tutor",
-        "consultar_certificados",
-        "consultar_pagos",
-        "consultar_notas",
     }
 
     ADMIN_PROCESSES = {
@@ -253,21 +253,25 @@ class ActionHandleWithLLM(Action):
         "consultar_ficha",
         "consultar_historial",
         "consultar_inscripciones",
-    }
+        "consultar_certificados",
+        "consultar_pagos",
+        "consultar_notas",
+
+}
 
     SPECIAL_MACROFLOWS = (
         "guardian_encuesta",
-         "guardian_autenticacion",
-         "guardian_recuperacion",
-         "cierre_conversacion",
+        "guardian_autenticacion",
+        "guardian_recuperacion",
+        "cierre_conversacion",
     )
 
     SUPPORT_PROCESSES = {
-    "faq",
-    "pqrsd",
-    "crear_caso",
-    "contactar_tutor",
-    "recuperar_password",
+       "faq",
+       "pqrsd",
+       "crear_caso",
+       "contactar_tutor",
+       "recuperar_password",
     }
     
     def _detect_flow(
@@ -417,9 +421,6 @@ class ActionHandleWithLLM(Action):
         # Se utiliza únicamente cuando el ACTION_CATALOG aún
         # no ha definido el macroflujo.
         # ======================================================
-        # ======================================================
-        # FLUJO ACADÉMICO
-        # ======================================================
 
         proceso = tracker.get_slot("proceso_activo")
 
@@ -432,37 +433,29 @@ class ActionHandleWithLLM(Action):
         )
 
         logger.debug(
-            "[FLOW] proceso=%s tema=%s materia=%s",
+            "[FLOW] proceso=%s pending=%s tema=%s materia=%s",
             proceso,
             tracker.get_slot("pending_action"),
             bool(tema),
             bool(materia),
         )
 
-        proceso = tracker.get_slot("proceso_activo")
+        # -----------------------------------------------------
+        # SOPORTE
+        # -----------------------------------------------------
 
         if proceso in self.SUPPORT_PROCESSES:
 
-             logger.info(
-                 "[FLOW] Flujo soporte detectado. proceso=%s",
-                 proceso,
-             )
-
-             return self.FLOW_SUPPORT
-        
-        if (
-            esperando
-            or proceso in self.ACADEMIC_PROCESSES
-            or tema
-            or materia
-        ):
-
             logger.info(
-                "[FLOW] Flujo académico detectado. proceso=%s",
+                "[FLOW] Flujo soporte detectado. proceso=%s",
                 proceso,
             )
 
-            return self.FLOW_ACADEMIC
+            return self.FLOW_SUPPORT
+
+        # -----------------------------------------------------
+        # ADMINISTRATIVO
+        # -----------------------------------------------------
 
         if proceso in self.ADMIN_PROCESSES:
 
@@ -472,6 +465,44 @@ class ActionHandleWithLLM(Action):
             )
 
             return self.FLOW_ADMINISTRATIVE
+
+        # -----------------------------------------------------
+        # APRENDER TEMA
+        # -----------------------------------------------------
+
+        if proceso in self.ACADEMIC_LEARNING_PROCESSES:
+
+            logger.info(
+                "[FLOW] Flujo aprendizaje detectado. proceso=%s",
+                proceso,
+            )
+
+            return self.FLOW_ACADEMIC
+
+        # -----------------------------------------------------
+        # CONSULTAS ACADÉMICAS
+        # -----------------------------------------------------
+
+        if proceso in self.ACADEMIC_PROCESSES:
+
+            logger.info(
+                "[FLOW] Consulta académica detectada. proceso=%s",
+                proceso,
+            )
+
+            return self.FLOW_ACADEMIC
+
+        # -----------------------------------------------------
+        # COMPATIBILIDAD CON FLUJOS ANTIGUOS
+        # -----------------------------------------------------
+
+        if esperando or tema or materia:
+
+            logger.info(
+                "[FLOW] Compatibilidad académica."
+            )
+
+            return self.FLOW_ACADEMIC
 
         # ======================================================
         # AYUDA
@@ -1115,72 +1146,259 @@ class ActionHandleWithLLM(Action):
     def _build_followup_events(
         self,
         flow: str,
+        tracker: Tracker,
     ) -> List[EventType]:
         """
-        Construye los eventos de continuación del flujo una vez que
-        la respuesta del LLM ha sido enviada al usuario.
+        Construye únicamente eventos definidos explícitamente
+        por llm_request.
 
-        Centralizar esta lógica evita que _ejecutar_procesamiento_llm()
-        siga creciendo cada vez que se agreguen nuevos macroflujos.
+        La lógica de continuidad por macroflujo se maneja en:
+            _postprocess_academic()
+            _postprocess_support()
+            _postprocess_administrative()
+
+        Evita duplicar FollowupAction.
         """
+
         logger.warning(
             "[FOLLOWUP] flow=%s",
             flow,
         )
-        events: List[EventType] = [
+
+        llm_request = tracker.get_slot(
+            "llm_request"
+        ) or {}
+
+        next_action = llm_request.get(
+            "next_action"
+        )
+
+
+        # ======================================================
+        # PRIORIDAD 1
+        # El orquestador definió la siguiente acción
+        # ======================================================
+
+        if next_action:
+
+            logger.info(
+                "[FOLLOWUP] usando next_action=%s",
+                next_action,
+            )
+
+            return [
+
+                FollowupAction(
+                    next_action,
+                ),
+
+            ]
+
+        return []
+    
+    # ==========================================================
+    # ROUTER POSTPROCESAMIENTO POR MACROFLUJO
+    # ==========================================================
+
+    def _postprocess_flow(
+        self,
+        flow: str,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+        """
+        Distribuye el postprocesamiento según macroflujo.
+
+        Cada flujo conserva su propia lógica sin mezclar
+        responsabilidades.
+        """
+
+        if flow == self.FLOW_ACADEMIC:
+
+            return self._postprocess_academic(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+
+        if flow == self.FLOW_SUPPORT:
+
+            return self._postprocess_support(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+
+        if flow == self.FLOW_ADMINISTRATIVE:
+
+            return self._postprocess_administrative(
+                tracker,
+                respuesta,
+                llm_request,
+        )
+
+
+        return []
+    
+    
+    # ==========================================================
+    # POSTPROCESAMIENTO ACADÉMICO
+    # ==========================================================
+
+    def _postprocess_academic(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+
+        events = []
+
+        events.extend(
+
+            [
+ 
+                SlotSet(
+                    "ultima_respuesta_llm",
+                    respuesta,
+                ),
+
+                SlotSet(
+                    "ultima_interaccion",
+                    datetime.utcnow().isoformat(),
+                ),
+
+                SlotSet(
+                    "continuando_tema",
+                    False,
+                ),
+
+                SlotSet(
+                    "cambio_tema",
+                    False,
+                ),
+
+            ]
+
+        )
+
+
+        events.append(
+
+             FollowupAction(
+                  "action_ofrecer_continuar_tema"
+             )
+
+        )
+
+
+        return events
+
+    def _postprocess_support(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+        """
+        Router del macroflujo de soporte.
+
+        No realiza procesamiento.
+        Solo delega según el subflujo.
+        """
+
+        proceso = tracker.get_slot(
+            "proceso_activo"
+        )
+
+        if proceso == "faq":
+
+            return self._postprocess_support_faq(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "pqrsd":
+
+            return self._postprocess_support_pqrsd(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        return []
+    
+    def _postprocess_support_faq(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[POSTPROCESS] FAQ continuidad"
+        )
+
+        nivel_actual = tracker.get_slot(
+            "nivel_explicacion"
+        )
+
+        if not nivel_actual:
+            nivel_actual = "basico"
+
+
+        return [
 
             SlotSet(
-                "llm_request",
-                None,
+                "nivel_explicacion",
+                nivel_actual,
+            ),
+
+            FollowupAction(
+                "action_ofrecer_continuar_tema"
             ),
 
         ]
 
-        # ------------------------------------------------------
-        # Flujo académico
-        # ------------------------------------------------------
+    def _postprocess_support_pqrsd(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
 
-        if flow == self.FLOW_ACADEMIC:
+        logger.info(
+            "[POSTPROCESS] PQRSD iniciar radicación"
+        )
 
-            events.append(
 
-                FollowupAction(
-                    "action_ofrecer_continuar_tema"
-                )
+        return [
 
-            )
+            FollowupAction(
+                "action_ofrecer_radicar_pqrsd"
+            ),
 
-        # ------------------------------------------------------
-        # Flujo de soporte
-        # ------------------------------------------------------
+        ]
 
-        elif flow == self.FLOW_SUPPORT:
+    def _postprocess_administrative(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
 
-            events.append(
+        logger.info(
+            "[POSTPROCESS] Administrativo finalizado"
+        )
 
-                FollowupAction(
-                    "action_preguntar_resolucion"
-                )
 
-            )
+        return []
 
-        # ------------------------------------------------------
-        # Futuros flujos
-        # ------------------------------------------------------
-        #
-        # elif flow == self.FLOW_CERTIFICADOS:
-        #     ...
-        #
-        # elif flow == self.FLOW_MATRICULA:
-        #     ...
-        #
-        # elif flow == self.FLOW_BIENESTAR:
-        #     ...
-        #
-        # ------------------------------------------------------
 
-        return events
-    
     def _is_waiting_for_topic(
         self,
         tracker: Tracker,
@@ -1197,6 +1415,7 @@ class ActionHandleWithLLM(Action):
     def _build_topic_events(
         self,
         tracker: Tracker,
+        proceso: str = "aprender_tema",
     ) -> List[EventType]:
         """
         Inicializa el flujo académico cuando el usuario escribe
@@ -1227,14 +1446,118 @@ class ActionHandleWithLLM(Action):
             materia.lower(),
             "Tutor Académico General"
         )
-        return [
+        eventos = []
 
-            SlotSet("llm_request", None),
+        # Solo el flujo académico limpia el llm_request.
+        if proceso == "aprender_tema":
+
+            eventos.append(
+                SlotSet(
+                    "llm_request",
+                    None,
+                )
+            )
+
+        eventos.extend(
+
+            [
+
+                SlotSet(
+                    "tema_actual",
+                    tema,
+                ),
+
+                SlotSet(
+                   "tema_consulta",
+                   tema,
+                ),
+
+                SlotSet(
+                   "proceso_activo",
+                   proceso,
+                ),
+
+            ]
+
+        )
+
+        if proceso == "aprender_tema":
+
+             eventos.extend([
+
+                 SlotSet(
+                     "nivel_explicacion",
+                     "basico",
+                 ),
+
+                 SlotSet(
+                     "materia_detectada",
+                     materia,
+                 ),
+
+                 SlotSet(
+                     "rol_academico",
+                     rol,
+                 ),
+
+             ])
+
+        return eventos
+
+    def _build_topic_events_support(
+        self,
+        tracker: Tracker,
+        proceso: str,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[SUPPORT] Inicializando flujo soporte."
+        )
+
+        latest = tracker.latest_message or {}
+
+        tema = latest.get(
+            "text",
+            "",
+        ).strip()
+
+        return [
+  
+            SlotSet(
+                "tema_actual",
+                tema,
+            ),
 
             SlotSet(
-                "esperando_tema",
-                False,
+                "tema_consulta",
+                tema,
             ),
+
+            SlotSet(
+                "proceso_activo",
+                proceso,
+            ),
+
+        ]
+    
+    def _build_topic_events_administrative(
+        self,
+        tracker: Tracker,
+        proceso: str,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[ADMIN] Inicializando flujo administrativo."
+        )
+
+        latest = tracker.latest_message or {}
+
+        tema = latest.get(
+            "text",
+            "",
+        ).strip()
+
+        return [
 
             SlotSet(
                 "tema_actual",
@@ -1248,22 +1571,7 @@ class ActionHandleWithLLM(Action):
 
             SlotSet(
                 "proceso_activo",
-                "aprender_tema",
-            ),
-
-            SlotSet(
-                "nivel_explicacion",
-                "basico",
-            ),
-
-            SlotSet(
-               "materia_detectada",
-               materia,
-            ),
-
-            SlotSet(
-                "rol_academico",
-                rol,
+                proceso,
             ),
 
         ]
@@ -1965,6 +2273,57 @@ class ActionHandleWithLLM(Action):
             "continuar_tema_si",
         ):
 
+            proceso = tracker.get_slot(
+                "proceso_activo"
+            )
+
+            if proceso == "faq":
+
+                logger.info(
+                    "[FAQ] Continuando pregunta frecuente"
+                )
+
+                nuevo_nivel = self._next_explanation_level(
+                tracker
+                )
+
+                return (
+
+                    limpieza
+
+                    + [
+
+                        SlotSet(
+                            "nivel_explicacion",
+                            nuevo_nivel,
+                        ),
+
+                    ]
+
+                    + self._ejecutar_procesamiento_llm(
+
+                        dispatcher=dispatcher,
+
+                       tracker=tracker,
+
+                       flow=self.FLOW_SUPPORT,
+
+                       prompt=None,
+
+                       nivel_explicacion=nuevo_nivel,
+
+                       tema_actual=tracker.get_slot(
+                          "tema_actual"
+                       ),
+
+                       tema_consulta=tracker.get_slot(
+                           "tema_consulta"
+                       ),
+
+                    )
+
+                )
+
             logger.info("=" * 70)
             logger.info("[ACADEMICO] CONTINUAR TEMA")
             logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
@@ -2319,74 +2678,150 @@ class ActionHandleWithLLM(Action):
         # Primera explicación únicamente para Aprender Tema.
         # ======================================================
 
+        proceso = tracker.get_slot("proceso_activo")
+
         if (
 
-             tracker.get_slot("proceso_activo") == "aprender_tema"
+            proceso in (
+                "aprender_tema",
+                "faq",
+                "pqrsd",
+            )
 
-             and self._is_waiting_for_topic(tracker)
+            and self._is_waiting_for_topic(tracker)
 
         ):
 
-             nuevo_tema = tracker.latest_message.get(
-                 "text",
-                 "",
-             ).strip()
+            nuevo_tema = tracker.latest_message.get(
+                "text",
+                "",
+            ).strip()
 
-             logger.info(
-                 "[ACADEMICO] Tema inicial recibido: %s",
-                 nuevo_tema,
-             )
+            logger.info(
+                "[TRANSICION] Primera consulta recibida (%s): %s",
+                proceso,
+                nuevo_tema,
+            )
 
-             logger.warning("=" * 80)
-             logger.warning("[ACADEMICO] ENTRANDO A _build_topic_events")
-             logger.warning(
-                 "latest_message=%s",
-                 tracker.latest_message.get("text"),
-             )
-             logger.warning(
-                 "tema_actual=%s",
-                 tracker.get_slot("tema_actual"),
-             )
-             logger.warning(
-                 "tema_consulta=%s",
-                 tracker.get_slot("tema_consulta"),
-             )
-             logger.warning("=" * 80)
+            logger.warning("=" * 80)
+            logger.warning("[TRANSICION] ENTRANDO A _build_topic_events")
+            logger.warning(
+                "proceso=%s",
+                proceso,
+            )
+            logger.warning(
+                "latest_message=%s",
+                tracker.latest_message.get("text"),
+            )
+            logger.warning(
+                "tema_actual=%s",
+                tracker.get_slot("tema_actual"),
+            )
+            logger.warning(
+                "tema_consulta=%s",
+                tracker.get_slot("tema_consulta"),
+            )
+            logger.warning("=" * 80)
 
-             prompt = self._build_continue_prompt(
-                 tracker,
-                 tema=nuevo_tema,
-                 nivel="basico",
-                 modo="tema_nuevo",
-             )
+            # --------------------------------------------------
+            # Construcción del prompt
+            # --------------------------------------------------
 
-             return (
+            if proceso == "aprender_tema":
 
-                 limpieza
+                prompt = self._build_continue_prompt(
+                    tracker,
+                    tema=nuevo_tema,
+                    nivel="basico",
+                    modo="tema_nuevo",
+                )
 
-                 + self._build_topic_events(
+                flow = self.FLOW_ACADEMIC
+
+            elif proceso in self.SUPPORT_PROCESSES:
+
+                # El instruction viene del llm_request.
+                prompt = None
+ 
+                flow = self.FLOW_SUPPORT
+
+            elif proceso in self.ADMIN_PROCESSES:
+
+                # El instruction viene del llm_request.
+                prompt = None
+
+                flow = self.FLOW_ADMINISTRATIVE
+
+            else:
+
+                prompt = nuevo_tema
+
+            # --------------------------------------------------
+            # Builder por macroflujo
+            # --------------------------------------------------
+
+            if proceso == "aprender_tema":
+
+                eventos = self._build_topic_events(
+                    tracker,
+                    proceso,
+                )
+
+            elif proceso in self.SUPPORT_PROCESSES:
+
+                eventos = self._build_topic_events_support(
+                    tracker,
+                    proceso,
+                )
+
+            elif proceso in self.ADMIN_PROCESSES:
+
+                eventos = self._build_topic_events_administrative(
+                    tracker,
+                    proceso,
+        )
+
+            else:
+
+                eventos = []
+
+            # --------------------------------------------------
+            # Parámetros específicos por macroflujo
+            # --------------------------------------------------
+
+            kwargs = {
+
+                "prompt": prompt,
+ 
+                "tema_actual": nuevo_tema,
+
+                "tema_consulta": nuevo_tema,
+
+            }
+
+            if proceso == "aprender_tema":
+
+                kwargs["nivel_explicacion"] = "basico"
+
+            return (
+
+                limpieza
+
+                + eventos
+
+                + self._ejecutar_procesamiento_llm(
+
+                     dispatcher,
+
                      tracker,
-                 )
 
-                 + self._ejecutar_procesamiento_llm(
+                     flow,
 
-                      dispatcher,
+                     **kwargs,
 
-                      tracker,
+                )
 
-                      self.FLOW_ACADEMIC,
-
-                      prompt=prompt,
-
-                      nivel_explicacion="basico",
-
-                      tema_actual=nuevo_tema,
-
-                      tema_consulta=nuevo_tema,
-
-                    )
-
-                 )
+            )
 
         # ======================================================
         # FLUJO NORMAL
@@ -2802,107 +3237,72 @@ class ActionHandleWithLLM(Action):
                 "next_action",
             )
 
-            if next_action:
-
-                logger.warning(
-                    "[LLM] RETORNANDO FollowupAction(%s)",
-                    next_action,
-                )
-
-                return [
-
-                    ActiveLoop(None),
-
-                    SlotSet("requested_slot", None),
-
-                    SlotSet("llm_request", None),
-
-                    SlotSet(
-                        "ultima_respuesta_llm",
-                        respuesta,
-                    ),
-
-                    FollowupAction(next_action),
-
-                ]
-
-            
+            logger.warning(
+                "next_action=%s",
+                llm_request.get("next_action"),
+            )
+                  
             logger.warning("=" * 80)
             logger.warning("FLOW=%s", flow)
             logger.warning("LLM_REQUEST=%s", llm_request)
             logger.warning("=" * 80)
+
             # =====================================================
             # Continuación normal del flujo
             # =====================================================
 
             events = self._build_followup_events(
                 flow,
+                tracker,
             )
+
+
+            # =====================================================
+            # Postprocesamiento separado por macroflujo
+            # =====================================================
+
+            events.extend(
+
+                self._postprocess_flow(
+
+                     flow=flow,
+
+                     tracker=tracker,
+
+                     respuesta=respuesta,
+
+                     llm_request=llm_request,
+
+                )
+
+            )
+
 
             # -----------------------------------------------------
             # Mantener proceso_activo SOLO para soporte.
             #
-            # El flujo académico utiliza "aprender_tema".
-            # No debe sobrescribirse con "academic",
-            # porque rompe la lógica conversacional.
+            # No modificarlo porque FAQ y PQRSD dependen
+            # de este slot para continuar su flujo.
             # -----------------------------------------------------
 
             if flow == self.FLOW_SUPPORT:
 
-                events.insert(
-                    0,
-                    SlotSet(
-                        "proceso_activo",
-                        "support",
-                    ),
+                proceso = tracker.get_slot(
+                    "proceso_activo"
                 )
 
-            # -----------------------------------------------------
-            # Flujo académico
-            # -----------------------------------------------------
+                if proceso:
 
-            if flow == self.FLOW_ACADEMIC:
+                    events.insert(
 
-                events.extend(
-
-                    [
+                        0,
 
                         SlotSet(
-                            "ultima_respuesta_llm",
-                            respuesta,
+                            "proceso_activo",
+                            proceso,
                         ),
 
-                        SlotSet(
-                            "ultima_interaccion",
-                            datetime.utcnow().isoformat(),
-                        ),
-  
-                    ]
-
-                )
-
-                events.extend(
-
-                    [
-
-                         SlotSet(
-                             "continuando_tema",
-                             False,
-                         ),
-
-                         SlotSet(
-                             "cambio_tema",
-                             False,
-                         ),
-
-                    ]
-
-                )
-
-            logger.info(
-                "[LLM] nivel_explicacion al salir=%s",
-                tracker.get_slot("nivel_explicacion"),
-            )
+                    )
             return events
 
         except Exception:

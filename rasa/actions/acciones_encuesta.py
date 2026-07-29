@@ -622,31 +622,12 @@ class ActionProcesarRespuestaResolucion(Action):
             )
 
 
-
-            if proceso == "aprender_tema" and tema:
-
-                logger.info("[RESOLUCION] -> Rama APRENDER_TEMA")
-
-                dispatcher.utter_message(
-                    response="utter_ofrecer_continuar"
-                )
-
-            else:
-
-                logger.info("[RESOLUCION] -> Rama MENU_ACADEMICO")
-
-                dispatcher.utter_message(
-                    response="utter_fin_consulta_academica"
-                )
-                   
-            return [
+            eventos = [
 
                 SlotSet(
                     "esperando_resolucion",
-                     False,
+                    False,
                 ),
-
-                SlotSet("esperando_decision_post_resolucion", True),
 
                 SlotSet(
                     "encuesta_activa",
@@ -659,11 +640,105 @@ class ActionProcesarRespuestaResolucion(Action):
                 ),
 
                 SlotSet(
-                   "confirmacion_cierre",
-                   None,
+                    "confirmacion_cierre",
+                    None,
                 ),
+
             ]
 
+
+            # ======================================================
+            # APRENDER TEMA
+            # Continúa profundizando explicación
+            # ======================================================
+
+            if proceso == "aprender_tema" and tema:
+
+                logger.info(
+                    "[RESOLUCION] -> Rama APRENDER_TEMA"
+                )
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar"
+                )
+
+                eventos.append(
+                    SlotSet(
+                        "esperando_decision_post_resolucion",
+                        True,
+                    )
+                )
+
+
+            # ======================================================
+            # FAQ
+            # No profundiza. Solicita nueva consulta FAQ
+            # ======================================================
+
+            elif proceso == "faq":
+
+                logger.info(
+                    "[RESOLUCION] -> Rama FAQ"
+                )
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_faq"
+                )
+
+                eventos.append(
+                    SlotSet(
+                        "esperando_decision_post_resolucion",
+                        False,
+                    )
+                )
+
+
+            # ======================================================
+            # PQRSD
+            # Continúa flujo de radicación
+            # ======================================================
+
+            elif proceso == "pqrsd":
+
+                logger.info(
+                    "[RESOLUCION] -> Rama PQRSD"
+                )
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_radicar_pqrsd"
+                )
+
+                eventos.append(
+                    SlotSet(
+                        "esperando_decision_post_resolucion",
+                        False,
+                    )
+                )
+
+
+            # ======================================================
+            # Otros procesos
+            # ======================================================
+
+            else:
+
+                logger.info(
+                    "[RESOLUCION] -> Rama GENERAL"
+                )
+
+                dispatcher.utter_message(
+                    response="utter_fin_consulta_academica"
+                )
+
+                eventos.append(
+                    SlotSet(
+                        "esperando_decision_post_resolucion",
+                        False,
+                    )
+                )
+
+
+            return eventos
         # ==========================================================
         # Usuario indica que SÍ quedó resuelto
         # ==========================================================
@@ -748,10 +823,12 @@ class ActionPreguntarEncuestaGeneral(Action):
             )
 
         elif proceso in [
-            "soporte_tecnico",
-            "pqrs",
-            "correo",
-            "humano",
+            "faq",
+            "pqrsd",
+            "crear_caso",
+            "asesor",
+            "recuperar_password",
+
         ]:
 
             mensaje = (
@@ -862,11 +939,6 @@ class ActionLanzarEncuestaGeneral(Action):
                 None,
             ),
 
-            SlotSet(
-                "proceso_activo",
-                "aprender_tema",
-            ),
-
             FollowupAction("action_listen"),
 
         ]
@@ -968,11 +1040,6 @@ class ActionGuardarCalificacionGeneral(Action):
             SlotSet("encuesta_activa", False),
 
             SlotSet("encuesta_incompleta", False),
-
-            SlotSet(
-                "proceso_activo",
-                "aprender_tema",
-            ),
 
             SlotSet("tema_actual", None),
 

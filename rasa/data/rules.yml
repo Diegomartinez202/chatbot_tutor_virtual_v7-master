@@ -339,3 +339,20 @@ rules:
       - action: action_memory_wrapper
       - action: action_handle_with_llm
       - action: action_ofrecer_continuar_tema
+ 
+  - rule: Continuar flujo FAQ activo
+    condition:
+      - slot_was_set:
+          - proceso_activo: faq
+    steps:
+      - intent: explicacion_preguntas_frecuentes
+      - action: action_preguntas_frecuentes_llm 
+  
+      
+  - rule: Continuar flujo PQRSD activo
+    condition:
+      - slot_was_set:
+          - proceso_activo: pqrsd
+    steps:
+      - intent: describir_pqrsd
+      - action: action_pqrsd_llm

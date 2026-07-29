@@ -1279,36 +1279,46 @@ nlu:
 
 - intent: describir_pqrsd
   examples: |
-    - No puedo ingresar a la plataforma.
-    - La plataforma muestra un error 404.
-    - El sistema no carga correctamente.
-    - No puedo presentar el examen.
-    - No puedo subir la evidencia.
-    - Perdí mi actividad enviada.
-    - El tutor no calificó mi trabajo.
-    - Mi usuario aparece bloqueado.
-    - La contraseña no funciona.
-    - No recibí respuesta a mi solicitud.
-    - El certificado no se genera.
-    - La plataforma está muy lenta.
-    - Se cerró mi sesión inesperadamente.
-    - El contenido del curso no aparece.
-    - No puedo acceder al ambiente virtual.
-    - El sistema presenta un error interno.
-    - El botón de enviar no funciona.
-    - Mi calificación no aparece.
-    - El curso desapareció de mi panel.
-    - Tengo problemas para acceder a Zajuna.
-    - Llevo varios días sin poder ingresar.
-    - Mi actividad desapareció del curso.
-    - El sistema cerró mi sesión automáticamente.
-    - No puedo descargar el certificado.
-    - No puedo recuperar mi contraseña.
-    - El tutor nunca respondió mi solicitud.
-    - Mi evidencia fue eliminada.
-    - El sistema me bloqueó el acceso.
-    - No puedo matricularme en el curso.
-    - La plataforma se queda cargando indefinidamente.
+    - quiero radicar una PQRSD
+    - quiero presentar una PQRSD
+    - deseo presentar una petición
+    - quiero presentar una queja
+    - deseo presentar un reclamo
+    - quiero presentar una sugerencia
+    - quiero presentar una felicitación
+    - necesito radicar una solicitud
+    - quiero saber cómo radicar una PQRSD
+    - ¿cómo presento una PQRSD?
+    - ¿cómo radico una PQRSD?
+    - ¿dónde radico una PQRSD?
+    - necesito el enlace para radicar una PQRSD
+    - quiero registrar una inconformidad
+    - necesito presentar una queja formal
+    - quiero hacer una petición formal
+    - quiero realizar un reclamo formal
+    - ayúdame a escribir una PQRSD
+    - necesito redactar una petición
+    - quiero elaborar un reclamo
+    - ayúdame a redactar una reclamación
+    - deseo elaborar una petición formal
+    - necesito redactar una queja formal
+    - quiero redactar una queja porque no puedo ingresar
+    - quiero redactar una queja porque llevo tres días sin ingresar
+    - deseo presentar una reclamación por un error en la plataforma
+    - deseo presentar un reclamo porque mi curso desapareció
+    - quiero elaborar una petición porque mi certificado no se genera
+    - necesito presentar una petición por un inconveniente
+    - quiero redactar una sugerencia para mejorar el servicio
+    - deseo presentar una felicitación por la atención recibida
+    - quiero elaborar una queja por la demora en la respuesta
+    - necesito redactar un reclamo por un error en mi curso
+    - quiero presentar una petición relacionada con mi formación
+    - ayúdame a redactar una sugerencia
+    - ayúdame a redactar una felicitación
+    - quiero elaborar una inconformidad
+    - necesito ayuda para redactar una PQRSD
+    - quiero preparar una PQRSD antes de radicarla
+    - necesito redactar una solicitud formal
 
 - intent: preguntas_frecuentes 
   examples: |
@@ -1586,6 +1596,24 @@ nlu:
     - ayuda error 500
     - error servidor
     - error inicio sesión
+    - ¿Cómo recupero mi contraseña?
+    - ¿Por qué no puedo ingresar a la plataforma?
+    - ¿Qué significa el error 404?
+    - ¿Cómo puedo subir una actividad?
+    - ¿Por qué no carga el curso?
+    - ¿Cómo ingreso al aula virtual?
+
+
+- intent: continuar_faq
+  examples: |
+    - sí, tengo otra pregunta
+    - otra consulta
+    - quiero hacer otra pregunta
+    - sí, otra duda
+    - quiero seguir preguntando
+    - continuar preguntas frecuentes
+
+
 
 - intent: recuperar_contrasena
   examples: |
