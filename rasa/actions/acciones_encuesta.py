@@ -361,6 +361,14 @@ class ActionPreguntarResolucion(Action):
         domain: Dict[str, Any],
     ) -> List[EventType]:
 
+        logger.warning(
+            "[PREGUNTAR_RESOLUCION] proceso=%s confirmacion_cierre=%s encuesta_incompleta=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("confirmacion_cierre"),
+            tracker.get_slot("encuesta_incompleta"),
+        )
+        
+        
         logger.info(
             "[ENCUESTA] Preguntando si el problema fue resuelto."
         )
@@ -378,6 +386,11 @@ class ActionPreguntarResolucion(Action):
             SlotSet(
                 "encuesta_incompleta",
                 True,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                "pendiente",
             ),
 
             SlotSet(
@@ -597,6 +610,9 @@ class ActionProcesarRespuestaResolucion(Action):
             "[ActionProcesarRespuestaResolucion] intent=%s",
             ultimo_intent,
         )
+        proceso = tracker.get_slot("proceso_activo")
+        tema = tracker.get_slot("tema_actual")
+
 
         # ==========================================================
         # El usuario indicó que NO quedó resuelto
@@ -612,15 +628,20 @@ class ActionProcesarRespuestaResolucion(Action):
                 text="Lamento que no hayamos resuelto tu inquietud por completo."
             )
 
-            proceso = tracker.get_slot("proceso_activo")
-            tema = tracker.get_slot("tema_actual")
-
             logger.info(
                 "[RESOLUCION] proceso=%s tema=%s",
                 proceso,
                 tema,
             )
-
+            logger.warning(
+                "[DEBUG_RESOLUCION_NO] proceso=%s cierre=%s esperando_res=%s decision=%s encuesta=%s incompleta=%s",
+                tracker.get_slot("proceso_activo"),
+                tracker.get_slot("confirmacion_cierre"),
+                tracker.get_slot("esperando_resolucion"),
+                tracker.get_slot("esperando_decision_post_resolucion"),
+                tracker.get_slot("encuesta_activa"),
+                tracker.get_slot("encuesta_incompleta"),
+            )
 
             eventos = [
 
@@ -640,7 +661,21 @@ class ActionProcesarRespuestaResolucion(Action):
                 ),
 
                 SlotSet(
+                    "proceso_activo",
+                    proceso,
+                ),
+
+                SlotSet(
                     "confirmacion_cierre",
+                    "pendiente",
+                ),
+
+                SlotSet(
+                    "esperando_decision_post_resolucion",
+                    True,
+                ),
+                SlotSet(
+                    "llm_request",
                     None,
                 ),
 
@@ -688,7 +723,7 @@ class ActionProcesarRespuestaResolucion(Action):
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
-                        False,
+                        True,
                     )
                 )
 
@@ -711,7 +746,7 @@ class ActionProcesarRespuestaResolucion(Action):
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
-                        False,
+                        True,
                     )
                 )
 
@@ -737,7 +772,10 @@ class ActionProcesarRespuestaResolucion(Action):
                     )
                 )
 
-
+                logger.warning(
+                    "[DEBUG_EVENTOS_RESOLUCION_NO]=%s",
+                    eventos
+                )
             return eventos
         # ==========================================================
         # Usuario indica que SÍ quedó resuelto
@@ -766,8 +804,13 @@ class ActionProcesarRespuestaResolucion(Action):
 
                 SlotSet(
                     "confirmacion_cierre",
-                    None,
+                    "pendiente",
                 ),
+
+                SlotSet(
+                    "llm_request",
+                    None,
+                ), 
 
                 FollowupAction(
                     "encuesta_satisfaccion_form",

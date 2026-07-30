@@ -198,7 +198,7 @@ def _call_model(
         # Evitar respuestas vacías
         # ----------------------------------------------------
 
-        if not respuesta:
+        if not respuesta.strip():
 
             logger.warning(
                 "[LLM] Respuesta vacía."
@@ -233,9 +233,37 @@ def _call_model(
             "Rol:"
         )
 
-        if any(p in inicio for p in patrones_prompt):
+        # ----------------------------------------------------
+        # Detectar cuando el modelo devuelve el prompt
+        # completo en lugar de una respuesta.
+        # ----------------------------------------------------
+
+        inicio = respuesta[:500]
+
+        patrones_prompt = (
+            "Contexto de la conversación",
+            "Consulta del estudiante:",
+            "Historial reciente:",
+            "Memoria semántica relevante:",
+            "Última respuesta generada por el tutor:",
+            "Macroflujo:",
+            "Subflujo:",
+            "Materia:",
+            "Rol:",
+        )
+
+        coincidencias = sum(
+           1 for patron in patrones_prompt
+           if patron in inicio
+        )
+
+        # Solo consideramos que el modelo devolvió el prompt
+        # si aparecen varios indicadores del contexto.
+        if coincidencias >= 3:
             logger.warning(
-                "[LLM] El modelo devolvió el prompt completo."
+                "[LLM] El modelo parece haber devuelto el prompt "
+                "(%d coincidencias detectadas).",
+                coincidencias,
             )
             return ""
 
@@ -318,9 +346,10 @@ def run_llm(
         context_data.pop("requires_auth", None)
         context_data.pop("auth_state", None)
 
-        flow = context_data.get(
-            "flujo",
-            "general",
+        flow = (
+           context_data.get("macroflujo")
+           or context_data.get("flujo")
+           or "general"
         )
 
         logger.info(
@@ -397,7 +426,7 @@ def run_llm(
         # EVITAR QUE EL MODELO DEVUELVA EL PROMPT
         # ========================================================
 
-        if result == sane_prompt:
+        if result.strip() == sane_prompt.strip():
 
             logger.warning(
                 "[LLM] El modelo devolvió exactamente el prompt recibido."

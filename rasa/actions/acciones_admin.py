@@ -105,6 +105,10 @@ class ActionReiniciarConversacion(Action):
             SlotSet("evento_seguridad", None),
             SlotSet("user_id", None),
             SlotSet("session_id", None),
+            SlotSet("password", None),
+            SlotSet("slot_tipo_usuario", None),
+            SlotSet("session_started_metadata", None),
+            SlotSet("is_authenticated", False),
 
             ActiveLoop(None),
             SlotSet("requested_slot", None),

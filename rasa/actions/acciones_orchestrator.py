@@ -133,6 +133,16 @@ class ActionOrchestratorEntry(Action):
                 llm_context = {}
 
             llm_context.setdefault(
+               "macroflujo",
+               "general",
+            )
+
+            llm_context.setdefault(
+               "subflujo",
+               "orchestrator",
+            )
+  
+            llm_context.setdefault(
                 "flujo",
                 "orchestrator",
             )

@@ -6,6 +6,7 @@ import time
 import os
 import json
 import datetime
+import traceback
 from typing import Any, Dict, List, Text, Optional
 
 from rasa_sdk import Action, Tracker
@@ -837,6 +838,8 @@ class ActionPQRSDLLM(Action):
                 None,
             ),
 
+            SlotSet("esperando_tema", False),
+
             SlotSet(
                 "proceso_activo",
                 "pqrsd",
@@ -961,7 +964,14 @@ class ActionOfrecerRadicarPQRSD(Action):
             response="utter_ofrecer_continuar_pqrsd"
         )
 
-        return []
+        return [
+            
+            SlotSet(
+                "llm_request",
+                None,
+            )
+            
+        ]
 
 class ActionPreguntasFrecuentesLLM(Action):
 
@@ -1002,6 +1012,8 @@ class ActionPreguntasFrecuentesLLM(Action):
             ActiveLoop(None),
 
             SlotSet("requested_slot", None),
+
+            SlotSet("esperando_tema", False),
 
             SlotSet("proceso_activo", "faq"),
 
@@ -1081,6 +1093,21 @@ class ActionSolicitarPreguntaFAQ(Action):
 
     def run(self, dispatcher, tracker, domain):
 
+        logger.error("EVENTOS DEL TRACKER:")
+        for e in tracker.events[-15:]:
+            logger.error(e)
+
+        logger.error("===== STACK =====")
+        logger.error("".join(traceback.format_stack()))
+        logger.error("=================")
+        
+        logger.error("=" * 80)
+        logger.error("[FAQ] ActionSolicitarPreguntaFAQ EJECUTADA")
+        logger.error("intent=%s", tracker.get_intent_of_latest_message())
+        logger.error("texto=%s", tracker.latest_message.get("text"))
+        logger.error("proceso=%s", tracker.get_slot("proceso_activo"))
+        logger.error("=" * 80)
+        
         logger.warning(
             "[TRACE][ActionSolicitarPreguntaFAQ] llm_request al entrar=%s",
             tracker.get_slot("llm_request"),
@@ -1190,6 +1217,7 @@ class ActionOfrecerContinuarSoporte(Action):
                 "esperando_decision_post_resolucion",
                 False,
             ),
+            SlotSet("llm_request", None)
         ]
 class ActionOfrecerContinuarFaq(Action):
 
@@ -1203,6 +1231,11 @@ class ActionOfrecerContinuarFaq(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        logger.error("=" * 80)
+        logger.error("[FAQ] ENTRÓ ActionOfrecerContinuarFaq")
+        logger.error("intent=%s", tracker.get_intent_of_latest_message())
+        logger.error("=" * 80)
+        
         dispatcher.utter_message(
             response="utter_ofrecer_continuar_faq"
         )
@@ -1211,5 +1244,7 @@ class ActionOfrecerContinuarFaq(Action):
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False,
-            )
+            ),
+
+            SlotSet("llm_request", None)
         ]

@@ -60,7 +60,7 @@ class ActionGuardarProgresoEncuesta(Action):
 
                 SlotSet(
                     "confirmacion_cierre",
-                    None,
+                    "pendiente",
                 ),
 
                 FollowupAction(
@@ -81,16 +81,6 @@ class ActionGuardarProgresoEncuesta(Action):
             SlotSet(
                 "encuesta_incompleta",
                 False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-               None,
-            ),
-
-            SlotSet(
-                "proceso_activo",
-                None,
             ),
 
         ]

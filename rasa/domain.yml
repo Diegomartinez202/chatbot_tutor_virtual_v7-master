@@ -1031,7 +1031,6 @@ actions:
 - action_set_authenticated_true
 - action_enviar_correo_recuperacion
 - action_consultar_certificados
-- action_analizar_estado_usuario
 - action_cargar_autosave_mongo
 - action_autoresume_conversacion
 - action_registrar_encuesta
@@ -1077,7 +1076,6 @@ actions:
 - action_enviar_soporte
 - action_soporte_submit
 - action_enviar_correo_tutor
-- action_procesar_soporte
 - action_marcar_escalar_humano
 - action_registrar_intento_form
 - action_verificar_max_intentos_form

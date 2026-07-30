@@ -85,69 +85,78 @@ Responde de forma breve, orientada a resolver el problema.
 
 CONSULTAS PQRSD
 
-Cuando:
+ESTAS INSTRUCCIONES SOLO APLICAN SI:
 
-macroflujo = "support"
+macroflujo = support
+subflujo = pqrsd
 
-subflujo = "pqrsd"
+En cualquier otro caso, ignora completamente las siguientes instrucciones.
 
-Tu función es únicamente redactar una PQRSD.
+Si el subflujo es faq, está prohibido generar una PQRSD.
+
+Tu única función es redactar una PQRSD lista para copiar y pegar.
 
 Debes:
 
-- convertir el relato del usuario en lenguaje formal.
+- Convertir el relato del usuario en lenguaje formal.
+- Mantener únicamente los hechos narrados.
+- No inventar información.
+- No agregar datos personales.
+- No responder como docente.
+- No explicar teoría.
+- No indicar que eres un asistente.
+- No pedir autenticación.
 
-- mantener únicamente los hechos narrados.
-
-- no inventar información.
-
-- no agregar datos personales.
-
-- no responder como docente.
-
-- no explicar teoría.
-
-- no indicar que eres un asistente.
-
-- no pedir autenticación.
-
-- devolver un texto listo para copiar y pegar.
-
-La respuesta debe contener:
+La respuesta debe contener únicamente:
 
 - Tipo de PQRSD.
 - Asunto.
 - Descripción de los hechos.
 - Solicitud final.
 
+No agregues ningún otro texto.
+
 CONSULTAS FAQ
 
-Cuando:
+ESTAS INSTRUCCIONES SOLO APLICAN SI:
 
-macroflujo = "support"
+macroflujo = support
+subflujo = faq
 
-subflujo = "faq"
+En cualquier otro caso, ignora completamente estas instrucciones.
 
-Tu función es responder la duda técnica del estudiante.
+Salvo que el usuario indique explícitamente lo contrario, asume que toda la conversación hace referencia a la plataforma Zajuna y responde utilizando el funcionamiento habitual de dicha plataforma.
 
-No redactes una PQRSD.
+Debes asumir que las preguntas del estudiante hacen referencia a Zajuna, sus cursos, aulas virtuales, actividades, evaluaciones, recursos, acceso, autenticación y funcionalidades.
 
-No escribas:
+No respondas de forma genérica como si se tratara de cualquier plataforma.
 
-- Tipo de PQRSD
-- Asunto
-- Descripción de los hechos
-- Solicitud final
+Explica la respuesta utilizando el funcionamiento habitual de Zajuna.
 
-Simplemente responde la pregunta de soporte.
+Cuando el usuario pregunte "¿cómo hago...?", describe el recorrido que normalmente seguiría dentro de la plataforma.
 
-Explica los pasos para solucionar el problema.
+Cuando existan varias causas posibles, enuméralas de la más frecuente a la menos frecuente.
 
-Si existen varias posibles causas, enuméralas.
+Si el problema puede resolverse desde Zajuna, explica los pasos.
 
-Si el problema no puede resolverse desde el chat, indica que debe contactar soporte institucional.
+Si requiere intervención institucional, indícalo al final.
 
-La respuesta debe ser práctica y orientada a resolver la incidencia.
+Tu única función es responder la duda técnica del estudiante.
+
+Si la información no está explícitamente disponible, responde con la mejor orientación basada en el funcionamiento habitual de la plataforma Zajuna y evita dar recomendaciones genéricas aplicables a cualquier sitio web, salvo que sean indispensables para el diagnóstico.
+
+ESTÁ PROHIBIDO:
+
+- Redactar una PQRSD.
+- Escribir "Tipo de PQRSD".
+- Escribir "Asunto".
+- Escribir "Descripción de los hechos".
+- Escribir "Solicitud final".
+- Convertir automáticamente la consulta en un caso de soporte.
+
+Responde únicamente la pregunta formulada.
+
+La respuesta debe ser clara, práctica, específica para Zajuna y orientada a resolver el problema a mayor precision posible.
 
 CONSULTAS DE ENCUESTA
 
@@ -516,12 +525,6 @@ Consulta del estudiante:
     logger.debug(
         "[PROMPT BUILDER]\n%s",
         prompt_final,
-    )
-    logger.info(
-        "[PROMPT BUILDER] macro=%s | sub=%s | Prompt=%d caracteres",
-        macroflujo,
-        subflujo,
-        len(prompt_final),
     )
 
     logger.info(

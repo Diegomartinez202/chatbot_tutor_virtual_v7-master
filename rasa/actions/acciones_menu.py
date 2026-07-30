@@ -44,7 +44,29 @@ class ActionIrMenuPrincipal(Action):
             SlotSet(
                 "menu_actual",
                 "principal"
-            )
+            ),
+            SlotSet("proceso_activo", None),
+            
+            SlotSet("esperando_resolucion", False),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False
+            ),
+
+ 
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+            SlotSet("esperando_tema", False),
+            SlotSet("continuando_tema", False),
+            SlotSet("cambio_tema", False),
+            SlotSet("nivel_explicacion", None),
+            SlotSet("materia_detectada", None),
+            SlotSet("rol_academico", None),
+            SlotSet("ultima_respuesta_llm", None),
+
         ]
 
 
@@ -73,7 +95,30 @@ class ActionIrMenuAcademico(Action):
             SlotSet(
                 "menu_actual",
                 "academico"
-            )
+            ),
+            SlotSet("proceso_activo", None),
+            
+            SlotSet("esperando_resolucion", False),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False
+            ),
+
+
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+
+            SlotSet("esperando_tema", False),
+            SlotSet("continuando_tema", False),
+            SlotSet("cambio_tema", False),
+            SlotSet("nivel_explicacion", None),
+            SlotSet("materia_detectada", None),
+            SlotSet("rol_academico", None),
+            SlotSet("ultima_respuesta_llm", None),
+
         ]
 
 
@@ -102,9 +147,31 @@ class ActionIrMenuSoporte(Action):
             SlotSet(
                 "menu_actual",
                 "soporte"
-            )
-        ]
+            ),
 
+            SlotSet("proceso_activo", None),
+            
+            SlotSet("esperando_resolucion", False),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False
+            ),
+
+
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+            SlotSet("esperando_tema", False),
+            SlotSet("continuando_tema", False),
+            SlotSet("cambio_tema", False),
+            SlotSet("nivel_explicacion", None),
+            SlotSet("materia_detectada", None),
+            SlotSet("rol_academico", None),
+            SlotSet("ultima_respuesta_llm", None),
+
+        ]
 
 class ActionIrMenuAdministrativo(Action):
 
@@ -131,5 +198,27 @@ class ActionIrMenuAdministrativo(Action):
             SlotSet(
                 "menu_actual",
                 "administrativo"
-            )
+            ),
+
+            SlotSet("proceso_activo", None),
+            
+            SlotSet("esperando_resolucion", False),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False
+            ),
+
+            SlotSet("tema_actual", None),
+
+            SlotSet("tema_consulta", None),
+
+            SlotSet("esperando_tema", False),
+            SlotSet("continuando_tema", False),
+            SlotSet("cambio_tema", False),
+            SlotSet("nivel_explicacion", None),
+            SlotSet("materia_detectada", None),
+            SlotSet("rol_academico", None),
+            SlotSet("ultima_respuesta_llm", None),
+
         ]

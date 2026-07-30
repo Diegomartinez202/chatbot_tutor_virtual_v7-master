@@ -183,7 +183,7 @@ class ActionHandleWithLLM(Action):
         if flow == self.FLOW_GENERAL:
 
             llm_request = tracker.get_slot("llm_request") or {}
-
+ 
             flujo = (
                 llm_request
                 .get("context", {})
@@ -195,6 +195,8 @@ class ActionHandleWithLLM(Action):
 
             if flujo == "cierre_conversacion":
                 return self._build_cierre_prompt(tracker)
+
+
 
         return self._build_general_prompt(tracker)
 
@@ -295,6 +297,16 @@ class ActionHandleWithLLM(Action):
         se migran progresivamente todos los subflujos.
         """
 
+        logger.warning(
+            "[FLOW] macro=%s sub=%s flujo=%s proceso=%s esperando=%s",
+            macroflujo,
+            subflujo,
+            flujo,
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("esperando_tema"),
+        )
+        
+        
         latest = tracker.latest_message or {}
 
         intent = (
@@ -330,6 +342,52 @@ class ActionHandleWithLLM(Action):
 
             macroflujo = flujo
 
+        
+            
+        # ======================================================
+        # ESTADOS ESPECIALES PENDIENTES
+        # TIENEN PRIORIDAD SOBRE MACROFLUJO GENERAL
+        # ======================================================
+
+        if tracker.get_slot("esperando_resolucion"):
+    
+            proceso = tracker.get_slot("proceso_activo")
+
+            logger.info(
+                "[FLOW] Resolución pendiente. Conservando proceso=%s",
+                proceso,
+            )
+
+            if proceso in (
+                "faq",
+                "pqrsd",
+            ):
+                 return self.FLOW_SUPPORT
+
+
+            if proceso == "aprender_tema":
+                return self.FLOW_ACADEMIC
+
+
+        if tracker.get_slot("esperando_decision_post_resolucion"):
+
+            proceso = tracker.get_slot("proceso_activo")
+
+            logger.info(
+                "[FLOW] Decisión post resolución. proceso=%s",
+                proceso,
+            )
+
+            if proceso in (
+                "faq",
+                "pqrsd",
+            ):
+                return self.FLOW_SUPPORT
+
+
+            if proceso == "aprender_tema":
+                return self.FLOW_ACADEMIC    
+            
         # ======================================================
         # PRIORIDAD 1
         # NUEVA ARQUITECTURA (macroflujo / subflujo)
@@ -496,11 +554,11 @@ class ActionHandleWithLLM(Action):
         # COMPATIBILIDAD CON FLUJOS ANTIGUOS
         # -----------------------------------------------------
 
-        if esperando or tema or materia:
+        if esperando:
 
-            logger.info(
-                "[FLOW] Compatibilidad académica."
-            )
+            return self.FLOW_ACADEMIC
+
+        if proceso in self.ACADEMIC_LEARNING_PROCESSES:
 
             return self.FLOW_ACADEMIC
 
@@ -514,7 +572,16 @@ class ActionHandleWithLLM(Action):
         # ======================================================
         # GENERAL
         # ======================================================
+        logger.warning(
+            "[FLOW DEBUG] Sin macroflujo detectado"
+        )   
 
+        logger.warning(
+            "[FLOW DEBUG] intent=%s proceso=%s esperando_tema=%s",
+            intent,
+            proceso,
+            tracker.get_slot("esperando_tema"),
+        )
         return self.FLOW_GENERAL
 
         # ======================================================
@@ -560,18 +627,38 @@ class ActionHandleWithLLM(Action):
         3. Continuar aumentando el nivel del mismo tema.
         """
 
+        logger.warning(
+            "[ACADEMICO PROMPT] tema_actual=%s tema_consulta=%s latest=%s",
+            tracker.get_slot("tema_actual"),
+            tracker.get_slot("tema_consulta"),
+            latest.get("text"),
+        )
         latest = tracker.latest_message or {}
+        texto = latest.get("text", "").strip()
+
+        if texto.startswith("/"):
+            texto = ""
 
         pregunta = (
             tracker.get_slot("tema_consulta")
-            or latest.get("text", "")
-        ).strip()
+            or texto
+        )
 
         tema_principal = (
             tracker.get_slot("tema_actual")
             or pregunta
         )
 
+        if not tema_principal:
+
+            logger.error(
+                "[ACADEMICO] Tema principal vacío."
+            )
+
+            return (
+                "El usuario desea aprender un tema, "
+                "pero aún no ha indicado cuál."
+            )
         materia = (
             tracker.get_slot("materia_detectada")
             or detectar_materia(tema_principal)
@@ -913,6 +1000,31 @@ class ActionHandleWithLLM(Action):
              ),
          )
 
+         if macroflujo in ("general", self.FLOW_GENERAL):
+
+             proceso = tracker.get_slot("proceso_activo")
+
+             logger.info(
+                 "[LLM CONTEXT] Reconstruyendo macroflujo desde proceso=%s",
+                 proceso,
+             )
+ 
+             if proceso in self.ACADEMIC_LEARNING_PROCESSES:
+                 macroflujo = "academic"
+                 subflujo = proceso
+
+             elif proceso in self.ACADEMIC_PROCESSES:
+                 macroflujo = "academic"
+                 subflujo = proceso
+
+             elif proceso in self.SUPPORT_PROCESSES:
+                 macroflujo = "support"
+                 subflujo = proceso
+
+             elif proceso in self.ADMIN_PROCESSES:
+                 macroflujo = "administrative"
+                 subflujo = proceso
+
          context = {
 
              "macroflujo": macroflujo,
@@ -1173,7 +1285,6 @@ class ActionHandleWithLLM(Action):
             "next_action"
         )
 
-
         # ======================================================
         # PRIORIDAD 1
         # El orquestador definió la siguiente acción
@@ -1193,6 +1304,44 @@ class ActionHandleWithLLM(Action):
                 ),
 
             ]
+
+        # ======================================================
+        # FALLBACK
+        # Reconstrucción cuando llm_request ya fue limpiado
+        # ======================================================
+
+        proceso = tracker.get_slot(
+            "proceso_activo"
+        )
+
+        logger.info(
+            "[FOLLOWUP] Reconstruyendo desde proceso=%s",
+            proceso,
+        )
+
+        if proceso == "aprender_tema":
+
+            return [
+
+                FollowupAction(
+                    "action_ofrecer_continuar_tema",
+                ),
+
+            ]
+
+        if proceso == "faq":
+
+            return [
+
+                FollowupAction(
+                    "action_ofrecer_continuar_faq",
+                ),
+
+            ]
+
+        # ======================================================
+        # Sin continuidad definida
+        # ======================================================
 
         return []
     
@@ -1244,7 +1393,6 @@ class ActionHandleWithLLM(Action):
         return []
     
     
-    # ==========================================================
     # POSTPROCESAMIENTO ACADÉMICO
     # ==========================================================
 
@@ -1255,47 +1403,55 @@ class ActionHandleWithLLM(Action):
         llm_request: dict,
     ) -> List[EventType]:
 
-        events = []
+        events = [
 
-        events.extend(
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
 
-            [
- 
-                SlotSet(
-                    "ultima_respuesta_llm",
-                    respuesta,
-                ),
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
 
-                SlotSet(
-                    "ultima_interaccion",
-                    datetime.utcnow().isoformat(),
-                ),
+            SlotSet(
+                "continuando_tema",
+               False,
+            ),
 
-                SlotSet(
-                    "continuando_tema",
-                    False,
-                ),
+            SlotSet(
+                "cambio_tema",
+                False,
+            ),
 
-                SlotSet(
-                    "cambio_tema",
-                    False,
-                ),
+        ]
 
-            ]
-
+        proceso = tracker.get_slot(
+            "proceso_activo"
         )
 
-
-        events.append(
-
-             FollowupAction(
-                  "action_ofrecer_continuar_tema"
-             )
-
+        logger.info(
+            "[POSTPROCESS] proceso=%s",
+            proceso,
         )
 
+        # ======================================================
+        # Solo Aprender Tema continúa con profundización
+        # ======================================================
+
+        if proceso == "aprender_tema":
+
+            events.append(
+
+                FollowupAction(
+                    "action_ofrecer_continuar_tema"
+                )
+
+            )
 
         return events
+
 
     def _postprocess_support(
         self,
@@ -1342,27 +1498,7 @@ class ActionHandleWithLLM(Action):
         logger.info(
             "[POSTPROCESS] FAQ continuidad"
         )
-
-        nivel_actual = tracker.get_slot(
-            "nivel_explicacion"
-        )
-
-        if not nivel_actual:
-            nivel_actual = "basico"
-
-
-        return [
-
-            SlotSet(
-                "nivel_explicacion",
-                nivel_actual,
-            ),
-
-            FollowupAction(
-                "action_ofrecer_continuar_tema"
-            ),
-
-        ]
+        return []
 
     def _postprocess_support_pqrsd(
         self,
@@ -1375,14 +1511,7 @@ class ActionHandleWithLLM(Action):
             "[POSTPROCESS] PQRSD iniciar radicación"
         )
 
-
-        return [
-
-            FollowupAction(
-                "action_ofrecer_radicar_pqrsd"
-            ),
-
-        ]
+        return []
 
     def _postprocess_administrative(
         self,
@@ -1448,20 +1577,13 @@ class ActionHandleWithLLM(Action):
         )
         eventos = []
 
-        # Solo el flujo académico limpia el llm_request.
-        if proceso == "aprender_tema":
-
-            eventos.append(
-                SlotSet(
-                    "llm_request",
-                    None,
-                )
-            )
-
         eventos.extend(
 
             [
 
+                SlotSet(
+                    "esperando_tema", False),
+                
                 SlotSet(
                     "tema_actual",
                     tema,
@@ -1510,6 +1632,12 @@ class ActionHandleWithLLM(Action):
         proceso: str,
     ) -> List[EventType]:
 
+        logger.warning("=" * 80)
+        logger.warning("[SUPPORT] _build_topic_events_support")
+        logger.warning("mensaje=%s", tema)
+        logger.warning("proceso=%s", proceso)
+        logger.warning("=" * 80)
+        
         logger.info(
             "[SUPPORT] Inicializando flujo soporte."
         )
@@ -1550,6 +1678,12 @@ class ActionHandleWithLLM(Action):
             "[ADMIN] Inicializando flujo administrativo."
         )
 
+        logger.warning("=" * 80)
+        logger.warning("[ADMIN] _build_topic_events_administrative")
+        logger.warning("mensaje=%s", tema)
+        logger.warning("proceso=%s", proceso)
+        logger.warning("=" * 80)
+        
         latest = tracker.latest_message or {}
 
         tema = latest.get(
@@ -1600,27 +1734,6 @@ class ActionHandleWithLLM(Action):
             return True
 
         texto = texto.lower().strip()
-
-        if "?" in texto:
-            return False
-
-        if texto.startswith((
-            "que",
-            "qué",
-            "como",
-            "cómo",
-            "por qué",
-            "porque",
-            "cual",
-            "cuál",
-            "cuando",
-            "cuándo",
-            "donde",
-            "dónde",
-            "para qué",
-            "para que",
-        )):
-            return False
 
         materia_actual = detectar_materia(
             tema_actual
@@ -1706,264 +1819,261 @@ class ActionHandleWithLLM(Action):
         nivel=None,
         modo="continuacion",
         tema=None,
-    ):
+    ) -> str:
         """
-        Construye un prompt enriquecido para continuar una
-        explicación ya iniciada aprovechando el contexto de
-        la última respuesta generada por el LLM.
+        Construye un prompt enriquecido para continuar una explicación ya
+        iniciada aprovechando el contexto de la última respuesta generada
+        por el LLM.
         """
+
         logger.info("=" * 70)
         logger.info("[LLM] USANDO _build_continue_prompt()")
         logger.info("tema_actual=%s", tracker.get_slot("tema_actual"))
         logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
         logger.info("nivel=%s", tracker.get_slot("nivel_explicacion"))
-        logger.info("ultima_respuesta=%s", bool(tracker.get_slot("ultima_respuesta_llm")))
+        logger.info(
+            "ultima_respuesta=%s",
+           bool(tracker.get_slot("ultima_respuesta_llm")),
+        )
         logger.info("=" * 70)
-       
+
+        latest = tracker.latest_message or {}
+
         tema = (
             tema
             or tracker.get_slot("tema_actual")
             or tracker.get_slot("tema_consulta")
+            or latest.get("text", "")
             or "el tema anterior"
         )
 
         consulta_actual = (
             tracker.get_slot("tema_consulta")
+            or latest.get("text", "")
             or tema
         )
-        if nivel is None:
 
+        if nivel is None:
             nivel = (
-               tracker.get_slot(
-                   "nivel_explicacion"
-               )
-               or "basico"
+                tracker.get_slot("nivel_explicacion")
+                or "basico"
             )
 
         if nivel == "basico":
 
             instrucciones = """
-        Continúa ampliando los conceptos básicos del tema.
+Continúa ampliando los conceptos básicos del tema.
 
-        Mantén un lenguaje fácil de comprender.
+Mantén un lenguaje fácil de comprender.
 
-        No profundices demasiado en aspectos técnicos.
-        """
+No profundices demasiado en aspectos técnicos.
+"""
 
         elif nivel == "intermedio":
 
             instrucciones = """
-        Ahora profundiza en el funcionamiento interno del mismo tema.
+Ahora profundiza en el funcionamiento interno del mismo tema.
 
-        Relaciona conceptos.
+Relaciona conceptos.
 
-        Explica el funcionamiento interno.
+Explica el funcionamiento interno.
 
-        Incluye casos prácticos.
+Incluye casos prácticos.
 
-        Introduce terminología técnica cuando sea necesaria.
-        """
+Introduce terminología técnica cuando sea necesaria.
+"""
 
         else:
 
             instrucciones = """
-        Ahora desarrolla aspectos avanzados del mismo tema, incluyendo arquitectura, optimización y casos reales.
+Ahora desarrolla aspectos avanzados del mismo tema, incluyendo arquitectura, optimización y casos reales.
 
-        Incluye arquitectura.
+Incluye arquitectura.
 
-        Casos reales.
+Casos reales.
 
-        Comparaciones técnicas.
+Comparaciones técnicas.
 
-        Errores frecuentes.
+Errores frecuentes.
 
-        Buenas prácticas profesionales.
+Buenas prácticas profesionales.
 
-        Optimización.
+Optimización.
 
-        Finaliza con un ejercicio práctico resuelto.
-        """
+Finaliza con un ejercicio práctico resuelto.
+"""
 
         ultima_respuesta = (
             tracker.get_slot("ultima_respuesta_llm")
             or ""
         ).strip()
-        
+
         if len(ultima_respuesta) > 1200:
             ultima_respuesta = ultima_respuesta[-1200:]
 
-
-        # =====================================================
-        # CONTEXTO PEDAGÓGICO SEGÚN EL MODO
-        # =====================================================
+    # =====================================================
+    # CONTEXTO PEDAGÓGICO
+    # =====================================================
 
         if modo == "tema_nuevo":
 
             prompt = f"""
-        Tipo de aprendizaje:
+Tipo de aprendizaje:
 
-        Tema nuevo
+Tema nuevo
 
-        Tema:
+Tema:
 
-        {tema}
+{tema}
 
-        Nivel inicial:
+Nivel inicial:
 
-        {nivel}
+{nivel}
 
-        El estudiante acaba de iniciar este tema.
+El estudiante acaba de iniciar este tema.
 
-        Comienza desde cero.
+Comienza desde cero.
 
-        Haz una introducción clara.
+Haz una introducción clara.
 
-        Explica primero los conceptos fundamentales.
+Explica primero los conceptos fundamentales.
 
-        No asumas conocimientos previos.
+No asumas conocimientos previos.
 
-        Organiza la explicación de forma progresiva.
+Organiza la explicación de forma progresiva.
 
-        Al finalizar deja abierta la posibilidad de continuar aprendiendo.
-        """
+Al finalizar deja abierta la posibilidad de continuar aprendiendo.
+"""
 
         elif modo == "subconsulta":
 
             prompt = f"""
-        Tipo de aprendizaje:
+Tipo de aprendizaje:
 
-        Subconsulta
+Subconsulta
 
-        Tema principal:
+Tema principal:
 
-        {tema}
+{tema}
 
-         Consulta realizada por el estudiante:
+Consulta realizada por el estudiante:
 
-         {consulta_actual}
+{consulta_actual}
 
-         Nivel actual:
+Nivel actual:
 
-         {nivel}
+{nivel}
 
-         La pregunta pertenece al mismo tema.
+La pregunta pertenece al mismo tema.
 
-         No es un tema nuevo.
+No es un tema nuevo.
 
-         Responde primero únicamente la duda realizada.
+Responde primero únicamente la duda realizada.
 
-         Utiliza la explicación anterior únicamente como contexto.
+Utiliza la explicación anterior únicamente como contexto.
 
-         No vuelvas a explicar todo el tema.
+No vuelvas a explicar todo el tema.
 
-         Después de responder la duda,
-         retoma naturalmente el hilo del aprendizaje.
+Después de responder la duda, retoma naturalmente el hilo del aprendizaje.
 
-         No cambies de tema.
+No cambies de tema.
 
-         No reinicies la explicación.
-         """
+No reinicies la explicación.
+"""
 
         else:
 
             prompt = f"""
-        Tipo de aprendizaje:
+Tipo de aprendizaje:
 
-        Continuación
+Continuación
 
-        Tema:
+Tema:
 
-       {tema}
+{tema}
 
-       Nivel actual:
+Nivel actual:
 
-       {nivel}
+{nivel}
 
-       Esta conversación NO corresponde a un tema nuevo.
+Esta conversación NO corresponde a un tema nuevo.
 
-       Corresponde a la continuación de una explicación previamente iniciada.
+Corresponde a la continuación de una explicación previamente iniciada.
 
-       Debes continuar exactamente desde donde terminó la explicación anterior.
+Debes continuar exactamente desde donde terminó la explicación anterior.
 
-       No reinicies el tema.
+No reinicies el tema.
 
-       No vuelvas a realizar una introducción.
+No vuelvas a realizar una introducción.
 
-       No vuelvas a definir conceptos que ya fueron explicados.
+No vuelvas a definir conceptos que ya fueron explicados.
 
-       No repitas ejemplos anteriores.
+No repitas ejemplos anteriores.
 
-       Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
+Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
 
-       La primera oración debe comenzar como una continuación natural.
+La primera oración debe comenzar como una continuación natural.
 
-       Ejemplos:
+Ejemplos:
 
-       "Ahora que comprendemos los conceptos básicos..."
+"Ahora que comprendemos los conceptos básicos..."
 
-       "A continuación profundizaremos..."
+"A continuación profundizaremos..."
 
-       "Una vez entendida la estructura general..."
+"Una vez entendida la estructura general..."
 
-       Nunca empieces diciendo:
+Nunca empieces diciendo:
 
-       "El modelo OSI es..."
+"El modelo OSI es..."
 
-       "Fundamentos de programación es..."
+"Fundamentos de programación es..."
 
-       "Variables son..."
+"Variables son..."
 
-       porque eso indica que reiniciaste la explicación.
-       """
+porque eso indica que reiniciaste la explicación.
+"""
 
         if modo != "tema_nuevo" and ultima_respuesta:
 
-            prompt += f"""
+           prompt += f"""
 
-        La explicación anterior fue:
+La explicación anterior fue:
 
-        ----------------------------
+----------------------------
 
-        {ultima_respuesta}
+{ultima_respuesta}
 
-        ----------------------------
+----------------------------
 
-        Toda esa información ya fue aprendida.
+Toda esa información ya fue aprendida.
 
-        No la repitas.
+No la repitas.
 
-        No reinicies el tema.
+No reinicies el tema.
 
-        Comienza exactamente desde el último concepto desarrollado.
+Comienza exactamente desde el último concepto desarrollado.
 
-         La continuidad debe seguir estas reglas:
+La continuidad debe seguir estas reglas:
 
-        1. Comienza con una transición muy breve (máximo dos frases)
-           conectando la explicación anterior con la nueva.
+1. Comienza con una transición muy breve (máximo dos frases) conectando la explicación anterior con la nueva.
 
-        2. Resume únicamente la idea principal de lo ya aprendido,
-           sin repetir listas ni volver a explicar conceptos.
+2. Resume únicamente la idea principal de lo ya aprendido, sin repetir listas ni volver a explicar conceptos.
 
-        3. Introduce únicamente contenido nuevo.
+3. Introduce únicamente contenido nuevo.
 
-        4. Aumenta el nivel de profundidad respecto a la respuesta
-           anterior.
+4. Aumenta el nivel de profundidad respecto a la respuesta anterior.
 
-        5. Si el tema tiene varias partes, continúa con la siguiente
-           parte lógica, nunca regreses al inicio.
+5. Si el tema tiene varias partes, continúa con la siguiente parte lógica, nunca regreses al inicio.
 
-        6. Mantén continuidad como si fuera el siguiente capítulo
-           del mismo libro.
+6. Mantén continuidad como si fuera el siguiente capítulo del mismo libro.
 
-        7. Evita reutilizar párrafos completos de la respuesta
-           anterior.
+7. Evita reutilizar párrafos completos de la respuesta anterior.
 
-        8. Solo vuelve a mencionar conceptos anteriores cuando sean
-           necesarios para comprender el nuevo contenido.
+8. Solo vuelve a mencionar conceptos anteriores cuando sean necesarios para comprender el nuevo contenido.
 
-        9. Al finalizar deja abierta naturalmente la explicación
-           para que pueda existir otro nivel de profundización.
-        """
+9. Al finalizar deja abierta naturalmente la explicación para que pueda existir otro nivel de profundización.
+"""
+
         logger.info("=" * 70)
         logger.info("[LLM] Prompt CONTINUE")
         logger.info(prompt)
@@ -1971,8 +2081,8 @@ class ActionHandleWithLLM(Action):
 
         prompt += "\n\n"
         prompt += instrucciones
+
         return prompt.strip()
-    
     # ==========================================================
     # INVOCACIÓN DEL LLM
     # ==========================================================
@@ -1994,11 +2104,17 @@ class ActionHandleWithLLM(Action):
  
         Esta función únicamente delega la ejecución al motor LLM.
         """
-        logger.warning(
-            "[FLOW FINAL] parametro=%s | contexto=%s",
-            flow,
-            context.get("flujo"),
-        )
+        logger.warning("=" * 80)
+        logger.warning("[LLM] INVOCANDO MOTOR")
+        logger.warning("flow=%s", flow)
+        logger.warning("macroflujo=%s", context.get("macroflujo"))
+        logger.warning("subflujo=%s", context.get("subflujo"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.warning("prompt_chars=%s", len(prompt))
+        logger.warning("=" * 80)
+
         logger.info(
             "[LLM] Preparando prompt para flujo '%s'",
             flow,
@@ -2008,9 +2124,10 @@ class ActionHandleWithLLM(Action):
             "[LLM] Prompt final construido (%d caracteres)",
             len(prompt),
         )
+
         logger.debug(
-        "[LLM] Prompt enviado:\n%s",
-        prompt,
+            "[LLM] Prompt enviado:\n%s",
+            prompt,
         )
         return run_llm(
             prompt=prompt,
@@ -2019,14 +2136,56 @@ class ActionHandleWithLLM(Action):
             fallback=fallback,
             dispatcher=dispatcher,
         )
-       
+        logger.warning("=" * 80)
+        logger.warning("[LLM] RESPUESTA RECIBIDA")
+        logger.warning(
+            "respuesta_vacia=%s",
+            not bool((respuesta or "").strip()),
+        )
+        logger.warning(
+            "respuesta_chars=%s",
+            len(respuesta or ""),
+        )
+        logger.warning("=" * 80)
+
+        return respuesta
+
+
+
     def run(
         self,
         dispatcher,
         tracker,
         domain,
     ) -> List[EventType]:
+        
+        llm_request = tracker.get_slot("llm_request")
 
+        logger.warning("=" * 80)
+        logger.warning("LLM REQUEST RECIBIDO")
+        logger.warning("%s", llm_request)
+        logger.warning("=" * 80)
+        
+        logger.warning("=" * 80)
+        logger.warning("[TRACE ENTRY ACTION_HANDLE]")
+        logger.warning(
+            "intent=%s",
+            tracker.get_intent_of_latest_message()
+        )
+        logger.warning(
+            "text=%s",
+            tracker.latest_message.get("text")
+        )
+        logger.warning(
+            "latest_message=%s",
+            tracker.latest_message
+        )
+        logger.warning(
+            "llm_request=%s",
+            tracker.get_slot("llm_request")
+        )
+        logger.warning("=" * 80)
+      
         logger.warning("=" * 80)
         logger.warning("[LLM] ENTRANDO A ACTION_HANDLE_WITH_LLM")
         logger.warning("sender=%s", tracker.sender_id)
@@ -2035,40 +2194,64 @@ class ActionHandleWithLLM(Action):
         logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
         logger.warning("requires_auth=%s", tracker.get_slot("requires_auth"))
         logger.warning("=" * 80)
-        
-        
+
         logger.warning("=" * 80)
         logger.warning("[ENTRY ACTION_HANDLE_WITH_LLM]")
-        logger.warning("intent=%s", (tracker.latest_message.get("intent") or {}).get("name"))
+        logger.warning(
+            "intent=%s",
+            (tracker.latest_message.get("intent") or {}).get("name"),
+        )
         logger.warning("text=%s", tracker.latest_message.get("text"))
-        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
-        logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
-        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
-        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
-        logger.warning("=" * 80)
-        
-        
-        logger.warning("=" * 80)
         logger.warning(
-            "[TRACKER] Eventos=%d",
-            len(tracker.events),
+            "esperando_resolucion=%s",
+            tracker.get_slot("esperando_resolucion"),
         )
         logger.warning(
-            "[TRACKER] Sender=%s",
-            tracker.sender_id,
+            "esperando_encuesta_general=%s",
+            tracker.get_slot("esperando_encuesta_general"),
+        )
+        logger.warning(
+            "confirmacion_cierre=%s",
+            tracker.get_slot("confirmacion_cierre"),
+        )
+        logger.warning(
+            "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
         )
         logger.warning("=" * 80)
-        
+
+        logger.warning("=" * 80)
+        logger.warning("[TRACKER] Eventos=%d", len(tracker.events))
+        logger.warning("[TRACKER] Sender=%s", tracker.sender_id)
+        logger.warning("=" * 80)
+
         logger.info("=" * 80)
         logger.info("[DEBUG ACTION_HANDLE_WITH_LLM]")
-        logger.info("intent=%s", tracker.get_intent_of_latest_message())
-        logger.info("llm_request=%s", tracker.get_slot("llm_request"))
-        logger.info("proceso_activo=%s", tracker.get_slot("proceso_activo"))
-        logger.info("tema_consulta=%s", tracker.get_slot("tema_consulta"))
-        logger.info("materia_detectada=%s", tracker.get_slot("materia_detectada"))
+        logger.info(
+            "intent=%s",
+            tracker.get_intent_of_latest_message(),
+        )
+        logger.info(
+            "llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
+        logger.info(
+            "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.info(
+            "tema_consulta=%s",
+            tracker.get_slot("tema_consulta"),
+        )
+        logger.info(
+            "materia_detectada=%s",
+            tracker.get_slot("materia_detectada"),
+        )
         logger.info("=" * 80)
 
         logger.warning("=========== SLOTS ===========")
+        
+        
         for k, v in tracker.current_slot_values().items():
            logger.warning("%s = %s", k, v)
         logger.warning("=============================")
@@ -2078,8 +2261,6 @@ class ActionHandleWithLLM(Action):
         for i, e in enumerate(tracker.events[-20:], 1):
             logger.warning("[%02d] %s", i, e)
         logger.warning("=" * 80)
-
-
 
         limpieza = [
             ActiveLoop(None),
@@ -2097,7 +2278,7 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("esperando_resolucion"),
             tracker.get_slot("esperando_decision_post_resolucion"),
             tracker.get_intent_of_latest_message(),
-       )
+        )
 
         # ======================================================
         # CONTEXTO DEL MENSAJE ACTUAL
@@ -2105,33 +2286,19 @@ class ActionHandleWithLLM(Action):
 
         flow = self._detect_flow(tracker)
 
-        logger.info(
-            "[DEBUG] Flow detectado=%s",
-            flow,
-        )
-
+        logger.warning("=" * 80)
+        logger.warning("[FLOW DETECTADO]")
+        logger.warning("flow=%s", flow)
+        logger.warning("intent=%s", intent)
+        logger.warning("proceso=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
+        
+        
         intent = tracker.get_intent_of_latest_message()
 
-        logger.info(
-            "[DEBUG] Intent detectado=%s",
-            intent,
-        )
-    
-        # ======================================================
-        # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
-        #
-        # El usuario ya respondió si el problema quedó resuelto.
-        # Mientras este estado permanezca activo, tiene prioridad
-        # sobre cualquier otra validación de Sí/No.
-        #
-        # Puede:
-        #   • Continuar tema
-        #   • Ir al menú principal
-        #   • Finalizar conversación
-        #
-        # También puede escribir directamente una nueva pregunta
-        # relacionada con el tema actual.
-        # ======================================================
+        logger.info("[DEBUG] Flow detectado=%s", flow)
+        logger.info("[DEBUG] Intent detectado=%s", intent)
 
         # ======================================================
         # VALIDACIÓN DECISIÓN POST RESOLUCIÓN
@@ -2143,39 +2310,24 @@ class ActionHandleWithLLM(Action):
                 "[POST_RESOLUCION] Intent=%s",
                 intent,
             )
-            # ----------------------------------------------
-            # El NLU no entendió la respuesta.
-            # Permanecer dentro del flujo.
-            # ----------------------------------------------
+
             if intent == "nlu_fallback":
 
-                 dispatcher.utter_message(
+                dispatcher.utter_message(
                     text=(
-                        "Puedes elegir una de estas opciones:\n"
+                        "Puedes seleccionar una opción del menú o escribir nuevamente tu consulta.:\n"
                         "• Continuar tema\n"
                         "• Menú principal\n"
                         "• Finalizar conversación\n\n"
                         "O escribir directamente una pregunta "
                         "relacionada con el tema actual."
                     )
-                 )
+                )
 
-                 return limpieza
-
-            # ----------------------------------------------
-            # Para cualquier otro intent se continúa
-            # el flujo normal.
-            #
-            # continuar_tema
-            # continuar_tema_si
-            # menu_principal
-            # despedida
-            # nuevo tema
-            # etc.
-            # ----------------------------------------------
+                return limpieza
 
         # ======================================================
-        # VALIDACIÓN DE CIERRE
+        # VALIDACIÓN CIERRE
         # ======================================================
 
         if tracker.get_slot("confirmacion_cierre") == "pendiente":
@@ -2189,7 +2341,7 @@ class ActionHandleWithLLM(Action):
                 return limpieza
 
         # ======================================================
-        # VALIDACIÓN RESPUESTA DE RESOLUCIÓN
+        # VALIDACIÓN RESOLUCIÓN
         # ======================================================
 
         if tracker.get_slot("esperando_resolucion"):
@@ -2208,65 +2360,341 @@ class ActionHandleWithLLM(Action):
                 return limpieza
 
         # ======================================================
-        # PRIORIDAD DE MACROFLUJOS DEL ORQUESTADOR
-        #
-        # Si otra Action ya construyó un llm_request con un
-        # macro/subflujo especial, NO debemos dejar que el
-        # proceso académico vuelva a interpretar el mensaje.
-        #
-        # Esto evita que comentarios de encuesta como
-        #
-        #     "yyjju"
-        #
-        # sean tratados como un nuevo tema académico.
-        #
-        # También preserva la arquitectura basada en
-        # ACTION_CATALOG + llm_request.
+        # ORQUESTADOR DE MACROFLUJOS
         # ======================================================
 
-        llm_request = tracker.get_slot("llm_request") or {}
+        if flow == self.FLOW_ACADEMIC:
 
-        contexto = llm_request.get("context", {})
-
-        macroflujo = contexto.get("macroflujo")
-
-        flujo_especial = contexto.get("flujo")
-
-        # ======================================================
-        # BLOQUEAR LÓGICA ACADÉMICA CUANDO EXISTE
-        # UN MACROFLUJO DE SOPORTE U OTRO FLUJO ESPECIAL
-        # ======================================================
-
-        bloquear_aprendizaje = (
-
-            macroflujo == "support"
-        )
-
-        logger.info(
-            "[FLOW PRIORITY] macro=%s | flujo=%s | bloquear_aprendizaje=%s",
-            macroflujo,
-            flujo_especial,
-            bloquear_aprendizaje,
-        )
-
-
-        if flujo_especial:
-
-            logger.info(
-                "[FLOW PRIORITY] macro=%s | flujo=%s | bloquear=%s",
-                macroflujo,
-                flujo_especial,
-                bloquear_aprendizaje,
+            return self._run_academic(
+                dispatcher,
+                tracker,
+                domain,
+                limpieza,
             )
 
-        flow = self._detect_flow(tracker)
-        logger.info("[DEBUG] Flow detectado = %s", flow)
+        if flow == self.FLOW_SUPPORT:
+
+            return self._run_support(
+                dispatcher,
+                tracker,
+                domain,
+                limpieza,
+            )
+
+        if flow == self.FLOW_ADMINISTRATIVE:
+
+            return self._run_administrative(
+                dispatcher,
+                tracker,
+                domain,
+                limpieza,
+            )
+
+        # ======================================================
+        # FALLBACK
+        # ======================================================
+
+        return (
+
+            limpieza
+
+            + self._ejecutar_procesamiento_llm(
+
+                dispatcher,
+
+                tracker,
+
+                flow,
+
+            )
+
+        )
+
+    
+    def _run_support(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+        limpieza,
+    ) -> List[EventType]:
 
         intent = tracker.get_intent_of_latest_message()
 
+        logger.info("=" * 70)
+        logger.info("[SOPORTE] ENTRANDO A _run_support")
+        logger.info(
+        "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.info(
+            "intent=%s",
+            intent,
+        )
+        logger.info("=" * 70)
+
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        logger.info(
+            "[SUPPORT] esperando_tema=%s",
+            tracker.get_slot("esperando_tema"),
+        )
+
+        logger.info(
+            "[SUPPORT] tema_actual=%s",
+            tracker.get_slot("tema_actual"),
+        )
+
+        logger.info(
+            "[SUPPORT] tema_consulta=%s",
+            tracker.get_slot("tema_consulta"),
+        )
+       # ======================================================
+       # CONTINUAR FAQ / PQRSD
+       # ======================================================
+
+        if intent in (
+            "continuar_tema",
+            "continuar_tema_si",
+        ):
+
+            return (
+
+                limpieza
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=None,
+
+                    tema_actual=tracker.get_slot(
+                    "tema_actual"
+                    ),
+
+                    tema_consulta=tracker.get_slot(
+                        "tema_consulta"
+                    ),
+
+                )
+
+            )
+
+
+        # ======================================================
+        # PRIMERA CONSULTA FAQ / PQRSD
+        # ======================================================
+
+        if (
+
+            proceso in (
+                "faq",
+                "pqrsd",
+            )
+
+            and self._is_waiting_for_topic(tracker)
+
+        ):
+
+            nuevo_tema = tracker.latest_message.get(
+                "text",
+                "",
+            ).strip()
+
+
+            logger.info(
+                "[SOPORTE] Primera consulta recibida=%s",
+                nuevo_tema,
+            )
+
+
+            eventos = self._build_topic_events_support(
+                tracker,
+                proceso,
+            )
+
+
+            return (
+
+                limpieza
+
+                + eventos
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=None,
+
+                    tema_actual=nuevo_tema,
+
+                    tema_consulta=nuevo_tema,
+
+                )
+
+            )
+
+
+        # ======================================================
+        # FLUJO NORMAL SOPORTE
+        # ======================================================
+
+        return (
+
+            limpieza
+
+            + self._ejecutar_procesamiento_llm(
+
+                dispatcher,
+
+                tracker,
+
+                self.FLOW_SUPPORT,
+
+            )
+
+        )
+    
+    def _run_administrative(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+        limpieza,
+    ) -> List[EventType]:
+
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.info("=" * 70)
+        logger.info("[ADMINISTRATIVO] ENTRANDO A _run_administrative")
+        logger.info(
+            "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.info(
+            "intent=%s",
+            intent,
+        )
+        logger.info("=" * 70)
+
+
+        proceso = tracker.get_slot(
+            "proceso_activo"
+        )
+        logger.info(
+            "[ADMINISTRATIVO] esperando_tema=%s",
+            tracker.get_slot("esperando_tema"),
+        )
+
+        logger.info(
+            "[ADMINISTRATIVO] tema_actual=%s",
+            tracker.get_slot("tema_actual"),
+        )
+
+        logger.info(
+            "[ADMINISTRATIVO] tema_consulta=%s",
+            tracker.get_slot("tema_consulta"),
+        )
+
+        # ======================================================
+        # PRIMERA CONSULTA ADMINISTRATIVA
+        # ======================================================
+
+        if (
+
+            proceso in self.ADMIN_PROCESSES
+
+            and self._is_waiting_for_topic(tracker)
+
+        ):
+
+            nuevo_tema = tracker.latest_message.get(
+                "text",
+                "",
+            ).strip()
+
+
+            logger.info(
+                "[ADMINISTRATIVO] Consulta recibida=%s",
+                nuevo_tema,
+            )
+
+
+            eventos = self._build_topic_events_administrative(
+                tracker,
+                proceso,
+            )
+
+
+            return (
+
+                limpieza
+
+                + eventos
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ADMINISTRATIVE,
+
+                    prompt=None,
+
+                    tema_actual=nuevo_tema,
+
+                    tema_consulta=nuevo_tema,
+
+                )
+
+            )
+
+
+        # ======================================================
+        # FLUJO NORMAL ADMINISTRATIVO
+        # ======================================================
+
+        return (
+
+            limpieza
+
+            + self._ejecutar_procesamiento_llm(
+
+                dispatcher,
+
+                tracker,
+
+                self.FLOW_ADMINISTRATIVE,
+
+            )
+
+        )
+
+
+    def _run_academic(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+        limpieza,
+    ) -> List[EventType]:
+    
+        intent = tracker.get_intent_of_latest_message()
+       
         # ======================================================
         # CONTINUAR TEMA (PRIORIDAD)
         # ======================================================
+
 
         if intent in (
             "continuar_tema",
@@ -2399,7 +2827,6 @@ class ActionHandleWithLLM(Action):
 
 )
 
-
         # ======================================================
         # MODO APRENDIZAJE
         #
@@ -2450,15 +2877,7 @@ class ActionHandleWithLLM(Action):
 
         if (
           
-           not bloquear_aprendizaje
-
-           and flujo_especial not in (
-                "guardian_encuesta",
-                "guardian_autenticacion",
-                "guardian_recuperacion",
-                "cierre_conversacion",
-            )
-            and tracker.get_slot("proceso_activo") == "aprender_tema"
+           tracker.get_slot("proceso_activo") == "aprender_tema"
 
             and not tracker.get_slot("esperando_tema")
             and tracker.latest_message.get("text", "").strip()
@@ -2485,11 +2904,6 @@ class ActionHandleWithLLM(Action):
             # --------------------------------------------------
             # Decisión: ¿nuevo tema o continuación?
             # --------------------------------------------------
-
-            es_nuevo = self._is_new_topic(
-                tracker,
-                texto,
-            )
 
             logger.warning("=" * 70)
             logger.warning("[DEBUG CAMBIO TEMA]")
@@ -2680,17 +3094,7 @@ class ActionHandleWithLLM(Action):
 
         proceso = tracker.get_slot("proceso_activo")
 
-        if (
-
-            proceso in (
-                "aprender_tema",
-                "faq",
-                "pqrsd",
-            )
-
-            and self._is_waiting_for_topic(tracker)
-
-        ):
+        if proceso == "aprender_tema" and self._is_waiting_for_topic(tracker):
 
             nuevo_tema = tracker.latest_message.get(
                 "text",
@@ -2727,34 +3131,12 @@ class ActionHandleWithLLM(Action):
             # Construcción del prompt
             # --------------------------------------------------
 
-            if proceso == "aprender_tema":
-
-                prompt = self._build_continue_prompt(
-                    tracker,
-                    tema=nuevo_tema,
-                    nivel="basico",
-                    modo="tema_nuevo",
-                )
-
-                flow = self.FLOW_ACADEMIC
-
-            elif proceso in self.SUPPORT_PROCESSES:
-
-                # El instruction viene del llm_request.
-                prompt = None
- 
-                flow = self.FLOW_SUPPORT
-
-            elif proceso in self.ADMIN_PROCESSES:
-
-                # El instruction viene del llm_request.
-                prompt = None
-
-                flow = self.FLOW_ADMINISTRATIVE
-
-            else:
-
-                prompt = nuevo_tema
+            prompt = self._build_continue_prompt(
+                tracker,
+                tema=nuevo_tema,
+                nivel="basico",
+                modo="tema_nuevo",
+            )
 
             # --------------------------------------------------
             # Builder por macroflujo
@@ -2766,20 +3148,6 @@ class ActionHandleWithLLM(Action):
                     tracker,
                     proceso,
                 )
-
-            elif proceso in self.SUPPORT_PROCESSES:
-
-                eventos = self._build_topic_events_support(
-                    tracker,
-                    proceso,
-                )
-
-            elif proceso in self.ADMIN_PROCESSES:
-
-                eventos = self._build_topic_events_administrative(
-                    tracker,
-                    proceso,
-        )
 
             else:
 
@@ -2815,7 +3183,7 @@ class ActionHandleWithLLM(Action):
 
                      tracker,
 
-                     flow,
+                     self.FLOW_ACADEMIC,
 
                      **kwargs,
 
@@ -2837,11 +3205,13 @@ class ActionHandleWithLLM(Action):
 
                 tracker,
 
-                flow,
+                self.FLOW_ACADEMIC,
 
             )
 
         )
+    
+    
     
     def _next_explanation_level(
         self,
@@ -3232,15 +3602,6 @@ class ActionHandleWithLLM(Action):
             # =====================================================
             # Acción posterior definida por llm_request
             # =====================================================
-
-            next_action = llm_request.get(
-                "next_action",
-            )
-
-            logger.warning(
-                "next_action=%s",
-                llm_request.get("next_action"),
-            )
                   
             logger.warning("=" * 80)
             logger.warning("FLOW=%s", flow)
@@ -3350,28 +3711,8 @@ class ActionMemoryWrapper(Action):
         logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
         logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
         logger.warning("stack:")
-        logger.warning("".join(traceback.format_stack(limit=8)))
         logger.warning("=" * 80)
         
-        logger.warning(
-            "[MEMORY_WRAPPER] Ejecutado. intent=%s sender=%s",
-            tracker.get_intent_of_latest_message(),
-            tracker.sender_id,
-        )
-        logger.warning(
-            "".join(traceback.format_stack(limit=8))
-        )
-        logger.warning("=" * 80)
-        logger.warning("[MEMORY_WRAPPER] EJECUTADO")
-        logger.warning("intent=%s", tracker.get_intent_of_latest_message())
-        logger.warning("sender=%s", tracker.sender_id)
-        logger.warning("stack:")
-        logger.warning("".join(traceback.format_stack(limit=8)))
-        logger.warning("=" * 80)
-        logger.debug(
-            "[MEMORY_WRAPPER] Persistiendo conversación"
-        )
-
         try:
             latest = tracker.latest_message or {}
 

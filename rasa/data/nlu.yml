@@ -1136,6 +1136,33 @@ nlu:
     - quiero soporte especializado
     - necesito soporte
     - comunicarme con soporte humano
+    - quiero crear un caso de soporte
+    - necesito crear un ticket
+    - quiero registrar un problema
+    - deseo abrir un caso
+    - quiero reportar un inconveniente
+    - necesito reportar un problema
+    - quiero registrar una incidencia
+    - necesito abrir un ticket
+    - deseo crear una solicitud de soporte
+    - quiero dejar un reporte
+    - necesito registrar una solicitud
+    - quiero reportar una falla
+    - necesito soporte para mi caso
+    - deseo abrir una solicitud
+    - quiero crear una solicitud
+    - registrar un caso de soporte
+    - abrir un caso de soporte
+    - crear un ticket de soporte
+    - reportar una incidencia
+    - registrar una incidencia
+    - crear una solicitud de ayuda
+    - abrir una solicitud de ayuda
+    - quiero que registren mi problema
+    - necesito que registren mi caso
+    - deseo dejar un caso de soporte
+    - crear una incidencia
+
  
 - intent: hablar_asesor
   examples: |
@@ -1188,38 +1215,6 @@ nlu:
     - conectar con un asesor
     - pasar con un agente
     - quiero hablar con un ser humano
- 
-
-
-- intent: solicitar_soporte
-  examples: |
-    - quiero crear un caso de soporte
-    - necesito crear un ticket
-    - quiero registrar un problema
-    - deseo abrir un caso
-    - quiero reportar un inconveniente
-    - necesito reportar un problema
-    - quiero registrar una incidencia
-    - necesito abrir un ticket
-    - deseo crear una solicitud de soporte
-    - quiero dejar un reporte
-    - necesito registrar una solicitud
-    - quiero reportar una falla
-    - necesito soporte para mi caso
-    - deseo abrir una solicitud
-    - quiero crear una solicitud
-    - registrar un caso de soporte
-    - abrir un caso de soporte
-    - crear un ticket de soporte
-    - reportar una incidencia
-    - registrar una incidencia
-    - crear una solicitud de ayuda
-    - abrir una solicitud de ayuda
-    - quiero que registren mi problema
-    - necesito que registren mi caso
-    - deseo dejar un caso de soporte
-    - crear una incidencia
-
 
 - intent: contactar_tutor
   examples: |
@@ -1661,7 +1656,7 @@ nlu:
     - hasta luego. ok
     - cerrar por favor
     - adiós, nos vemos pronto
-
+    
 - intent: salir
   examples: |
     - cerrar

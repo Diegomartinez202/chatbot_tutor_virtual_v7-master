@@ -277,6 +277,7 @@ class OrchestratorV2:
             "user": tracker.sender_id,
             "macroflujo": macroflujo,
             "subflujo": subflujo,
+            "flujo": subflujo,
         }
 
         if macroflujo == "academic":
