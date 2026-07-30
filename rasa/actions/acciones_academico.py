@@ -632,6 +632,16 @@ class ActionAprenderTema(Action):
                 "basico",
             ),
 
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                 False,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
+
             SlotSet("materia_detectada", materia),
 
             SlotSet("rol_academico", rol),
@@ -691,6 +701,11 @@ class ActionAprenderTema(Action):
             "[ACADEMICO] llm_request construido=%s",
             request,
         )
+
+        logger.warning("=" * 80)
+        logger.warning("[LLM] REQUEST CONSTRUIDO")
+        logger.warning("%s", request)
+        logger.warning("=" * 80)
 
         eventos.append(
 

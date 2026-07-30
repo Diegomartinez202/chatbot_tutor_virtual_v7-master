@@ -855,6 +855,16 @@ class ActionPQRSDLLM(Action):
                 None,
             ),
 
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                 False,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
+
         ]
 
         eventos.extend(
@@ -1020,6 +1030,16 @@ class ActionPreguntasFrecuentesLLM(Action):
             SlotSet("tema_consulta", pregunta),
 
             SlotSet("auth_login_form", None),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                 False,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
 
         ]
 

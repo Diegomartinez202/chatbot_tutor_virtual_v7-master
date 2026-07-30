@@ -328,18 +328,35 @@ rules:
     steps:
       - intent: deny
       - action: action_cierre_limpio
-  
 
-  - rule: Continuar tema después de pregunta de resolución
+
+  - rule: Continuar aprendizaje después de resolución
     condition:
       - slot_was_set:
           - esperando_decision_post_resolucion: true
+          - proceso_activo: aprender_tema
     steps:
       - intent: continuar_tema_si
-      - action: action_memory_wrapper
-      - action: action_handle_with_llm
-      - action: action_ofrecer_continuar_tema
+      - action: action_aprender_tema
+  
+  - rule: Otra consulta FAQ después de resolución
+    condition:
+      - slot_was_set:
+          - esperando_decision_post_resolucion: true
+          - proceso_activo: faq
+    steps:
+      - intent: continuar_faq
+      - action: action_preguntas_frecuentes_llm
  
+  - rule: Radicar PQRSD después de resolución
+    condition:
+      - slot_was_set:
+          - esperando_decision_post_resolucion: true
+          - proceso_activo: pqrsd
+    steps:
+      - intent: radicar_pqrsd
+      - action: action_pqrsd_llm
+
   - rule: Continuar flujo FAQ activo
     condition:
       - slot_was_set:

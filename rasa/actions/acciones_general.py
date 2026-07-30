@@ -159,18 +159,43 @@ class ActionOfrecerContinuarTema(Action):
 
     def run(
         self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
+        dispatcher,
+        tracker,
+        domain,
+    ):
 
-        dispatcher.utter_message(response="utter_ofrecer_continuar")
-        
-        logger.error("=" * 80)
-        logger.error("[SALIDA] action_ofrecer_continuar_tema")
-        logger.error("intent=%s", tracker.get_intent_of_latest_message())
-        logger.error("sender=%s", tracker.sender_id)
-        logger.error("=" * 80)
+        logger.warning(
+            "[CONTINUAR] proceso=%s tema=%s llm=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("tema_actual"),
+            tracker.get_slot("llm_request"),
+)
+
+        dispatcher.utter_message(
+            response="utter_ofrecer_continuar"
+        )
+
+        esperando = tracker.get_slot(
+            "esperando_decision_post_resolucion"
+        )
+
+        logger.warning(
+            "[CONTINUAR_TEMA] esperando_decision_post_resolucion=%s",
+            esperando,
+        )
+
+        if esperando:
+            logger.warning(
+                "[CONTINUAR_TEMA] Manteniendo espera post resolución"
+            )
+
+            return []
+
+
+        logger.warning(
+            "[CONTINUAR_TEMA] Flujo académico normal"
+        )
+
         return [
             SlotSet(
                 "esperando_decision_post_resolucion",

@@ -297,16 +297,6 @@ class ActionHandleWithLLM(Action):
         se migran progresivamente todos los subflujos.
         """
 
-        logger.warning(
-            "[FLOW] macro=%s sub=%s flujo=%s proceso=%s esperando=%s",
-            macroflujo,
-            subflujo,
-            flujo,
-            tracker.get_slot("proceso_activo"),
-            tracker.get_slot("esperando_tema"),
-        )
-        
-        
         latest = tracker.latest_message or {}
 
         intent = (
@@ -342,6 +332,19 @@ class ActionHandleWithLLM(Action):
 
             macroflujo = flujo
 
+        logger.warning("=" * 80)
+        logger.warning("LLM REQUEST RECIBIDO")
+        logger.warning("%s", llm_request)
+        logger.warning(
+            "[FLOW] macro=%s sub=%s flujo=%s proceso=%s esperando=%s",
+            macroflujo,
+            subflujo,
+            flujo,
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("esperando_tema"),
+        )
+        logger.warning("=" * 80)
+        
         
             
         # ======================================================
@@ -626,6 +629,7 @@ class ActionHandleWithLLM(Action):
         2. Profundización sobre un subtema.
         3. Continuar aumentando el nivel del mismo tema.
         """
+        latest = tracker.latest_message or {}
 
         logger.warning(
             "[ACADEMICO PROMPT] tema_actual=%s tema_consulta=%s latest=%s",
@@ -633,7 +637,7 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("tema_consulta"),
             latest.get("text"),
         )
-        latest = tracker.latest_message or {}
+        
         texto = latest.get("text", "").strip()
 
         if texto.startswith("/"):
@@ -2101,19 +2105,48 @@ La continuidad debe seguir estas reglas:
 
         El prompt YA viene completamente construido desde
         _ejecutar_procesamiento_llm().
- 
+
         Esta función únicamente delega la ejecución al motor LLM.
         """
+
+        proceso = tracker.get_slot("proceso_activo")
+        macro = context.get("macroflujo")
+        sub = context.get("subflujo")
+
         logger.warning("=" * 80)
         logger.warning("[LLM] INVOCANDO MOTOR")
         logger.warning("flow=%s", flow)
-        logger.warning("macroflujo=%s", context.get("macroflujo"))
-        logger.warning("subflujo=%s", context.get("subflujo"))
-        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("macroflujo=%s", macro)
+        logger.warning("subflujo=%s", sub)
+        logger.warning("proceso_activo=%s", proceso)
         logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
         logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
         logger.warning("prompt_chars=%s", len(prompt))
         logger.warning("=" * 80)
+
+        # ------------------------------------------------------
+        # Auditoría de coherencia de flujo (NO bloquea)
+        # ------------------------------------------------------
+
+        FLOW_MAP = {
+            "faq": ("support", "faq"),
+            "pqrsd": ("support", "pqrsd"),
+            "aprender_tema": ("academic", "aprender_tema"),
+        }
+
+        esperado = FLOW_MAP.get(proceso)
+
+        if esperado and esperado != (macro, sub):
+            logger.warning(
+                "[FLOW WARNING] proceso_activo=%s "
+                "esperado=(%s,%s) "
+                "recibido=(%s,%s)",
+                proceso,
+                esperado[0],
+                esperado[1],
+                macro,
+                sub,
+            )
 
         logger.info(
             "[LLM] Preparando prompt para flujo '%s'",
@@ -2129,13 +2162,15 @@ La continuidad debe seguir estas reglas:
             "[LLM] Prompt enviado:\n%s",
             prompt,
         )
-        return run_llm(
+
+        respuesta = run_llm(
             prompt=prompt,
             tracker=tracker,
             context=context,
             fallback=fallback,
             dispatcher=dispatcher,
         )
+
         logger.warning("=" * 80)
         logger.warning("[LLM] RESPUESTA RECIBIDA")
         logger.warning(
@@ -2149,7 +2184,6 @@ La continuidad debe seguir estas reglas:
         logger.warning("=" * 80)
 
         return respuesta
-
 
 
     def run(
@@ -2285,6 +2319,7 @@ La continuidad debe seguir estas reglas:
         # ======================================================
 
         flow = self._detect_flow(tracker)
+        intent = tracker.get_intent_of_latest_message()
 
         logger.warning("=" * 80)
         logger.warning("[FLOW DETECTADO]")
@@ -2295,7 +2330,6 @@ La continuidad debe seguir estas reglas:
         logger.warning("=" * 80)
         
         
-        intent = tracker.get_intent_of_latest_message()
 
         logger.info("[DEBUG] Flow detectado=%s", flow)
         logger.info("[DEBUG] Intent detectado=%s", intent)
@@ -3491,6 +3525,39 @@ La continuidad debe seguir estas reglas:
                 "[LLM] Estado conversacional=%s",
                 estado_conversacion,
             )
+            
+            
+            # =====================================================
+            # Auditoría de coherencia de flujo (NO modifica el flujo)
+            # =====================================================
+
+            proceso = tracker.get_slot("proceso_activo")
+            macro = context.get("macroflujo")
+            sub = context.get("subflujo")
+
+            if proceso:
+
+                esperado = {
+                     "pqrsd": ("support", "pqrsd"),
+                     "faq": ("support", "faq"),
+                     "aprender_tema": ("academic", "aprender_tema"),
+                }
+
+                if proceso in esperado:
+
+                    macro_ok, sub_ok = esperado[proceso]
+
+                    if macro != macro_ok or sub != sub_ok:
+
+                        logger.warning(
+                            "[FLOW WARNING] proceso_activo=%s recibido=(%s,%s) esperado=(%s,%s)",
+                            proceso,
+                            macro,
+                            sub,
+                            macro_ok,
+                           sub_ok,
+                    )
+            
             
             # =====================================================
             # Invocar LLM

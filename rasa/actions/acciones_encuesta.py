@@ -666,13 +666,12 @@ class ActionProcesarRespuestaResolucion(Action):
                 ),
 
                 SlotSet(
-                    "confirmacion_cierre",
-                    "pendiente",
+                    "confirmacion_cierre", None,
                 ),
 
                 SlotSet(
                     "esperando_decision_post_resolucion",
-                    True,
+                    False,
                 ),
                 SlotSet(
                     "llm_request",
@@ -766,10 +765,9 @@ class ActionProcesarRespuestaResolucion(Action):
                 )
 
                 eventos.append(
-                    SlotSet(
-                        "esperando_decision_post_resolucion",
-                        False,
-                    )
+                SlotSet("confirmacion_cierre", None),
+
+                SlotSet("esperando_decision_post_resolucion", False),
                 )
 
                 logger.warning(
@@ -806,6 +804,8 @@ class ActionProcesarRespuestaResolucion(Action):
                     "confirmacion_cierre",
                     "pendiente",
                 ),
+
+                SlotSet("esperando_decision_post_resolucion", False).
 
                 SlotSet(
                     "llm_request",
