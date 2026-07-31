@@ -129,6 +129,18 @@ slots:
     initial_value: false
     mappings:
       - type: custom
+
+  esperando_pqrsd:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  esperando_pregunta_faq:
+    type: bool
+    influence_conversation: true
+    mappings:
+      - type: custom
   
   cambio_tema:
     type: bool
@@ -608,13 +620,18 @@ responses:
         payload: "/terminar_conversacion_segura"
   utter_ofrecer_continuar_pqrsd:
   - text: |
-      ¿Indica que deseas hacer?
-    buttons: 
+      ¿Qué deseas hacer ahora?
+    buttons:
+      - title: "📝 Redactar otra PQRSD"
+        payload: "/radicar_pqrsd"
+
       - title: "🛠 Soporte técnico"
         payload: "/ir_menu_soporte"
-      - title: "🏠 Menú principal" 
-        payload: "/ir_menu_principal" 
-      - title: "👋 Finalizar" 
+
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+
+      - title: "👋 Finalizar"
         payload: "/terminar_conversacion_segura"
 
   utter_solicitar_pqrsd:

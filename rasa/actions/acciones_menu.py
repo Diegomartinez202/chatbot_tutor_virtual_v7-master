@@ -66,8 +66,17 @@ class ActionIrMenuPrincipal(Action):
             SlotSet("materia_detectada", None),
             SlotSet("rol_academico", None),
             SlotSet("ultima_respuesta_llm", None),
-
+            SlotSet(
+                "esperando_pregunta_faq",
+                False,
+            ),
+            
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
         ]
+
 
 
 class ActionIrMenuAcademico(Action):
@@ -170,6 +179,15 @@ class ActionIrMenuSoporte(Action):
             SlotSet("materia_detectada", None),
             SlotSet("rol_academico", None),
             SlotSet("ultima_respuesta_llm", None),
+            SlotSet(
+                "esperando_pregunta_faq",
+                False,
+            ),
+            
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
 
         ]
 

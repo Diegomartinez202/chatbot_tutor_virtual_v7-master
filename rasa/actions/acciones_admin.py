@@ -109,7 +109,9 @@ class ActionReiniciarConversacion(Action):
             SlotSet("slot_tipo_usuario", None),
             SlotSet("session_started_metadata", None),
             SlotSet("is_authenticated", False),
-
+            SlotSet("esperando_pregunta_faq", False,),
+            SlotSet("esperando_pqrsd", False,),
+            
             ActiveLoop(None),
             SlotSet("requested_slot", None),
             

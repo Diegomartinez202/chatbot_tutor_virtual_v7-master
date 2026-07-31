@@ -3834,7 +3834,43 @@ class ActionMemoryWrapper(Action):
                 )
 
                 return []
-            
+
+            # ==========================================================
+            # ACADÉMICO
+            # ==========================================================
+
+            elif tracker.get_slot("esperando_tema"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando tema académico."
+                )
+
+                return []
+
+            # ==========================================================
+            # FAQ
+            # ==========================================================
+
+            elif tracker.get_slot("esperando_pregunta_faq"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando pregunta FAQ."
+                )
+
+                return []
+
+            # ==========================================================
+            # PQRSD
+            # ==========================================================
+
+            elif tracker.get_slot("esperando_pqrsd"):
+
+                logger.info(
+                    "[MEMORY_WRAPPER] Esperando información PQRSD."
+                )
+
+                return []
+
             # ==========================================================
             # TELEMETRÍA: MEDIDOR DE TIEMPO DE EJECUCIÓN
             # ==========================================================

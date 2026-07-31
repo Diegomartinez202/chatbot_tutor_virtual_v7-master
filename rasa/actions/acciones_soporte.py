@@ -758,17 +758,17 @@ class ActionSolicitarPQRSD(Action):
                 None,
             ),
             SlotSet(
-                "esperando_tema",
+                "esperando_pqrsd",
                 True,
             ),
-            SlotSet("tema_actual", None),
-            SlotSet("tema_consulta", None),
-            SlotSet("ultima_respuesta_llm", None),
-
             SlotSet(
                 "proceso_activo",
                 "pqrsd",
             ),
+
+            SlotSet("tema_actual", None),
+            SlotSet("tema_consulta", None),
+            SlotSet("ultima_respuesta_llm", None),
 
         ]
         logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
@@ -838,7 +838,10 @@ class ActionPQRSDLLM(Action):
                 None,
             ),
 
-            SlotSet("esperando_tema", False),
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
 
             SlotSet(
                 "proceso_activo",
@@ -974,13 +977,44 @@ class ActionOfrecerRadicarPQRSD(Action):
             response="utter_ofrecer_continuar_pqrsd"
         )
 
+        esperando = tracker.get_slot(
+            "esperando_decision_post_resolucion"
+        )
+
+        logger.warning(
+            "[CONTINUAR_PQRSD] esperando_decision_post_resolucion=%s",
+            esperando,
+        )
+
+        if esperando:
+
+            logger.warning(
+                "[CONTINUAR_PQRSD] Manteniendo espera post resolución"
+            )
+
+            return []
+
+        logger.warning(
+            "[CONTINUAR_PQRSD] Flujo PQRSD normal"
+        )
+
         return [
-            
+
             SlotSet(
                 "llm_request",
                 None,
-            )
-            
+            ),
+
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+
         ]
 
 class ActionPreguntasFrecuentesLLM(Action):
@@ -1023,7 +1057,10 @@ class ActionPreguntasFrecuentesLLM(Action):
 
             SlotSet("requested_slot", None),
 
-            SlotSet("esperando_tema", False),
+            SlotSet(
+                "esperando_pregunta_faq", 
+                False,
+            ),
 
             SlotSet("proceso_activo", "faq"),
 
@@ -1076,6 +1113,11 @@ class ActionPreguntasFrecuentesLLM(Action):
             "[SOPORTE] llm_request=%s",
             request,
         )
+        logger.warning("=" * 80)
+        logger.warning("[FAQ] REQUEST CONSTRUIDO")
+        logger.warning("%s", request)
+        logger.warning("=" * 80)
+
 
         eventos.append(
             SlotSet(
@@ -1148,7 +1190,7 @@ class ActionSolicitarPreguntaFAQ(Action):
                 None,
             ),
             SlotSet(
-                "esperando_tema",
+                "esperando_pregunta_faq",
                 True,
             ),
 
@@ -1239,6 +1281,8 @@ class ActionOfrecerContinuarSoporte(Action):
             ),
             SlotSet("llm_request", None)
         ]
+
+
 class ActionOfrecerContinuarFaq(Action):
 
     def name(self) -> Text:
@@ -1251,20 +1295,42 @@ class ActionOfrecerContinuarFaq(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
-        logger.error("=" * 80)
-        logger.error("[FAQ] ENTRÓ ActionOfrecerContinuarFaq")
-        logger.error("intent=%s", tracker.get_intent_of_latest_message())
-        logger.error("=" * 80)
-        
+        logger.warning(
+            "[CONTINUAR_FAQ] proceso=%s llm=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("llm_request"),
+        )
+
         dispatcher.utter_message(
             response="utter_ofrecer_continuar_faq"
         )
 
+        esperando = tracker.get_slot(
+            "esperando_decision_post_resolucion"
+        )
+
+        logger.warning(
+            "[CONTINUAR_FAQ] esperando_decision_post_resolucion=%s",
+            esperando,
+        )
+
+        if esperando:
+
+            logger.warning(
+                "[CONTINUAR_FAQ] Manteniendo espera post resolución"
+            )
+
+            return []
+
+        logger.warning(
+            "[CONTINUAR_FAQ] Flujo FAQ normal"
+        )
+
         return [
+
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False,
             ),
 
-            SlotSet("llm_request", None)
         ]

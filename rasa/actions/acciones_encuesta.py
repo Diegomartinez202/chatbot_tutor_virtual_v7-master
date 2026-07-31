@@ -740,6 +740,13 @@ class ActionProcesarRespuestaResolucion(Action):
 
                 eventos.append(
                     SlotSet(
+                        "esperando_pregunta_faq",
+                        True,
+                    )
+                )
+                
+                eventos.append(
+                    SlotSet(
                         "esperando_decision_post_resolucion",
                         True,
                     )
@@ -761,6 +768,13 @@ class ActionProcesarRespuestaResolucion(Action):
                     response="utter_ofrecer_radicar_pqrsd"
                 )
 
+                eventos.append(
+                    SlotSet(
+                        "esperando_pqrsd",
+                        True,
+                    )
+                )
+                
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
