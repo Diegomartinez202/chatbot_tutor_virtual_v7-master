@@ -12,6 +12,7 @@ from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, EventType
 from rasa_sdk.forms import FormValidationAction
 from rasa_sdk.events import SlotSet, FollowupAction
+from .core.nlp_utils import build_llm_request
 
 from .core.llm_engine import run_llm
 import hashlib
@@ -673,10 +674,6 @@ class ActionProcesarRespuestaResolucion(Action):
                     "esperando_decision_post_resolucion",
                     False,
                 ),
-                SlotSet(
-                    "llm_request",
-                    None,
-                ),
 
             ]
 
@@ -692,10 +689,32 @@ class ActionProcesarRespuestaResolucion(Action):
                     "[RESOLUCION] -> Rama APRENDER_TEMA"
                 )
 
+                request = build_llm_request(
+
+                   instruction=tema,
+
+                   macroflujo="academic",
+
+                   subflujo="aprender_tema",
+
+                   requires_auth=False,
+
+                   next_action="action_ofrecer_continuar_tema",
+
+                )
+                
+                eventos.append(
+                    SlotSet(
+                        "llm_request",
+                        request,
+                    )
+                )
+
                 dispatcher.utter_message(
                     response="utter_ofrecer_continuar"
                 )
 
+                
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
@@ -805,7 +824,7 @@ class ActionProcesarRespuestaResolucion(Action):
                     "pendiente",
                 ),
 
-                SlotSet("esperando_decision_post_resolucion", False).
+                SlotSet("esperando_decision_post_resolucion", False),
 
                 SlotSet(
                     "llm_request",

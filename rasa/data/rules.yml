@@ -337,7 +337,10 @@ rules:
           - proceso_activo: aprender_tema
     steps:
       - intent: continuar_tema_si
-      - action: action_aprender_tema
+      - action: action_memory_wrapper
+      - action: action_handle_with_llm
+      - action: action_ofrecer_continuar_tema
+  
   
   - rule: Otra consulta FAQ después de resolución
     condition:
@@ -346,7 +349,7 @@ rules:
           - proceso_activo: faq
     steps:
       - intent: continuar_faq
-      - action: action_preguntas_frecuentes_llm
+      - action: action_solicitar_pregunta_faq
  
   - rule: Radicar PQRSD después de resolución
     condition:
@@ -355,7 +358,7 @@ rules:
           - proceso_activo: pqrsd
     steps:
       - intent: radicar_pqrsd
-      - action: action_pqrsd_llm
+      - action: action_ofrecer_radicar_pqrsd
 
   - rule: Continuar flujo FAQ activo
     condition:
