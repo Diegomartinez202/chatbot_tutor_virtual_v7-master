@@ -1594,6 +1594,20 @@ class ActionHandleWithLLM(Action):
             tracker.get_slot("esperando_tema")
         )
     
+    def _is_waiting_for_support(self, tracker: Tracker) -> bool:
+        """
+        Indica si el flujo de soporte está esperando la primera
+        consulta del usuario.
+        """
+
+        return bool(
+           tracker.get_slot("esperando_pregunta_faq")
+           or tracker.get_slot("esperando_pqrsd")
+        )
+
+
+
+
     def _build_topic_events(
         self,
         tracker: Tracker,
@@ -2566,6 +2580,57 @@ La continuidad debe seguir estas reglas:
         )
 
         # ======================================================
+        # ESPERANDO PRIMERA CONSULTA DE SOPORTE
+        # FAQ o PQRSD
+        # ======================================================
+
+        if (
+            proceso in ("faq", "pqrsd")
+            and self._is_waiting_for_support(tracker)
+        ):
+
+            nuevo_tema = (
+                 tracker.latest_message.get("text", "")
+                .strip()
+            )
+
+            logger.info(
+                "[TRANSICION %s] Primera consulta recibida: %s",
+                proceso,
+                nuevo_tema,
+            )
+
+            eventos = self._build_topic_events_support(
+                tracker,
+                proceso,
+            )
+
+            return (
+
+                limpieza
+
+                + eventos
+
+                + self._ejecutar_procesamiento_llm(
+
+                     dispatcher,
+
+                     tracker,
+
+                     self.FLOW_SUPPORT,
+
+                     prompt=None,
+
+                     tema_actual=nuevo_tema,
+
+                     tema_consulta=nuevo_tema,
+
+                )
+
+            )
+        
+ 
+        # ======================================================
         # CONTINUAR FAQ
         # ======================================================
 
@@ -2601,99 +2666,6 @@ La continuidad debe seguir estas reglas:
 
             )
 
-        # ======================================================
-        # CONTINUAR PQRSD
-        # ======================================================
-
-        if proceso == "pqrsd" and intent == "continuar_pqrsd":
-
-            logger.info(
-                "[SUPPORT] Continuando PQRSD"
-            )
-
-            return (
-
-                limpieza
-
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_SUPPORT,
-
-                    prompt=None,
-
-                    tema_actual=tracker.get_slot(
-                        "tema_actual"
-                    ),
-
-                    tema_consulta=tracker.get_slot(
-                        "tema_consulta"
-                    ),
-
-                )
-
-            )
-
-        # ======================================================
-        # PRIMERA CONSULTA FAQ
-        # ======================================================
-
-        if (
-            proceso == "faq"
-            and tracker.get_slot("esperando_pregunta_faq")
-        ):
-
-            nuevo_tema = (
-                tracker.latest_message.get("text", "")
-                .strip()
-            )
-
-            logger.info(
-                "[TRANSICION FAQ] Primera consulta recibida=%s",
-                nuevo_tema,
-            )
-
-            logger.warning("=" * 80)
-            logger.warning("[TRANSICION FAQ]")
-            logger.warning("intent=%s", intent)
-            logger.warning("text=%s", tracker.latest_message.get("text"))
-            logger.warning(
-                "esperando_pregunta_faq=%s",
-                 tracker.get_slot("esperando_pregunta_faq"),
-            )
-            logger.warning("=" * 80)
-
-            eventos = self._build_topic_events_support(
-                tracker,
-                proceso,
-            )
-
-            return (
-
-                limpieza
-
-                + eventos
- 
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_SUPPORT,
-
-                    prompt=None,
-
-                    tema_actual=nuevo_tema,
-
-                    tema_consulta=nuevo_tema,
-
-               )
-
-            )
 
         # ======================================================
         # PRIMERA DESCRIPCIÓN PQRSD
@@ -2931,25 +2903,25 @@ La continuidad debe seguir estas reglas:
 
                         dispatcher=dispatcher,
 
-                       tracker=tracker,
+                        tracker=tracker,
 
-                       flow=self.FLOW_SUPPORT,
+                        flow=self.FLOW_SUPPORT,
 
-                       prompt=None,
+                        prompt=None,
 
-                       nivel_explicacion=nuevo_nivel,
+                        nivel_explicacion=nuevo_nivel,
 
-                       tema_actual=tracker.get_slot(
-                          "tema_actual"
-                       ),
+                        tema_actual=tracker.get_slot(
+                           "tema_actual"
+                        ),
 
-                       tema_consulta=tracker.get_slot(
-                           "tema_consulta"
-                       ),
+                        tema_consulta=tracker.get_slot(
+                            "tema_consulta"
+                        ),
 
-                    )
+                     )
 
-                )
+                 )
 
             logger.info("=" * 70)
             logger.info("[ACADEMICO] CONTINUAR TEMA")

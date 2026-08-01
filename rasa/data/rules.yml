@@ -359,3 +359,23 @@ rules:
     steps:
       - intent: radicar_pqrsd
       - action: action_solicitar_pqrsd
+  
+
+  - rule: Continuar flujo FAQ activo
+    condition:
+      - slot_was_set:
+          - proceso_activo: faq
+          - esperando_pregunta_faq: true
+    steps:
+      - intent: explicacion_preguntas_frecuentes
+      - action: action_preguntas_frecuentes_llm 
+  
+      
+  - rule: Continuar flujo PQRSD activo
+    condition:
+      - slot_was_set:
+          - proceso_activo: pqrsd
+          - esperando_pqrsd: true
+    steps:
+      - intent: describir_pqrsd
+      - action: action_pqrsd_llm

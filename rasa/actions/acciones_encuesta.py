@@ -745,14 +745,7 @@ class ActionProcesarRespuestaResolucion(Action):
                 )
                 
                 eventos.append(
-                    SlotSet("confirmacion_cierre", "pendiente"),
-                )
-
-                eventos.append(
-                    SlotSet(
-                        "esperando_decision_post_resolucion",
-                        True,
-                    )
+                    SlotSet("confirmacion_cierre",  None ),
                 )
 
 
@@ -778,15 +771,9 @@ class ActionProcesarRespuestaResolucion(Action):
                     )
                 )
                 eventos.append(
-                    SlotSet("confirmacion_cierre", "pendiente"),
+                    SlotSet("confirmacion_cierre",  None,),
                 )               
-                eventos.append(
-                    SlotSet(
-                        "esperando_decision_post_resolucion",
-                        True,
-                    )
-                )
-
+     
 
             # ======================================================
             # Otros procesos
