@@ -201,7 +201,15 @@ class ActionOfrecerContinuarTema(Action):
                 "esperando_decision_post_resolucion",
                 False,
             ),
-        ]
+
+            SlotSet(
+                "proceso_activo",
+                "aprender_tema",
+            ),
+
+            SlotSet("confirmacion_cierre", "pendiente")
+    ]
+       
 
         
 

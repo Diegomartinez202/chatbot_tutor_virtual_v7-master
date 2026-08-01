@@ -334,16 +334,30 @@ class ActionConfirmarCierre(Action):
             logger.info(
                 "[CIERRE] Recuperando confirmación pendiente."
             )
-            if tracker.get_slot("proceso_activo"):
+            proceso = tracker.get_slot("proceso_activo")
+
+            if proceso == "aprender_tema":
 
                 dispatcher.utter_message(
                     response="utter_confirmar_cierre_con_proceso"
-                )
+            )
+
+            elif proceso == "faq":
+
+                  dispatcher.utter_message(
+                      response="utter_confirmar_cierre_con_proceso"
+            )
+
+            elif proceso == "pqrsd":
+
+                  dispatcher.utter_message(
+                      response="utter_confirmar_cierre_con_proceso"
+            )
 
             else:
 
                 dispatcher.utter_message(
-                    response="utter_confirmar_cierre"
+                    response="utter_confirmar_cierre_con_proceso"
                 )
 
             return []
@@ -406,7 +420,18 @@ class ActionConfirmarCierre(Action):
                 tracker.get_slot("encuesta_incompleta"),
                 tracker.get_slot("esperando_encuesta_general"),
             )
+        logger.warning("=" * 80)
+        logger.warning("[CIERRE] CONTEXTO ANTES DE ESPERAR RESPUESTA")
 
+        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.warning("ultima_respuesta_llm=%s", tracker.get_slot("ultima_respuesta_llm"))
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("continuando_tema=%s", tracker.get_slot("continuando_tema"))
+
+        logger.warning("=" * 80) 
         return [
             SlotSet("confirmacion_cierre", "pendiente")
         ]
@@ -436,6 +461,27 @@ class ActionCancelarCierre(Action):
         domain,
     ) -> List[EventType]:
 
+        logger.warning("=" * 80)
+        logger.warning("[CANCELAR CIERRE] CONTEXTO RECIBIDO")
+
+        logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
+        logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
+        logger.warning("ultima_respuesta_llm=%s", tracker.get_slot("ultima_respuesta_llm"))
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("continuando_tema=%s", tracker.get_slot("continuando_tema"))
+
+        logger.warning("=" * 80)
+
+        logger.error("########## ENTRE A ActionCancelarCierre ##########")
+
+        if tracker.get_slot("confirmacion_cierre") != "pendiente":
+            logger.warning(
+                "[CIERRE] ActionCancelarCierre invocada sin confirmación pendiente."
+            )
+            return []
+        
         proceso = tracker.get_slot("proceso_activo")
 
         if proceso == "aprender_tema":
@@ -448,24 +494,64 @@ class ActionCancelarCierre(Action):
                 response="utter_ofrecer_continuar"
             )
 
+            return [
+
+                SlotSet("confirmacion_cierre", "pendiente"),
+
+                SlotSet("continuando_tema", True),
+
+                ConversationResumed(),
+
+            ]
+
+        elif proceso == "faq":
+
+            logger.info(
+                "[CIERRE] Reanudando flujo FAQ."
+            )
+
+            dispatcher.utter_message(
+                response="utter_ofrecer_continuar_faq"
+            )
+
+            return [
+
+                 SlotSet("confirmacion_cierre", "pendiente"),
+
+                 ConversationResumed(),
+
+            ]
+
+        elif proceso == "pqrsd":
+
+            logger.info(
+                "[CIERRE] Reanudando flujo PQRSD."
+            )
+
+            dispatcher.utter_message(
+                response="utter_ofrecer_radicar_pqrsd"
+            )
+
+            return [
+
+                SlotSet("confirmacion_cierre", "pendiente"),
+
+                ConversationResumed(),
+
+            ]
+
         else:
 
             dispatcher.utter_message(
                 response="utter_cierre_cancelado"
             )
 
-        eventos = [
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
+        return [
 
             ConversationResumed(),
 
         ]
 
-        return eventos
 
 class ActionDecidirCierre(Action):
 
@@ -479,7 +565,7 @@ class ActionDecidirCierre(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
-        
+        logger.error("########## ENTRE A ActionConfirmarCierre ##########")
         logger.warning("=" * 80)
         logger.warning("ESTADO DEL TRACKER")
         logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
@@ -557,6 +643,8 @@ class ActionDecidirCierre(Action):
                     None,
                 ),
 
+                SlotSet("continuando_tema", False),
+
                 SlotSet(
                     "encuesta_activa",
                     True,
@@ -602,6 +690,11 @@ class ActionDecidirCierre(Action):
 
             FollowupAction(
                 "action_cierre_limpio"
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                None,
             ),
 
         ]

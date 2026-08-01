@@ -27,6 +27,20 @@ stories:
     - intent: preguntas_frecuentes
     - action: action_solicitar_pregunta_faq
   
+- story: responder preguntas frecuentes
+  steps:
+    - intent: explicacion_preguntas_frecuentes
+    - action: action_preguntas_frecuentes_llm
+    - action: action_memory_wrapper
+    - action: action_handle_with_llm
+    - action: action_ofrecer_continuar_faq
+  
+- story: continuar preguntas frecuentes
+  steps:
+    - intent: continuar_faq
+    - action: action_limpiar_faq
+    - action: action_solicitar_pregunta_faq
+
 - story: iniciar pqrsd
   steps:
     - intent: pqrsd
@@ -39,20 +53,13 @@ stories:
     - action: action_memory_wrapper
     - action: action_handle_with_llm
     - action: action_ofrecer_radicar_pqrsd
- 
-- story: responder preguntas frecuentes
-  steps:
-    - intent: explicacion_preguntas_frecuentes
-    - action: action_preguntas_frecuentes_llm
-    - action: action_memory_wrapper
-    - action: action_handle_with_llm
-    - action: action_ofrecer_continuar_faq
   
-- story: continuar preguntas frecuentes
+- story: redactar otra pqrsd
   steps:
-    - intent: continuar_faq
-    - action: action_solicitar_pregunta_faq
-
+    - intent: radicar_pqrsd
+    - action: action_limpiar_pqrsd
+    - action: action_solicitar_pqrsd
+ 
 - story: consultar certificados
   steps:
     - intent: consultar_certificados

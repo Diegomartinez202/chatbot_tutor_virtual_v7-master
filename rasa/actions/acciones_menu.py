@@ -75,6 +75,8 @@ class ActionIrMenuPrincipal(Action):
                 "esperando_pqrsd",
                 False,
             ),
+
+            SlotSet("confirmacion_cierre", None),
         ]
 
 
@@ -127,6 +129,7 @@ class ActionIrMenuAcademico(Action):
             SlotSet("materia_detectada", None),
             SlotSet("rol_academico", None),
             SlotSet("ultima_respuesta_llm", None),
+            SlotSet("confirmacion_cierre", None),
 
         ]
 
@@ -188,7 +191,7 @@ class ActionIrMenuSoporte(Action):
                 "esperando_pqrsd",
                 False,
             ),
-
+            SlotSet("confirmacion_cierre", None),
         ]
 
 class ActionIrMenuAdministrativo(Action):
@@ -238,5 +241,5 @@ class ActionIrMenuAdministrativo(Action):
             SlotSet("materia_detectada", None),
             SlotSet("rol_academico", None),
             SlotSet("ultima_respuesta_llm", None),
-
+            SlotSet("confirmacion_cierre", None),
         ]

@@ -666,10 +666,7 @@ class ActionProcesarRespuestaResolucion(Action):
                     proceso,
                 ),
 
-                SlotSet(
-                    "confirmacion_cierre", None,
-                ),
-
+                SlotSet("confirmacion_cierre", "pendiente"),
                 SlotSet(
                     "esperando_decision_post_resolucion",
                     False,
@@ -743,8 +740,14 @@ class ActionProcesarRespuestaResolucion(Action):
                         "esperando_pregunta_faq",
                         True,
                     )
+
+
                 )
                 
+                eventos.append(
+                    SlotSet("confirmacion_cierre", "pendiente"),
+                )
+
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
@@ -774,7 +777,9 @@ class ActionProcesarRespuestaResolucion(Action):
                         True,
                     )
                 )
-                
+                eventos.append(
+                    SlotSet("confirmacion_cierre", "pendiente"),
+                )               
                 eventos.append(
                     SlotSet(
                         "esperando_decision_post_resolucion",
@@ -837,6 +842,12 @@ class ActionProcesarRespuestaResolucion(Action):
                     "confirmacion_cierre",
                     "pendiente",
                 ),
+
+                SlotSet("esperando_pregunta_faq", False),
+                SlotSet("esperando_pqrsd", False),
+                SlotSet("tema_actual", None),
+                SlotSet("tema_consulta", None),
+
 
                 SlotSet("esperando_decision_post_resolucion", False),
 

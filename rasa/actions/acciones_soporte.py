@@ -840,7 +840,7 @@ class ActionPQRSDLLM(Action):
 
             SlotSet(
                 "esperando_pqrsd",
-                False,
+                True,
             ),
 
             SlotSet(
@@ -1001,11 +1001,6 @@ class ActionOfrecerRadicarPQRSD(Action):
         return [
 
             SlotSet(
-                "llm_request",
-                None,
-            ),
-
-            SlotSet(
                 "esperando_pqrsd",
                 False,
             ),
@@ -1013,6 +1008,11 @@ class ActionOfrecerRadicarPQRSD(Action):
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
             ),
 
         ]
@@ -1031,7 +1031,33 @@ class ActionPreguntasFrecuentesLLM(Action):
 
         intent = tracker.get_intent_of_latest_message()
 
-        
+        logger.warning("=" * 80)
+        logger.warning("[FAQ STATE - ENTRADA ActionPreguntasFrecuentesLLM]")
+        logger.warning(
+            "intent=%s",
+            tracker.get_intent_of_latest_message(),
+        )
+        logger.warning(
+            "texto=%s",
+            tracker.latest_message.get("text"),
+        )
+        logger.warning(
+            "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.warning(
+            "esperando_pregunta_faq=%s",
+            tracker.get_slot("esperando_pregunta_faq"),
+        )
+        logger.warning(
+            "esperando_decision_post_resolucion=%s",
+            tracker.get_slot("esperando_decision_post_resolucion"),
+        )
+        logger.warning(
+            "llm_request=%s",
+            tracker.get_slot("llm_request"),
+        )
+        logger.warning("=" * 80)
         logger.error(
             "########## ENTRÉ A ActionPreguntasFrecuentesLLM ##########"
         )
@@ -1059,7 +1085,7 @@ class ActionPreguntasFrecuentesLLM(Action):
 
             SlotSet(
                 "esperando_pregunta_faq", 
-                False,
+                True,
             ),
 
             SlotSet("proceso_activo", "faq"),
@@ -1182,6 +1208,18 @@ class ActionSolicitarPreguntaFAQ(Action):
         dispatcher.utter_message(
             response="utter_solicitar_pregunta_faq"
         )
+
+        logger.warning("=" * 80)
+        logger.warning("[FAQ STATE - SALIDA ActionSolicitarPreguntaFAQ]")
+        logger.warning(
+            "esperando_pregunta_faq=True"
+        )
+        logger.warning(
+            "proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.warning("=" * 80)
+
 
         return [
 
@@ -1325,12 +1363,125 @@ class ActionOfrecerContinuarFaq(Action):
         logger.warning(
             "[CONTINUAR_FAQ] Flujo FAQ normal"
         )
+        logger.warning(
+            "[CONTINUAR_FAQ] esperando_pregunta_faq=%s",
+            tracker.get_slot("esperando_pregunta_faq"),
+        )
+        return [
+
+           SlotSet(
+               "esperando_pregunta_faq",
+               False,
+           ), 
+            
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+
+
+             SlotSet(
+                 "proceso_activo",
+                 "faq",
+             ),
+        ]
+
+class ActionLimpiarFaq(Action):
+
+    def name(self) -> Text:
+        return "action_limpiar_faq"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[FAQ] Limpiando estado antes de nueva pregunta"
+        )
 
         return [
 
             SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
+                "llm_request",
+                None,
+            ),
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                None,
+            ),
+
+            SlotSet(
+                "tema_actual",
+                None,
+            ),
+
+            SlotSet(
+                "tema_consulta",
+                None,
+            ),
+
+            SlotSet(
+                "esperando_pregunta_faq",
+                True,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "faq",
+            ),
+
+        ]
+
+class ActionLimpiarPqrsd(Action):
+
+    def name(self) -> Text:
+        return "action_limpiar_pqrsd"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[PQRSD] Limpiando estado para nueva radicación"
+        )
+
+        return [
+
+            SlotSet(
+                "llm_request",
+                None,
+            ),
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                None,
+            ),
+
+            SlotSet(
+                "tema_actual",
+                None,
+            ),
+
+            SlotSet(
+                "tema_consulta",
+                None,
+            ),
+
+            SlotSet(
+                "esperando_pqrsd",
+                True,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
             ),
 
         ]

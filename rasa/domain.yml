@@ -618,12 +618,16 @@ responses:
 
       - title: "👋 Finalizar"
         payload: "/terminar_conversacion_segura"
+
   utter_ofrecer_continuar_pqrsd:
   - text: |
       ¿Qué deseas hacer ahora?
     buttons:
       - title: "📝 Redactar otra PQRSD"
         payload: "/radicar_pqrsd"
+
+      - title: "🎫 Crear caso"
+        payload: "/solicitar_soporte"
 
       - title: "🛠 Soporte técnico"
         payload: "/ir_menu_soporte"
@@ -781,31 +785,17 @@ responses:
         payload: "/continuar_tema_si"
 
   utter_menu_academico:
-  - text: "📚 Has ingresado al Menú Académico. Aquí puedes consultar sobre tus asignaturas, guías de aprendizaje y resolver dudas temáticas con el LLM."
+  - text: |
+      🎓 Bienvenido al módulo académico.
+
+      Aquí puedes aprender sobre un tema, resolver dudas relacionadas con tus cursos y recibir explicaciones apoyadas por inteligencia artificial.
     buttons:
       - title: "📚 Aprender un tema"
         payload: "/aprender_tema"
 
-      - title: "📜 Certificados"
-        payload: "/consultar_certificados"
-
-      - title: "📊 Estado estudiante"
-        payload: "/ver_estado_estudiante"
-
-      - title: "👨‍🏫 Tutor asignado"
-        payload: "/ver_tutor_asignado"
-
-      - title: "📚 Progreso curso"
-        payload: "/consultar_progreso_curso"
-
-      - title: "📅 Horarios"
-        payload: "/consultar_horarios_clases"
-
-      - title: "⏳ Historial Académico" 
-        payload: "/historial_academico"
-
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
+
 
   utter_derivacion_cancelada:
   - text: >
@@ -912,19 +902,30 @@ responses:
 
   utter_menu_administrativo:
   - text: |
-      📋 Menú Administrativo
+      📋 Bienvenido al módulo administrativo.
 
-      Selecciona una opción:
+      Desde aquí puedes consultar información relacionada con tu proceso académico y realizar consultas sobre trámites y servicios institucionales.
     buttons:
-
       - title: "📜 Certificados"
         payload: "/consultar_certificados"
 
-      - title: "🔑 Recuperar contraseña"
-        payload: "/recuperar_contrasena"
+      - title: "📊 Estado del estudiante"
+        payload: "/ver_estado_estudiante"
+
+      - title: "👨‍🏫 Tutor asignado"
+        payload: "/ver_tutor_asignado"
+
+      - title: "📚 Progreso del curso"
+        payload: "/consultar_progreso_curso"
+
+      - title: "📅 Horarios"
+        payload: "/consultar_horarios_clases"
+
+      - title: "⏳ Historial académico"
+        payload: "/historial_academico"
 
       - title: "📧 Enviar solicitud"
-        payload: "/recuperar_contrasena"
+        payload: "/enviar_solicitud"
 
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
@@ -1121,3 +1122,5 @@ actions:
 - action_contactar_tutor
 - action_ofrecer_continuar_soporte
 - action_ofrecer_continuar_faq
+- action_limpiar_faq
+- action_limpiar_pqrsd

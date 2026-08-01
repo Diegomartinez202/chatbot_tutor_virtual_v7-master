@@ -1343,6 +1343,17 @@ class ActionHandleWithLLM(Action):
 
             ]
 
+        if proceso == "pqrsd":
+
+            return [
+
+                FollowupAction(
+                    "action_ofrecer_radicar_pqrsd",
+                ),
+
+            ]
+
+
         # ======================================================
         # Sin continuidad definida
         # ======================================================
@@ -1421,7 +1432,7 @@ class ActionHandleWithLLM(Action):
 
             SlotSet(
                 "continuando_tema",
-               False,
+                False,
             ),
 
             SlotSet(
@@ -1502,7 +1513,26 @@ class ActionHandleWithLLM(Action):
         logger.info(
             "[POSTPROCESS] FAQ continuidad"
         )
-        return []
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+
+            SlotSet(
+                "esperando_pregunta_faq",
+                False,
+            ),
+
+        ]
+
+        return events
 
     def _postprocess_support_pqrsd(
         self,
@@ -1515,7 +1545,26 @@ class ActionHandleWithLLM(Action):
             "[POSTPROCESS] PQRSD iniciar radicación"
         )
 
-        return []
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                 respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
+
+        ]
+
+        return events
 
     def _postprocess_administrative(
         self,
@@ -1636,25 +1685,25 @@ class ActionHandleWithLLM(Action):
         proceso: str,
     ) -> List[EventType]:
 
+        latest = tracker.latest_message or {}
+
+        tema = (
+            latest.get("text", "")
+            .strip()
+        )
+
         logger.warning("=" * 80)
         logger.warning("[SUPPORT] _build_topic_events_support")
         logger.warning("mensaje=%s", tema)
         logger.warning("proceso=%s", proceso)
         logger.warning("=" * 80)
-        
+
         logger.info(
             "[SUPPORT] Inicializando flujo soporte."
         )
 
-        latest = tracker.latest_message or {}
+        eventos = [
 
-        tema = latest.get(
-            "text",
-            "",
-        ).strip()
-
-        return [
-  
             SlotSet(
                 "tema_actual",
                 tema,
@@ -1671,6 +1720,31 @@ class ActionHandleWithLLM(Action):
             ),
 
         ]
+
+        if proceso == "faq":
+
+            eventos.insert(
+                0,
+                SlotSet(
+                    "esperando_pregunta_faq",
+                    False,
+                ),
+            )
+
+        elif proceso == "pqrsd":
+
+            eventos.insert(
+                0,
+                SlotSet(
+                    "esperando_pqrsd",
+                    False,
+                ),
+            )
+        logger.warning(
+            "[SUPPORT] Eventos de transición=%s",
+             eventos,
+        )
+        return eventos
     
     def _build_topic_events_administrative(
         self,
@@ -2230,6 +2304,18 @@ La continuidad debe seguir estas reglas:
         logger.warning("=" * 80)
 
         logger.warning("=" * 80)
+        logger.warning("[HISTORIAL SLOT FAQ]")
+
+        for e in tracker.events:
+            if (
+                e.get("event") == "slot"
+                and e.get("name") == "esperando_pregunta_faq"
+            ):
+                 logger.warning("%s", e)
+
+        logger.warning("=" * 80)
+        
+        logger.warning("=" * 80)
         logger.warning("[ENTRY ACTION_HANDLE_WITH_LLM]")
         logger.warning(
             "intent=%s",
@@ -2458,7 +2544,7 @@ La continuidad debe seguir estas reglas:
         logger.info("=" * 70)
         logger.info("[SOPORTE] ENTRANDO A _run_support")
         logger.info(
-        "proceso_activo=%s",
+            "proceso_activo=%s",
             tracker.get_slot("proceso_activo"),
         )
         logger.info(
@@ -2467,13 +2553,7 @@ La continuidad debe seguir estas reglas:
         )
         logger.info("=" * 70)
 
-
         proceso = tracker.get_slot("proceso_activo")
-
-        logger.info(
-            "[SUPPORT] esperando_tema=%s",
-            tracker.get_slot("esperando_tema"),
-        )
 
         logger.info(
             "[SUPPORT] tema_actual=%s",
@@ -2484,14 +2564,16 @@ La continuidad debe seguir estas reglas:
             "[SUPPORT] tema_consulta=%s",
             tracker.get_slot("tema_consulta"),
         )
-       # ======================================================
-       # CONTINUAR FAQ / PQRSD
-       # ======================================================
 
-        if intent in (
-            "continuar_tema",
-            "continuar_tema_si",
-        ):
+        # ======================================================
+        # CONTINUAR FAQ
+        # ======================================================
+
+        if proceso == "faq" and intent == "continuar_faq":
+
+            logger.info(
+                "[SUPPORT] Continuando FAQ"
+            )
 
             return (
 
@@ -2508,7 +2590,7 @@ La continuidad debe seguir estas reglas:
                     prompt=None,
 
                     tema_actual=tracker.get_slot(
-                    "tema_actual"
+                        "tema_actual"
                     ),
 
                     tema_consulta=tracker.get_slot(
@@ -2519,39 +2601,123 @@ La continuidad debe seguir estas reglas:
 
             )
 
+        # ======================================================
+        # CONTINUAR PQRSD
+        # ======================================================
+
+        if proceso == "pqrsd" and intent == "continuar_pqrsd":
+
+            logger.info(
+                "[SUPPORT] Continuando PQRSD"
+            )
+
+            return (
+
+                limpieza
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=None,
+
+                    tema_actual=tracker.get_slot(
+                        "tema_actual"
+                    ),
+
+                    tema_consulta=tracker.get_slot(
+                        "tema_consulta"
+                    ),
+
+                )
+
+            )
 
         # ======================================================
-        # PRIMERA CONSULTA FAQ / PQRSD
+        # PRIMERA CONSULTA FAQ
         # ======================================================
 
         if (
-
-            proceso in (
-                "faq",
-                "pqrsd",
-            )
-
-            and self._is_waiting_for_topic(tracker)
-
+            proceso == "faq"
+            and tracker.get_slot("esperando_pregunta_faq")
         ):
 
-            nuevo_tema = tracker.latest_message.get(
-                "text",
-                "",
-            ).strip()
-
+            nuevo_tema = (
+                tracker.latest_message.get("text", "")
+                .strip()
+            )
 
             logger.info(
-                "[SOPORTE] Primera consulta recibida=%s",
+                "[TRANSICION FAQ] Primera consulta recibida=%s",
                 nuevo_tema,
             )
 
+            logger.warning("=" * 80)
+            logger.warning("[TRANSICION FAQ]")
+            logger.warning("intent=%s", intent)
+            logger.warning("text=%s", tracker.latest_message.get("text"))
+            logger.warning(
+                "esperando_pregunta_faq=%s",
+                 tracker.get_slot("esperando_pregunta_faq"),
+            )
+            logger.warning("=" * 80)
 
             eventos = self._build_topic_events_support(
                 tracker,
                 proceso,
             )
 
+            return (
+
+                limpieza
+
+                + eventos
+ 
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_SUPPORT,
+
+                    prompt=None,
+
+                    tema_actual=nuevo_tema,
+
+                    tema_consulta=nuevo_tema,
+
+               )
+
+            )
+
+        # ======================================================
+        # PRIMERA DESCRIPCIÓN PQRSD
+        # ======================================================
+
+        if (
+            proceso == "pqrsd"
+            and tracker.get_slot("esperando_pqrsd")
+        ):
+
+            nuevo_tema = (
+                tracker.latest_message.get("text", "")
+               .strip()
+            )
+
+            logger.info(
+                "[TRANSICION PQRSD] Primera descripción recibida=%s",
+                nuevo_tema,
+            )
+
+            eventos = self._build_topic_events_support(
+                tracker,
+                proceso,
+            )
 
             return (
 
@@ -2576,7 +2742,6 @@ La continuidad debe seguir estas reglas:
                 )
 
             )
-
 
         # ======================================================
         # FLUJO NORMAL SOPORTE
@@ -3521,6 +3686,15 @@ La continuidad debe seguir estas reglas:
             elif tracker.get_slot("encuesta_activa"):
                estado_conversacion = "encuesta_activa"
 
+            elif tracker.get_slot("esperando_tema"):
+                estado_conversacion = "esperando_tema"
+
+            elif tracker.get_slot("esperando_pregunta_faq"):
+                estado_conversacion = "esperando_pregunta_faq"
+
+            elif tracker.get_slot("esperando_pqrsd"):
+                estado_conversacion = "esperando_pqrsd"
+               
             logger.info(
                 "[LLM] Estado conversacional=%s",
                 estado_conversacion,
@@ -3831,42 +4005,6 @@ class ActionMemoryWrapper(Action):
 
                 logger.info(
                     "[MEMORY_WRAPPER] Encuesta incompleta."
-                )
-
-                return []
-
-            # ==========================================================
-            # ACADÉMICO
-            # ==========================================================
-
-            elif tracker.get_slot("esperando_tema"):
-
-                logger.info(
-                    "[MEMORY_WRAPPER] Esperando tema académico."
-                )
-
-                return []
-
-            # ==========================================================
-            # FAQ
-            # ==========================================================
-
-            elif tracker.get_slot("esperando_pregunta_faq"):
-
-                logger.info(
-                    "[MEMORY_WRAPPER] Esperando pregunta FAQ."
-                )
-
-                return []
-
-            # ==========================================================
-            # PQRSD
-            # ==========================================================
-
-            elif tracker.get_slot("esperando_pqrsd"):
-
-                logger.info(
-                    "[MEMORY_WRAPPER] Esperando información PQRSD."
                 )
 
                 return []
