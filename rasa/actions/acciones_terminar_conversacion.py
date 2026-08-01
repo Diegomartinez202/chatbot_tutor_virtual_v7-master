@@ -511,6 +511,10 @@ class ActionCancelarCierre(Action):
             )
 
             dispatcher.utter_message(
+                text="Lamento que no hayamos resuelto su pregunta."
+            )
+            
+            dispatcher.utter_message(
                 response="utter_ofrecer_continuar_faq"
             )
 
@@ -529,13 +533,20 @@ class ActionCancelarCierre(Action):
             )
 
             dispatcher.utter_message(
-                response="utter_ofrecer_radicar_pqrsd"
+                response="utter_ofrecer_continuar_pqrsd"
+            )
+
+            dispatcher.utter_message(
+                text="Lamento que no hayamos redactado su PQRSD como querias."
             )
 
             return [
 
                 SlotSet("confirmacion_cierre", "pendiente"),
-                SlotSet("esperando_pregunta_faq", False),
+                SlotSet(
+                    "esperando_pqrsd",
+                    False,
+                ),
                 ConversationResumed(),
 
             ]

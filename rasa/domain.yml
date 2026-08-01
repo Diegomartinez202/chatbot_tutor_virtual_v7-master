@@ -66,9 +66,10 @@ intents:
   - respuesta_resuelto_no
   - calificar_bot
   - llm_fallback
-  - describir_pqrsd
+  - describir_contenido_pqrsd
   - hablar_asesor
   - continuar_faq
+  - radicar_pqrsd
 
 
 entities:

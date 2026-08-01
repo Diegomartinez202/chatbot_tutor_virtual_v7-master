@@ -1270,50 +1270,87 @@ nlu:
     - quiero radicar una queja formal
     - quiero enviar una felicitacion
     - deseo presentar una felicitación
-    - 
+   
 
-- intent: describir_pqrsd
+- intent: describir_contenido_pqrsd
   examples: |
-    - quiero radicar una PQRSD
-    - quiero presentar una PQRSD
-    - deseo presentar una petición
-    - quiero presentar una queja
-    - deseo presentar un reclamo
-    - quiero presentar una sugerencia
-    - quiero presentar una felicitación
-    - necesito radicar una solicitud
-    - quiero saber cómo radicar una PQRSD
-    - ¿cómo presento una PQRSD?
-    - ¿cómo radico una PQRSD?
-    - ¿dónde radico una PQRSD?
-    - necesito el enlace para radicar una PQRSD
-    - quiero registrar una inconformidad
-    - necesito presentar una queja formal
-    - quiero hacer una petición formal
-    - quiero realizar un reclamo formal
-    - ayúdame a escribir una PQRSD
-    - necesito redactar una petición
-    - quiero elaborar un reclamo
-    - ayúdame a redactar una reclamación
-    - deseo elaborar una petición formal
-    - necesito redactar una queja formal
-    - quiero redactar una queja porque no puedo ingresar
-    - quiero redactar una queja porque llevo tres días sin ingresar
-    - deseo presentar una reclamación por un error en la plataforma
-    - deseo presentar un reclamo porque mi curso desapareció
-    - quiero elaborar una petición porque mi certificado no se genera
-    - necesito presentar una petición por un inconveniente
-    - quiero redactar una sugerencia para mejorar el servicio
-    - deseo presentar una felicitación por la atención recibida
-    - quiero elaborar una queja por la demora en la respuesta
-    - necesito redactar un reclamo por un error en mi curso
-    - quiero presentar una petición relacionada con mi formación
-    - ayúdame a redactar una sugerencia
-    - ayúdame a redactar una felicitación
-    - quiero elaborar una inconformidad
-    - necesito ayuda para redactar una PQRSD
-    - quiero preparar una PQRSD antes de radicarla
-    - necesito redactar una solicitud formal
+    - petición: solicito la corrección de mis notas porque aún no aparecen registradas.
+    - petición: necesito que habiliten nuevamente mi acceso al curso.
+    - petición: requiero información sobre el estado de mi proceso académico.
+    - queja: el funcionario me atendió de forma irrespetuosa.
+    - queja: el tutor nunca respondió mis mensajes.
+    - queja: no recibí atención adecuada durante el proceso.
+    - reclamo: mi certificado no se genera aunque ya terminé el curso.
+    - reclamo: desapareció mi curso de la plataforma.
+    - reclamo: el sistema no registra mis actividades realizadas.
+    - reclamo: mis calificaciones no aparecen correctamente.
+    - sugerencia: sería útil agregar notificaciones cuando publiquen nuevas actividades.
+    - sugerencia: propongo mejorar la velocidad de la plataforma.
+    - sugerencia: sería conveniente simplificar el proceso de ingreso.
+    - denuncia: considero que hubo un trato injusto por parte del instructor.
+    - denuncia: deseo informar una posible irregularidad en la evaluación.
+    - denuncia: quiero reportar un comportamiento inadecuado de un funcionario.
+    - felicitación: agradezco la excelente atención recibida.
+    - felicitación: deseo reconocer el buen servicio brindado.
+    - felicitación: felicito al equipo por su profesionalismo.
+    - inconformidad: no estoy conforme con la decisión tomada.
+    - considero injusta la calificación recibida.
+    - llevo varios días sin poder ingresar y nadie responde.
+    - el profesor rechazó mi trabajo sin justificar la decisión.
+    - necesito que revisen mi caso porque no obtuve respuesta.
+    - no puedo descargar mi certificado aunque cumplí todos los requisitos.
+    - presento esta petición para solicitar una revisión de mi caso.
+    - deseo dejar constancia de esta inconformidad.
+
+- intent: radicar_pqrsd
+  examples: |
+    - radicar_pqrsd
+    - quiero redactar otra PQRSD para radicar
+    - deseo redactar otra PQRSD paar enviar al area 
+    - necesito redactar otra PQRSD para hacer valer mis derechos
+    - quiero hacer otra PQRSD peticion
+    - deseo hacer otra PQRSD queja
+    - necesito hacer otra PQRSD sugerencia
+    - quiero crear otra PQRSD denuncia
+    - deseo crear otra PQRSD 
+    - necesito crear otra PQRSD
+    - quiero elaborar otra PQRSD
+    - deseo elaborar otra PQRSD
+    - necesito elaborar otra PQRSD
+    - quiero preparar otra PQRSD
+    - deseo preparar otra PQRSD
+    - necesito preparar otra PQRSD
+    - quiero iniciar otra PQRSD
+    - deseo iniciar otra PQRSD
+    - necesito iniciar otra PQRSD
+    - quiero redactar otra queja
+    - quiero redactar otro reclamo
+    - quiero redactar otra petición
+    - quiero redactar otra sugerencia
+    - quiero redactar otra denuncia
+    - quiero redactar otra felicitación
+    - deseo redactar otra queja
+    - deseo redactar otro reclamo
+    - deseo redactar otra petición
+    - deseo redactar otra sugerencia
+    - deseo redactar otra denuncia
+    - deseo redactar otra felicitación
+    - necesito redactar otra queja
+    - necesito redactar otro reclamo
+    - necesito redactar otra petición
+    - necesito redactar otra sugerencia
+    - necesito redactar otra denuncia
+    - necesito redactar otra felicitación
+    - volver a redactar una PQRSD
+    - redactar una nueva PQRSD
+    - comenzar otra PQRSD
+    - iniciar una nueva PQRSD
+    - crear una nueva PQRSD
+    - elaborar una nueva PQRSD
+    - preparar una nueva PQRSD
+    - escribir otra PQRSD
+    - quiero volver a empezar una PQRSD
+    - quiero hacer una nueva solicitud PQRSD
 
 - intent: preguntas_frecuentes 
   examples: |

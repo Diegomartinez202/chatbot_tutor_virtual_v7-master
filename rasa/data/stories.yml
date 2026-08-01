@@ -48,7 +48,7 @@ stories:
   
 - story: redactar pqrsd
   steps:
-    - intent: describir_pqrsd
+    - intent: describir_contenido_pqrsd
     - action: action_pqrsd_llm
     - action: action_memory_wrapper
     - action: action_handle_with_llm

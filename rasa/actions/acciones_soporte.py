@@ -725,58 +725,6 @@ class ActionVerificarMaxIntentosForm(Action):
             SlotSet("escalar_humano", True)
         ]
 
-class ActionSolicitarPQRSD(Action):
-
-    def name(self) -> Text:
-        return "action_solicitar_pqrsd"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.error("########## ENTRÓ ACTION_SOLICITAR_PQRSD ##########")
-        
-        logger.warning(
-            "[TRACE][ActionSolicitarPQRSD] llm_request al entrar=%s",
-            tracker.get_slot("llm_request"),
-        )
-
-        logger.info(
-            "[SOPORTE] Activando espera de descripción PQRSD"
-        )
-
-        dispatcher.utter_message(
-            response="utter_solicitar_pqrsd"
-        )
-        eventos = [
-
-            SlotSet(
-                "llm_request",
-                None,
-            ),
-            SlotSet(
-                "esperando_pqrsd",
-                True,
-            ),
-            SlotSet(
-                "proceso_activo",
-                "pqrsd",
-            ),
-
-            SlotSet("tema_actual", None),
-            SlotSet("tema_consulta", None),
-            SlotSet("ultima_respuesta_llm", None),
-
-        ]
-        logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
-        logger.error("Eventos=%s", eventos)
-
-        return eventos
-
-
 class ActionPQRSDLLM(Action):
     """
     Envía al LLM la descripción del usuario para que redacte una
@@ -840,7 +788,7 @@ class ActionPQRSDLLM(Action):
 
             SlotSet(
                 "esperando_pqrsd",
-                True,
+                False,
             ),
 
             SlotSet(
@@ -881,6 +829,18 @@ class ActionPQRSDLLM(Action):
             ]
 
         )
+
+        if intent != "radicar_pqrsd":
+
+            eventos.extend(
+                [
+                    SlotSet(
+                        "tema_actual",
+                        descripcion,
+                    ),
+                ]
+            )
+
         request = build_llm_request(
 
             instruction=instruction,
@@ -932,6 +892,79 @@ class ActionPQRSDLLM(Action):
 
         return eventos
 
+
+class ActionOfrecerContinuarFaq(Action):
+
+    def name(self) -> Text:
+        return "action_ofrecer_continuar_faq"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        logger.warning(
+            "[CONTINUAR_FAQ] proceso=%s llm=%s",
+            tracker.get_slot("proceso_activo"),
+            tracker.get_slot("llm_request"),
+        )
+
+        dispatcher.utter_message(
+            response="utter_ofrecer_continuar_faq"
+        )
+
+        esperando = tracker.get_slot(
+            "esperando_decision_post_resolucion"
+        )
+
+        logger.warning(
+            "[CONTINUAR_FAQ] esperando_decision_post_resolucion=%s",
+            esperando,
+        )
+
+        if esperando:
+
+            logger.warning(
+                "[CONTINUAR_FAQ] Manteniendo espera post resolución"
+            )
+
+            return []
+
+        logger.warning(
+            "[CONTINUAR_FAQ] Flujo FAQ normal"
+        )
+        logger.warning(
+            "[CONTINUAR_FAQ] esperando_pregunta_faq=%s",
+            tracker.get_slot("esperando_pregunta_faq"),
+        )
+        return [
+
+           SlotSet(
+               "esperando_pregunta_faq",
+               False,
+           ), 
+            
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                False,
+            ),
+
+
+             SlotSet(
+                 "proceso_activo",
+                 "faq",
+             ),
+
+             SlotSet(
+                 "confirmacion_cierre",
+                 "pendiente",
+             ),
+
+        ]
+
+
 class ActionOfrecerRadicarPQRSD(Action):
 
     def name(self) -> Text:
@@ -947,7 +980,10 @@ class ActionOfrecerRadicarPQRSD(Action):
         dispatcher.utter_message(
             text=(
                 "✅ La PQRSD ha sido redactada correctamente.\n\n"
-
+            )
+        )
+        dispatcher.utter_message(
+            text=(
                 "Ahora puedes radicarla por los canales oficiales del SENA.\n\n"
 
                 "Pasos para radicarla:\n\n"
@@ -1015,6 +1051,8 @@ class ActionOfrecerRadicarPQRSD(Action):
                 "pqrsd",
             ),
 
+            SlotSet("confirmacion_cierre", None)
+
         ]
 
 class ActionPreguntasFrecuentesLLM(Action):
@@ -1029,6 +1067,22 @@ class ActionPreguntasFrecuentesLLM(Action):
         domain: DomainDict,
     ) -> List[EventType]:
 
+        
+        # ==========================================================
+        # PROTECCIÓN DE FLUJO PQRSD
+        # ==========================================================
+
+        if (
+             tracker.get_slot("proceso_activo") == "pqrsd"
+             and tracker.get_slot("esperando_pqrsd")
+        ):
+
+             logger.warning(
+                 "[FAQ] Mensaje ignorado. El usuario continúa redactando una PQRSD."
+             )
+
+             return []
+        
         intent = tracker.get_intent_of_latest_message()
 
         logger.warning("=" * 80)
@@ -1085,7 +1139,7 @@ class ActionPreguntasFrecuentesLLM(Action):
 
             SlotSet(
                 "esperando_pregunta_faq", 
-                True,
+                False,
             ),
 
             SlotSet("proceso_activo", "faq"),
@@ -1229,7 +1283,7 @@ class ActionSolicitarPreguntaFAQ(Action):
             ),
             SlotSet(
                 "esperando_pregunta_faq",
-                True,
+                False,
             ),
 
             SlotSet("tema_actual", None),
@@ -1242,6 +1296,58 @@ class ActionSolicitarPreguntaFAQ(Action):
             ),
 
         ]
+
+class ActionSolicitarPQRSD(Action):
+
+    def name(self) -> Text:
+        return "action_solicitar_pqrsd"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        logger.error("########## ENTRÓ ACTION_SOLICITAR_PQRSD ##########")
+        
+        logger.warning(
+            "[TRACE][ActionSolicitarPQRSD] llm_request al entrar=%s",
+            tracker.get_slot("llm_request"),
+        )
+
+        logger.info(
+            "[SOPORTE] Activando espera de descripción PQRSD"
+        )
+
+        dispatcher.utter_message(
+            response="utter_solicitar_pqrsd"
+        )
+        eventos = [
+
+            SlotSet(
+                "llm_request",
+                None,
+            ),
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
+            ),
+
+            SlotSet("tema_actual", None),
+            SlotSet("tema_consulta", None),
+            SlotSet("ultima_respuesta_llm", None),
+
+        ]
+        logger.error("########## SALE ACTION_SOLICITAR_PQRSD ##########")
+        logger.error("Eventos=%s", eventos)
+
+        return eventos
+
 
 class ActionSoporteTecnicoLLM(Action):
 
@@ -1321,70 +1427,6 @@ class ActionOfrecerContinuarSoporte(Action):
         ]
 
 
-class ActionOfrecerContinuarFaq(Action):
-
-    def name(self) -> Text:
-        return "action_ofrecer_continuar_faq"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.warning(
-            "[CONTINUAR_FAQ] proceso=%s llm=%s",
-            tracker.get_slot("proceso_activo"),
-            tracker.get_slot("llm_request"),
-        )
-
-        dispatcher.utter_message(
-            response="utter_ofrecer_continuar_faq"
-        )
-
-        esperando = tracker.get_slot(
-            "esperando_decision_post_resolucion"
-        )
-
-        logger.warning(
-            "[CONTINUAR_FAQ] esperando_decision_post_resolucion=%s",
-            esperando,
-        )
-
-        if esperando:
-
-            logger.warning(
-                "[CONTINUAR_FAQ] Manteniendo espera post resolución"
-            )
-
-            return []
-
-        logger.warning(
-            "[CONTINUAR_FAQ] Flujo FAQ normal"
-        )
-        logger.warning(
-            "[CONTINUAR_FAQ] esperando_pregunta_faq=%s",
-            tracker.get_slot("esperando_pregunta_faq"),
-        )
-        return [
-
-           SlotSet(
-               "esperando_pregunta_faq",
-               False,
-           ), 
-            
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-
-             SlotSet(
-                 "proceso_activo",
-                 "faq",
-             ),
-        ]
 
 class ActionLimpiarFaq(Action):
 

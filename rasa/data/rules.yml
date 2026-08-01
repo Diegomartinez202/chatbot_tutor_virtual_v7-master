@@ -377,5 +377,5 @@ rules:
           - proceso_activo: pqrsd
           - esperando_pqrsd: true
     steps:
-      - intent: describir_pqrsd
+      - intent: describir_contenido_pqrsd
       - action: action_pqrsd_llm

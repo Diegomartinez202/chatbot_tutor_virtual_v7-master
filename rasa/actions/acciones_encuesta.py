@@ -738,12 +738,14 @@ class ActionProcesarRespuestaResolucion(Action):
                 eventos.append(
                     SlotSet(
                         "esperando_pregunta_faq",
-                        True,
+                        False,
                     )
 
 
                 )
-                
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True ),
+                )                
                 eventos.append(
                     SlotSet("confirmacion_cierre",  None ),
                 )
@@ -761,15 +763,20 @@ class ActionProcesarRespuestaResolucion(Action):
                 )
 
                 dispatcher.utter_message(
-                    response="utter_ofrecer_radicar_pqrsd"
+                    response="utter_ofrecer_continuar_pqrsd"
                 )
 
                 eventos.append(
                     SlotSet(
                         "esperando_pqrsd",
-                        True,
+                        False,
                     )
                 )
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True),
+                )               
+     
+
                 eventos.append(
                     SlotSet("confirmacion_cierre",  None,),
                 )               
