@@ -12,6 +12,7 @@ from rasa_sdk.events import (
     UserUtteranceReverted,
 )
 from .runtime.action_handler import action_handler
+from actions.core.nlp_utils import validar_autenticacion
 from typing import Any, Dict, List, Optional, Text
 from rasa_sdk.events import EventType
 from .core.llm_engine import run_llm
@@ -21,85 +22,6 @@ from .core.orchestrator_v2 import ACTION_CATALOG
 logger = logging.getLogger(__name__)
 
 
-DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-
-# ================================================================
-# 🚀 BOOTSTRAP SAFE
-# ================================================================
-
-try:
-    if not action_handler.registry:
-        action_handler.bootstrap()
-except Exception:
-    logger.exception("[ACADEMICO] error bootstrap ActionHandler")
-
-
-def validar_autenticacion(
-    tracker,
-    pending_action: str,
-    llm_request: dict,
-):
-
-    # ==========================================================
-    # MODO DEMOSTRACIÓN
-    # Permite ejecutar únicamente la consulta de certificados
-    # sin autenticación para demostrar el flujo completo del bot.
-    # En producción DEMO_MODE debe permanecer en False.
-    # ==========================================================
-    if DEMO_MODE and pending_action == "certificados":
-        logger.info(
-            "[AUTH] DEMO_MODE activo - omitiendo autenticación para certificados."
-        )
-        return None
-   
-    logger.warning("=" * 80)
-    logger.warning("[TUTOR] Entró nuevamente")
-    logger.warning(
-        "authenticated=%s",
-        tracker.get_slot("is_authenticated"),
-    )
-    logger.warning(
-        "pending=%s",
-        tracker.get_slot("pending_action"),
-    )
-    logger.warning(
-        "llm_request=%s",
-        tracker.get_slot("llm_request"),
-    )
-    logger.warning("=" * 80)
-    
-    
-    if tracker.get_slot("is_authenticated"):
-        return None
-
-    logger.warning(
-        "[AUTH] Solicitando login para %s",
-        pending_action,
-    )
-    
-    return [
-
-        SlotSet(
-            "proceso_activo",
-            pending_action,
-        ),
-
-        SlotSet(
-            "pending_action",
-            pending_action,
-        ),
-
-       
-        SlotSet(
-            "llm_request",
-            llm_request,
-        ),
-
-        FollowupAction(
-            "action_solicitar_login",
-        ),
-
-    ]
 
 # ================================================================
 # CATÁLOGO CENTRAL DE ACCIONES ACADÉMICAS
@@ -204,7 +126,7 @@ def _exec(
 ) -> List[Any]:
 
     logger.info(
-        "[ACADEMICO] execute=%s user=%s",
+        "[SOPORTE] execute=%s user=%s",
         action_name,
         tracker.sender_id,
     )
@@ -224,45 +146,45 @@ def _exec(
 
     except Exception:
         logger.exception(
-            "[ACADEMICO] error ejecutando %s",
+            "[SOPORTE] error ejecutando %s",
             action_name,
         )
 
         dispatcher.utter_message(
-            text="⚠️ No fue posible procesar la consulta académica."
+            text="⚠️ No fue posible procesar la consulta de soporte."
         )
 
         return []
 
-def ejecutar_accion_academica(
+def ejecutar_accion_administrativa(
     accion: str,
     dispatcher,
     tracker,
 ):
 
     logger.info(
-        "[ACADEMICO] Inicio proceso=%s authenticated=%s pending=%s",
+        "[ADMINISTRATIVO] Inicio proceso=%s authenticated=%s pending=%s",
         accion,
         tracker.get_slot("is_authenticated"),
         tracker.get_slot("pending_action"),
     )
     
-    config = ACCIONES_ACADEMICAS.get(accion)
+    config = ACCIONES_ADMINISTRATIVAS.get(accion)
 
     if not config:
         dispatcher.utter_message(
-            text="La acción académica no está registrada."
+            text="La acción administrativa no está registrada."
         )
         return []
 
-    backend = config["backend"]
+    backend = config.get("backend")
     proceso = config["proceso"]
 
     llm_config = ACTION_CATALOG.get(proceso)
 
     if not llm_config:
         logger.error(
-            "[ACADEMICO] No existe ACTION_CATALOG[%s]",
+            "[ADMINISTRATIVO] No existe ACTION_CATALOG[%s]",
             proceso,
         )
        
@@ -288,7 +210,7 @@ def ejecutar_accion_academica(
         pending_action=proceso,
     )
         logger.warning(
-            "[ACADEMICO] llm_request=%s",
+            "[ADMINISTRATIVO] llm_request=%s",
             llm_request,
         )
         auth = validar_autenticacion(
@@ -297,7 +219,7 @@ def ejecutar_accion_academica(
             llm_request,
         )
         logger.warning(
-            "[ACADEMICO] validar_autenticacion retornó=%s",
+            "[ADMINISTRATIVO] validar_autenticacion retornó=%s",
             auth,
         )
         if auth:
@@ -354,7 +276,7 @@ def ejecutar_accion_academica(
     # ==========================================================
 
     logger.info(
-        "[ACADEMICO] Ejecutando backend=%s con proceso_activo=%s",
+        "[ADMINISTRATIVO] Ejecutando backend=%s con proceso_activo=%s",
         proceso,
         backend,
     )
@@ -395,12 +317,12 @@ class ActionVerEstadoEstudiante(Action):
         )
         logger.warning("=" * 80)
         
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_estado",
             dispatcher,
             tracker,
         )
-
+   
 class ActionTutorAsignado(Action):
 
     def name(self):
@@ -408,7 +330,7 @@ class ActionTutorAsignado(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_tutor",
             dispatcher,
             tracker,
@@ -421,7 +343,7 @@ class ActionConsultarHorariosClases(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_horarios",
             dispatcher,
             tracker,
@@ -433,7 +355,7 @@ class ActionHistorialAcademico(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_historial",
             dispatcher,
             tracker,
@@ -446,7 +368,7 @@ class ActionConsultarProgresoCurso(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_progreso",
             dispatcher,
             tracker,
@@ -459,7 +381,7 @@ class ActionConsultarCertificados(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_certificados",
             dispatcher,
             tracker,
@@ -472,7 +394,7 @@ class ActionConsultarPagos(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_pagos",
             dispatcher,
             tracker,
@@ -485,7 +407,7 @@ class ActionConsultarNotas(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_notas",
             dispatcher,
             tracker,
@@ -497,7 +419,7 @@ class ActionConsultarFicha(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_ficha",
             dispatcher,
             tracker,
@@ -510,7 +432,7 @@ class ActionConsultarInscripciones(Action):
 
     def run(self, dispatcher, tracker, domain):
 
-        return ejecutar_accion_academica(
+        return ejecutar_accion_administrativa(
             "consultar_inscripciones",
             dispatcher,
             tracker,

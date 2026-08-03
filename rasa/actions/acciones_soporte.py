@@ -24,8 +24,9 @@ from .core.nlp_utils import build_llm_request
 from rasa_sdk.events import (
     ActiveLoop,
 )
-from .acciones_academico import validar_autenticacion
-
+from actions.core.nlp_utils import validar_autenticacion
+from .core.orchestrator_v2 import ACTION_CATALOG
+from .runtime.action_handler import action_handler
 logger = get_logger(__name__)
 
 from .common import (
@@ -89,6 +90,48 @@ ACCIONES_SOPORTE = {
     },
 
 }
+# ================================================================
+# 🧠 EXECUTOR CENTRAL
+# ================================================================
+
+def _exec(
+    action_name: str,
+    dispatcher: CollectingDispatcher,
+    tracker: Tracker,
+) -> List[Any]:
+
+    logger.info(
+        "[SOPORTE] execute=%s user=%s",
+        action_name,
+        tracker.sender_id,
+    )
+
+    try:
+        result = action_handler.execute(
+            action_name=action_name,
+            dispatcher=dispatcher,
+            tracker=tracker,
+            payload={},
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return []
+
+    except Exception:
+        logger.exception(
+            "[SOPORTE] error ejecutando %s",
+            action_name,
+        )
+
+        dispatcher.utter_message(
+            text="⚠️ No fue posible procesar la consulta de soporte."
+        )
+
+        return []
+
+
 def _append_ticket_local(record: Dict[str, Any]) -> bool:
     """Guarda un registro de soporte en data/soporte.jsonl (log local)."""
     try:
@@ -101,243 +144,178 @@ def _append_ticket_local(record: Dict[str, Any]) -> bool:
         return False
 
 
-class ActionIniciarSoporte(Action):
+def ejecutar_accion_soporte(
+    accion: str,
+    dispatcher,
+    tracker,
+):
 
-    def name(self) -> Text:
-        return "action_iniciar_soporte"
+    logger.info(
+        "[SOPORTE] Inicio proceso=%s authenticated=%s pending=%s",
+        accion,
+        tracker.get_slot("is_authenticated"),
+        tracker.get_slot("pending_action"),
+    )
 
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
+    config = ACCIONES_SOPORTE.get(accion)
+
+    if not config:
+
+        dispatcher.utter_message(
+            text="La acción de soporte no está registrada."
+        )
+
+        return []
+
+    backend = config.get("backend")
+    proceso = config["proceso"]
+
+    llm_config = ACTION_CATALOG.get(proceso)
+
+    if not llm_config:
+
+        logger.error(
+            "[SOPORTE] No existe ACTION_CATALOG[%s]",
+            proceso,
+        )
+
+        return []
+
+    macroflujo = llm_config["macroflujo"]
+    subflujo = llm_config["subflujo"]
+    requires_auth = llm_config["requires_auth"]
+
+    eventos: List[EventType] = [
+
+        ActiveLoop(None),
+
+        SlotSet("requested_slot", None),
+
+        SlotSet(
+            "auth_login_form",
+            None,
+        ),
+
+        SlotSet(
+            "esperando_decision_post_resolucion",
+            False,
+        ),
+
+        SlotSet(
+            "confirmacion_cierre",
+            None,
+        ),
+
+        SlotSet(
+            "proceso_activo",
+            proceso,
+        ),
+
+    ]
+
+    # ==========================================================
+    # REQUIERE AUTENTICACIÓN
+    # ==========================================================
+
+    if requires_auth:
 
         llm_request = build_llm_request(
+
             instruction="",
-            macroflujo="support",
-            subflujo="ticket",
+
+            macroflujo=macroflujo,
+
+            subflujo=subflujo,
+
             requires_auth=True,
-            pending_action="crear_caso",
+
+            pending_action=proceso,
+
         )
 
         auth = validar_autenticacion(
+
             tracker,
-            "crear_caso",
+
+            proceso,
+
             llm_request,
+
         )
 
         if auth:
             return auth
 
-        return [
-
-            SlotSet(
-                "proceso_activo",
-                "crear_caso",
-            ),
+        eventos.append(
 
             SlotSet(
                 "pending_action",
                 None,
-            ),
-
-            FollowupAction(
-                "action_autosave_snapshot",
-            ),
-            
-            FollowupAction(
-                "soporte_form",
-            ),
-
-        ]
-
-class ActionSolicitarHumano(Action):
-
-    def name(self) -> Text:
-        return "action_solicitar_humano"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        llm_request = build_llm_request(
-
-            instruction=(
-                "Explica al estudiante que en el entorno de producción podrá "
-                "solicitar atención de un asesor humano. Indica que primero debe "
-                "autenticarse en la plataforma institucional y que, una vez validado "
-                "el token JWT, el sistema permitirá generar la solicitud para ser "
-                "atendido por un asesor. En esta versión del proyecto se demuestra "
-                "el flujo de integración, pero la conexión definitiva depende de "
-                "los servicios institucionales."
-            ),
-
-            macroflujo="support",
-
-            subflujo="hablar_asesor",
-
-            requires_auth=True,
-
-            pending_action="hablar_asesor",
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-                "El proceso para contactar un asesor quedó explicado correctamente."
-            ),
+            )
 
         )
 
-        auth = validar_autenticacion(
+    # ==========================================================
+    # CONSTRUIR REQUEST LLM
+    # ==========================================================
+
+    request = build_llm_request(
+
+        instruction=llm_config.get("instruction", ""),
+
+        macroflujo=macroflujo,
+
+        subflujo=subflujo,
+
+        requires_auth=requires_auth,
+
+        next_action="action_ofrecer_continuar_soporte",
+
+        fallback=llm_config.get("fallback", ""),
+
+    )
+
+    eventos.append(
+
+        SlotSet(
+            "llm_request",
+            request,
+        )
+
+    )
+
+    eventos.append(
+
+        FollowupAction(
+            "action_handle_with_llm",
+        )
+
+    )
+
+    # ==========================================================
+    # Backend (si existe)
+    # ==========================================================
+
+    if backend:
+
+        logger.info(
+            "[SOPORTE] Ejecutando backend=%s",
+            backend,
+        )
+
+        resultado = _exec(
+
+            backend,
+
+            dispatcher,
+
             tracker,
-            "hablar_asesor",
-            llm_request,
-        )
-
-        if auth:
-            return auth
-
-        return [
-
-            SlotSet(
-                "proceso_activo",
-                "hablar_asesor",
-            ),
-
-            SlotSet(
-                "pending_action",
-                None,
-            ),
-
-            SlotSet(
-                "llm_request",
-                llm_request,
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm",
-            ),
-
-        ]
-
-class ActionContactarTutor(Action):
-
-    def name(self) -> Text:
-        return "action_contactar_tutor"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        llm_request = build_llm_request(
-            instruction="",
-            macroflujo="support",
-            subflujo="correo",
-            requires_auth=True,
-            pending_action="contactar_tutor",
-        )
-
-        auth = validar_autenticacion(
-            tracker,
-            "contactar_tutor",
-            llm_request,
-        )
-
-        if auth:
-            return auth
-
-        llm_request.update(
-            {
-                "instruction": (
-                    "Explica cómo funciona el contacto con el tutor académico. "
-                    "Indica que el estudiante debe autenticarse y que posteriormente "
-                    "el sistema podrá consultar el tutor asignado y generar el contacto "
-                    "utilizando los servicios institucionales. En esta demostración "
-                    "únicamente se presenta el flujo funcional."
-                ),
-                "next_action": "action_ofrecer_continuar_soporte",
-                "fallback": (
-                    "Se explicó el proceso para contactar al tutor."
-                ),
-            }
-        )
-
-        return [
-
-            SlotSet(
-                "proceso_activo",
-                "contactar_tutor",
-            ),
-
-            SlotSet(
-                "pending_action",
-                None,
-            ),
-
-            SlotSet(
-                "llm_request",
-                llm_request,
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm",
-            ),
-
-        ]
-
-class ActionRecuperarContrasena(Action):
-
-    def name(self):
-        return "action_recuperar_contrasena"
-
-    def run(self, dispatcher, tracker, domain):
-
-        request = build_llm_request(
-
-            instruction=(
-                "Explica paso a paso cómo recuperar la contraseña de acceso a "
-                "la plataforma Zajuna. Indica que el estudiante debe utilizar "
-                "la opción '¿Olvidó su contraseña?', ingresar su correo "
-                "institucional y seguir el enlace enviado al correo para crear "
-                "una nueva contraseña. Aclara que este proceso depende de la "
-                "infraestructura institucional y que en esta versión del proyecto "
-                "se demuestra únicamente el flujo."
-            ),
-
-            macroflujo="support",
-            subflujo="recuperar_contrasena",
-            requires_auth=False,
-            next_action="action_ofrecer_continuar_soporte",
-            fallback=(
-                "Se explicó el procedimiento para recuperar la contraseña."
-            ),
 
         )
 
-        return [
+        return eventos + resultado
 
-            SlotSet(
-                "proceso_activo",
-                "recuperar_contrasena",
-            ),
-
-            SlotSet(
-                "llm_request",
-                request,
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm",
-            ),
-
-        ]
+    return eventos
 
 
 class ValidateSoporteForm(FormValidationAction):
@@ -1485,1559 +1463,6 @@ class ActionSolicitarPQRSD(Action):
 
         return eventos
 
-class ActionCrearCasoLLM(Action):
-
-    def name(self) -> Text:
-        return "action_crear_caso_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionCrearCasoLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CREAR CASO - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "crear_caso",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="crear_caso",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CREAR CASO] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionCrearCasoLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionHablarAsesorLLM(Action):
-
-    def name(self) -> Text:
-        return "action_hablar_asesor_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionHablarAsesorLLMM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[HABLAR ASESOR - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "hablar_asesor",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="hablar_asesor",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[HABLAR ASESOR] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionHablarAsesorLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionContactarTutorLLM(Action):
-
-    def name(self) -> Text:
-        return "action_contactar_tutor_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionContactarTutorLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[COMTACTAR TUTOR - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "contactar_tutor",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="contactar_tutor",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[COMTACTAR TUTOR] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionContactarTutorLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionRecuperarContrasenaLLM(Action):
-
-    def name(self) -> Text:
-        return "action_recuperar_contrasena_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionRecuperarContrasenaLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[RECUPERAR CONTRASENA - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "recuperar_contrasena",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                    "Explica paso a paso cómo recuperar la contraseña de acceso "
-                    "a la plataforma Zajuna utilizando la opción "
-                    "'¿Olvidó su contraseña?'."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="recuperar_contrasena",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[RECUPERAR CONTRASENA] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionRecuperarContrasenaLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-
-
-class ActionConsultarEstadoLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_estado_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarEstadoLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR ESTADO - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_estado",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_estado",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR ESTADO] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarEstadoLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-class ActionConsultarTutorLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_tutor_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarTutorLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR TUTOR - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_tutor",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_tutor",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR TUTOR] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarTutorLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-
-class ActionConsultarHorariosLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_horarios_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarHorariosLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR HORARIOS - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_horarios",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_horarios",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR HORARIOS] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarHorariosLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-class ActionConsultarProgresoLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_progreso_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarProgresoLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR PROGRESO - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_progreso",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_progreso",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR PROGRESO] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarProgresoLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionConsultarHistorialLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_historial_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarHistorialLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR HISTORIAL - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_historial",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_historial",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR HISTORIAL] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarHistorialLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionConsultarCertificadosLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_certificados_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarCertificadosLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR CERTIFICADOS - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_certificados",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_certificados",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR CERTIFICADOS] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarCertificadosLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-class ActionConsultarPagosLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_pagos_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarPagosLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR PAGOS - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_pagos",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_pagos",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR PAGOS] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarPagosLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-
-class ActionConsultarNotasLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_notas_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultar_NotasLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR NOTAS - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_notas",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_notas",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR NOTAS] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarNotasLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionConsultarFichaLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_ficha_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarFichaLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR FICHA - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_ficha",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_ficha",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR FICHA] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarFichaLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
-
-class ActionConsultarInscripcionesLLM(Action):
-
-    def name(self) -> Text:
-        return "action_consultar_inscripciones_llm"
-
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: DomainDict,
-    ) -> List[EventType]:
-
-        logger.info("ActionConsultarInscripcionesLLM ejecutada.")
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR INSCRIPCIONE - ENTRADA]")
-        logger.warning(
-            "proceso_activo=%s",
-            tracker.get_slot("proceso_activo"),
-        )
-        logger.warning(
-            "llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 80)
-
-        eventos = [
-
-            ActiveLoop(None),
-
-            SlotSet("requested_slot", None),
-
-            SlotSet(
-                "proceso_activo",
-                "consultar_inscripciones",
-            ),
-
-            SlotSet(
-                "auth_login_form",
-                None,
-            ),
-
-            SlotSet(
-                "esperando_decision_post_resolucion",
-                False,
-            ),
-
-            SlotSet(
-                "confirmacion_cierre",
-                None,
-            ),
-
-        ]
-
-        request = build_llm_request(
-
-            instruction=(
-
-                "Explica que la creación de un caso de soporte requiere "
-                "autenticación institucional para asociar correctamente la "
-                "solicitud al estudiante. Después del inicio de sesión se "
-                "abrirá el formulario para registrar el caso de soporte."
-
-            ),
-
-            macroflujo="support",
-
-            subflujo="consultar_inscripciones",
-
-            requires_auth=True,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-
-                "Esta funcionalidad requiere autenticación institucional."
-
-            ),
-
-        )
-
-        logger.warning("=" * 80)
-        logger.warning("[CONSULTAR INSCRIPCIONES] REQUEST")
-        logger.warning("%s", request)
-        logger.warning("=" * 80)
-
-        eventos.append(
-
-            SlotSet(
-                "llm_request",
-                request,
-            )
-
-        )
-
-        eventos.append(
-
-            FollowupAction(
-                "action_handle_with_llm",
-            )
-
-        )
-
-        logger.info("Eventos ActionConsultarInscripcionesLLM:")
-
-        for e in eventos:
-            logger.info("  %s", e)
-
-        return eventos
-
 
 class ActionOfrecerContinuarSoporte(Action):
 
@@ -3188,3 +1613,73 @@ class ActionLimpiarPqrsd(Action):
             ),
 
         ]
+
+
+class ActionRecuperarContrasena(Action):
+
+    def name(self):
+        return "action_recuperar_contrasena"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        return ejecutar_accion_soporte(
+            "recuperar_contrasena",
+            dispatcher,
+            tracker,
+        )
+class ActionContactarTutor(Action):
+
+    def name(self):
+        return "action_contactar_tutor"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        return ejecutar_accion_soporte(
+            "contactar_tutor",
+            dispatcher,
+            tracker,
+        )
+class ActionSolicitarHumano(Action):
+
+    def name(self):
+        return "action_solicitar_humano"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        return ejecutar_accion_soporte(
+            "hablar_asesor",
+            dispatcher,
+            tracker,
+        )
+class ActionIniciarSoporte(Action):
+
+    def name(self):
+        return "action_iniciar_soporte"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        return ejecutar_accion_soporte(
+            "crear_caso",
+            dispatcher,
+            tracker,
+        )

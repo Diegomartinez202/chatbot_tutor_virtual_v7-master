@@ -32,19 +32,7 @@ from .acciones_soporte import (
     ActionOfrecerContinuarFaq,
     ActionLimpiarPqrsd,
     ActionLimpiarFaq,
-    ActionCrearCasoLLM,
-    ActionHablarAsesorLLM,
-    ActionContactarTutorLLM,
     ActionRecuperarContrasena,
-    ActionConsultarEstadoLLM,
-    ActionConsultarTutorLLM,
-    ActionConsultarProgresoLLM,
-    ActionConsultarHistorialLLM,
-    ActionConsultarCertificadosLLM,
-    ActionConsultarPagosLLM,
-    ActionConsultarNotasLLM,
-    ActionConsultarFichaLLM,
-    ActionConsultarInscripcionesLLM,
 
 )
 
@@ -189,19 +177,7 @@ __all__ = [
     "ActionLimpiarPqrsd",
     "ActionRecuperarContrasena",
     "ActionOfrecerContinuarAdministrativo",
-    "ActionCrearCasoLLM",
-    "ActionHablarAsesorLLM",
-    "ActionContactarTutorLLM",
-    "RecuperarContrasenaLLM",
-    "ActionConsultarEstadoLLM",
-    "ActionConsultarTutorLLM",
-    "ActionConsultarProgresoLLM",
-    "ActionConsultarHistorialLLM",
-    "ActionConsultarCertificadosLLM",
-    "ActionConsultarPagosLLM",
-    "ActionConsultarNotasLLM",
-    "ActionConsultarFichaLLM",
-    "ActionConsultarInscripcionesLLM",
+
 
     
     "ActionCheckAuth",
