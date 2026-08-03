@@ -244,13 +244,9 @@ class ActionHandleWithLLM(Action):
         "aprender_tema",
     }
     
-    ACADEMIC_PROCESSES = {
+    ADMIN_PROCESSES = {
         "consultar_horarios",
         "consultar_progreso",
-        "consultar_tutor",
-    }
-
-    ADMIN_PROCESSES = {
         "consultar_estado",
         "consultar_ficha",
         "consultar_historial",
@@ -258,7 +254,7 @@ class ActionHandleWithLLM(Action):
         "consultar_certificados",
         "consultar_pagos",
         "consultar_notas",
-
+        "consultar_tutor",
 }
 
     SPECIAL_MACROFLOWS = (
@@ -272,8 +268,9 @@ class ActionHandleWithLLM(Action):
        "faq",
        "pqrsd",
        "crear_caso",
+       "hablar_asesor",
        "contactar_tutor",
-       "recuperar_password",
+       "recuperar_contrasena",
     }
     
     def _detect_flow(
@@ -409,6 +406,15 @@ class ActionHandleWithLLM(Action):
                 return self.FLOW_ACADEMIC
 
             if macroflujo == "support":
+
+                proceso = tracker.get_slot("proceso_activo")
+       
+                logger.info(
+                    "[FLOW] Support -> proceso=%s subflujo=%s",
+                    proceso,
+                    subflujo,
+                )
+
                 return self.FLOW_SUPPORT
 
             if macroflujo == "auth":
@@ -423,10 +429,12 @@ class ActionHandleWithLLM(Action):
             if macroflujo == "administrative":
 
                 logger.info(
-                    "[FLOW] Flujo administrativo detectado."
-                )
+                "[FLOW] Administrativo -> proceso=%s subflujo=%s",
+                tracker.get_slot("proceso_activo"),
+                subflujo,
+            )
 
-                return self.FLOW_ADMINISTRATIVE
+            return self.FLOW_ADMINISTRATIVE
 
             # ------------------------------------------
             # Macroflujos especiales
@@ -540,18 +548,6 @@ class ActionHandleWithLLM(Action):
 
             return self.FLOW_ACADEMIC
 
-        # -----------------------------------------------------
-        # CONSULTAS ACADÉMICAS
-        # -----------------------------------------------------
-
-        if proceso in self.ACADEMIC_PROCESSES:
-
-            logger.info(
-                "[FLOW] Consulta académica detectada. proceso=%s",
-                proceso,
-            )
-
-            return self.FLOW_ACADEMIC
 
         # -----------------------------------------------------
         # COMPATIBILIDAD CON FLUJOS ANTIGUOS
@@ -1017,10 +1013,6 @@ class ActionHandleWithLLM(Action):
                  macroflujo = "academic"
                  subflujo = proceso
 
-             elif proceso in self.ACADEMIC_PROCESSES:
-                 macroflujo = "academic"
-                 subflujo = proceso
-
              elif proceso in self.SUPPORT_PROCESSES:
                  macroflujo = "support"
                  subflujo = proceso
@@ -1352,10 +1344,51 @@ class ActionHandleWithLLM(Action):
                 ),
 
             ]
+        if proceso in {
 
+             "crear_caso",
+             "hablar_asesor",
+             "contactar_tutor",
+             "recuperar_contrasena",
+
+        }:
+
+             return [
+
+                 FollowupAction(
+                     "action_ofrecer_continuar_soporte",
+                 ),
+
+             ]
+        # ------------------------------------------------------
+        # ADMINISTRATIVO
+        # ------------------------------------------------------
+
+        if proceso in {
+
+            "consultar_estado",
+            "consultar_tutor",
+            "consultar_horarios",
+            "consultar_progreso",
+            "consultar_historial",
+            "consultar_certificados",
+            "consultar_pagos",
+            "consultar_notas",
+            "consultar_ficha",
+            "consultar_inscripciones",
+
+        }:
+
+            return [
+
+                FollowupAction(
+                    "action_ofrecer_continuar_administrativo",
+                ),
+
+            ]
 
         # ======================================================
-        # Sin continuidad definida
+        # Sin continuidad
         # ======================================================
 
         return []
@@ -1501,7 +1534,36 @@ class ActionHandleWithLLM(Action):
                 llm_request,
             )
 
+        if proceso == "crear_caso":
+            return self._postprocess_support_crear_caso(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "hablar_asesor":
+            return self._postprocess_support_hablar_asesor(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "contactar_tutor":
+            return self._postprocess_support_contactar_tutor(
+                tracker,
+                respuesta,
+               llm_request,
+            )
+        if proceso == "recuperar_contrasena":
+            return self._postprocess_support_contactar_tutor(
+                tracker,
+                respuesta,
+               llm_request,
+            )        
+        
         return []
+
+
     
     def _postprocess_support_faq(
         self,
@@ -1566,7 +1628,7 @@ class ActionHandleWithLLM(Action):
 
         return events
 
-    def _postprocess_administrative(
+    def _postprocess_support_crear_caso(
         self,
         tracker: Tracker,
         respuesta: str,
@@ -1574,11 +1636,459 @@ class ActionHandleWithLLM(Action):
     ) -> List[EventType]:
 
         logger.info(
-            "[POSTPROCESS] Administrativo finalizado"
+            "[POSTPROCESS] Crear caso"
         )
 
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                 respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "crear_caso",
+            ),
+
+        ]
+
+        return events
+
+
+
+    def _postprocess_support_hablar_asesor(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[POSTPROCESS] Hablar asesor"
+        )
+
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                 respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "hablar_asesor",
+            ),
+
+        ]
+
+        return events
+
+
+    def _postprocess_support_contactar_tutor(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[POSTPROCESS] Contactar tutor"
+        )
+
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                 respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "contactar_tutor",
+            ),
+
+        ]
+
+        return events
+
+    def _postprocess_support_recuperar_contrasena(
+        self,
+        tracker: Tracker,
+        respuesta: str,
+        llm_request: dict,
+    ) -> List[EventType]:
+
+        logger.info(
+            "[POSTPROCESS] Recuperar contraseña"
+        )
+
+        events = [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                 respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                "recuperar_contrasena",
+            ),
+        ]
+
+        return events
+
+
+    def _postprocess_administrative(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        if proceso == "consultar_estado":
+            return self._postprocess_admin_estado(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_certificados":
+            return self._postprocess_admin_certificados(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_tutor":
+            return self._postprocess_admin_tutor(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_horarios":
+            return self._postprocess_admin_horarios(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_historial":
+            return self._postprocess_admin_historial(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_progreso":
+            return self._postprocess_admin_progreso(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_pagos":
+            return self._postprocess_admin_pagos(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_notas":
+            return self._postprocess_admin_notas(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_ficha":
+            return self._postprocess_admin_ficha(
+                tracker,
+                respuesta,
+                llm_request,
+            )
+
+        if proceso == "consultar_inscripciones":
+            return self._postprocess_admin_inscripciones(
+                tracker,
+                respuesta,
+                llm_request,
+            )
 
         return []
+
+
+    def _postprocess_admin_consultar_estado(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_estado",
+            ),
+
+        ]
+
+    def _postprocess_admin_consultar_certificados(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_certificados",
+            ),
+
+
+        ]
+
+    def _postprocess_admin_consultar_tutor(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_tutor",
+            ),
+
+        ]
+
+
+    def _postprocess_admin_consultar_horarios(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_horarios",
+            ),
+
+        ]
+    def _postprocess_admin_consultar_historial(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_historial",
+            ),
+
+        ]
+
+    def _postprocess_admin_consultar_progreso(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_progreso",
+            ),
+
+        ]
+
+    def _postprocess_admin_admin_consultar_pagos(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_pagos",
+            ),
+
+        ]
+
+    def _postprocess_admin_consultar_notas(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_notas",
+            ),
+
+        ]
+
+    def _postprocess_admin_consultar_ficha(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_ficha",
+            ),
+
+        ]
+
+
+    def _postprocess_admin_consultar_inscripciones(
+        self,
+        tracker,
+        respuesta,
+        llm_request,
+    ):
+
+        return [
+
+            SlotSet(
+                "ultima_respuesta_llm",
+                respuesta,
+            ),
+
+            SlotSet(
+                "ultima_interaccion",
+                datetime.utcnow().isoformat(),
+            ),
+            SlotSet(
+                "proceso_activo",
+                "consultar_inscripciones",
+            ),
+
+        ]
 
 
     def _is_waiting_for_topic(
@@ -3684,10 +4194,40 @@ La continuidad debe seguir estas reglas:
             if proceso:
 
                 esperado = {
-                     "pqrsd": ("support", "pqrsd"),
-                     "faq": ("support", "faq"),
-                     "aprender_tema": ("academic", "aprender_tema"),
-                }
+
+                    # ==================================================
+                    # Académico
+                    # ==================================================
+
+                    "aprender_tema": ("academic", "aprender_tema"),
+
+                    # ==================================================
+                    # Soporte
+                    # ==================================================
+
+                    "faq": ("support", "faq"),
+                    "pqrsd": ("support", "pqrsd"),
+                    "crear_caso": ("support", "crear_caso"),
+                    "hablar_asesor": ("support", "hablar_asesor"),
+                    "contactar_tutor": ("support", "contactar_tutor"),
+                    "recuperar_contrasena": ("support", "recuperar_contrasena"),
+
+                   # ==================================================
+                   # Administrativo
+                   # ==================================================
+
+                   "consultar_estado": ("administrative", "consultar_estado"),
+                   "consultar_tutor": ("administrative", "consultar_tutor"),
+                   "consultar_horarios": ("administrative", "consultar_horarios"),
+                   "consultar_progreso": ("administrative", "consultar_progreso"),
+                   "consultar_historial": ("administrative", "consultar_historial"),
+                   "consultar_certificados": ("administrative", "consultar_certificados"),
+                   "consultar_pagos": ("administrative", "consultar_pagos"),
+                   "consultar_notas": ("administrative", "consultar_notas"),
+                   "consultar_ficha": ("administrative", "consultar_ficha"),
+                   "consultar_inscripciones": ("administrative", "consultar_inscripciones"),
+
+}
 
                 if proceso in esperado:
 

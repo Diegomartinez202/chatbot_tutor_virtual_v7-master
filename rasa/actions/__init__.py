@@ -22,15 +22,29 @@ from .acciones_soporte import (
     ActionVerificarMaxIntentosForm,
     ActionPQRSDLLM,
     ActionPreguntasFrecuentesLLM,
-    ActionSoporteTecnicoLLM,
     ActionSolicitarPreguntaFAQ,
     ActionSolicitarPQRSD,
     ActionSolicitarHumano,
     ActionContactarTutor,
     ActionIniciarSoporte,
     ActionOfrecerContinuarSoporte,
+    ActionOfrecerContinuarAdministrativo,
     ActionOfrecerContinuarFaq,
     ActionLimpiarPqrsd,
+    ActionLimpiarFaq,
+    ActionCrearCasoLLM,
+    ActionHablarAsesorLLM,
+    ActionContactarTutorLLM,
+    ActionRecuperarContrasena,
+    ActionConsultarEstadoLLM,
+    ActionConsultarTutorLLM,
+    ActionConsultarProgresoLLM,
+    ActionConsultarHistorialLLM,
+    ActionConsultarCertificadosLLM,
+    ActionConsultarPagosLLM,
+    ActionConsultarNotasLLM,
+    ActionConsultarFichaLLM,
+    ActionConsultarInscripcionesLLM,
 
 )
 
@@ -164,7 +178,6 @@ __all__ = [
     "ActionVerificarMaxIntentosForm",
     "ActionPQRSDLLM",
     "ActionPreguntasFrecuentesLLM",
-    "ActionSoporteTecnicoLLM",
     "ActionSolicitarPreguntaFAQ",
     "ActionSolicitarPQRSD",
     "ActionSolicitarHumano",
@@ -174,8 +187,22 @@ __all__ = [
     "ActionOfrecerContinuarFaq",
     "ActionLimpiarFaq",
     "ActionLimpiarPqrsd",
+    "ActionRecuperarContrasena",
+    "ActionOfrecerContinuarAdministrativo",
+    "ActionCrearCasoLLM",
+    "ActionHablarAsesorLLM",
+    "ActionContactarTutorLLM",
+    "RecuperarContrasenaLLM",
+    "ActionConsultarEstadoLLM",
+    "ActionConsultarTutorLLM",
+    "ActionConsultarProgresoLLM",
+    "ActionConsultarHistorialLLM",
+    "ActionConsultarCertificadosLLM",
+    "ActionConsultarPagosLLM",
+    "ActionConsultarNotasLLM",
+    "ActionConsultarFichaLLM",
+    "ActionConsultarInscripcionesLLM",
 
-   
     
     "ActionCheckAuth",
     "ActionIngresoZajuna",
@@ -184,8 +211,8 @@ __all__ = [
     "ActionSolicitarLogin",
     "ActionReanudarPendingAction",
 
-
-
+    "ActionAutosaveSnapshot",
+   
     
     "ActionVerEstadoEstudiante",
     "ActionTutorAsignado",

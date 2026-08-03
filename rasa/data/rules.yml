@@ -109,11 +109,6 @@ rules:
       - intent: reconexion_usuario
       - action: action_notificar_reconexion
   
-  - rule: Guardar autosave
-    steps:
-      - intent: guardar_autosave
-      - action: action_autosave_snapshot
-  
   - rule: Ping servidor
     steps:
       - intent: ping_servidor
@@ -142,20 +137,6 @@ rules:
   - rule: enviar correo recuperacion
     steps:
       - intent: enviar_correo_recuperacion
-      - action: action_enviar_correo_recuperacion
-      
-  - rule: recuperar contraseña
-    steps:
-      - intent: recuperar_contrasena
-      - action: password_recovery_form
-      - active_loop: password_recovery_form
-  
-  - rule: submit password recovery
-    condition:
-      - active_loop: password_recovery_form
-    steps:
-      - action: password_recovery_form
-      - active_loop: null
       - action: action_enviar_correo_recuperacion
   
   - rule: Desplegar Menú Principal al inicio o petición

@@ -64,11 +64,6 @@ stories:
   steps:
     - intent: consultar_certificados
     - action: action_consultar_certificados
-  
-- story: soporte tecnico guiado
-  steps:
-    - intent: soporte_tecnico
-    - action: action_soporte_tecnico_llm
 
 - story: flujo de inicio de encuesta unificado
   steps:
@@ -111,11 +106,13 @@ stories:
   steps:
     - intent: consultar_progreso_curso
     - action: action_consultar_progreso_curso
-
-- story: enviar correo tutor
+  
+- story: recuperar contraseña
   steps:
-    - intent: contactar_tutor
-    - action: action_contactar_tutor
+    - intent: recuperar_contrasena
+    - action: action_recuperar_contrasena
+    - action: action_handle_with_llm
+    - action: action_ofrecer_continuar_soporte
   
 - story: Diagnóstico administrativo
   steps:

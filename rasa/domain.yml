@@ -28,7 +28,6 @@ intents:
   - cancelar_cierre_segura
   - negar_encuesta
   - solicitar_soporte
-  - soporte_tecnico
   - pqrsd
   - contactar_tutor
   - reset_guardian
@@ -70,7 +69,7 @@ intents:
   - hablar_asesor
   - continuar_faq
   - radicar_pqrsd
-
+  - crear_caso
 
 entities:
   - email
@@ -681,35 +680,16 @@ responses:
           
   utter_login_requerido:
   - text: |
-       🔒 Esta consulta requiere autenticación.
+       🔒 Protección de tu información
 
-       La información solicitada corresponde a datos académicos personales del estudiante
-       (como certificados, estado académico, tutor asignado, horarios, progreso e historial académico).
-       Por motivos de privacidad y seguridad, esta información solo puede consultarse después de
-       autenticarse en la plataforma institucional.
+       En el Tutor Virtual del SENA la seguridad de tus datos es una prioridad.
 
-       Para continuar sigue estos pasos:
+       Para proteger tu información personal y académica, algunas consultas requieren verificar previamente tu identidad mediante la autenticación institucional. De esta manera se garantiza que únicamente el titular de la cuenta pueda acceder a información como certificados, historial académico, horarios, tutor asignado, progreso de formación y demás datos personales.
 
-       1️⃣ Haz clic en «Iniciar sesión».
-       2️⃣ Ingresa tus credenciales institucionales en la plataforma Zajuna.
-       3️⃣ La plataforma validará tu identidad y generará un token de acceso (JWT).
-       4️⃣ El Bot Tutor Virtual utilizará ese token para consultar únicamente la información académica autorizada.
-       5️⃣ Los resultados serán mostrados directamente en esta conversación.
+       Toda consulta se realiza respetando los principios de confidencialidad, privacidad y uso seguro de la información, de acuerdo con los mecanismos de autenticación implementados por la plataforma institucional.
 
-       ⚠️ En esta versión del proyecto se deja implementado el punto de integración con el sistema de autenticación.
-       La conexión con la plataforma Zajuna y la obtención del token JWT deberán ser configuradas por la institución,
-       ya que requieren acceso a las APIs y credenciales oficiales.
-
-    buttons:
-      - title: "🔐 Iniciar sesión"
-        url: "https://zajuna.sena.edu.co/"
-
-      - title: "📚 Menú académico"
-        payload: "/ir_menu_academico"
-
-      - title: "🏠 Menú principal"
-        payload: "/ir_menu_principal"
-
+       A continuación encontrarás la orientación necesaria para realizar el proceso de autenticación y continuar con la consulta que solicitaste.
+    
   utter_solicitar_tema:
   - text: >
       📚 Indícame el tema que deseas aprender.
@@ -901,6 +881,34 @@ responses:
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
 
+  utter_ofrecer_continuar_administrativo:
+  - text: |
+      Cuando hayas iniciado sesión puedes volver al menú administrativo para continuar con tu consulta.
+    buttons:
+    
+      - title: "🔐 Iniciar sesión"
+        url: "https://zajuna.sena.edu.co/"
+      - title: "📋 Menú administrativo"
+        payload: "/menu_administrativo"
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+      - title: "👋 Finalizar"
+        payload: "/finalizar" 
+
+  utter_ofrecer_continuar_proceso:
+  - text: |
+      ¿Qué deseas hacer ahora?
+    buttons:
+      - title: "🔐 Iniciar sesión"
+        url: "https://zajuna.sena.edu.co/"    
+      - title: "🏠 Menú principal"
+        payload: "/ir_menu_principal"
+      - title: "🛠 Menú soporte"
+        payload: "/menu_soporte"
+      - title: "👋 Finalizar"
+        payload: "/finalizar"
+
+
   utter_menu_administrativo:
   - text: |
       📋 Bienvenido al módulo administrativo.
@@ -924,9 +932,6 @@ responses:
 
       - title: "⏳ Historial académico"
         payload: "/historial_academico"
-
-      - title: "📧 Enviar solicitud"
-        payload: "/enviar_solicitud"
 
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
@@ -1033,6 +1038,12 @@ responses:
       - title: "🏠 Menú soporte"
         payload: "/ir_menu_soporte"
 
+      - title: "🏠 Menú Principal"
+        payload: "/ir_menu_principal"
+
+      - title: "👋 Finalizar" 
+        payload: "/terminar_conversacion_segura"
+
 actions:
 - action_ver_estado_estudiante
 - action_tutor_asignado
@@ -1099,7 +1110,6 @@ actions:
 - action_registrar_intento_form
 - action_verificar_max_intentos_form
 - action_preguntas_frecuentes_llm
-- action_soporte_tecnico_llm
 - action_confirmar_cierre
 - action_cancelar_cierre
 - action_incrementar_turnos_conversacion
@@ -1122,6 +1132,22 @@ actions:
 - action_solicitar_humano
 - action_contactar_tutor
 - action_ofrecer_continuar_soporte
+- action_ofrecer_continuar_administrativo
 - action_ofrecer_continuar_faq
 - action_limpiar_faq
 - action_limpiar_pqrsd
+- action_recuperar_contrasena
+- action_crear_caso_llm
+- action_hablar_asesor_llm
+- action_contactar_tutor_llm
+- action_recuperar_contrasena_llm
+- action_consultar_estado_llm
+- action_consultar_tutor_llm
+- action_consultar_horarios_llm
+- action_consultar_progreso_llm
+- action_consultar_historial_llm
+- action_consultar_certificados_llm
+- action_consultar_pagos_llm
+- action_consultar_notas_llm
+- action_consultar_ficha_llm
+- action_consultar_inscripciones_llm

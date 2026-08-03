@@ -105,7 +105,7 @@ def validar_autenticacion(
 # CATÁLOGO CENTRAL DE ACCIONES ACADÉMICAS
 # ================================================================
 
-ACCIONES_ACADEMICAS = {
+ACCIONES_ADMINISTRATIVAS = {
 
     "consultar_estado": {
         "backend": "estado_estudiante",
@@ -180,11 +180,13 @@ ACCIONES_ACADEMICAS = {
         "proceso": "consultar_inscripciones",
         "resume_action": "action_consultar_inscripciones",
     },
+}
 
     # --------------------------------------------------------
     # Pública
     # --------------------------------------------------------
 
+ACCIONES_ACADEMICAS = {
     "aprender_tema": {
         "backend": None,
         "requires_auth": False,
@@ -544,8 +546,8 @@ class ActionAprenderTema(Action):
         if proceso in [
             "pqrsd",
             "crear_caso",
-            "asesor",
-            "recuperar_password",
+            "hablar_asesor",
+            "recuperar_contrasena",
         ]:
 
             logger.warning(
@@ -657,8 +659,8 @@ class ActionAprenderTema(Action):
         if proceso not in [
             "pqrsd",
             "crear_caso",
-            "asesor",
-            "recuperar_password",
+            "hablar_asesor",
+            "recuperar_contrasena",
         ]:
 
             eventos.append(

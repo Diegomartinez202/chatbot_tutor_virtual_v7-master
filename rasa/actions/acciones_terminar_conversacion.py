@@ -19,7 +19,15 @@ from .acciones_encuesta import (
     obtener_tipo_encuesta,
 )
 from pymongo import MongoClient
+from actions.core.orchestrator_v2 import (
+    ACTION_CATALOG,
+    ACCIONES_SOPORTE,
+    ACCIONES_ADMINISTRATIVAS,
+    ACCIONES_ACADEMICAS,
+)
+
 logger = logging.getLogger(__name__)
+
 
 def get_mongo_collection():
     """Conexión centralizada a MongoDB para limpieza de sesiones."""
@@ -354,13 +362,41 @@ class ActionConfirmarCierre(Action):
                       response="utter_confirmar_cierre_con_proceso"
             )
 
-            else:
+            proceso = tracker.get_slot("proceso_activo")
+            logger.warning(
+                "[CIERRE] proceso=%s",
+                proceso,
+            )
+            config = ACTION_CATALOG.get(proceso)
+            if config and config.get("requires_auth"):
 
-                dispatcher.utter_message(
-                    response="utter_confirmar_cierre_con_proceso"
+                logger.info(
+                    "[CIERRE AUTH] proceso=%s requiere autenticación. "
+                    "Se omite resolución y se inicia encuesta.",
+                    proceso,
                 )
 
-            return []
+                return [
+
+                    SlotSet("confirmacion_cierre", None),
+
+                    SlotSet("esperando_resolucion", False),
+
+                    SlotSet(
+                        "esperando_decision_post_resolucion",
+                        False,
+                    ),
+
+                    SlotSet(
+                        "encuesta_activa",
+                        True,
+                    ),
+
+                    FollowupAction(
+                        "encuesta_satisfaccion_form",
+                    ),
+
+               ]
 
         # ======================================================
         # Evitar relanzar la pregunta si el flujo ya avanzó
@@ -533,11 +569,11 @@ class ActionCancelarCierre(Action):
             )
 
             dispatcher.utter_message(
-                response="utter_ofrecer_continuar_pqrsd"
-            )
-
-            dispatcher.utter_message(
                 text="Lamento que no hayamos redactado su PQRSD como querias."
+            )
+           
+            dispatcher.utter_message(
+                response="utter_ofrecer_continuar_pqrsd"
             )
 
             return [

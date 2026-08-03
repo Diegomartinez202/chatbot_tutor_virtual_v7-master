@@ -782,6 +782,92 @@ class ActionProcesarRespuestaResolucion(Action):
                 )               
      
 
+            elif proceso == "crear_caso":
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_proceso"
+                )
+
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True)
+                )
+
+                eventos.append(
+                    SlotSet("confirmacion_cierre", None)
+                )
+
+
+            elif proceso == "hablar_asesor":
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_proceso"
+                )
+
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True)
+                )
+
+                eventos.append(
+                    SlotSet("confirmacion_cierre", None)
+                )
+
+            elif proceso == "contactar_tutor":
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_proceso"
+                )
+
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True)
+                )
+
+                eventos.append(
+                    SlotSet("confirmacion_cierre", None)
+                )
+
+
+            elif proceso == "recuperar_contrasena":
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_proceso"
+                )
+
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True)
+                )
+
+                eventos.append(
+                    SlotSet("confirmacion_cierre", None)
+                )
+
+            elif proceso in [
+
+                "consultar_estado",
+                "consultar_tutor",
+                "consultar_horarios",
+                "consultar_progreso",
+                "consultar_historial",
+                "consultar_certificados",
+                "consultar_pagos",
+                "consultar_notas",
+                "consultar_ficha",
+                "consultar_inscripciones",
+   
+            ]:
+
+                dispatcher.utter_message(
+                    response="utter_ofrecer_continuar_administrativo"
+                )
+
+                eventos.append(
+                    SlotSet("esperando_decision_post_resolucion", True)
+                )
+
+                eventos.append(
+                    SlotSet("confirmacion_cierre", None)
+                )
+
+
             # ======================================================
             # Otros procesos
             # ======================================================

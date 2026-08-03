@@ -1137,13 +1137,11 @@ nlu:
     - necesito soporte
     - comunicarme con soporte humano
     - quiero crear un caso de soporte
-    - necesito crear un ticket
     - quiero registrar un problema
     - deseo abrir un caso
     - quiero reportar un inconveniente
     - necesito reportar un problema
     - quiero registrar una incidencia
-    - necesito abrir un ticket
     - deseo crear una solicitud de soporte
     - quiero dejar un reporte
     - necesito registrar una solicitud
@@ -1153,7 +1151,6 @@ nlu:
     - quiero crear una solicitud
     - registrar un caso de soporte
     - abrir un caso de soporte
-    - crear un ticket de soporte
     - reportar una incidencia
     - registrar una incidencia
     - crear una solicitud de ayuda
@@ -1162,8 +1159,14 @@ nlu:
     - necesito que registren mi caso
     - deseo dejar un caso de soporte
     - crear una incidencia
+    - registrar una incidencia
+    - abrir una incidencia
+    - quiero reportar una incidencia
+    - quiero registrar una falla
+    - registrar un problema
+    - abrir una solicitud de soporte
+    - crear una solicitud de soporte
 
- 
 - intent: hablar_asesor
   examples: |
     - quiero hablar con un asesor
@@ -1645,6 +1648,34 @@ nlu:
     - quiero seguir preguntando
     - continuar preguntas frecuentes
 
+- intent: crear_caso
+  examples: |
+    - crear caso
+    - crear un caso
+    - abrir un caso
+    - registrar un caso
+    - generar un caso
+    - crear caso de soporte
+    - abrir caso de soporte
+    - registrar caso de soporte
+    - crear ticket
+    - crear un ticket
+    - abrir ticket
+    - abrir un ticket
+    - registrar ticket
+    - generar ticket
+    - crear ticket de soporte
+    - abrir ticket de soporte
+    - registrar un ticket
+    - quiero crear un ticket
+    - necesito crear un ticket
+    - quiero abrir un ticket
+    - necesito abrir un ticket
+    - quiero registrar un ticket
+    - quiero crear un caso
+    - necesito crear un caso
+    - quiero abrir un caso
+    - necesito abrir un caso
 
 
 - intent: recuperar_contrasena

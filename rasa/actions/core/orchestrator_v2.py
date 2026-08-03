@@ -89,8 +89,8 @@ ACTION_CATALOG = {
 
     "recuperar_contrasena": {
         "action": "action_recuperar_contrasena",
-        "requires_auth": False,
-        "macroflujo": "auth",
+        "requires_auth": True,
+        "macroflujo": "support",
         "subflujo": "recuperar_contrasena",
     },
 
@@ -103,7 +103,7 @@ ACTION_CATALOG = {
         "backend": "estado_estudiante",
         "requires_auth": True,
         "macroflujo": "administrative",
-        "subflujo": "estado_estudiante",
+        "subflujo": "consultar_estado",
     },
 
     "solicitar_soporte": {
@@ -117,32 +117,32 @@ ACTION_CATALOG = {
         "action": "action_consultar_horarios_clases",
         "backend": "horarios",
         "requires_auth": True,
-        "macroflujo": "academic",
-        "subflujo": "horarios",
+        "macroflujo": "administrative",
+        "subflujo": "consultar_horarios",
     },
 
     "consultar_progreso": {
         "action": "action_consultar_progreso_curso",
         "backend": "progreso",
         "requires_auth": True,
-        "macroflujo":"academic",
-        "subflujo":"progreso",
+        "macroflujo":"administrative",
+        "subflujo":"consultar_progreso",
     },
 
     "consultar_tutor": {
         "action": "action_tutor_asignado",
         "backend": "tutor_asignado",
         "requires_auth": True,
-        "macroflujo":"academic",
-        "subflujo":"tutor",
+        "macroflujo":"administrative",
+        "subflujo":"consultar_tutor",
     },
 
     "consultar_certificados": {
         "action": "action_consultar_certificados",
         "backend": "certificados",
         "requires_auth": True,
-        "macroflujo": "academic",
-        "subflujo": "certificados",
+        "macroflujo": "administrative",
+        "subflujo": "consultar_certificados",
     },
 
     # ============================================================
@@ -153,16 +153,16 @@ ACTION_CATALOG = {
         "action": "action_consultar_pagos",
         "backend": "pagos",
         "requires_auth": True,
-        "macroflujo": "academic",
-        "subflujo": "pagos",
+        "macroflujo": "administrative",
+        "subflujo": "consultar_pagos",
     },
 
     "consultar_notas": {
         "action": "action_consultar_notas",
         "backend": "notas",
         "requires_auth": True,
-        "macroflujo": "academic",
-        "subflujo": "notas",
+        "macroflujo": "administrative",
+        "subflujo": "consultar_notas",
     },
 
     "consultar_ficha": {
@@ -170,7 +170,7 @@ ACTION_CATALOG = {
         "backend": "ficha",
         "requires_auth": True,
         "macroflujo": "administrative",
-        "subflujo": "ficha",
+        "subflujo": "consultar_ficha",
     },
 
     "consultar_inscripciones": {
@@ -178,21 +178,28 @@ ACTION_CATALOG = {
         "backend": "inscripciones",
         "requires_auth": True,
         "macroflujo": "administrative",
-        "subflujo": "inscripciones",
+        "subflujo": "consultar_inscripciones",
     },
 
     "hablar_asesor":{
        "action":"action_solicitar_humano",
        "requires_auth": True,
        "macroflujo":"support",
-       "subflujo":"asesor",
+       "subflujo":"hablar_asesor",
     },
 
     "contactar_tutor":{
        "action":"action_contactar_tutor",
        "requires_auth": True,
        "macroflujo":"support",
-       "subflujo":"correo",
+       "subflujo":"contactar_tutor",
+    },
+
+    "crear_caso":{
+       "action":"action_iniciar_soporte",
+       "requires_auth": True,
+       "macroflujo":"support",
+       "subflujo":"crear_caso",
     },
 
     "pqrsd":{
@@ -215,7 +222,7 @@ ACTION_CATALOG = {
        "backend":"historial",
        "requires_auth":True,
        "macroflujo":"administrative",
-       "subflujo":"historial",
+       "subflujo":"consultar_historial",
     }
 
 }

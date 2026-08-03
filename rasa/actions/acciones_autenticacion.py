@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 from .acciones_academico import ACCIONES_ACADEMICAS
 from .acciones_soporte import ACCIONES_SOPORTE
+from .acciones_academico import ACCIONES_ADMINISTRATIVAS
+
 
 RESUME_ACTIONS = {
     **{
@@ -29,6 +31,12 @@ RESUME_ACTIONS = {
     **{
         cfg["proceso"]: cfg["resume_action"]
         for cfg in ACCIONES_SOPORTE.values()
+        if cfg.get("resume_action")
+    },
+
+    **{
+        cfg["proceso"]: cfg["resume_action"]
+        for cfg in ACCIONES_ADMINISTRATIVAS.values()
         if cfg.get("resume_action")
     },
 }
@@ -87,6 +95,7 @@ class ActionCheckAuth(Action):
                     SlotSet("auth_state", "active"),
                     SlotSet("password", None),
                     SlotSet("email", email), 
+                    SlotSet("llm_request", None),
                 ]
 
                 logger.info(
@@ -96,6 +105,7 @@ class ActionCheckAuth(Action):
                 )
 
                 if pending:
+
                     events.append(
                         FollowupAction("action_reanudar_pending_action")
                     )
@@ -112,10 +122,21 @@ class ActionCheckAuth(Action):
         )
 
         protected_intents = {
-            "estado_estudiante": "action_ver_estado_estudiante",
-            "ver_certificados": "action_listar_certificados",
-            "consultar_progreso": "action_consultar_progreso_curso",
-            "consultar_tutor": "action_tutor_asignado",
+                "ver_estado_estudiante": "action_ver_estado_estudiante",
+                "consultar_certificados": "action_consultar_certificados",
+                "consultar_progreso_curso": "action_consultar_progreso_curso",
+                "ver_tutor_asignado": "action_tutor_asignado",
+                "consultar_horarios_clases": "action_consultar_horarios_clases",
+                "historial_academico": "action_historial_academico",
+
+                "consultar_pagos": "action_consultar_pagos",
+                "consultar_notas": "action_consultar_notas",
+                "consultar_ficha": "action_consultar_ficha",
+                "consultar_inscripciones": "action_consultar_inscripciones",
+
+                "crear_caso": "action_iniciar_soporte",
+                "hablar_asesor": "action_solicitar_humano",
+                "contactar_tutor": "action_enviar_correo_tutor",
         }
 
         action_to_execute = protected_intents.get(intent)
@@ -253,14 +274,123 @@ class ActionSolicitarLogin(Action):
             response="utter_login_requerido"
         )
 
+        instrucciones = {
+
+            "consultar_certificados":
+                (
+                    "Explica que la consulta de certificados requiere autenticación institucional. "
+                    "Indica que, una vez el estudiante inicie sesión mediante el sistema oficial "
+                    "de Zajuna y se valide el token JWT, el chatbot consultará los certificados "
+                    "autorizados y mostrará el resultado directamente en la conversación. "
+                    "Aclara que en esta demostración únicamente se presenta el flujo de integración."
+                ),
+
+            "consultar_estado":
+                (
+                    "Explica que el estado académico requiere autenticación institucional. "
+                    "Después de validar el token JWT el chatbot consultará la información "
+                    "académica autorizada del estudiante."
+                ),
+
+            "consultar_tutor":
+                (
+                    "Explica que el tutor asignado únicamente puede consultarse después de "
+                    "autenticarse en la plataforma institucional. "
+                    "Una vez validado el token JWT el sistema recuperará la información del tutor."
+                ),
+
+            "consultar_horarios":
+                (
+                    "Explica que los horarios de clase son información protegida. "
+                    "Después del proceso de autenticación el chatbot consultará y mostrará "
+                    "los horarios autorizados del estudiante."
+                ),
+
+            "consultar_historial":
+                (
+                    "Explica que el historial académico requiere autenticación. "
+                    "Después de validar la identidad mediante JWT el chatbot consultará "
+                    "el historial académico correspondiente."
+                ),
+
+            "consultar_progreso":
+                (
+                    "Explica que el progreso del curso requiere autenticación institucional. "
+                    "Una vez validado el token el sistema recuperará el avance académico."
+                ),
+
+            "crear_caso":
+                (
+                    "Explica que la creación de un caso de soporte requiere autenticación "
+                    "para asociar correctamente la solicitud al estudiante. "
+                    "Después del inicio de sesión se abrirá el formulario de soporte, "
+                    "se registrará el ticket en la plataforma y posteriormente se mostrará "
+                    "la confirmación del caso."
+                ),
+
+            "contactar_tutor":
+                (
+                    "Explica que para contactar al tutor primero debe validarse la identidad "
+                    "del estudiante. Después del inicio de sesión el sistema consultará el tutor "
+                    "asignado y permitirá generar la solicitud de contacto."
+                ),
+
+            "hablar_asesor":
+                (
+                    "Explica que antes de escalar la conversación a un asesor institucional "
+                    "es necesario validar la identidad del estudiante mediante autenticación. "
+                    "Después del inicio de sesión el sistema habilitará la transferencia al "
+                    "canal de atención correspondiente."
+                ),
+
+        }
+
+        instruction = instrucciones.get(
+
+            pending,
+
+            (
+                "Explica que esta funcionalidad requiere autenticación institucional. "
+                "Después del inicio de sesión y la validación del token JWT el chatbot "
+                "continuará automáticamente con la operación solicitada."
+            ),
+
+        )
+
         logger.info(
             "[AUTH] Login requerido para %s",
             pending,
         )
 
-        return []
+        return [
 
+            SlotSet(
 
+                "llm_request",
+
+                {
+                    "flow": "auth",
+
+                    "instruction": instruction,
+
+                    "context": {
+                        "pending_action": pending,
+                    },
+
+                    "fallback":
+                        (
+                            "Esta funcionalidad requiere autenticación institucional. "
+                            "Después del inicio de sesión el proceso continuará automáticamente."
+                        ),
+                },
+
+            ),
+
+            FollowupAction(
+                "action_handle_with_llm",
+            ),
+
+        ]
 class ActionReanudarPendingAction(Action):
 
     def name(self) -> Text:
