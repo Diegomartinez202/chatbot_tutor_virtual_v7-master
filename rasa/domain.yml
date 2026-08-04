@@ -70,6 +70,7 @@ intents:
   - continuar_faq
   - radicar_pqrsd
   - crear_caso
+  - solicitar_humano
 
 entities:
   - email
@@ -889,11 +890,11 @@ responses:
       - title: "🔐 Iniciar sesión"
         url: "https://zajuna.sena.edu.co/"
       - title: "📋 Menú administrativo"
-        payload: "/menu_administrativo"
+        payload: "/ir_menu_administrativo"
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
       - title: "👋 Finalizar"
-        payload: "/finalizar" 
+        payload: "/terminar_conversacion_segura"
 
   utter_ofrecer_continuar_proceso:
   - text: |
@@ -904,9 +905,9 @@ responses:
       - title: "🏠 Menú principal"
         payload: "/ir_menu_principal"
       - title: "🛠 Menú soporte"
-        payload: "/menu_soporte"
+        payload: "/ir_menu_soporte"
       - title: "👋 Finalizar"
-        payload: "/finalizar"
+        payload: "/terminar_conversacion_segura"
 
 
   utter_menu_administrativo:

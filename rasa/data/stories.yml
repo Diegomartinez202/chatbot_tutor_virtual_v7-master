@@ -79,18 +79,7 @@ stories:
   steps:
     - intent: negar_encuesta
     - action: utter_respeto_decision
-    - action: action_cierre_limpio
-
-- story: crear ticket soporte
-  steps:
-    - intent: solicitar_soporte
-    - action: action_iniciar_soporte
-  
-- story: soporte completado
-  steps:
-    - active_loop: soporte_form
-    - active_loop: null
-    - action: action_soporte_submit   
+    - action: action_cierre_limpio 
   
 - story: consultar tutor
   steps:

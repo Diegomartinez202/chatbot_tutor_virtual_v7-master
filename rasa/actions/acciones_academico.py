@@ -12,7 +12,7 @@ from rasa_sdk.events import (
     UserUtteranceReverted,
 )
 from .runtime.action_handler import action_handler
-from actions.core.nlp_utils import validar_autenticacion
+from actions.core.auth_utils import validar_autenticacion
 from typing import Any, Dict, List, Optional, Text
 from rasa_sdk.events import EventType
 from .core.llm_engine import run_llm
@@ -168,7 +168,7 @@ def ejecutar_accion_administrativa(
         tracker.get_slot("is_authenticated"),
         tracker.get_slot("pending_action"),
     )
-    
+
     config = ACCIONES_ADMINISTRATIVAS.get(accion)
 
     if not config:
@@ -183,16 +183,19 @@ def ejecutar_accion_administrativa(
     llm_config = ACTION_CATALOG.get(proceso)
 
     if not llm_config:
+
         logger.error(
             "[ADMINISTRATIVO] No existe ACTION_CATALOG[%s]",
             proceso,
         )
-       
+
         return []
 
     macroflujo = llm_config["macroflujo"]
     subflujo = llm_config["subflujo"]
     requires_auth = llm_config["requires_auth"]
+    instruction = llm_config.get("instruction", "")
+    fallback = llm_config.get("fallback", "")
 
     eventos: List[EventType] = []
 
@@ -203,33 +206,43 @@ def ejecutar_accion_administrativa(
     if requires_auth:
 
         llm_request = build_llm_request(
-        instruction="",
-        macroflujo=macroflujo,
-        subflujo=subflujo,
-        requires_auth=requires_auth,
-        pending_action=proceso,
-    )
+
+            instruction=instruction,
+
+            macroflujo=macroflujo,
+
+            subflujo=subflujo,
+
+            requires_auth=requires_auth,
+
+            pending_action=proceso,
+
+            fallback=fallback,
+
+        )
+
         logger.warning(
             "[ADMINISTRATIVO] llm_request=%s",
             llm_request,
         )
+
         auth = validar_autenticacion(
+
             tracker,
+
             proceso,
+
             llm_request,
+
         )
+
         logger.warning(
             "[ADMINISTRATIVO] validar_autenticacion retornó=%s",
             auth,
         )
+
         if auth:
             return auth
-
-        # ------------------------------------------------------
-        # Ya autenticado.
-        # Registrar el proceso para reutilizar el pipeline
-        # de cierre, encuestas y reinicio.
-        # ------------------------------------------------------
 
         eventos.append(
 
@@ -251,10 +264,6 @@ def ejecutar_accion_administrativa(
 
     else:
 
-        # ------------------------------------------------------
-        # Flujo público
-        # ------------------------------------------------------
-
         eventos.append(
 
             SlotSet(
@@ -264,6 +273,42 @@ def ejecutar_accion_administrativa(
 
         )
 
+    # ==========================================================
+    # CONSTRUIR REQUEST LLM
+    # ==========================================================
+
+    request = build_llm_request(
+
+        instruction=instruction,
+
+        macroflujo=macroflujo,
+
+        subflujo=subflujo,
+
+        requires_auth=requires_auth,
+
+        next_action="action_ofrecer_continuar_administrativo",
+
+        fallback=fallback,
+
+    )
+
+    eventos.append(
+
+        SlotSet(
+            "llm_request",
+            request,
+        )
+
+    )
+
+    eventos.append(
+
+        FollowupAction(
+            "action_handle_with_llm",
+        )
+
+    )
     # ==========================================================
     # ACCIONES SIN BACKEND
     # ==========================================================
@@ -277,10 +322,10 @@ def ejecutar_accion_administrativa(
 
     logger.info(
         "[ADMINISTRATIVO] Ejecutando backend=%s con proceso_activo=%s",
-        proceso,
         backend,
+        proceso,
     )
-    
+
     resultado = _exec(
         backend,
         dispatcher,

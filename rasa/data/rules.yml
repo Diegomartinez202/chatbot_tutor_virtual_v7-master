@@ -51,19 +51,6 @@ rules:
       - active_loop: null
       - action: action_guardar_feedback
   
-  - rule: Iniciar soporte
-    steps:
-      - intent: solicitar_soporte
-      - action: action_iniciar_soporte
-
-  - rule: Finalizar soporte
-    condition:
-      - active_loop: soporte_form
-    steps:
-      - action: soporte_form
-      - active_loop: null
-      - action: action_soporte_submit
-  
   - rule: Solicitar humano
     steps:
       - intent: hablar_asesor
@@ -360,3 +347,40 @@ rules:
     steps:
       - intent: describir_contenido_pqrsd
       - action: action_pqrsd_llm
+  
+  - rule: Continuar flujo Recuperar Contraseña
+    condition:
+      - slot_was_set:
+          - proceso_activo: recuperar_contrasena
+    steps:
+      - intent: recuperar_contrasena
+      - action: action_recuperar_contrasena
+  
+  - rule: Continuar flujo Contactar Tutor
+    condition:
+      - slot_was_set:
+          - proceso_activo: contactar_tutor
+    steps:
+      - intent: contactar_tutor
+      - action: action_contactar_tutor
+  
+  - rule: Continuar flujo Hablar Asesor
+    condition:
+      - slot_was_set:
+          - proceso_activo: hablar_asesor
+    steps:
+      - intent: solicitar_humano
+      - action: action_solicitar_humano
+  
+  - rule: Continuar flujo Crear Caso
+    condition:
+      - slot_was_set:
+          - proceso_activo: crear_caso
+    steps:
+      - intent: solicitar_soporte
+      - action: action_iniciar_soporte
+  
+  - rule: Iniciar flujo Crear Caso
+    steps:
+      - intent: solicitar_soporte
+      - action: action_iniciar_soporte

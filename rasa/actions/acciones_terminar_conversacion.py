@@ -19,12 +19,7 @@ from .acciones_encuesta import (
     obtener_tipo_encuesta,
 )
 from pymongo import MongoClient
-from actions.core.orchestrator_v2 import (
-    ACTION_CATALOG,
-    ACCIONES_SOPORTE,
-    ACCIONES_ADMINISTRATIVAS,
-    ACCIONES_ACADEMICAS,
-)
+from actions.core.orchestrator_v2 import ACTION_CATALOG
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +324,43 @@ class ActionConfirmarCierre(Action):
         )
         logger.warning("=" * 80)
 
+        proceso = tracker.get_slot("proceso_activo")
+        logger.warning(
+                "[CIERRE] proceso=%s",
+                proceso,
+            )
+
+        config = ACTION_CATALOG.get(proceso)
+        if config and config.get("requires_auth"):
+
+            logger.info(
+                "[CIERRE AUTH] proceso=%s requiere autenticación. "
+                "Se omite resolución y se inicia encuesta.",
+                proceso,
+            )
+
+            return [
+
+                SlotSet("confirmacion_cierre", None),
+
+                SlotSet("esperando_resolucion", False),
+
+                SlotSet(
+                    "esperando_decision_post_resolucion",
+                    False,
+                ),
+
+                SlotSet(
+                    "encuesta_activa",
+                    True,
+                ),
+
+                FollowupAction(
+                    "encuesta_satisfaccion_form",
+                ),
+
+            ]
+        
         # ======================================================
         # Evitar relanzar la pregunta de cierre
         # si el flujo ya avanzó a otra etapa.
@@ -362,41 +394,6 @@ class ActionConfirmarCierre(Action):
                       response="utter_confirmar_cierre_con_proceso"
             )
 
-            proceso = tracker.get_slot("proceso_activo")
-            logger.warning(
-                "[CIERRE] proceso=%s",
-                proceso,
-            )
-            config = ACTION_CATALOG.get(proceso)
-            if config and config.get("requires_auth"):
-
-                logger.info(
-                    "[CIERRE AUTH] proceso=%s requiere autenticación. "
-                    "Se omite resolución y se inicia encuesta.",
-                    proceso,
-                )
-
-                return [
-
-                    SlotSet("confirmacion_cierre", None),
-
-                    SlotSet("esperando_resolucion", False),
-
-                    SlotSet(
-                        "esperando_decision_post_resolucion",
-                        False,
-                    ),
-
-                    SlotSet(
-                        "encuesta_activa",
-                        True,
-                    ),
-
-                    FollowupAction(
-                        "encuesta_satisfaccion_form",
-                    ),
-
-               ]
 
         # ======================================================
         # Evitar relanzar la pregunta si el flujo ya avanzó
@@ -430,8 +427,15 @@ class ActionConfirmarCierre(Action):
         logger.warning("=" * 70)
         
         
-        if tracker.get_slot("proceso_activo"):
+        proceso = tracker.get_slot("proceso_activo")
 
+        if proceso in (
+            "aprender_tema",
+            "faq",
+            "pqrsd",
+        ):
+         
+        
             dispatcher.utter_message(
                 response="utter_confirmar_cierre_con_proceso"
             )
@@ -460,7 +464,7 @@ class ActionConfirmarCierre(Action):
         logger.warning("[CIERRE] CONTEXTO ANTES DE ESPERAR RESPUESTA")
 
         logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
-        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+        logger.warning("proceso_activo=%s",proceso,)
         logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
         logger.warning("tema_consulta=%s", tracker.get_slot("tema_consulta"))
         logger.warning("ultima_respuesta_llm=%s", tracker.get_slot("ultima_respuesta_llm"))
@@ -547,7 +551,7 @@ class ActionCancelarCierre(Action):
             )
 
             dispatcher.utter_message(
-                text="Lamento que no hayamos resuelto su pregunta."
+                text="Seguimos activos para ayudar a resolver su pregunta."
             )
             
             dispatcher.utter_message(
@@ -569,7 +573,7 @@ class ActionCancelarCierre(Action):
             )
 
             dispatcher.utter_message(
-                text="Lamento que no hayamos redactado su PQRSD como querias."
+                text="Seguimos activos para ayudar a redactar el PQRSD."
             )
            
             dispatcher.utter_message(

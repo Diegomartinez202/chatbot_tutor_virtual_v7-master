@@ -267,9 +267,15 @@ class ActionSolicitarLogin(Action):
         tracker,
         domain,
     ):
-
+        logger.warning("=" * 80)
+        logger.warning("[AUTH] llm_request ANTES de modificar")
+        logger.warning("%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
         pending = tracker.get_slot("pending_action")
-
+        logger.warning("=" * 80)
+        logger.warning("[TRACE AUTH] llm_request AL ENTRAR A ActionSolicitarLogin")
+        logger.warning("%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
         dispatcher.utter_message(
             response="utter_login_requerido"
         )
@@ -362,28 +368,43 @@ class ActionSolicitarLogin(Action):
             pending,
         )
 
+        
+        # ==========================================================
+        # Conservar el llm_request original para no perder
+        # macroflujo, subflujo y next_action.
+        # ==========================================================
+
+        request = (tracker.get_slot("llm_request") or {}).copy()
+
+        request["flow"] = "auth"
+
+        request["instruction"] = instruction
+
+        request.setdefault("context", {})
+        request["context"]["pending_action"] = pending
+
+        request["fallback"] = (
+            "Esta funcionalidad requiere autenticación institucional. "
+            "Después del inicio de sesión el proceso continuará automáticamente."
+        )
+        request.setdefault(
+            "next_action",
+            "action_ofrecer_continuar_soporte",
+        )
+
+        logger.info(
+            "[AUTH] llm_request preservado=%s",
+            request,
+        )        
+        logger.warning("=" * 80)
+        logger.warning("[AUTH] llm_request DESPUÉS de modificar")
+        logger.warning("%s", request)
+        logger.warning("=" * 80)
         return [
 
             SlotSet(
-
                 "llm_request",
-
-                {
-                    "flow": "auth",
-
-                    "instruction": instruction,
-
-                    "context": {
-                        "pending_action": pending,
-                    },
-
-                    "fallback":
-                        (
-                            "Esta funcionalidad requiere autenticación institucional. "
-                            "Después del inicio de sesión el proceso continuará automáticamente."
-                        ),
-                },
-
+                request,
             ),
 
             FollowupAction(

@@ -24,9 +24,10 @@ from .core.nlp_utils import build_llm_request
 from rasa_sdk.events import (
     ActiveLoop,
 )
-from actions.core.nlp_utils import validar_autenticacion
+from actions.core.auth_utils import validar_autenticacion
 from .core.orchestrator_v2 import ACTION_CATALOG
 from .runtime.action_handler import action_handler
+from actions.core.orchestrator_v2 import ACTION_CATALOG
 logger = get_logger(__name__)
 
 from .common import (
@@ -157,7 +158,7 @@ def ejecutar_accion_soporte(
         tracker.get_slot("pending_action"),
     )
 
-    config = ACCIONES_SOPORTE.get(accion)
+    config = ACTION_CATALOG.get(accion)
 
     if not config:
 
@@ -168,22 +169,13 @@ def ejecutar_accion_soporte(
         return []
 
     backend = config.get("backend")
-    proceso = config["proceso"]
+    proceso = accion
 
-    llm_config = ACTION_CATALOG.get(proceso)
-
-    if not llm_config:
-
-        logger.error(
-            "[SOPORTE] No existe ACTION_CATALOG[%s]",
-            proceso,
-        )
-
-        return []
-
-    macroflujo = llm_config["macroflujo"]
-    subflujo = llm_config["subflujo"]
-    requires_auth = llm_config["requires_auth"]
+    macroflujo = config["macroflujo"]
+    subflujo = config["subflujo"]
+    requires_auth = config["requires_auth"]
+    instruction = config.get("instruction", "")
+    fallback = config.get("fallback", "")
 
     eventos: List[EventType] = [
 
@@ -221,7 +213,7 @@ def ejecutar_accion_soporte(
 
         llm_request = build_llm_request(
 
-            instruction="",
+            instruction=instruction,
 
             macroflujo=macroflujo,
 
@@ -230,6 +222,8 @@ def ejecutar_accion_soporte(
             requires_auth=True,
 
             pending_action=proceso,
+
+            fallback=fallback,
 
         )
 
@@ -256,12 +250,12 @@ def ejecutar_accion_soporte(
         )
 
     # ==========================================================
-    # CONSTRUIR REQUEST LLM
+    # REQUEST LLM
     # ==========================================================
 
     request = build_llm_request(
 
-        instruction=llm_config.get("instruction", ""),
+        instruction=instruction,
 
         macroflujo=macroflujo,
 
@@ -271,7 +265,7 @@ def ejecutar_accion_soporte(
 
         next_action="action_ofrecer_continuar_soporte",
 
-        fallback=llm_config.get("fallback", ""),
+        fallback=fallback,
 
     )
 
@@ -293,29 +287,34 @@ def ejecutar_accion_soporte(
     )
 
     # ==========================================================
-    # Backend (si existe)
+    # SIN BACKEND
     # ==========================================================
 
-    if backend:
+    if backend is None:
 
-        logger.info(
-            "[SOPORTE] Ejecutando backend=%s",
-            backend,
-        )
+        return eventos
 
-        resultado = _exec(
+    # ==========================================================
+    # CON BACKEND
+    # ==========================================================
 
-            backend,
+    logger.info(
+        "[SOPORTE] Ejecutando backend=%s",
+        backend,
+    )
 
-            dispatcher,
+    resultado = _exec(
 
-            tracker,
+        backend,
 
-        )
+        dispatcher,
 
-        return eventos + resultado
+        tracker,
 
-    return eventos
+    )
+
+    return eventos + resultado
+
 
 
 class ValidateSoporteForm(FormValidationAction):
@@ -719,58 +718,6 @@ class ActionEnviarCorreoTutor(Action):
             response="utter_correo_enviado" if ok else "utter_soporte_error"
         )
         return []
-
-
-class ActionRecuperarContrasena(Action):
-
-    def name(self):
-        return "action_recuperar_contrasena"
-
-    def run(self, dispatcher, tracker, domain):
-
-        request = build_llm_request(
-
-            instruction=(
-                "Explica paso a paso cómo recuperar la contraseña de acceso a "
-                "la plataforma Zajuna. Indica que el estudiante debe utilizar "
-                "la opción '¿Olvidó su contraseña?', ingresar su correo "
-                "institucional y seguir el enlace enviado al correo para crear "
-                "una nueva contraseña. Aclara que este proceso depende de la "
-                "infraestructura institucional y que en esta versión del proyecto "
-                "se demuestra únicamente el flujo."
-            ),
-
-            macroflujo="support",
-
-            subflujo="recuperar_contrasena",
-
-            requires_auth=False,
-
-            next_action="action_ofrecer_continuar_soporte",
-
-            fallback=(
-                "Se explicó el procedimiento para recuperar la contraseña."
-            ),
-
-        )
-
-        return [
-
-            SlotSet(
-                "proceso_activo",
-                "recuperar_contrasena",
-            ),
-
-            SlotSet(
-                "llm_request",
-                request,
-            ),
-
-            FollowupAction(
-                "action_handle_with_llm",
-            ),
-
-        ]
 
 class ActionMarcarEscalarHumano(Action):
     def name(self) -> Text:
@@ -1373,6 +1320,16 @@ class ActionSolicitarPreguntaFAQ(Action):
         logger.info(
             "[SOPORTE] Activando espera de pregunta FAQ"
         )
+        if (
+            tracker.get_slot("proceso_activo") != "faq"
+            and tracker.get_slot("esperando_pregunta_faq")
+        ):
+
+            logger.warning(
+                "[FAQ] Ignorada. Existe otro flujo activo."
+            )
+
+            return []
 
         dispatcher.utter_message(
             response="utter_solicitar_pregunta_faq"
@@ -1388,7 +1345,6 @@ class ActionSolicitarPreguntaFAQ(Action):
             tracker.get_slot("proceso_activo"),
         )
         logger.warning("=" * 80)
-
 
         return [
 
@@ -1476,16 +1432,45 @@ class ActionOfrecerContinuarSoporte(Action):
         domain,
     ) -> List[EventType]:
 
+        logger.warning(
+            "[CONTINUAR SOPORTE] proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        
         dispatcher.utter_message(
             response="utter_ofrecer_continuar_proceso"
         )
 
+        logger.warning(
+            "[CONTINUAR SOPORTE] confirmacion=%s esperando_resolucion=%s",
+            tracker.get_slot("confirmacion_cierre"),
+            tracker.get_slot("esperando_resolucion"),
+        )
+
         return [
+
+            SlotSet(
+                "proceso_activo",
+                tracker.get_slot("proceso_activo"),
+            ),
+
+            SlotSet("llm_request", None),
+
+            SlotSet(
+                "confirmacion_cierre",
+                "pendiente",
+            ),
+
+            SlotSet(
+               "esperando_resolucion",
+               None,
+            ),
+
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False,
             ),
-            SlotSet("llm_request", None)
+
         ]
 
 class ActionOfrecerContinuarAdministrativo(Action):
@@ -1505,14 +1490,30 @@ class ActionOfrecerContinuarAdministrativo(Action):
         )
 
         return [
+
+            SlotSet(
+                "proceso_activo",
+                tracker.get_slot("proceso_activo"),
+            ),
+         
+            SlotSet("llm_request", None),
+
+            SlotSet(
+                "confirmacion_cierre",
+                "pendiente",
+            ),
+
+            SlotSet(
+               "esperando_resolucion",
+               None,
+            ),
+
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False,
             ),
-            SlotSet("llm_request", None)
+
         ]
-
-
 
 class ActionLimpiarFaq(Action):
 

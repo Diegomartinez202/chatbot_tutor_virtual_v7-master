@@ -1008,7 +1008,7 @@ class ActionHandleWithLLM(Action):
                  "[LLM CONTEXT] Reconstruyendo macroflujo desde proceso=%s",
                  proceso,
              )
- 
+
              if proceso in self.ACADEMIC_LEARNING_PROCESSES:
                  macroflujo = "academic"
                  subflujo = proceso
@@ -1020,6 +1020,29 @@ class ActionHandleWithLLM(Action):
              elif proceso in self.ADMIN_PROCESSES:
                  macroflujo = "administrative"
                  subflujo = proceso
+
+
+         # ======================================================
+         # Reconstrucción de contexto cuando llm_request ya no existe
+         # ======================================================
+
+         proceso = tracker.get_slot("proceso_activo")
+
+         pending_action = (
+             request_context.get("pending_action")
+             or tracker.get_slot("pending_action")
+             or proceso
+             or ""
+         )
+
+         auth_required = request_context.get("requires_auth")
+
+         if auth_required is None:
+
+             auth_required = (
+                 proceso in self.SUPPORT_PROCESSES
+                 or proceso in self.ADMIN_PROCESSES
+             )
 
          context = {
 
@@ -1043,15 +1066,10 @@ class ActionHandleWithLLM(Action):
                  "session_id",
              ),
 
-             "pending_action": request_context.get(
-                 "pending_action",
-                 "",
-             ),
+             "pending_action": pending_action,
 
-             "auth_required": request_context.get(
-                 "requires_auth",
-                 False,
-             ),
+             "auth_required": auth_required,
+
          }
 
          # ======================================================
@@ -1555,7 +1573,7 @@ class ActionHandleWithLLM(Action):
                llm_request,
             )
         if proceso == "recuperar_contrasena":
-            return self._postprocess_support_contactar_tutor(
+            return self._postprocess_support_recuperar_contrasena(
                 tracker,
                 respuesta,
                llm_request,
@@ -3224,7 +3242,12 @@ La continuidad debe seguir estas reglas:
                 )
 
             )
-
+        logger.warning("=" * 80)
+        logger.warning("[RUN_SUPPORT] ENTRÓ AL FLUJO NORMAL")
+        logger.warning("intent=%s", intent)
+        logger.warning("proceso=%s", proceso)
+        logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+        logger.warning("=" * 80)
         # ======================================================
         # FLUJO NORMAL SOPORTE
         # ======================================================
