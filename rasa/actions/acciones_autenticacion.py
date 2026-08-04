@@ -162,6 +162,8 @@ class ActionCheckAuth(Action):
 
                         pending_action=intent,
 
+                        next_action="action_reanudar_pending_action",
+
                         fallback="Debes iniciar sesión para continuar.",
 
                     ),

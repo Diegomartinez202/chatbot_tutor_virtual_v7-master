@@ -1040,8 +1040,10 @@ class ActionHandleWithLLM(Action):
          if auth_required is None:
 
              auth_required = (
-                 proceso in self.SUPPORT_PROCESSES
-                 or proceso in self.ADMIN_PROCESSES
+                 proceso in (
+                     self.SUPPORT_PROCESSES
+                     | self.ADMIN_PROCESSES
+                 )
              )
 
          context = {
@@ -1273,6 +1275,7 @@ class ActionHandleWithLLM(Action):
         self,
         flow: str,
         tracker: Tracker,
+        llm_request: dict,
     ) -> List[EventType]:
         """
         Construye únicamente eventos definidos explícitamente
@@ -1290,10 +1293,6 @@ class ActionHandleWithLLM(Action):
             "[FOLLOWUP] flow=%s",
             flow,
         )
-
-        llm_request = tracker.get_slot(
-            "llm_request"
-        ) or {}
 
         next_action = llm_request.get(
             "next_action"
@@ -1784,70 +1783,70 @@ class ActionHandleWithLLM(Action):
         proceso = tracker.get_slot("proceso_activo")
 
         if proceso == "consultar_estado":
-            return self._postprocess_admin_estado(
+            return self._postprocess_admin_consultar_estado(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_certificados":
-            return self._postprocess_admin_certificados(
+            return self._postprocess_admin_consultar_certificados(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_tutor":
-            return self._postprocess_admin_tutor(
+            return self._postprocess_admin_consultar_tutor(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_horarios":
-            return self._postprocess_admin_horarios(
+            return self._postprocess_admin_consultar_horarios(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_historial":
-            return self._postprocess_admin_historial(
+            return self._postprocess_admin_consultar_historial(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_progreso":
-            return self._postprocess_admin_progreso(
+            return self._postprocess_admin_consultar_progreso(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_pagos":
-            return self._postprocess_admin_pagos(
+            return self._postprocess_admin_consultar_pagos(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_notas":
-            return self._postprocess_admin_notas(
+            return self._postprocess_admin_consultar_notas(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_ficha":
-            return self._postprocess_admin_ficha(
+            return self._postprocess_admin_consultar_ficha(
                 tracker,
                 respuesta,
                 llm_request,
             )
 
         if proceso == "consultar_inscripciones":
-            return self._postprocess_admin_inscripciones(
+            return self._postprocess_admin_consultar_inscripciones(
                 tracker,
                 respuesta,
                 llm_request,
@@ -2007,7 +2006,7 @@ class ActionHandleWithLLM(Action):
 
         ]
 
-    def _postprocess_admin_admin_consultar_pagos(
+    def _postprocess_admin_consultar_pagos(
         self,
         tracker,
         respuesta,
@@ -3248,6 +3247,46 @@ La continuidad debe seguir estas reglas:
         logger.warning("proceso=%s", proceso)
         logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
         logger.warning("=" * 80)
+        
+        # ======================================================
+        # SOPORTE AUTENTICADO
+        # Crear caso / Hablar asesor / Tutor / Recuperar contraseña
+        # ======================================================
+
+        if (
+            proceso in self.SUPPORT_PROCESSES
+            and proceso not in ("faq", "pqrsd")
+        ):
+
+          logger.info(
+              "[SUPPORT] Ejecutando subflujo=%s",
+              proceso,
+          )
+
+          return (
+
+              limpieza
+
+              + self._ejecutar_procesamiento_llm(
+
+                  dispatcher,
+
+                  tracker,
+
+                  self.FLOW_SUPPORT,
+
+                  prompt=None,
+
+                  tema_actual=tracker.get_slot("tema_actual"),
+
+                  tema_consulta=tracker.get_slot("tema_consulta"),
+
+              )
+
+          )
+        
+        
+        
         # ======================================================
         # FLUJO NORMAL SOPORTE
         # ======================================================
@@ -3363,7 +3402,42 @@ La continuidad debe seguir estas reglas:
 
             )
 
+        # ======================================================
+        # CONTINUACIÓN DE SUBFLUJOS ADMINISTRATIVOS
+        # ======================================================
 
+        if proceso in self.ADMIN_PROCESSES:
+
+            logger.info(
+                "[ADMINISTRATIVO] Ejecutando subflujo=%s",
+                proceso,
+            )
+
+            return (
+
+                limpieza
+
+                + self._ejecutar_procesamiento_llm(
+
+                    dispatcher,
+
+                    tracker,
+
+                    self.FLOW_ADMINISTRATIVE,
+
+                    prompt=None,
+
+                    tema_actual=tracker.get_slot(
+                        "tema_actual"
+                    ),
+
+                    tema_consulta=tracker.get_slot(
+                        "tema_consulta"
+                    ),
+
+                )
+
+            )
         # ======================================================
         # FLUJO NORMAL ADMINISTRATIVO
         # ======================================================
@@ -4168,7 +4242,17 @@ La continuidad debe seguir estas reglas:
             logger.info("flow=%s", flow)
             logger.info("=" * 70)
 
-   
+            logger.warning("=" * 80)
+            logger.warning("[ESTADO CONVERSACIONAL]")
+            logger.warning("llm_request=%s", tracker.get_slot("llm_request"))
+            logger.warning("confirmacion_cierre=%s", tracker.get_slot("confirmacion_cierre"))
+            logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
+            logger.warning("esperando_decision_post_resolucion=%s", tracker.get_slot("esperando_decision_post_resolucion"))
+            logger.warning("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
+            logger.warning("encuesta_incompleta=%s", tracker.get_slot("encuesta_incompleta"))
+            logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
+            logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
+            logger.warning("=" * 80)
             # =====================================================
             # DETERMINAR EL ESTADO CONVERSACIONAL
             # ANTES DE INVOCAR EL LLM
@@ -4391,6 +4475,7 @@ La continuidad debe seguir estas reglas:
             events = self._build_followup_events(
                 flow,
                 tracker,
+                llm_request,
             )
 
 

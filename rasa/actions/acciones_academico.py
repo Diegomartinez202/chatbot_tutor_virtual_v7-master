@@ -287,12 +287,17 @@ def ejecutar_accion_administrativa(
 
         requires_auth=requires_auth,
 
+        pending_action=proceso,
+
         next_action="action_ofrecer_continuar_administrativo",
 
         fallback=fallback,
 
     )
-
+    logger.warning("=" * 80)
+    logger.warning("[LLM REQUEST RECONSTRUIDO]")
+    logger.warning("%s", request)
+    logger.warning("=" * 80)
     eventos.append(
 
         SlotSet(

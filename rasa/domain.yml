@@ -573,6 +573,31 @@ slots:
     mappings:
       - type: custom
 
+
+  programa:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  ficha:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  estado_estudiante:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  ticket_id:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
 forms:
 
   auth_login_form:
