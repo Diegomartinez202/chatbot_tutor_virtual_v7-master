@@ -122,11 +122,11 @@ class ActionCheckAuth(Action):
         )
 
         protected_intents = {
-                "ver_estado_estudiante": "action_ver_estado_estudiante",
+                "consultar_estado": "action_ver_estado_estudiante",
                 "consultar_certificados": "action_consultar_certificados",
-                "consultar_progreso_curso": "action_consultar_progreso_curso",
-                "ver_tutor_asignado": "action_tutor_asignado",
-                "consultar_horarios_clases": "action_consultar_horarios_clases",
+                "consultar_progreso": "action_consultar_progreso_curso",
+                "consultar_tutor": "action_tutor_asignado",
+                "consultar_horarios": "action_consultar_horarios_clases",
                 "historial_academico": "action_historial_academico",
 
                 "consultar_pagos": "action_consultar_pagos",
@@ -136,7 +136,7 @@ class ActionCheckAuth(Action):
 
                 "crear_caso": "action_iniciar_soporte",
                 "hablar_asesor": "action_solicitar_humano",
-                "contactar_tutor": "action_enviar_correo_tutor",
+                "contactar_tutor": "action_contactar_tutor",
         }
 
         action_to_execute = protected_intents.get(intent)
@@ -326,6 +326,33 @@ class ActionSolicitarLogin(Action):
                     "Explica que el progreso del curso requiere autenticación institucional. "
                     "Una vez validado el token el sistema recuperará el avance académico."
                 ),
+            "consultar_pagos":
+                (
+                    "Explica que la consulta de pagos requiere autenticación institucional. "
+                    "Después de validar el token JWT el chatbot consultará la información "
+                    "financiera autorizada del estudiante."
+                ),
+
+            "consultar_notas":
+                (
+                   "Explica que la consulta de notas requiere autenticación institucional. "
+                   "Después de validar el token JWT el chatbot recuperará las calificaciones "
+                   "registradas para el estudiante."
+                ),
+
+            "consultar_ficha":
+                (
+                   "Explica que la consulta de la ficha de caracterización requiere "
+                   "autenticación institucional. Después del inicio de sesión el chatbot "
+                   "mostrará la información autorizada del estudiante."
+                ),
+
+            "consultar_inscripciones":
+                (
+                   "Explica que la consulta de inscripciones requiere autenticación "
+                   "institucional. Después de validar el token JWT el chatbot recuperará "
+                   "las inscripciones asociadas al estudiante."
+                ),
 
             "crear_caso":
                 (
@@ -391,7 +418,7 @@ class ActionSolicitarLogin(Action):
         )
         request.setdefault(
             "next_action",
-            "action_ofrecer_continuar_soporte",
+            "action_fin_respuesta_autenticada",
         )
 
         logger.info(

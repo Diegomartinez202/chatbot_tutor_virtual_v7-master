@@ -33,6 +33,7 @@ from .acciones_soporte import (
     ActionLimpiarPqrsd,
     ActionLimpiarFaq,
     ActionRecuperarContrasena,
+    ActionCerrarRespuestaAuth,
 
 )
 
@@ -177,8 +178,8 @@ __all__ = [
     "ActionLimpiarPqrsd",
     "ActionRecuperarContrasena",
     "ActionOfrecerContinuarAdministrativo",
-
-
+    "ActionCerrarRespuestaAuth",
+    
     
     "ActionCheckAuth",
     "ActionIngresoZajuna",

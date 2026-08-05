@@ -59,11 +59,6 @@ stories:
     - intent: radicar_pqrsd
     - action: action_limpiar_pqrsd
     - action: action_solicitar_pqrsd
- 
-- story: consultar certificados
-  steps:
-    - intent: consultar_certificados
-    - action: action_consultar_certificados
 
 - story: flujo de inicio de encuesta unificado
   steps:
@@ -80,22 +75,7 @@ stories:
     - intent: negar_encuesta
     - action: utter_respeto_decision
     - action: action_cierre_limpio 
-  
-- story: consultar tutor
-  steps:
-    - intent: ver_tutor_asignado
-    - action: action_tutor_asignado
-  
-- story: consultar horarios
-  steps:
-    - intent: consultar_horarios_clases
-    - action: action_consultar_horarios_clases
-  
-- story: consultar progreso
-  steps:
-    - intent: consultar_progreso_curso
-    - action: action_consultar_progreso_curso
-  
+ 
 - story: recuperar contraseña
   steps:
     - intent: recuperar_contrasena
@@ -128,3 +108,86 @@ stories:
     - intent: volver
     - action: utter_volver_menu
  
+
+- story: Flujo autenticado soporte crear caso
+  steps:
+    - intent: solicitar_soporte
+    - action: action_iniciar_soporte
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_soporte
+  
+- story: Flujo autenticado soporte hablar asesor
+  steps:
+    - intent: hablar_asesor
+    - action: action_solicitar_humano
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_soporte
+
+
+- story: Flujo autenticado soporte comtactar tutor
+  steps:
+    - intent: contactar_tutor
+    - action: action_contactar_tutor
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_soporte
+
+  
+- story: Flujo autenticado administrativo consultar certificados
+  steps:
+    - intent: consultar_certificados
+    - action: action_consultar_certificados
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo
+
+- story: Flujo autenticado administrativo consultar estado
+  steps:
+    - intent: consultar_estado
+    - action: action_ver_estado_estudiante
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo  
+  
+- story: Flujo autenticado administrativo consultar tutor
+  steps:
+    - intent: consultar_tutor
+    - action: action_tutor_asignado
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo  
+  
+- story: Flujo autenticado administrativo consultar progreso
+  steps:
+    - intent: consultar_progreso
+    - action: action_consultar_progreso_curso
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo  
+  
+- story: Flujo autenticado administrativo consultar horarios
+  steps:
+    - intent: consultar_horarios
+    - action: action_consultar_horarios_clases
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo
+  
+- story: Flujo autenticado administrativo consultar historial
+  steps:
+    - intent: consultar_historial
+    - action: action_historial_academico
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo

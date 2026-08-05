@@ -320,8 +320,6 @@ def ejecutar_accion_soporte(
 
     return eventos + resultado
 
-
-
 class ValidateSoporteForm(FormValidationAction):
     def name(self) -> Text:
         return "validate_soporte_form"
@@ -1451,13 +1449,10 @@ class ActionOfrecerContinuarSoporte(Action):
             tracker.get_slot("confirmacion_cierre"),
             tracker.get_slot("esperando_resolucion"),
         )
-
+        proceso = tracker.get_slot("proceso_activo")
         return [
 
-            SlotSet(
-                "proceso_activo",
-                tracker.get_slot("proceso_activo"),
-            ),
+            SlotSet("proceso_activo", proceso),
 
             SlotSet("llm_request", None),
 
@@ -1493,13 +1488,10 @@ class ActionOfrecerContinuarAdministrativo(Action):
         dispatcher.utter_message(
             response="utter_ofrecer_continuar_administrativo"
         )
-
+        proceso = tracker.get_slot("proceso_activo")
         return [
 
-            SlotSet(
-                "proceso_activo",
-                tracker.get_slot("proceso_activo"),
-            ),
+            SlotSet("proceso_activo", proceso),
          
             SlotSet("llm_request", None),
 
@@ -1689,3 +1681,66 @@ class ActionIniciarSoporte(Action):
             dispatcher,
             tracker,
         )
+
+class ActionCerrarRespuestaAuth(Action):
+
+    def name(self):
+        return "action_fin_respuesta_autenticada"
+
+    def run(
+        self,
+        dispatcher,
+        tracker,
+        domain,
+    ):
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        logger.info(
+            "[AUTH] Finalizando respuesta autenticada. proceso=%s",
+            proceso,
+        )
+
+        eventos = [
+
+            SlotSet(
+                "llm_request",
+                None,
+            ),
+
+        ]
+
+        # -----------------------------
+        # Soporte
+        # -----------------------------
+        if proceso in (
+            "crear_caso",
+            "contactar_tutor",
+            "hablar_asesor",
+        ):
+
+            eventos.append(
+                FollowupAction(
+                    "action_ofrecer_continuar_soporte",
+                )
+            )
+
+        # -----------------------------
+        # Administrativo
+        # -----------------------------
+        elif proceso in (
+            "consultar_certificados",
+            "consultar_estado",
+            "consultar_tutor",
+            "consultar_horarios",
+            "consultar_historial",
+            "consultar_progreso",
+        ):
+
+            eventos.append(
+                FollowupAction(
+                    "action_ofrecer_continuar_administrativo",
+                )
+            )
+
+        return eventos

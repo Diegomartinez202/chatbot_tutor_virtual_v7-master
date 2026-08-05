@@ -7,12 +7,6 @@ rules:
         - intent: auth_login_cmd
         - action: auth_login_form
         - active_loop: auth_login_form
-
-  - rule: consultar historial academico
-
-    steps:
-      - intent: historial_academico
-      - action: action_historial_academico
   
   - rule: Finalizar login
     condition:
@@ -51,16 +45,6 @@ rules:
       - active_loop: null
       - action: action_guardar_feedback
   
-  - rule: Solicitar humano
-    steps:
-      - intent: hablar_asesor
-      - action: action_solicitar_humano
-  
-  - rule: Contactar tutor
-    steps:
-      - intent: contactar_tutor
-      - action: action_contactar_tutor
-   
   - rule: Guardar progreso guardian
     steps:
       - intent: guardian_guardar_progreso
@@ -154,11 +138,6 @@ rules:
     steps:
       - intent: llm_fallback
       - action: action_handle_with_llm
-
-  - rule: Responder solicitud de estado académico
-    steps:
-      - intent: ver_estado_estudiante
-      - action: action_ver_estado_estudiante
 
   - rule: Finalizar encuesta (Submit)
     condition:
@@ -348,6 +327,14 @@ rules:
       - intent: describir_contenido_pqrsd
       - action: action_pqrsd_llm
   
+  - rule: Continuar flujo Crear Caso
+    condition:
+      - slot_was_set:
+          - proceso_activo: crear_caso
+    steps:
+      - intent: solicitar_soporte
+      - action: action_iniciar_soporte 
+      
   - rule: Continuar flujo Recuperar Contraseña
     condition:
       - slot_was_set:
@@ -372,15 +359,58 @@ rules:
       - intent: solicitar_humano
       - action: action_solicitar_humano
   
-  - rule: Continuar flujo Crear Caso
+  - rule: Continuar flujo Consultar Certificados
+    condition:
+    - slot_was_set:
+        - proceso_activo: consultar_certificados
+    steps:
+      - intent: consultar_certificados
+      - action: action_consultar_certificados
+
+
+  - rule: Continuar flujo Consultar Estado
     condition:
       - slot_was_set:
-          - proceso_activo: crear_caso
+          - proceso_activo: consultar_estado
     steps:
-      - intent: solicitar_soporte
-      - action: action_iniciar_soporte
+      - intent: consultar_estado
+      - action: action_ver_estado_estudiante
+
+
+  - rule: Continuar flujo Consultar Tutor
+    condition:
+      - slot_was_set:
+          - proceso_activo: consultar_tutor
+    steps:
+      - intent: consultar_tutor
+      - action: action_tutor_asignado
+
+
+  - rule: Continuar flujo Consultar Progreso
+    condition:
+       - slot_was_set:
+          - proceso_activo: consultar_progreso
+    steps:
+      - intent: consultar_progreso
+      - action: action_consultar_progreso_curso
+
+
+  - rule: Continuar flujo Consultar Horarios
+    condition:
+      - slot_was_set:
+          - proceso_activo: consultar_horarios
+    steps:
+      - intent: consultar_horarios
+      - action: action_consultar_horarios_clases
+
+
+  - rule: Continuar flujo Consultar Historial
+    condition:
+      - slot_was_set:
+          - proceso_activo: consultar_historial
+    steps:
+      - intent: consultar_historial
+      - action: action_historial_academico
   
-  - rule: Iniciar flujo Crear Caso
-    steps:
-      - intent: solicitar_soporte
-      - action: action_iniciar_soporte
+
+  

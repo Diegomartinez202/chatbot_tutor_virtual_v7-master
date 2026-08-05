@@ -201,7 +201,7 @@ nlu:
     - hola tutor
     - hola bot
 
-- intent: ver_estado_estudiante
+- intent: consultar_estado
   examples: |
     - quiero ver mi estado
     - consultar estado estudiante
@@ -235,7 +235,7 @@ nlu:
     - cuál es mi situación actual
 
 
-- intent: ver_tutor_asignado
+- intent: consultar_tutor
   examples: |
     - quién es mi tutor
     - ver tutor asignado
@@ -398,7 +398,7 @@ nlu:
     - finalizar sesión
     - cerrar la aplicación
 
-- intent: consultar_horarios_clases
+- intent: consultar_horarios
   examples: |
     - ver horarios
     - consultar horarios
@@ -442,7 +442,7 @@ nlu:
     - hora de clase
     - horario semanal
 
-- intent: consultar_progreso_curso
+- intent: consultar_progreso
   examples: |
     - ver mi progreso académico
     - consultar mi progreso académico
@@ -481,7 +481,7 @@ nlu:
     - mostrar el avance de mi formación
 
 
-- intent: historial_academico
+- intent: consultar_historial
   examples: |
     - ver historial académico
     - consultar historial académico

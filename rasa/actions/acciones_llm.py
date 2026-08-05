@@ -4351,7 +4351,7 @@ La continuidad debe seguir estas reglas:
                            sub_ok,
                     )
             
-            
+
             # =====================================================
             # Invocar LLM
             # =====================================================
@@ -4364,7 +4364,10 @@ La continuidad debe seguir estas reglas:
                 context=context,
                 fallback=fallback,
             )
-
+            logger.warning(
+                "[LLM RAW RESPONSE]=%r",
+                respuesta,
+            )
             respuesta = (respuesta or "").strip()
             logger.info(
                 "[LLM] Primeros 200 caracteres de la respuesta:\n%s",
@@ -4373,7 +4376,10 @@ La continuidad debe seguir estas reglas:
             # =====================================================
             # Respuesta vacía
             # =====================================================
-
+            logger.warning(
+                "[LLM] ¿Respuesta vacía?: %s",
+                not bool(respuesta),
+            )
             if not respuesta:
 
                 dispatcher.utter_message(

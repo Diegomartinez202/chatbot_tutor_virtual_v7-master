@@ -47,6 +47,10 @@ class ActionIrMenuPrincipal(Action):
             ),
             SlotSet("proceso_activo", None),
             
+            SlotSet("pending_action", None),
+
+            SlotSet("llm_request", None),
+  
             SlotSet("esperando_resolucion", False),
 
             SlotSet(
@@ -54,7 +58,6 @@ class ActionIrMenuPrincipal(Action):
                 False
             ),
 
- 
             SlotSet("tema_actual", None),
 
             SlotSet("tema_consulta", None),
@@ -78,8 +81,6 @@ class ActionIrMenuPrincipal(Action):
 
             SlotSet("confirmacion_cierre", None),
         ]
-
-
 
 class ActionIrMenuAcademico(Action):
 
@@ -111,16 +112,18 @@ class ActionIrMenuAcademico(Action):
             
             SlotSet("esperando_resolucion", False),
 
+            SlotSet("llm_request", None),
+
+            SlotSet("pending_action", None),
+
             SlotSet(
                 "esperando_decision_post_resolucion",
                 False
             ),
 
-
             SlotSet("tema_actual", None),
 
             SlotSet("tema_consulta", None),
-
 
             SlotSet("esperando_tema", False),
             SlotSet("continuando_tema", False),
@@ -163,6 +166,16 @@ class ActionIrMenuSoporte(Action):
 
             SlotSet("proceso_activo", None),
             
+            SlotSet("llm_request", None),
+
+            SlotSet("pending_action", None),
+
+            SlotSet("confirmacion_cierre", None),
+            
+            SlotSet("esperando_pqrsd", False),
+
+            SlotSet("esperando_pregunta_faq", False),
+
             SlotSet("esperando_resolucion", False),
 
             SlotSet(
@@ -182,16 +195,7 @@ class ActionIrMenuSoporte(Action):
             SlotSet("materia_detectada", None),
             SlotSet("rol_academico", None),
             SlotSet("ultima_respuesta_llm", None),
-            SlotSet(
-                "esperando_pregunta_faq",
-                False,
-            ),
-            
-            SlotSet(
-                "esperando_pqrsd",
-                False,
-            ),
-            SlotSet("confirmacion_cierre", None),
+
         ]
 
 class ActionIrMenuAdministrativo(Action):
@@ -222,6 +226,8 @@ class ActionIrMenuAdministrativo(Action):
             ),
 
             SlotSet("proceso_activo", None),
+
+            SlotSet("llm_request", None),
             
             SlotSet("esperando_resolucion", False),
 
