@@ -148,6 +148,16 @@ class ActionRegistrarEncuesta(Action):
             or "no_especificado"
         )
 
+        calificacion_numerica = (
+            tracker.get_slot("calificacion_numerica")
+            or "3"
+        )
+
+        # ==========================================================
+        # Normalizar nivel de satisfacción
+        # ==========================================================
+
+
         comentario = (
             tracker.get_slot("comentario")
             or tracker.latest_message.get("text", "sin comentario")
@@ -164,6 +174,7 @@ class ActionRegistrarEncuesta(Action):
         registro = {
             "usuario": usuario,
             "satisfaccion": satisfaccion,
+            "calificacion": calificacion_numerica,
             "comentario": comentario,
             "fecha": fecha,
         }
@@ -240,16 +251,34 @@ class ActionRegistrarEncuesta(Action):
                 "llm_request",
                 {
                     "instruction": (
-                        f"Se registró una encuesta de satisfacción "
-                        f"con nivel '{satisfaccion}'. "
-                        f"Comentario del usuario: \"{comentario}\". "
-                        "Agradece de forma amable el tiempo del usuario "
-                        "y recuérdale que su opinión ayuda a mejorar."
+                        "Se ha registrado una encuesta de satisfacción.\n\n"
+
+                        f"Nivel de satisfacción: {satisfaccion}.\n"
+                        
+                        f"Calificación otorgada: {calificacion_numerica} de 5.\n"
+                        
+                        f"Comentario: {comentario if comentario else 'Sin comentario'}.\n\n"
+
+                        "Genera únicamente un mensaje breve dirigido al estudiante.\n"
+                        
+                        "Analiza conjuntamente el nivel de satisfacción, la calificación y el comentario.\n"
+
+                        "Responde de forma coherente con esa información.\n"
+
+                        "No copies literalmente el comentario.\n"
+
+                        "No respondas preguntas académicas.\n"
+
+                        "No hagas preguntas.\n"
+
+                        "La respuesta debe tener máximo tres líneas."
                     ),
 
                     "context": {
                         "flujo": "guardian_encuesta",
                         "nivel_satisfaccion": satisfaccion,
+                        "calificacion_numerica": calificacion_numerica,
+                        "comentario": comentario,
                         "tiene_comentario": bool(
                             comentario and comentario.strip()
                         ),
@@ -257,7 +286,7 @@ class ActionRegistrarEncuesta(Action):
 
                     "fallback": (
                         "✅ Gracias por responder la encuesta. "
-                        "Tu opinión nos ayuda a mejorar continuamente."
+                        "Tu opinión nos ayuda a seguir mejorando el Tutor Virtual del SENA."
                     ),
 
                     "next_action": "action_preguntar_encuesta_general",
@@ -457,26 +486,45 @@ class ValidateEncuestaSatisfaccionForm(FormValidationAction):
         tracker: Tracker,
         domain: Dict[str, Any],
     ) -> Dict[Text, Any]:
-        v = (value or "").strip().lower()
+        
+        v = (
+            (value or "")
+            .replace("😊", "")
+            .replace("🙂", "")
+            .replace("😐", "")
+            .replace("🙁", "")
+            .replace("😒", "")
+            .strip()
+            .lower()
+        )
 
-        validos = {
+        equivalencias = {
+            "muy buena": "excelente",
+            "excelente atención": "excelente",
+            "buena atención": "buena",
+            "muy mala": "mala",
+            "pésima": "mala",
+            "pesima": "mala",
+        }   
+        v = equivalencias.get(v, v) 
+
+        if v in {
             "excelente",
+            "satisfactoria",
             "buena",
             "regular",
             "mala",
-            "satisfecho",
-            "neutral",
-            "insatisfecho",
-        }
-
-        if v in validos:
+        }:
             return {"nivel_satisfaccion": v}
 
         dispatcher.utter_message(
             text=(
-                "💡 Usa una opción válida para la atención recibida: "
-                "satisfecho, neutral o insatisfecho. "
-                "Si quieres, también puedes responder excelente, buena, regular o mala."
+                "Por favor responde únicamente con una de estas opciones:\n\n"
+                "• Excelente\n"
+                "• Satisfactoria\n"
+                "• Buena\n"
+                "• Regular\n"
+                "• Mala"
             )
         )
         return {"nivel_satisfaccion": None}
@@ -526,9 +574,12 @@ class ValidateEncuestaSatisfaccionForm(FormValidationAction):
 
         dispatcher.utter_message(
             text=(
-                "💡 Por favor responde con un número del 1 al 5, donde:\n"
-                "1 = muy poco satisfecho\n"
-                "5 = muy satisfecho"
+                "Por favor responde únicamente con un número del 1 al 5.\n\n"
+                "⭐ 1 = Muy insatisfecho\n"
+                "⭐⭐ 2 = Insatisfecho\n"
+                "⭐⭐⭐ 3 = Neutral\n"
+                "⭐⭐⭐⭐ 4 = Satisfecho\n"
+                "⭐⭐⭐⭐⭐ 5 = Muy satisfecho"
             )
         )
         return {"calificacion_numerica": None}

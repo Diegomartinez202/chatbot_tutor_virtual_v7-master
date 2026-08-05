@@ -89,7 +89,7 @@ ACTION_CATALOG = {
 
     "recuperar_contrasena": {
         "action": "action_recuperar_contrasena",
-        "requires_auth": False,
+        "requires_auth": True,
         "macroflujo": "support",
         "subflujo": "recuperar_contrasena",
     },

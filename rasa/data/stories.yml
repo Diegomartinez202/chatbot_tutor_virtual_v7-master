@@ -75,13 +75,6 @@ stories:
     - intent: negar_encuesta
     - action: utter_respeto_decision
     - action: action_cierre_limpio 
- 
-- story: recuperar contraseña
-  steps:
-    - intent: recuperar_contrasena
-    - action: action_recuperar_contrasena
-    - action: action_handle_with_llm
-    - action: action_ofrecer_continuar_soporte
   
 - story: Diagnóstico administrativo
   steps:
@@ -187,6 +180,16 @@ stories:
   steps:
     - intent: consultar_historial
     - action: action_historial_academico
+    - action: action_solicitar_login
+    - action: action_handle_with_llm
+    - action: action_fin_respuesta_autenticada
+    - action: action_ofrecer_continuar_administrativo
+  
+
+- story: recuperar contraseña
+  steps:
+    - intent: recuperar_contrasena
+    - action: action_recuperar_contrasena
     - action: action_solicitar_login
     - action: action_handle_with_llm
     - action: action_fin_respuesta_autenticada

@@ -429,12 +429,12 @@ class ActionHandleWithLLM(Action):
             if macroflujo == "administrative":
 
                 logger.info(
-                "[FLOW] Administrativo -> proceso=%s subflujo=%s",
-                tracker.get_slot("proceso_activo"),
-                subflujo,
-            )
+                    "[FLOW] Administrativo -> proceso=%s subflujo=%s",
+                    tracker.get_slot("proceso_activo"),
+                    subflujo,
+                )
 
-            return self.FLOW_ADMINISTRATIVE
+                return self.FLOW_ADMINISTRATIVE
 
             # ------------------------------------------
             # Macroflujos especiales
@@ -698,46 +698,24 @@ class ActionHandleWithLLM(Action):
            return f"""
         Eres {rol}.
 
-        El estudiante venía aprendiendo sobre:
-
+        El estudiante estaba aprendiendo sobre:
         {tema_anterior}
-
-        Ahora ha decidido comenzar un tema diferente:
-
+        Ahora desea estudiar un nuevo tema:
         {tema_principal}
-
-        Esta consulta corresponde a un cambio de tema y NO es una continuación de la explicación anterior.
-
-       Antes de iniciar la explicación escribe únicamente un breve párrafo de transición.
-
-       La transición debe cumplir las siguientes reglas:
-
-       - Reconoce de forma natural que el estudiante cambió de tema.
-       - Si ambos temas tienen relación, menciona brevemente esa relación.
-       - Si pertenecen a áreas distintas, indícalo de manera natural explicando que ambos forman parte del proceso de formación del SENA.
-       - La transición debe ocupar un solo párrafo.
-       - No hagas preguntas.
-       - No repitas contenido del tema anterior.
-       - Después de la transición comienza inmediatamente la explicación del nuevo tema desde el nivel básico.
-
-       Ejemplos válidos de transición:
-
-       "Ahora abordaremos un tema diferente que complementa tu proceso de aprendizaje."
-
-       "Dejando atrás el tema anterior, comenzaremos a estudiar un nuevo concepto."
-
-       "A continuación iniciaremos un tema distinto que también hace parte de tu formación."
-
-       "Ahora cambiaremos de enfoque para aprender un nuevo tema."
-
-       Después de ese único párrafo inicia inmediatamente la explicación de:
-
-       {tema_principal}
-
-       No vuelvas a mencionar el tema anterior durante el resto de la respuesta.
-
-       La explicación debe ser clara, progresiva, didáctica y adecuada para un estudiante del SENA.
-       """.strip()
+        Este es un cambio de tema, no una continuación.
+        Antes de explicar el nuevo tema escribe un único párrafo de transición.
+        La transición debe:
+        - reconocer naturalmente el cambio de tema;
+        - mencionar una relación entre ambos temas solo si realmente existe;
+        - si no existe relación, indicar brevemente que ambos hacen parte del proceso de formación del SENA;
+        - tener máximo tres oraciones;
+        - no hacer preguntas;
+        - no explicar nuevamente el tema anterior.
+        Después inicia inmediatamente la explicación de:
+        {tema_principal}
+        Explica el nuevo tema desde el nivel básico, de forma clara, ordenada y pedagógica.
+        Durante el resto de la respuesta no vuelvas a mencionar el tema anterior.
+        """.strip()
         
         # ======================================================
         # CONTINUAR TEMA
@@ -746,26 +724,30 @@ class ActionHandleWithLLM(Action):
         if continuando:
 
             return f"""
-    Eres {rol}.
+        Eres {rol}.
 
-    Continúa profundizando el siguiente tema.
+        El estudiante ya recibió la explicación inicial sobre:
 
-    Tema principal:
+        {tema_principal}
 
-    {tema_principal}
+        Continúa el tema desde el punto donde terminó la explicación anterior.
 
-    No repitas la introducción.
+        No repitas la introducción.
 
-    Asume que el estudiante ya comprendió la explicación anterior.
+        No vuelvas a definir los conceptos básicos.
 
-    Aumenta el nivel técnico.
+        Profundiza progresivamente el contenido.
 
-    Incluye nuevos ejemplos.
+        Incluye nuevos ejemplos o casos prácticos cuando sean útiles.
 
-    Relaciona la explicación con lo explicado anteriormente.
+        Mantén continuidad con la explicación anterior.
 
-    No reinicies el tema.
-    """.strip()
+        No cambies de tema.
+
+        No hagas preguntas al estudiante.
+
+        Finaliza únicamente cuando completes la continuación del tema.
+        """.strip()
 
         
         # ======================================================
@@ -777,51 +759,38 @@ class ActionHandleWithLLM(Action):
             return f"""
     Eres {rol}.
 
-    El estudiante está comenzando por primera vez este tema.
-
-    Tema:
+    El estudiante comienza por primera vez el siguiente tema:
 
     {tema_principal}
 
-    Desarrolla una explicación completa, pedagógica y estructurada.
+    Explica el tema como si fuera la primera vez que el estudiante lo estudia.
 
-    La explicación debe ser suficiente para que un estudiante que nunca ha visto el tema pueda comprenderlo.
-
-    Organiza la respuesta en el siguiente orden:
+    Organiza la explicación en este orden:
 
     1. Definición.
-
-    2. ¿Por qué es importante aprender este tema?
-
+    2. Importancia del tema.
     3. Conceptos fundamentales.
-
-    4. Explicación paso a paso.
-
+    4. Funcionamiento o desarrollo paso a paso.
     5. Ejemplo práctico.
-
     6. Buenas prácticas.
-
     7. Errores comunes.
-
     8. Resumen final.
 
-    Escribe varios párrafos.
+    La explicación debe ser clara, pedagógica y progresiva.
 
-    No respondas con un único párrafo corto.
+    Escribe entre 4 y 6 párrafos bien desarrollados.
 
-    No preguntes nada.
+    Cada párrafo debe aportar información nueva.
 
-    No finalices diciendo que puedes ampliar el tema.
+    No repitas ideas.
 
-    La explicación debe ser completa antes de terminar.
+    No profundices todavía en temas avanzados; esos se explicarán en las continuaciones.
 
-    La respuesta debe ser extensa.
+    No hagas preguntas.
 
-    Escribe entre 6 y 10 párrafos.
+    No invites a continuar aprendiendo.
 
-    No hagas resúmenes demasiado cortos.
-
-    Desarrolla suficientemente cada sección antes de finalizar
+    Finaliza cuando completes la explicación inicial.
     """.strip()
 
         # ======================================================
@@ -831,41 +800,34 @@ class ActionHandleWithLLM(Action):
         return f"""
     Eres {rol}.
 
-    El estudiante está aprendiendo actualmente el siguiente tema:
+    El estudiante está aprendiendo:
 
     {tema_principal}
 
-    Ahora realizó una nueva consulta:
+    Ahora pregunta:
 
     {pregunta}
 
-    Primero determina si esta nueva consulta:
-
-    - pertenece al mismo tema,
-    - está relacionada parcialmente,
-    - o corresponde a un tema completamente diferente.
+    Determina la relación entre la nueva consulta y el tema principal.
 
     Si pertenece al mismo tema:
-
-    Explica únicamente ese subtema y relaciónalo naturalmente con el tema principal.
+    - responde únicamente la nueva duda;
+    - relaciónala de forma natural con el tema principal;
+    - no repitas la explicación anterior.
 
     Si está parcialmente relacionada:
-
-    Antes de explicar, escribe un breve párrafo de transición indicando cómo se relaciona con el tema principal.
-
-    Después continúa con la explicación.
+    - escribe un breve párrafo de transición;
+    - explica la nueva consulta;
+    - mantén la continuidad del aprendizaje.
 
     Si corresponde a un tema diferente:
+    - indica brevemente que el estudiante cambia de tema;
+    - inicia la explicación del nuevo tema desde el nivel básico;
+    - no vuelvas a explicar el tema anterior.
 
-    Comienza con un breve párrafo indicando que la nueva consulta cambia el enfoque del aprendizaje.
+    Mantén un tono pedagógico, claro y propio de un tutor del SENA.
 
-    Luego explica completamente el nuevo tema.
-
-    No repitas la explicación anterior.
-
-    No reinicies el tema principal salvo que sea necesario.
-
-    Mantén un tono de tutor académico del SENA.
+    No hagas preguntas al estudiante.
     """.strip()
 
     # ==========================================================
@@ -2481,45 +2443,31 @@ class ActionHandleWithLLM(Action):
         if nivel == "basico":
 
             instrucciones = """
-Continúa ampliando los conceptos básicos del tema.
+Amplía el tema con ejemplos sencillos.
 
-Mantén un lenguaje fácil de comprender.
+Mantén un lenguaje claro.
 
-No profundices demasiado en aspectos técnicos.
+No profundices en aspectos avanzados.
 """
 
         elif nivel == "intermedio":
 
             instrucciones = """
-Ahora profundiza en el funcionamiento interno del mismo tema.
+Profundiza el funcionamiento del tema.
 
 Relaciona conceptos.
 
-Explica el funcionamiento interno.
-
-Incluye casos prácticos.
-
-Introduce terminología técnica cuando sea necesaria.
+Incluye uno o dos ejemplos prácticos.
 """
 
         else:
 
             instrucciones = """
-Ahora desarrolla aspectos avanzados del mismo tema, incluyendo arquitectura, optimización y casos reales.
+Desarrolla aspectos avanzados del tema.
 
-Incluye arquitectura.
+Incluye buenas prácticas, casos reales y recomendaciones técnicas.
 
-Casos reales.
-
-Comparaciones técnicas.
-
-Errores frecuentes.
-
-Buenas prácticas profesionales.
-
-Optimización.
-
-Finaliza con un ejercicio práctico resuelto.
+No repitas contenido anterior.
 """
 
         ultima_respuesta = (
@@ -2527,8 +2475,8 @@ Finaliza con un ejercicio práctico resuelto.
             or ""
         ).strip()
 
-        if len(ultima_respuesta) > 1200:
-            ultima_respuesta = ultima_respuesta[-1200:]
+        if len(ultima_respuesta) > 450:
+            ultima_respuesta = ultima_respuesta[-450:]
 
     # =====================================================
     # CONTEXTO PEDAGÓGICO
@@ -2537,165 +2485,95 @@ Finaliza con un ejercicio práctico resuelto.
         if modo == "tema_nuevo":
 
             prompt = f"""
-Tipo de aprendizaje:
-
-Tema nuevo
+Tipo de aprendizaje: Tema nuevo
 
 Tema:
-
 {tema}
 
-Nivel inicial:
-
+Nivel:
 {nivel}
 
-El estudiante acaba de iniciar este tema.
+El estudiante inicia este tema por primera vez.
 
-Comienza desde cero.
+Comienza desde el nivel básico.
 
-Haz una introducción clara.
-
-Explica primero los conceptos fundamentales.
+Explica los conceptos fundamentales de forma progresiva.
 
 No asumas conocimientos previos.
-
-Organiza la explicación de forma progresiva.
-
-Al finalizar deja abierta la posibilidad de continuar aprendiendo.
 """
 
         elif modo == "subconsulta":
 
             prompt = f"""
-Tipo de aprendizaje:
-
-Subconsulta
+Tipo de aprendizaje: Subconsulta
 
 Tema principal:
-
 {tema}
 
-Consulta realizada por el estudiante:
-
+Consulta:
 {consulta_actual}
 
-Nivel actual:
-
+Nivel:
 {nivel}
 
-La pregunta pertenece al mismo tema.
+Responde únicamente la duda planteada.
 
-No es un tema nuevo.
-
-Responde primero únicamente la duda realizada.
-
-Utiliza la explicación anterior únicamente como contexto.
-
-No vuelvas a explicar todo el tema.
-
-Después de responder la duda, retoma naturalmente el hilo del aprendizaje.
-
-No cambies de tema.
+Utiliza el tema principal como contexto.
 
 No reinicies la explicación.
+
+Después continúa naturalmente con el proceso de aprendizaje.
 """
 
         else:
 
             prompt = f"""
-Tipo de aprendizaje:
-
-Continuación
+Tipo de aprendizaje: Continuación
 
 Tema:
-
 {tema}
 
-Nivel actual:
-
+Nivel:
 {nivel}
 
-Esta conversación NO corresponde a un tema nuevo.
-
-Corresponde a la continuación de una explicación previamente iniciada.
-
-Debes continuar exactamente desde donde terminó la explicación anterior.
+Continúa exactamente desde el punto donde terminó la explicación anterior.
 
 No reinicies el tema.
 
-No vuelvas a realizar una introducción.
+No repitas contenido ya explicado.
 
-No vuelvas a definir conceptos que ya fueron explicados.
-
-No repitas ejemplos anteriores.
-
-Asume que el estudiante ya comprendió todo lo explicado hasta este momento.
-
-La primera oración debe comenzar como una continuación natural.
-
-Ejemplos:
-
-"Ahora que comprendemos los conceptos básicos..."
-
-"A continuación profundizaremos..."
-
-"Una vez entendida la estructura general..."
-
-Nunca empieces diciendo:
-
-"El modelo OSI es..."
-
-"Fundamentos de programación es..."
-
-"Variables son..."
-
-porque eso indica que reiniciaste la explicación.
+Comienza con una transición breve y continúa desarrollando el siguiente concepto.
 """
 
         if modo != "tema_nuevo" and ultima_respuesta:
 
            prompt += f"""
 
-La explicación anterior fue:
+Explicación anterior:
 
-----------------------------
+----------------
 
 {ultima_respuesta}
 
-----------------------------
+----------------
 
-Toda esa información ya fue aprendida.
+Esa información ya fue aprendida.
 
 No la repitas.
 
-No reinicies el tema.
+Retoma la explicación desde el último concepto desarrollado.
 
-Comienza exactamente desde el último concepto desarrollado.
+Añade únicamente contenido nuevo aumentando el nivel de profundidad.
 
-La continuidad debe seguir estas reglas:
-
-1. Comienza con una transición muy breve (máximo dos frases) conectando la explicación anterior con la nueva.
-
-2. Resume únicamente la idea principal de lo ya aprendido, sin repetir listas ni volver a explicar conceptos.
-
-3. Introduce únicamente contenido nuevo.
-
-4. Aumenta el nivel de profundidad respecto a la respuesta anterior.
-
-5. Si el tema tiene varias partes, continúa con la siguiente parte lógica, nunca regreses al inicio.
-
-6. Mantén continuidad como si fuera el siguiente capítulo del mismo libro.
-
-7. Evita reutilizar párrafos completos de la respuesta anterior.
-
-8. Solo vuelve a mencionar conceptos anteriores cuando sean necesarios para comprender el nuevo contenido.
-
-9. Al finalizar deja abierta naturalmente la explicación para que pueda existir otro nivel de profundización.
+Mantén una continuidad natural.
 """
 
         logger.info("=" * 70)
         logger.info("[LLM] Prompt CONTINUE")
-        logger.info(prompt)
+        logger.info(
+            "[LLM] Prompt generado (%s caracteres)",
+            len(prompt)
+        )
         logger.info("=" * 70)
 
         prompt += "\n\n"

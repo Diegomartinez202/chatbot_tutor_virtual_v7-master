@@ -79,7 +79,7 @@ ACCIONES_SOPORTE = {
 
     "recuperar_contrasena": {
         "backend": None,
-        "requires_auth": False,
+        "requires_auth": True,
         "proceso": "recuperar_contrasena",
     },
 
