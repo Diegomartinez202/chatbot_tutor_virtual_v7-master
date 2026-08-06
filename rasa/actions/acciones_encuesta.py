@@ -247,32 +247,49 @@ class ActionRegistrarEncuesta(Action):
             # Solicitud para ActionHandleWithLLM
             # ======================================================
 
-            SlotSet(
-                "llm_request",
-                {
-                    "instruction": (
-                        "Se ha registrado una encuesta de satisfacción.\n\n"
+           SlotSet(
+               "llm_request",
+    {
+                   "instruction": (
+                       "Se ha registrado una encuesta de satisfacción.\n\n"
 
-                        f"Nivel de satisfacción: {satisfaccion}.\n"
-                        
-                        f"Calificación otorgada: {calificacion_numerica} de 5.\n"
-                        
-                        f"Comentario: {comentario if comentario else 'Sin comentario'}.\n\n"
+                       f"Nivel de satisfacción: {satisfaccion}.\n"
+                       f"Calificación otorgada: {calificacion_numerica} de 5.\n"
+                       f"Comentario: {comentario if comentario else 'Sin comentario'}.\n\n"
 
-                        "Genera únicamente un mensaje breve dirigido al estudiante.\n"
-                        
-                        "Analiza conjuntamente el nivel de satisfacción, la calificación y el comentario.\n"
+                       "Genera únicamente un mensaje breve dirigido al estudiante.\n\n"
+  
+                       "Analiza conjuntamente el nivel de satisfacción, la calificación y el comentario.\n"
 
-                        "Responde de forma coherente con esa información.\n"
+                       "La respuesta debe ser coherente con los tres elementos.\n"
 
-                        "No copies literalmente el comentario.\n"
+                       "Si la evaluación es alta y el comentario es positivo, agradece de forma cálida.\n"
 
-                        "No respondas preguntas académicas.\n"
+                       "Si la evaluación es intermedia, agradece la opinión y reconoce que siempre existen oportunidades de mejora.\n"
 
-                        "No hagas preguntas.\n"
+                       "Si la evaluación es baja o el comentario expresa inconformidad, lamenta la experiencia de forma respetuosa y agradece la retroalimentación.\n\n"
 
-                        "La respuesta debe tener máximo tres líneas."
-                    ),
+                       "Si el comentario expresa una observación, crítica o sugerencia:\n"
+                       "- Reconoce específicamente el aspecto mencionado por el estudiante.\n"
+                       "- Responde directamente a esa observación.\n"
+                       "- No solicites más información.\n"
+                       "- No pidas aclaraciones adicionales.\n"
+                       "- No sugieras que el estudiante vuelva a explicar el problema.\n"
+                       "- Agradece el aporte indicando que ayudará a mejorar el Tutor Virtual.\n"
+                       "- No contradigas el comentario del estudiante.\n\n"
+
+                       "Si el comentario menciona un aspecto concreto, como explicación, claridad, ejemplos, profundidad, rapidez, pasos, organización o precisión, la respuesta debe hacer referencia explícita a ese aspecto.\n\n"
+
+                       "Nunca:\n"
+                       "- copies literalmente el comentario;\n"
+                       "- respondas preguntas académicas;\n"
+                       "- continúes la conversación;\n"
+                       "- hagas preguntas;\n"
+                       "- invites al estudiante a explicar más;\n"
+                       "- justifiques el funcionamiento del sistema.\n\n"
+
+                       "La respuesta debe ser empática, natural, cordial y tener un máximo de tres líneas."
+                   ),
 
                     "context": {
                         "flujo": "guardian_encuesta",

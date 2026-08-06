@@ -50,29 +50,6 @@ logger.info(
     MAX_TOKENS,
 )
 
-def warm_up_model():
-    try:
-        logger.info("[LLM] Realizando warm-up de Ollama...")
-        requests.post(
-            LLM_BASE_URL,
-            json={
-                "model": PRIMARY_MODEL,
-                "messages":[
-                    {
-                        "role":"user",
-                        "content":"hola"
-                    }
-                ],
-                "stream":False
-            },
-            timeout=90,
-        )
-    except:
-        pass
-
-
-warm_up_model()
-
 # ================================================================
 # 🧼 SAFE INPUT
 # ================================================================
@@ -165,19 +142,23 @@ def _call_model(
 
         }
 
-        logger.info("=" * 80)
-        logger.info("[OLLAMA PAYLOAD]")
         
-        logger.info("=" * 80)
-        logger.warning("=" * 80)
-        logger.warning("SYSTEM PROMPT")
-        logger.warning(PROMPT_SYSTEM)
-        logger.warning("=" * 80)
+        logger.info(
+            "[OLLAMA] Prompt enviado (%d caracteres)",
+            len(clean_prompt),
+        )
 
-        logger.warning("USER PROMPT")
-        logger.warning(clean_prompt)
-        logger.warning("=" * 80)
-        
+        logger.debug(
+            "[OLLAMA] Prompt:\n%s",
+            clean_prompt,
+        )
+        logger.info(
+            "[LLM] SYSTEM=%d chars | USER=%d chars | TOTAL=%d chars",
+            len(PROMPT_SYSTEM),
+            len(clean_prompt),
+            len(PROMPT_SYSTEM) + len(clean_prompt),
+        )
+
         response = requests.post(
             LLM_BASE_URL,
             json=payload,
@@ -211,10 +192,15 @@ def _call_model(
         # Mostrar respuesta completa para depuración
         # ----------------------------------------------------
 
-        logger.warning("=" * 80)
-        logger.warning("RESPUESTA COMPLETA:")
-        logger.warning(respuesta)
-        logger.warning("=" * 80)
+        logger.info(
+            "[LLM] Respuesta recibida (%d caracteres)",
+            len(respuesta),
+        )
+
+        logger.debug(
+           "[LLM] Respuesta:\n%s",
+           respuesta,
+        )
         
         
         # ----------------------------------------------------
@@ -469,3 +455,46 @@ def run_llm_safe(*args, **kwargs) -> str:
     Compatibilidad con llamadas legacy.
     """
     return run_llm(*args, **kwargs)
+
+def warm_up_model():
+    try:
+        logger.info("[LLM] Iniciando warm-up de Ollama...")
+
+        response = requests.post(
+            LLM_BASE_URL,
+            json={
+                "model": PRIMARY_MODEL,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": PROMPT_SYSTEM,
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            "Explica brevemente qué es TCP/IP "
+                            "en máximo tres líneas."
+                        ),
+                    },
+                ],
+                "stream": False,
+                "keep_alive": "24h",
+            },
+            timeout=90,
+        )
+
+        logger.info(
+            "[LLM] Warm-up finalizado. status=%s",
+            response.status_code,
+        )
+
+    except Exception as e:
+        logger.warning(
+            "[LLM] Warm-up falló: %s",
+            e,
+        )
+
+# ================================================================
+# 🚀 Ejecutar warm-up al iniciar el Action Server
+# ================================================================
+warm_up_model()

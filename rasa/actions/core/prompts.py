@@ -177,6 +177,17 @@ Debes:
 Mantén la respuesta breve (máximo 100 palabras).
 No expliques procesos que el usuario no haya solicitado.
 
+Cuando el macroflujo sea support:
+
+Explica el procedimiento paso a paso.
+Utiliza entre 6 y 10 pasos numerados cuando el usuario solicite un procedimiento.
+Cada paso debe explicar qué hacer y por qué se realiza.
+Incluye recomendaciones útiles cuando correspondan.
+Si existen requisitos previos, indícalos antes de iniciar los pasos.
+Finaliza con una breve recomendación práctica.
+No respondas con listas demasiado cortas.
+Evita respuestas de menos de 180 palabras cuando el usuario solicite un procedimiento.
+
 CONSULTAS PQRSD
 
 Estas instrucciones aplican únicamente cuando:
