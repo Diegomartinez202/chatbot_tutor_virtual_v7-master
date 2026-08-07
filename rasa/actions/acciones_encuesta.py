@@ -959,6 +959,11 @@ class ActionProcesarRespuestaResolucion(Action):
             return [
 
                 SlotSet(
+                    "proceso_activo",
+                    proceso,
+                ),
+
+                SlotSet(
                     "esperando_resolucion",
                     False,
                 ),

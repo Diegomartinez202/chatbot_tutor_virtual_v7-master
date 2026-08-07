@@ -148,61 +148,28 @@ def despedir_usuario(
         "desconocido",
     )
 
-    safe_slots = {
-
-        k: v
-
-        for k, v in tracker.current_slot_values().items()
-
-        if (
-            k not in {
-
-                "user_token",
-
-                "auth_token",
-
-                "password",
-
-                "cedula",
-
-                "email",
-
-                "correo",
-
-                "nombre",
-
-            }
-
-            and v
-        )
-
-    }
-
     return [
 
         SlotSet(
             "llm_request",
             {
                 "instruction": (
-                     "Genera únicamente un mensaje de despedida corto (máximo 4 líneas) "
-                     "para un estudiante que termina una conversación con el Tutor Virtual del SENA. "
-                     "Agradece su visita, deséale éxitos en sus estudios y despídete cordialmente. "
-                     "No hagas preguntas. "
-                     "No digas que eres una IA. "
-                     "No digas que no puedes despedirte. "
-                     "No ofrezcas continuar la conversación."
+                    "Genera un mensaje breve de despedida "
+                    "para un estudiante del SENA. "
+                    "Agradece su visita, desea éxitos en su formación "
+                    "y despídete cordialmente. "
+                    "Máximo 2 líneas. "
+                    "No hagas preguntas."
                 ),
 
                 "context": {
                     "flujo": "cierre_conversacion",
                     "ultimo_intent": ultimo_intent,
-                    "slots": json.dumps(
-                        safe_slots
-                    )[:500],
                 },
 
                 "fallback": (
                     "Gracias por tu tiempo. "
+                    "Espero que hayamos aportado valor a sus dudas e inquietudes."
                     "Estaré aquí cuando necesites ayuda."
                 ),
                 "next_action": (

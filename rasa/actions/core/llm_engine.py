@@ -34,13 +34,13 @@ FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "qwen2.5:3b")
 MAX_TOKENS = int(
     os.getenv(
         "OLLAMA_MAX_TOKENS",
-        "900"
+        "512"
     )
 )
 MAX_PROMPT_CHARS = int(
     os.getenv(
         "LLM_MAX_PROMPT_CHARS",
-        "8000",
+        "5000",
     )
 )
 logger.info(
@@ -97,11 +97,8 @@ def _call_model(
 
         logger.debug(
             "[OLLAMA] Prompt enviado:\n%s",
-            clean_prompt,
+            len(clean_prompt),
         )
-
-        logger.info("[PROMPT SIZE] %s", len(clean_prompt))
-        logger.info("[SYSTEM SIZE] %s", len(PROMPT_SYSTEM))
         
         payload = {
 
@@ -143,16 +140,6 @@ def _call_model(
 
         }
 
-        
-        logger.info(
-            "[OLLAMA] Prompt enviado (%d caracteres)",
-            len(clean_prompt),
-        )
-
-        logger.debug(
-            "[OLLAMA] Prompt:\n%s",
-            clean_prompt,
-        )
         logger.info(
             "[LLM] SYSTEM=%d chars | USER=%d chars | TOTAL=%d chars",
             len(PROMPT_SYSTEM),

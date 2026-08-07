@@ -317,7 +317,7 @@ class ActionReanudarAprendizaje(Action):
 
             SlotSet(
                 "confirmacion_cierre",
-                "pendiente",
+                None,
             ),
 
             FollowupAction(
