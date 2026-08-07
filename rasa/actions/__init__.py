@@ -10,6 +10,7 @@ from .acciones_general import (
     ActionHealthCheck,
     ActionOfrecerContinuarTema,
     ActionSolicitarTema,
+    ActionReanudarAprendizaje,
 )
 
 from .acciones_soporte import (
@@ -156,6 +157,7 @@ __all__ = [
     "ActionHealthCheck",
     "ActionOfrecerContinuarTema",
     "ActionSolicitarTema",
+    "ActionReanudarAprendizaje",    
     
     
     "ValidateSoporteForm",

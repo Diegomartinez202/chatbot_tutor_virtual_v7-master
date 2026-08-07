@@ -18,7 +18,8 @@ from .common import (
     send_email,
     RESET_URL_BASE,
 )
-
+from .core.nlp_utils import build_llm_request
+from rasa_sdk.events import Text, FollowupAction
 logger = logging.getLogger(__name__)
 
 
@@ -210,9 +211,6 @@ class ActionOfrecerContinuarTema(Action):
             SlotSet("confirmacion_cierre", "pendiente")
     ]
        
-
-        
-
 class ActionSolicitarTema(Action):
 
     
@@ -245,5 +243,85 @@ class ActionSolicitarTema(Action):
                 "proceso_activo",
                 "aprender_tema"
             )
+
+        ]
+
+# =====================================================================
+# REANUDAR APRENDIZAJE DESPUÉS DE RESPONDER "NO" A LA RESOLUCIÓN
+# =====================================================================
+
+class ActionReanudarAprendizaje(Action):
+
+    def name(self) -> Text:
+        return "action_reanudar_aprendizaje"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[EventType]:
+
+        proceso = tracker.get_slot("proceso_activo")
+
+        tema = (
+            tracker.get_slot("tema_actual")
+            or tracker.get_slot("tema_consulta")
+        )
+
+        logger.info(
+            "[POST_RESOLUCION] Reanudando aprendizaje. proceso=%s tema=%s",
+            proceso,
+            tema,
+        )
+
+        request = build_llm_request(
+            instruction=tema,
+            macroflujo="academic",
+            subflujo="aprender_tema",
+            requires_auth=False,
+            next_action="action_ofrecer_continuar_tema",
+        )
+
+        return [
+
+            SlotSet(
+                "llm_request",
+                request,
+            ),
+
+            SlotSet(
+                "tema_actual",
+                tema,
+            ),
+
+            SlotSet(
+                "tema_consulta",
+                tema,
+            ),
+
+            SlotSet(
+                "proceso_activo",
+                proceso,
+            ),
+
+            SlotSet(
+                "esperando_resolucion",
+                False,
+            ),
+
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                True,
+            ),
+
+            SlotSet(
+                "confirmacion_cierre",
+                "pendiente",
+            ),
+
+            FollowupAction(
+                "action_ofrecer_continuar_tema",
+            ),
 
         ]

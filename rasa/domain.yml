@@ -1189,3 +1189,4 @@ actions:
 - action_limpiar_pqrsd
 - action_recuperar_contrasena
 - action_fin_respuesta_autenticada
+- action_reanudar_aprendizaje

@@ -288,7 +288,6 @@ rules:
       - action: action_handle_with_llm
       - action: action_ofrecer_continuar_tema
   
-  
   - rule: Otra consulta FAQ después de resolución
     condition:
       - slot_was_set:
@@ -411,6 +410,16 @@ rules:
     steps:
       - intent: consultar_historial
       - action: action_historial_academico
-  
 
-  
+  - rule: Reanudar aprendizaje tras respuesta no resuelta
+    condition:
+     - slot_was_set:
+        - proceso_activo: aprender_tema
+     - slot_was_set:
+        - esperando_resolucion: true
+
+    steps:
+      - intent: deny
+      - action: action_procesar_respuesta_resolucion
+      - action: action_reanudar_aprendizaje
+ 

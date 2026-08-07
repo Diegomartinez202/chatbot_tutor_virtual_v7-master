@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any, Optional
 
 import requests
@@ -158,17 +159,40 @@ def _call_model(
             len(clean_prompt),
             len(PROMPT_SYSTEM) + len(clean_prompt),
         )
+        inicio_request = time.perf_counter()
 
+        logger.info(
+            "[LLM TIMING] Iniciando requests.post()"
+        )
         response = requests.post(
             LLM_BASE_URL,
             json=payload,
             timeout=LLM_TIMEOUT,
         )
+        fin_request = time.perf_counter()
 
+        logger.info(
+            "[LLM TIMING] requests.post() tardó %.2f segundos",
+            fin_request - inicio_request,
+        )
         response.raise_for_status()
 
         data = response.json()
        
+        logger.info(
+            "[OLLAMA DURATIONS] total=%.2f ms | load=%.2f ms | prompt=%.2f ms | eval=%.2f ms",
+            data.get("total_duration", 0) / 1_000_000,
+            data.get("load_duration", 0) / 1_000_000,
+            data.get("prompt_eval_duration", 0) / 1_000_000,
+            data.get("eval_duration", 0) / 1_000_000,
+        )
+
+        logger.info(
+            "[OLLAMA TOKENS] prompt=%s | generated=%s",
+            data.get("prompt_eval_count"),
+            data.get("eval_count"),
+        )
+
         respuesta = (
             data.get("message", {})
                 .get("content", "")

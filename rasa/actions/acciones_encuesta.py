@@ -754,36 +754,9 @@ class ActionProcesarRespuestaResolucion(Action):
                     "[RESOLUCION] -> Rama APRENDER_TEMA"
                 )
 
-                request = build_llm_request(
-
-                   instruction=tema,
-
-                   macroflujo="academic",
-
-                   subflujo="aprender_tema",
-
-                   requires_auth=False,
-
-                   next_action="action_ofrecer_continuar_tema",
-
-                )
-                
                 eventos.append(
-                    SlotSet(
-                        "llm_request",
-                        request,
-                    )
-                )
-
-                dispatcher.utter_message(
-                    response="utter_ofrecer_continuar"
-                )
-
-                
-                eventos.append(
-                    SlotSet(
-                        "esperando_decision_post_resolucion",
-                        True,
+                    FollowupAction(
+                         "action_reanudar_aprendizaje"
                     )
                 )
 
@@ -961,6 +934,8 @@ class ActionProcesarRespuestaResolucion(Action):
                     eventos
                 )
             return eventos
+
+
         # ==========================================================
         # Usuario indica que SÍ quedó resuelto
         # ==========================================================
@@ -973,12 +948,25 @@ class ActionProcesarRespuestaResolucion(Action):
             logger.info(
                 "[ENCUESTA] Iniciando encuesta de satisfacción."
             )
-
+            logger.warning(
+                "[RESOLUCION SI] proceso=%s tema_actual=%s tema_consulta=%s confirmacion=%s encuesta=%s",
+                tracker.get_slot("proceso_activo"),
+                tracker.get_slot("tema_actual"),
+                tracker.get_slot("tema_consulta"),
+                tracker.get_slot("confirmacion_cierre"),
+                tracker.get_slot("encuesta_activa"),
+            )
             return [
 
                 SlotSet(
                     "esperando_resolucion",
                     False,
+                ),
+                SlotSet("esperando_decision_post_resolucion", False),
+                
+                SlotSet(
+                    "confirmacion_cierre",
+                    "None",
                 ),
                 
                 SlotSet(
@@ -987,17 +975,13 @@ class ActionProcesarRespuestaResolucion(Action):
                 ),
 
                 SlotSet(
-                    "confirmacion_cierre",
-                    "pendiente",
+                    "encuesta_incompleta",
+                    False,
                 ),
 
                 SlotSet("esperando_pregunta_faq", False),
                 SlotSet("esperando_pqrsd", False),
-                SlotSet("tema_actual", None),
-                SlotSet("tema_consulta", None),
-
-
-                SlotSet("esperando_decision_post_resolucion", False),
+   
 
                 SlotSet(
                     "llm_request",

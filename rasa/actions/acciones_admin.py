@@ -111,7 +111,8 @@ class ActionReiniciarConversacion(Action):
             SlotSet("is_authenticated", False),
             SlotSet("esperando_pregunta_faq", False,),
             SlotSet("esperando_pqrsd", False,),
-            
+            SlotSet("menu_actual", None),
+
             ActiveLoop(None),
             SlotSet("requested_slot", None),
             

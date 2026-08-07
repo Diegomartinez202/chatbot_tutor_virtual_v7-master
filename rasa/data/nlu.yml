@@ -1,9 +1,7 @@
 version: "3.1"
 
 nlu:
-
-
-
+    
 - intent: calificar_bot
   examples: |
     - /calificar_bot{"nota":"1"}
@@ -155,13 +153,11 @@ nlu:
     - buenas noches
     - hola chatbot
     - hola, ¿me ayudas?
-    - holi
     - qué más
     - buen día
     - hola, qué tal?
     - qué onda
     - hola!
-    - hola
     - hola, ¿cómo estás?
     - hola, como estas
     - hola, qué tal
