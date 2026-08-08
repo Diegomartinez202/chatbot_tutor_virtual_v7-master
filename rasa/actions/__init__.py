@@ -11,6 +11,7 @@ from .acciones_general import (
     ActionOfrecerContinuarTema,
     ActionSolicitarTema,
     ActionReanudarAprendizaje,
+    ActionProcesarGuardarPostResolucion,
 )
 
 from .acciones_soporte import (
@@ -157,7 +158,9 @@ __all__ = [
     "ActionHealthCheck",
     "ActionOfrecerContinuarTema",
     "ActionSolicitarTema",
-    "ActionReanudarAprendizaje",    
+    "ActionReanudarAprendizaje",
+    "ActionProcesarGuardarPostResolucion",
+   
     
     
     "ValidateSoporteForm",

@@ -1300,7 +1300,13 @@ nlu:
     - no puedo descargar mi certificado aunque cumplí todos los requisitos.
     - presento esta petición para solicitar una revisión de mi caso.
     - deseo dejar constancia de esta inconformidad.
-
+    - queja: no he podido realizar mis actividades porque los botones no funcionan.
+    - queja: tengo problemas con los botones de Zajuna y esto me impide realizar mis actividades.
+    - queja: los botones de la plataforma no responden cuando intento hacer clic.
+    - queja: no puedo realizar mis actividades porque los botones presentan fallas.
+    - queja: los botones no funcionan correctamente y esto está afectando mis actividades.
+    - queja: quiero presentar una queja porque los botones de Zajuna no funcionan.
+  
 - intent: radicar_pqrsd
   examples: |
     - radicar_pqrsd

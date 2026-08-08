@@ -63,6 +63,50 @@ def _sanitize(text: str) -> str:
         return ""
     return text.strip()[:4000]
 
+def warm_up_model():
+    try:
+        logger.info("[LLM] Iniciando warm-up de Ollama...")
+
+        response = requests.post(
+            LLM_BASE_URL,
+            json={
+                "model": PRIMARY_MODEL,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": PROMPT_SYSTEM,
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            "Explica brevemente qué es TCP/IP "
+                            "en máximo tres líneas."
+                        ),
+                    },
+                ],
+                "stream": False,
+                "keep_alive": "24h",
+            },
+            timeout=90,
+        )
+
+        logger.info(
+            "[LLM] Warm-up finalizado. status=%s",
+            response.status_code,
+        )
+
+    except Exception as e:
+        logger.warning(
+            "[LLM] Warm-up falló: %s",
+            e,
+        )
+
+# ================================================================
+# 🚀 Ejecutar warm-up al iniciar el Action Server
+# ================================================================
+warm_up_model()
+
+
 # ================================================================
 # 🚀 INTERNAL CALL (Ollama API Layer)
 # ================================================================
@@ -466,46 +510,3 @@ def run_llm_safe(*args, **kwargs) -> str:
     Compatibilidad con llamadas legacy.
     """
     return run_llm(*args, **kwargs)
-
-def warm_up_model():
-    try:
-        logger.info("[LLM] Iniciando warm-up de Ollama...")
-
-        response = requests.post(
-            LLM_BASE_URL,
-            json={
-                "model": PRIMARY_MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": PROMPT_SYSTEM,
-                    },
-                    {
-                        "role": "user",
-                        "content": (
-                            "Explica brevemente qué es TCP/IP "
-                            "en máximo tres líneas."
-                        ),
-                    },
-                ],
-                "stream": False,
-                "keep_alive": "24h",
-            },
-            timeout=90,
-        )
-
-        logger.info(
-            "[LLM] Warm-up finalizado. status=%s",
-            response.status_code,
-        )
-
-    except Exception as e:
-        logger.warning(
-            "[LLM] Warm-up falló: %s",
-            e,
-        )
-
-# ================================================================
-# 🚀 Ejecutar warm-up al iniciar el Action Server
-# ================================================================
-warm_up_model()

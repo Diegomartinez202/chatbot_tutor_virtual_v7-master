@@ -528,7 +528,7 @@ class ActionCancelarCierre(Action):
             return [
 
                  SlotSet("confirmacion_cierre", "pendiente"),
-                 SlotSet("esperando_pregunta_faq", False),
+                 SlotSet("esperando_pregunta_faq", True),
                  ConversationResumed(),
 
             ]

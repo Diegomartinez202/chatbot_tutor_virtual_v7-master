@@ -176,9 +176,30 @@ class ActionHandleWithLLM(Action):
         if flow == self.FLOW_HELP:
             return self._build_help_prompt(tracker)
         
-        elif flow == self.FLOW_SUPPORT:
+            
+        if flow == self.FLOW_SUPPORT:
 
-            return self._build_support_prompt(tracker)
+             llm_request = tracker.get_slot("llm_request") or {}
+             context = llm_request.get("context", {})
+             subflujo = context.get("subflujo", "")
+
+             if subflujo == "pqrsd":
+
+                 logger.info(
+                     "[LLM] Builder=_build_pqrsd_prompt"
+                 )
+
+                 return self._build_pqrsd_prompt(
+                     tracker
+                 )
+
+             logger.info(
+                 "[LLM] Builder=_build_support_prompt"
+             )
+
+             return self._build_support_prompt(
+                 tracker
+             )
 
         if flow == self.FLOW_GENERAL:
 
@@ -598,18 +619,33 @@ class ActionHandleWithLLM(Action):
        build_prompt() será el encargado de construir el prompt final
        utilizando el flujo "auth".
        """
-
        llm_request = tracker.get_slot("llm_request") or {}
 
        context = llm_request.get(
            "context",
            {},
        )
-
-       return context.get(
+       accion = context.get(
            "pending_action",
            "consultar información personal",
        )
+
+       return f"""
+       Objetivo del flujo:
+
+       Explicar que la consulta requiere autenticación institucional.
+
+       Acción solicitada:
+
+       {accion}
+
+       Instrucciones:
+
+       - No inventes información.
+       - No simules resultados.
+       - Explica cómo autenticarse.
+       - Indica qué podrá hacer una vez autenticado.
+       """.strip()
 
     def _build_academic_prompt(
         self,
@@ -851,13 +887,25 @@ class ActionHandleWithLLM(Action):
         Construye el mensaje base para consultas
         administrativas.
         """
-
         latest = tracker.latest_message or {}
+        consulta = latest.get("text", "").strip()
 
-        return latest.get(
-            "text",
-            "",
-        ).strip()
+        return f"""
+        Objetivo del flujo:
+
+        Orientar un trámite administrativo de Zajuna.
+
+        Instrucciones:
+
+        - Responde únicamente sobre trámites administrativos.
+        - No inventes información del estudiante.
+        - Si requiere autenticación, indícalo.
+        - No respondas como docente.
+
+        Consulta:
+
+        {consulta}
+        """.strip()
      
     
      # ==========================================================
@@ -1183,19 +1231,123 @@ class ActionHandleWithLLM(Action):
         tracker: Tracker,
     ) -> str:
         """
-        Devuelve únicamente el problema reportado por el usuario.
-
-        build_prompt() añadirá posteriormente el historial,
-        memoria, contexto e instrucciones específicas del flujo
-        support.
+        Construye el prompt para consultas funcionales
+        y preguntas frecuentes sobre Zajuna.
         """
- 
+        latest = tracker.latest_message or {}
+        
+        consulta = (
+            latest.get("text", "").strip()
+            or "El usuario reporta un problema."
+        )
+
+        return f"""
+        Objetivo:
+
+        Resolver la consulta funcional del usuario sobre la plataforma Zajuna.
+
+        Instrucciones:
+
+        - Identifica exactamente qué necesita hacer, consultar o resolver.
+        - Si pregunta cómo hacer algo, proporciona instrucciones paso a paso.
+        - Indica el orden de las acciones que debe realizar.
+        - Cuando exista información disponible, indica la ruta, sección,
+          opción o botón que debe utilizar.
+        - Si reporta un problema de acceso o funcionamiento, indica primero
+          las verificaciones y luego los pasos para intentar solucionarlo.
+        - Si existen varias causas posibles, empieza por las más sencillas
+          y frecuentes.
+        - Si un paso no funciona, indica el siguiente paso razonable.
+        - No te limites a describir el problema: indica qué debe hacer.
+        - No inventes botones, menús, rutas, funcionalidades ni procedimientos.
+        - Si no existe información suficiente para una ruta exacta, indícalo
+          claramente y proporciona únicamente pasos que puedan sustentarse.
+        - No redactes una PQRSD.
+        - No cambies de flujo.
+        - No respondas temas académicos.
+
+        Consulta del usuario:
+
+        {consulta}
+        """.strip()
+    # ==========================================================
+    # PQRSD PROMPT
+    # ==========================================================
+
+    def _build_pqrsd_prompt(
+        self,
+        tracker: Tracker,
+    ) -> str:
+        """
+        Construye el prompt específico para redactar una PQRSD
+        respetando el tipo seleccionado por el estudiante.
+        """
+
         latest = tracker.latest_message or {}
 
-        return latest.get(
-            "text",
-            "",
-        ).strip() or "El usuario reporta un problema."
+        relato = (
+            latest.get("text", "").strip()
+            or "El estudiante desea presentar una PQRSD."
+        )
+        tipo_pqrsd = (
+            tracker.get_slot("tipo_pqrsd")
+            or "No especificado"
+        )
+        return f"""
+    Objetivo:
+
+    Redactar formalmente una PQRSD utilizando exclusivamente el
+    tipo seleccionado por el estudiante y el relato proporcionado.
+
+    CONTEXTO:
+ 
+    El estudiante está en el flujo PQRSD.
+
+    Tipo seleccionado:
+    {tipo_pqrsd}
+
+    El tipo seleccionado DEBE conservarse exactamente.
+
+    Tipos:
+    - Petición: solicitud de información, servicio, trámite o gestión.
+    - Queja: inconformidad frente a atención, conducta o servicio.
+    - Reclamo: inconformidad por un servicio deficiente o incumplimiento.
+    - Sugerencia: propuesta para mejorar un servicio o proceso.
+    - Denuncia: posible irregularidad o conducta que deba investigarse.
+    - Felicitación: reconocimiento positivo a una persona, servicio o atención.
+
+    REGLAS:
+
+    - Respeta exactamente el tipo seleccionado.
+    - No cambies la categoría según el contenido del relato.
+    - Si el relato menciona Zajuna, acceso, botones, actividades,
+      errores o problemas técnicos, trátalos únicamente como hechos
+      de la PQRSD.
+    - No respondas como FAQ.
+    - No soluciones el problema técnico.
+    - No cambies de flujo.
+    - No inventes información, fechas, nombres, documentos, evidencias
+      ni datos personales.
+    - No agregues información externa al relato.
+    - Mantén el significado original y mejora únicamente su redacción.
+    - La solicitud debe derivarse únicamente de lo expresado por
+      el estudiante; si no puede determinarse, no la inventes.
+
+    RESPUESTA:
+
+    Tipo de PQRSD: [tipo seleccionado]
+
+    Asunto: [asunto breve y específico]
+
+    Hechos: [hechos redactados formalmente]
+
+    Solicitud: [solicitud derivada del relato]
+
+    RELATO DEL ESTUDIANTE:
+
+    {relato}
+    """.strip()
+
 
     # ==========================================================
     # EVENTOS DE CONTINUIDAD DEL FLUJO
@@ -2951,7 +3103,7 @@ No repitas contenido anterior.
         # ======================================================
 
         if (
-            proceso in ("faq", "pqrsd")
+            proceso == "faq"
             and self._is_waiting_for_support(tracker)
         ):
 
@@ -3071,7 +3223,7 @@ No repitas contenido anterior.
 
                     self.FLOW_SUPPORT,
 
-                    prompt=None,
+                    prompt=self._build_pqrsd_prompt(tracker),
 
                     tema_actual=nuevo_tema,
 

@@ -325,3 +325,103 @@ class ActionReanudarAprendizaje(Action):
             ),
 
         ]
+
+class ActionProcesarGuardarPostResolucion(Action):
+
+    def name(self) -> Text:
+        return "action_procesar_guardar_post_resolucion"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[EventType]:
+
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.warning("=" * 80)
+        logger.warning(
+            "[POST_RESOLUCION_GUARDAR] Procesando transición. intent=%s",
+            intent,
+        )
+        logger.warning(
+            "[POST_RESOLUCION_GUARDAR] proceso_activo=%s",
+            tracker.get_slot("proceso_activo"),
+        )
+        logger.warning(
+            "[POST_RESOLUCION_GUARDAR] reanudar_pendiente=%s",
+            tracker.get_slot("reanudar_pendiente"),
+        )
+        logger.warning(
+            "[POST_RESOLUCION_GUARDAR] confirmacion_cierre=%s",
+            tracker.get_slot("confirmacion_cierre"),
+        )
+        logger.warning("=" * 80)
+
+        # =====================================================
+        # NO -> cancelar cierre y volver al aprendizaje
+        # =====================================================
+
+        if intent == "deny":
+
+            logger.info(
+                "[POST_RESOLUCION_GUARDAR] NO -> reanudar aprendizaje"
+            )
+
+            return [
+                SlotSet(
+                    "reanudar_pendiente",
+                    False,
+                ),
+
+                SlotSet(
+                    "confirmacion_cierre",
+                    None,
+                ),
+                SlotSet(
+                    "esperando_decision_post_resolucion",
+                    False,
+                ),
+                FollowupAction(
+                    "action_ofrecer_continuar_tema"
+                ),
+            ]
+
+        # =====================================================
+        # SI -> continuar proceso normal de cierre
+        # =====================================================
+
+        if intent == "affirm":
+
+            logger.info(
+                "[POST_RESOLUCION_GUARDAR] SI -> continuar cierre"
+            )
+
+            return [
+                SlotSet(
+                    "reanudar_pendiente",
+                    False,
+                ),
+                SlotSet(
+                    "esperando_decision_post_resolucion",
+                    False,
+                ),
+
+                SlotSet(
+                    "confirmacion_cierre",
+                    None,
+                ),
+
+                FollowupAction(
+                    "action_decidir_cierre"
+                ),
+            ]
+
+        logger.warning(
+            "[POST_RESOLUCION_GUARDAR] Intent no esperado: %s",
+            intent,
+        )
+
+        return []
+

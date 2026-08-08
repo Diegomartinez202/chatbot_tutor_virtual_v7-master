@@ -659,6 +659,7 @@ responses:
 
   utter_ofrecer_continuar_pqrsd:
   - text: |
+    
       ¿Qué deseas hacer ahora?
     buttons:
       - title: "📝 Redactar otra PQRSD"
@@ -1190,3 +1191,7 @@ actions:
 - action_recuperar_contrasena
 - action_fin_respuesta_autenticada
 - action_reanudar_aprendizaje
+- action_procesar_guardar_post_resolucion
+- action_procesar_guardar_post_resolucion_pqrsd
+- action_procesar_guardar_post_resolucion_faq
+- action_determinar_continuacion_post_resolucion

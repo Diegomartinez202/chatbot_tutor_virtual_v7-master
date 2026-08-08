@@ -288,6 +288,29 @@ rules:
       - action: action_handle_with_llm
       - action: action_ofrecer_continuar_tema
   
+
+  - rule: Otra consulta FAQ
+    condition:
+      - slot_was_set:
+         - proceso_activo: faq
+         - esperando_pregunta_faq: true
+    steps:
+      - intent: continuar_faq
+      - action: action_limpiar_faq
+      - action: action_solicitar_pregunta_faq
+  
+
+  - rule: otra redaccion pqrsd
+    condition:
+      - slot_was_set:
+         - proceso_activo: pqrsd
+         - esperando_pqrsd: true
+    steps:
+      - intent: radicar_pqrsd
+      - action: action_limpiar_pqrsd
+      - action: action_solicitar_pqrsd
+
+
   - rule: Otra consulta FAQ después de resolución
     condition:
       - slot_was_set:
@@ -296,6 +319,7 @@ rules:
     steps:
       - intent: continuar_faq
       - action: action_solicitar_pregunta_faq
+
  
   - rule: Radicar PQRSD después de resolución
     condition:
@@ -413,13 +437,35 @@ rules:
 
   - rule: Reanudar aprendizaje tras respuesta no resuelta
     condition:
-     - slot_was_set:
-        - proceso_activo: aprender_tema
-     - slot_was_set:
-        - esperando_resolucion: true
-
+      - slot_was_set:
+         - proceso_activo: aprender_tema
+      - slot_was_set:
+         - esperando_resolucion: true
     steps:
       - intent: deny
       - action: action_procesar_respuesta_resolucion
       - action: action_reanudar_aprendizaje
- 
+  
+  - rule: SI guardar y salir en post resolución
+    condition:
+      - slot_was_set:
+          - esperando_decision_post_resolucion: true
+      - slot_was_set:
+          - reanudar_pendiente: true
+      - slot_was_set:
+          - proceso_activo: aprender_tema
+    steps:
+      - intent: affirm
+      - action: action_procesar_guardar_post_resolucion 
+  
+  - rule: NO guardar y salir en post resolución
+    condition:
+      - slot_was_set:
+          - esperando_decision_post_resolucion: true
+      - slot_was_set:
+          - reanudar_pendiente: true
+      - slot_was_set:
+          - proceso_activo: aprender_tema
+    steps:
+      - intent: deny
+      - action: action_procesar_guardar_post_resolucion

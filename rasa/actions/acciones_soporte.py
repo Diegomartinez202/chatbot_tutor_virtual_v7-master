@@ -1008,7 +1008,7 @@ class ActionOfrecerContinuarFaq(Action):
 
            SlotSet(
                "esperando_pregunta_faq",
-               False,
+                True,
            ), 
             
             SlotSet(
@@ -1024,7 +1024,7 @@ class ActionOfrecerContinuarFaq(Action):
 
              SlotSet(
                  "confirmacion_cierre",
-                 "pendiente",
+                 None,
              ),
 
         ]
@@ -1103,7 +1103,7 @@ class ActionOfrecerRadicarPQRSD(Action):
 
             SlotSet(
                 "esperando_pqrsd",
-                False,
+                True,
             ),
 
             SlotSet(
@@ -1357,7 +1357,7 @@ class ActionSolicitarPreguntaFAQ(Action):
             ),
             SlotSet(
                 "esperando_pregunta_faq",
-                False,
+                True,
             ),
 
             SlotSet("tema_actual", None),
@@ -1405,7 +1405,7 @@ class ActionSolicitarPQRSD(Action):
             ),
             SlotSet(
                 "esperando_pqrsd",
-                False,
+                 True,
             ),
             SlotSet(
                 "proceso_activo",

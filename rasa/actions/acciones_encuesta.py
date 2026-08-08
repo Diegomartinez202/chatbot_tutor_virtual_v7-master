@@ -786,7 +786,7 @@ class ActionProcesarRespuestaResolucion(Action):
                 )
                 eventos.append(
                     SlotSet("esperando_decision_post_resolucion", True ),
-                )                
+) 
                 eventos.append(
                     SlotSet("confirmacion_cierre",  None ),
                 )
@@ -816,7 +816,7 @@ class ActionProcesarRespuestaResolucion(Action):
                 eventos.append(
                     SlotSet("esperando_decision_post_resolucion", True),
                 )               
-     
+ 
 
                 eventos.append(
                     SlotSet("confirmacion_cierre",  None,),
