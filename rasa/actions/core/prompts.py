@@ -161,12 +161,19 @@ def build_prompt(
     # No utilizan historial ni memoria semántica.
     # ------------------------------------------------------------
     PROMPTS_DIRECTOS = {
-        ("support", "faq"),
         ("support", "pqrsd"),
     }
 
     es_prompt_directo = (
          (macroflujo, subflujo) in PROMPTS_DIRECTOS
+    )
+
+    logger.warning(
+        "[PROMPT DEBUG] macro=%s sub=%s es_prompt_directo=%s tracker=%s",
+        macroflujo,
+        subflujo,
+        es_prompt_directo,
+        tracker is not None,
     )
 
     # Flujos especiales existentes
@@ -177,11 +184,16 @@ def build_prompt(
         es_prompt_directo = True
 
     if tracker and not es_prompt_directo:
-
+        logger.warning(
+           "[PROMPT DEBUG] ENTRANDO A CONSTRUIR HISTORIAL"
+        )
         history = build_history(tracker)
         if len(history) > 800:
             history = history[-800:]
-
+        logger.warning(
+            "[PROMPT DEBUG] HISTORY GENERADO=%r",
+            history,
+        )
         continuando = tracker.get_slot("continuando_tema")
 
         if continuando:

@@ -1,443 +1,166 @@
+class ActionPQRSDLLM(Action):
+    """
+    Envía al LLM la descripción del usuario para que redacte una
+    PQRSD formal.
+    """
 
-        # ======================================================
-        # MODO APRENDIZAJE
-        #
-        # El usuario ya tiene un tema activo.
-        #
-        # Puede:
-        #   1. Cambiar completamente de tema.
-        #   2. Hacer una subconsulta.
-        # ======================================================
+    def name(self) -> Text:
+        return "action_pqrsd_llm"
 
-        
-        logger.warning(
-            "[ENTRY MODO APRENDIZAJE] llm_request=%s",
-            tracker.get_slot("llm_request"),
-        )
-        logger.warning("=" * 70)
-        logger.error("########## ENTRÉ A MODO APRENDIZAJE ##########")
-        logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
-        logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
-        logger.warning("esperando_resolucion=%s", tracker.get_slot("esperando_resolucion"))
-        logger.warning("esperando_encuesta_general=%s", tracker.get_slot("esperando_encuesta_general"))
-        logger.warning("encuesta_activa=%s", tracker.get_slot("encuesta_activa"))
-        logger.warning("intent=%s", intent)
-        logger.warning("=" * 70)
-        
-        logger.error(
-            "[ANTES MODO APRENDIZAJE] "
-            "esperando_resolucion=%s "
-            "encuesta_incompleta=%s "
-            "encuesta_activa=%s "
-            "intent=%s",
-            tracker.get_slot("esperando_resolucion"),
-            tracker.get_slot("encuesta_incompleta"),
-            tracker.get_slot("encuesta_activa"),
-            intent,
-        )
-        logger.error(
-            "[STATE] "
-            "esperando_tema=%s "
-            "confirmacion_cierre=%s "
-            "requested_slot=%s "
-            "proceso=%s",
-            tracker.get_slot("esperando_tema"),
-            tracker.get_slot("confirmacion_cierre"),
-            tracker.get_slot("requested_slot"),
-            tracker.get_slot("proceso_activo"),
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[EventType]:
+
+        intent = tracker.get_intent_of_latest_message()
+
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD ACTION] Entró ActionPQRSDLLM")
+        logger.warning("=" * 80)
+
+        logger.info("=" * 80)
+        logger.info("[PQRSD] ActionPQRSDLLM")
+        logger.info("texto=%s", tracker.latest_message.get("text"))
+        logger.info("=" * 80)
+
+        descripcion = (
+            tracker.latest_message.get("text") or ""
+        ).strip()
+
+        if len(descripcion) < 5:
+
+            dispatcher.utter_message(
+                text=(
+                    "No logré comprender la descripción de tu solicitud. "
+                    "¿Podrías escribirla nuevamente con un poco más de detalle?"
+                )
+            )
+
+            return []
+
+        tipo = (
+            tracker.get_slot("tipo_pqrsd")
+            or "PQRSD"
         )
 
-        if (
-          
-           not bloquear_aprendizaje
+        instruction = (
+            f"Tipo de solicitud: {tipo}\n\n"
+            f"Descripción del usuario:\n{descripcion}"
+        )
 
-           and flujo_especial not in (
-                "guardian_encuesta",
-                "guardian_autenticacion",
-                "guardian_recuperacion",
-                "cierre_conversacion",
-            )
-            and tracker.get_slot("proceso_activo") == "aprender_tema"
+        eventos = [
 
-            and not tracker.get_slot("esperando_tema")
-            and tracker.latest_message.get("text", "").strip()
-            and intent not in (
-                "continuar_tema",
-                "continuar_tema_si",
-                "ir_menu_principal",
-                "terminar_conversacion_segura",
-                "deny",
-                "affirm",
-                "respuesta_resuelto_si",
-                "respuesta_resuelto_no",
-                "respuesta_insatisfecho",
-            )
-        ):
-            logger.error("########## ENTRÉ A MODO APRENDIZAJE ##########")
-            texto = tracker.latest_message["text"].strip()
+            ActiveLoop(None),
 
-            tema_actual = (
-                tracker.get_slot("tema_actual") or ""
-            ).strip()
+            SlotSet(
+                "requested_slot",
+                None,
+            ),
 
+            SlotSet(
+                "esperando_pqrsd",
+                False,
+            ),
 
-            # --------------------------------------------------
-            # Decisión: ¿nuevo tema o continuación?
-            # --------------------------------------------------
+            SlotSet(
+                "proceso_activo",
+                "pqrsd",
+            ),
 
-            es_nuevo = self._is_new_topic(
-                tracker,
-                texto,
-            )
+            SlotSet(
+                "tema_consulta",
+                descripcion,
+            ),
 
-            logger.warning("=" * 70)
-            logger.warning("[DEBUG CAMBIO TEMA]")
-            logger.warning("texto=%s", texto)
-            logger.warning("tema_actual=%s", tracker.get_slot("tema_actual"))
-            logger.warning("proceso_activo=%s", tracker.get_slot("proceso_activo"))
-            logger.warning("esperando_tema=%s", tracker.get_slot("esperando_tema"))
-            logger.warning("intent=%s", tracker.get_intent_of_latest_message())
-            logger.warning("=" * 70)
+            SlotSet(
+                "auth_login_form",
+                None,
+            ),
 
-            es_nuevo = self._is_new_topic(
-                tracker,
-                texto,
-            )
+            SlotSet(
+                "esperando_decision_post_resolucion",
+                 False,
+            ),
 
-            logger.warning("[DEBUG CAMBIO TEMA] es_nuevo=%s", es_nuevo)
+            SlotSet(
+                "confirmacion_cierre",
+                None,
+            ),
 
-            logger.info(
-                "[ACADEMICO] ¿Nuevo tema?: %s",
-                es_nuevo,
-            )
+        ]
 
-            # --------------------------------------------------
-            # CAMBIO DE TEMA
-            # --------------------------------------------------
+        eventos.extend(
 
-            if es_nuevo:
+            [
+                SlotSet(
+                    "tema_actual",
+                    descripcion,
+                ),
 
-                logger.info(
-                    "[ACADEMICO] Nuevo tema detectado."
-                )
+            ]
 
-                logger.info(
-                    "[ACADEMICO] Reiniciando explicación | nuevo tema=%s",
-                    texto,
-                )
+        )
 
-                prompt = self._build_continue_prompt(
-                    tracker,
-                    tema=texto,
-                    nivel="basico",
-                    modo="tema_nuevo",
-                )
-                return (
-                    
-                    limpieza
+        if intent != "radicar_pqrsd":
 
-                    + [
-
-                         SlotSet(
-                             "tema_anterior",
-                             tema_actual,
-                         ),
-
-                         SlotSet(
-                             "cambio_tema",
-                             True,
-                         ),
-
-                         SlotSet(
-                             "tema_actual",
-                             texto,
-                         ),
-
-                         SlotSet(
-                             "tema_consulta",
-                             texto,
-                         ),
-
-                         SlotSet(
-                             "nivel_explicacion",
-                             "basico",
-                         ),
-
-                         SlotSet(
-                             "ultima_respuesta_llm",
-                             None,
-                         ),
-
-                         SlotSet(
-                             "continuando_tema",
-                             False,
-                         ),
-
-                    ]
-                    
-                    + self._ejecutar_procesamiento_llm(
-
-                        dispatcher,
-
-                        tracker,
-
-                        self.FLOW_ACADEMIC,
-
-                        prompt=prompt,
-                        
-                        nivel_explicacion="basico",
-
-                        tema_actual=texto,
-                        
-                        tema_consulta=texto,
-
-                    )
-
-               )
-            
-            # --------------------------------------------------
-            # SUBCONSULTA
-            # --------------------------------------------------
-
-            logger.info(
-                "[ACADEMICO] Subconsulta detectada."
-            )
-
-            logger.info(
-                "[ACADEMICO] Tema principal=%s | Subtema=%s",
-                tema_actual,
-                texto,
-            )
-
-            logger.info(
-                "[ACADEMICO] Enviando al LLM | tema=%s | consulta=%s | continuando=%s",
-                tracker.get_slot("tema_actual"),
-                texto,
-                True,
-            )
-            
-            prompt = self._build_continue_prompt(
-                tracker,
-                tema=tema_actual,
-                nivel=tracker.get_slot("nivel_explicacion"),
-                modo="subconsulta",
-            )
-
-            return (
-
-                limpieza
-
-                + [
-
+            eventos.extend(
+                [
                     SlotSet(
-                        "tema_consulta",
-                        texto,
+                        "tema_actual",
+                        descripcion,
                     ),
-                    SlotSet(
-                        "continuando_tema",
-                        True,
-                    ),
-
-                    SlotSet(
-                        "cambio_tema",
-                        False,
-                    ),
-
                 ]
-              
-                + self._ejecutar_procesamiento_llm(
-
-                    dispatcher,
-
-                    tracker,
-
-                    self.FLOW_ACADEMIC,
-
-                    prompt=prompt,
-
-                    nivel_explicacion=tracker.get_slot(
-                        "nivel_explicacion"
-                    ),
-
-                    tema_actual=tema_actual,
-
-                    tema_consulta=texto,
-
-                )
-
             )
+
+        request = build_llm_request(
+
+            instruction=instruction,
+
+            macroflujo="support",
+
+            subflujo="pqrsd",
+
+            requires_auth=False,
+
+            next_action="action_ofrecer_radicar_pqrsd",
+
+        )
+        logger.info(
+            "[PQRSD] llm_request=%s",
+            request,
+        )
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD] REQUEST CONSTRUIDO")
+        logger.warning("REQUEST CONSTRUIDO = %s", request)
+        logger.warning("=" * 80)
+
+        eventos.append(
+
+            SlotSet(
+                "llm_request",
+                request,
+            )
+        )
+
+        eventos.append(
+            FollowupAction(
+                "action_handle_with_llm"
+           )
+
+        )
 
         logger.info(
-            "[DEBUG] esperando_tema=%s",
-            tracker.get_slot("esperando_tema"),
+            "Eventos que retorna ActionPQRSDLLM:"
         )
 
-        # ======================================================
-        # ESPERANDO QUE EL USUARIO ESCRIBA EL TEMA
-        # Primera explicación únicamente para Aprender Tema.
-        # ======================================================
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD] EVENTOS A RETORNAR")
+        logger.warning("EVENTOS = %s", eventos)
+        logger.warning("=" * 80)
 
-        proceso = tracker.get_slot("proceso_activo")
+        for evento in eventos:
+            logger.info("  %s", evento)
 
-        if (
-
-            proceso in (
-                "aprender_tema",
-                "faq",
-                "pqrsd",
-            )
-
-            and self._is_waiting_for_topic(tracker)
-
-        ):
-
-            nuevo_tema = tracker.latest_message.get(
-                "text",
-                "",
-            ).strip()
-
-            logger.info(
-                "[TRANSICION] Primera consulta recibida (%s): %s",
-                proceso,
-                nuevo_tema,
-            )
-
-            logger.warning("=" * 80)
-            logger.warning("[TRANSICION] ENTRANDO A _build_topic_events")
-            logger.warning(
-                "proceso=%s",
-                proceso,
-            )
-            logger.warning(
-                "latest_message=%s",
-                tracker.latest_message.get("text"),
-            )
-            logger.warning(
-                "tema_actual=%s",
-                tracker.get_slot("tema_actual"),
-            )
-            logger.warning(
-                "tema_consulta=%s",
-                tracker.get_slot("tema_consulta"),
-            )
-            logger.warning("=" * 80)
-
-            # --------------------------------------------------
-            # Construcción del prompt
-            # --------------------------------------------------
-
-            if proceso == "aprender_tema":
-
-                prompt = self._build_continue_prompt(
-                    tracker,
-                    tema=nuevo_tema,
-                    nivel="basico",
-                    modo="tema_nuevo",
-                )
-
-                flow = self.FLOW_ACADEMIC
-
-            elif proceso in self.SUPPORT_PROCESSES:
-
-                # El instruction viene del llm_request.
-                prompt = None
- 
-                flow = self.FLOW_SUPPORT
-
-            elif proceso in self.ADMIN_PROCESSES:
-
-                # El instruction viene del llm_request.
-                prompt = None
-
-                flow = self.FLOW_ADMINISTRATIVE
-
-            else:
-
-                prompt = nuevo_tema
-
-            # --------------------------------------------------
-            # Builder por macroflujo
-            # --------------------------------------------------
-
-            if proceso == "aprender_tema":
-
-                eventos = self._build_topic_events(
-                    tracker,
-                    proceso,
-                )
-
-            elif proceso in self.SUPPORT_PROCESSES:
-
-                eventos = self._build_topic_events_support(
-                    tracker,
-                    proceso,
-                )
-
-            elif proceso in self.ADMIN_PROCESSES:
-
-                eventos = self._build_topic_events_administrative(
-                    tracker,
-                    proceso,
-        )
-
-            else:
-
-                eventos = []
-
-            # --------------------------------------------------
-            # Parámetros específicos por macroflujo
-            # --------------------------------------------------
-
-            kwargs = {
-
-                "prompt": prompt,
- 
-                "tema_actual": nuevo_tema,
-
-                "tema_consulta": nuevo_tema,
-
-            }
-
-            if proceso == "aprender_tema":
-
-                kwargs["nivel_explicacion"] = "basico"
-
-            return (
-
-                limpieza
-
-                + eventos
-
-                + self._ejecutar_procesamiento_llm(
-
-                     dispatcher,
-
-                     tracker,
-
-                     flow,
-
-                     **kwargs,
-
-                )
-
-            )
-
-        # ======================================================
-        # FLUJO NORMAL
-        # ======================================================
-
-        return (
-
-            limpieza
-
-            + self._ejecutar_procesamiento_llm(
-
-                dispatcher,
-
-                tracker,
-
-                flow,
-
-            )
-
-        )
+        return eventos

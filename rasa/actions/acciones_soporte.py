@@ -1008,7 +1008,7 @@ class ActionOfrecerContinuarFaq(Action):
 
            SlotSet(
                "esperando_pregunta_faq",
-                True,
+                 False,
            ), 
             
             SlotSet(
@@ -1225,6 +1225,18 @@ class ActionPreguntasFrecuentesLLM(Action):
 
         ]
 
+        eventos.extend(
+
+            [
+                SlotSet(
+                    "tema_actual",
+                    pregunta,
+                ),
+
+            ]
+
+        )
+
         if intent != "continuar_faq":
 
             eventos.extend(
@@ -1357,7 +1369,7 @@ class ActionSolicitarPreguntaFAQ(Action):
             ),
             SlotSet(
                 "esperando_pregunta_faq",
-                True,
+                False,
             ),
 
             SlotSet("tema_actual", None),

@@ -1249,7 +1249,8 @@ class ActionHandleWithLLM(Action):
         Instrucciones:
 
         - Identifica exactamente qué necesita hacer, consultar o resolver.
-        - Si pregunta cómo hacer algo, proporciona instrucciones paso a paso.
+        - Si pregunta cómo hacer algo, proporciona instrucciones paso a paso minimo 5 pasos.
+        - Da la direccion web de zajuna en el paso a paso cuando se requeira en el paso determinado https://zajuna.sena.edu.co/.
         - Indica el orden de las acciones que debe realizar.
         - Cuando exista información disponible, indica la ruta, sección,
           opción o botón que debe utilizar.
@@ -1285,14 +1286,22 @@ class ActionHandleWithLLM(Action):
 
         latest = tracker.latest_message or {}
 
-        relato = (
-            latest.get("text", "").strip()
-            or "El estudiante desea presentar una PQRSD."
-        )
         tipo_pqrsd = (
             tracker.get_slot("tipo_pqrsd")
             or "No especificado"
         )
+
+        relato = (
+            latest.get("text", "").strip()
+            or "El estudiante desea presentar una PQRSD."
+        )
+
+        logger.warning(
+            "[PQRSD DEBUG] tipo_pqrsd=%r | relato=%r",
+            tipo_pqrsd,
+            relato,
+        )
+
         return f"""
     Objetivo:
 
@@ -1335,13 +1344,17 @@ class ActionHandleWithLLM(Action):
 
     RESPUESTA:
 
-    Tipo de PQRSD: [tipo seleccionado]
+    Tipo de PQRSD: 
+    {tipo_pqrsd}
 
-    Asunto: [asunto breve y específico]
+    Asunto: 
+    [asunto breve y específico]
 
-    Hechos: [hechos redactados formalmente]
+    Hechos: 
+    [hechos redactados formalmente]
 
-    Solicitud: [solicitud derivada del relato]
+    Solicitud: 
+    [solicitud derivada del relato]
 
     RELATO DEL ESTUDIANTE:
 
@@ -2959,24 +2972,85 @@ No repitas contenido anterior.
         if tracker.get_slot("esperando_decision_post_resolucion"):
 
             logger.info(
-                "[POST_RESOLUCION] Intent=%s",
+                "[POST_RESOLUCION] Estado activo. Intent=%s",
                 intent,
             )
+            # --------------------------------------------------
+            # CONTINUAR TEMA
+            # --------------------------------------------------
+
+            if intent == "continuar_tema_si":
+
+                logger.info(
+                    "[POST_RESOLUCION] Continuar tema seleccionado"
+                )
+
+            return limpieza + [
+                SlotSet(
+                    "esperando_decision_post_resolucion",
+                    False,
+                ),
+                FollowupAction("action_handle_with_llm"),
+            ]
+            # --------------------------------------------------
+            # SI / NO DE LA DECISIÓN "GUARDAR Y SALIR"
+            # --------------------------------------------------
+
+            if intent in ["affirm", "deny"]:
+
+                logger.info(
+                    "[POST_RESOLUCION] Decisión consumida: %s",
+                    intent,
+                )
+
+                return (
+                    limpieza
+                    + [
+                        FollowupAction(
+                            "action_procesar_guardar_post_resolucion"
+                        )
+                    ]
+                )
+
+            # --------------------------------------------------
+            # FALLBACK DENTRO DEL ESTADO POST-RESOLUCIÓN
+            # --------------------------------------------------
 
             if intent == "nlu_fallback":
 
                 dispatcher.utter_message(
                     text=(
-                        "Puedes seleccionar una opción del menú o escribir nuevamente tu consulta.:\n"
+                        "Puedes seleccionar una opción del menú o escribir "
+                        "nuevamente tu consulta:\n"
                         "• Continuar tema\n"
                         "• Menú principal\n"
                         "• Finalizar conversación\n\n"
-                        "O escribir directamente una pregunta "
-                        "relacionada con el tema actual."
+                        "O escribir directamente una pregunta relacionada "
+                        "con el tema actual."
                     )
                 )
 
                 return limpieza
+
+            # --------------------------------------------------
+            # CUALQUIER OTRO INTENT NO DEBE PASAR AL LLM
+            # --------------------------------------------------
+
+            logger.warning(
+                "[POST_RESOLUCION] Intent no esperado mientras "
+                "el estado post-resolución estaba activo: %s",
+                intent,
+            )
+
+            dispatcher.utter_message(
+                text=(
+                    "Primero debes seleccionar una de las opciones "
+                    "del estado actual: Continuar tema, Menú principal "
+                    "o Finalizar conversación."
+                )
+            )
+
+            return limpieza
 
         # ======================================================
         # VALIDACIÓN CIERRE

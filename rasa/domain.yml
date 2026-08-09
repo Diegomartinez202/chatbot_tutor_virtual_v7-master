@@ -143,6 +143,12 @@ slots:
     mappings:
       - type: custom
   
+  tipo_pqrsd:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
+  
   cambio_tema:
     type: bool
     influence_conversation: false

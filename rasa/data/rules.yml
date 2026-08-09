@@ -318,6 +318,7 @@ rules:
           - proceso_activo: faq
     steps:
       - intent: continuar_faq
+      - action: action_limpiar_faq
       - action: action_solicitar_pregunta_faq
 
  
@@ -328,6 +329,7 @@ rules:
           - proceso_activo: pqrsd
     steps:
       - intent: radicar_pqrsd
+      - action: action_limpiar_pqrsd  
       - action: action_solicitar_pqrsd
   
 
@@ -451,8 +453,6 @@ rules:
       - slot_was_set:
           - esperando_decision_post_resolucion: true
       - slot_was_set:
-          - reanudar_pendiente: true
-      - slot_was_set:
           - proceso_activo: aprender_tema
     steps:
       - intent: affirm
@@ -462,8 +462,6 @@ rules:
     condition:
       - slot_was_set:
           - esperando_decision_post_resolucion: true
-      - slot_was_set:
-          - reanudar_pendiente: true
       - slot_was_set:
           - proceso_activo: aprender_tema
     steps:

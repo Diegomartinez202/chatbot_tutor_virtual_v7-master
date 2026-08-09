@@ -9,8 +9,8 @@ from .nlp_utils import anonymize_text
 
 def build_history(
     tracker: Tracker,
-    max_events: int = 2,
-    max_lines: int = 2,
+    max_events: int = 20,
+    max_lines: int = 6,
 ) -> str:
     """
     Construye un historial corto de conversación para
