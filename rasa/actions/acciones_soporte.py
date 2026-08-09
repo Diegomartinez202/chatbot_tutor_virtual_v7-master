@@ -1103,7 +1103,7 @@ class ActionOfrecerRadicarPQRSD(Action):
 
             SlotSet(
                 "esperando_pqrsd",
-                True,
+                False,
             ),
 
             SlotSet(
@@ -1417,7 +1417,7 @@ class ActionSolicitarPQRSD(Action):
             ),
             SlotSet(
                 "esperando_pqrsd",
-                 True,
+                 False,
             ),
             SlotSet(
                 "proceso_activo",
