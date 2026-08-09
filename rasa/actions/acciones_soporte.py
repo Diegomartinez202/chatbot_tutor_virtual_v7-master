@@ -790,6 +790,7 @@ class ActionVerificarMaxIntentosForm(Action):
             SlotSet("escalar_humano", True)
         ]
 
+
 class ActionPQRSDLLM(Action):
     """
     Envía al LLM la descripción del usuario para que redacte una
@@ -814,7 +815,10 @@ class ActionPQRSDLLM(Action):
 
         logger.info("=" * 80)
         logger.info("[PQRSD] ActionPQRSDLLM")
-        logger.info("texto=%s", tracker.latest_message.get("text"))
+        logger.info(
+            "texto=%s",
+            tracker.latest_message.get("text"),
+        )
         logger.info("=" * 80)
 
         descripcion = (
@@ -837,13 +841,25 @@ class ActionPQRSDLLM(Action):
             or "PQRSD"
         )
 
-        instruction = (
-            f"Tipo de solicitud: {tipo}\n\n"
-            f"Descripción del usuario:\n{descripcion}"
+        # ==========================================================
+        # PROMPT COMPLETO PQRSD
+        # ==========================================================
+
+        prompt_pqrsd = self._build_pqrsd_prompt(tracker)
+
+        logger.warning("=" * 80)
+        logger.warning("[PQRSD] PROMPT COMPLETO GENERADO")
+        logger.warning(
+            "[PQRSD] caracteres=%d",
+            len(prompt_pqrsd),
         )
+        logger.warning(
+            "[PQRSD] PROMPT:\n%s",
+            prompt_pqrsd,
+        )
+        logger.warning("=" * 80)
 
         eventos = [
-
             ActiveLoop(None),
 
             SlotSet(
@@ -873,26 +889,22 @@ class ActionPQRSDLLM(Action):
 
             SlotSet(
                 "esperando_decision_post_resolucion",
-                 False,
+                False,
             ),
 
             SlotSet(
                 "confirmacion_cierre",
                 None,
             ),
-
         ]
 
         eventos.extend(
-
             [
                 SlotSet(
                     "tema_actual",
                     descripcion,
                 ),
-
             ]
-
         )
 
         if intent != "radicar_pqrsd":
@@ -906,9 +918,14 @@ class ActionPQRSDLLM(Action):
                 ]
             )
 
-        request = build_llm_request(
+        # ==========================================================
+        # REQUEST LLM
+        # ==========================================================
 
-            instruction=instruction,
+        request = build_llm_request(
+            # IMPORTANTE:
+            # Aquí enviamos el prompt PQRSD completo.
+            instruction=prompt_pqrsd,
 
             macroflujo="support",
 
@@ -917,19 +934,36 @@ class ActionPQRSDLLM(Action):
             requires_auth=False,
 
             next_action="action_ofrecer_radicar_pqrsd",
-
         )
+
         logger.info(
             "[PQRSD] llm_request=%s",
             request,
         )
+
         logger.warning("=" * 80)
         logger.warning("[PQRSD] REQUEST CONSTRUIDO")
-        logger.warning("REQUEST CONSTRUIDO = %s", request)
+        logger.warning(
+            "[PQRSD] instruction_chars=%d",
+            len(
+                request.get("instruction", "")
+            ),
+        )
+        logger.warning(
+            "[PQRSD] subflujo=%s",
+            request.get("context", {}).get("subflujo"),
+        )
+        logger.warning(
+            "[PQRSD] next_action=%s",
+            request.get("next_action"),
+        )
+        logger.warning(
+            "[PQRSD] REQUEST=%s",
+            request,
+        )
         logger.warning("=" * 80)
 
         eventos.append(
-
             SlotSet(
                 "llm_request",
                 request,
@@ -939,8 +973,7 @@ class ActionPQRSDLLM(Action):
         eventos.append(
             FollowupAction(
                 "action_handle_with_llm"
-           )
-
+            )
         )
 
         logger.info(
@@ -949,14 +982,19 @@ class ActionPQRSDLLM(Action):
 
         logger.warning("=" * 80)
         logger.warning("[PQRSD] EVENTOS A RETORNAR")
-        logger.warning("EVENTOS = %s", eventos)
+        logger.warning(
+            "[PQRSD] EVENTOS=%s",
+            eventos,
+        )
         logger.warning("=" * 80)
 
         for evento in eventos:
-            logger.info("  %s", evento)
+            logger.info(
+                "  %s",
+                evento,
+            )
 
         return eventos
-
 
 class ActionOfrecerContinuarFaq(Action):
 

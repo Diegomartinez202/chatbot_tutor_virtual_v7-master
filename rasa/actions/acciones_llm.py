@@ -3265,11 +3265,11 @@ No repitas contenido anterior.
 
         if (
             proceso == "pqrsd"
-            and tracker.get_slot("esperando_pqrsd")
+            and intent == "describir_contenido_pqrsd"
         ):
 
             nuevo_tema = (
-                tracker.latest_message.get("text", "")
+               tracker.latest_message.get("text", "")
                .strip()
             )
 
@@ -3278,33 +3278,47 @@ No repitas contenido anterior.
                 nuevo_tema,
             )
 
+            logger.warning(
+                "########## [PQRSD DEBUG] ##########"
+            )
+
+            logger.warning(
+                "[PQRSD DEBUG] esperando_pqrsd=%s",
+                tracker.get_slot("esperando_pqrsd"),
+            )
+
+            logger.warning(
+                "[PQRSD DEBUG] proceso=%s",
+                proceso,
+            )
+
+            prompt_pqrsd = self._build_pqrsd_prompt(tracker)
+
+            logger.warning(
+                "[PQRSD DEBUG] PROMPT PQRSD GENERADO:\n%s",
+                prompt_pqrsd,
+            )
+
+            logger.warning(
+                "########## [PQRSD DEBUG] ##########"
+            )
+
             eventos = self._build_topic_events_support(
                 tracker,
                 proceso,
             )
 
             return (
-
                 limpieza
-
                 + eventos
-
                 + self._ejecutar_procesamiento_llm(
-
                     dispatcher,
-
                     tracker,
-
                     self.FLOW_SUPPORT,
-
-                    prompt=self._build_pqrsd_prompt(tracker),
-
+                    prompt=prompt_pqrsd,
                     tema_actual=nuevo_tema,
-
                     tema_consulta=nuevo_tema,
-
                 )
-
             )
         logger.warning("=" * 80)
         logger.warning("[RUN_SUPPORT] ENTRÓ AL FLUJO NORMAL")
@@ -4164,18 +4178,36 @@ No repitas contenido anterior.
 
             if llm_request:
 
-                if prompt is None:
+                context_llm = llm_request.get(
+                    "context",
+                    {},
+                )
 
-                    prompt = llm_request.get(
-                        "instruction",
-                        "",
+                # =====================================================
+                # PQRSD:
+                # Si el flujo ya entregó explícitamente el prompt
+                # específico, conservarlo.
+                # =====================================================
+
+                subflujo_llm = context_llm.get(
+                    "subflujo"
                     )
 
-               # -------------------------------------------------
-               # Construir siempre el contexto base del flujo
-               # -------------------------------------------------
+                if (
+                    subflujo_llm == "pqrsd"
+                    and prompt is not None
+                ):
 
-                context_llm = llm_request.get("context", {})
+                    logger.warning(
+                        "[PQRSD PROMPT] Conservando prompt PQRSD recibido."
+                    )
+
+                elif prompt is None:
+
+                    prompt = llm_request.get(
+                       "instruction",
+                       "",
+                    )
 
                # =====================================================
                # Compatibilidad entre el formato antiguo ("flujo")
